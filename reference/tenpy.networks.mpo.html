@@ -1,0 +1,735 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>tenpy.networks.mpo module &#8212; TeNPy 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="tenpy.networks.mps module" href="tenpy.networks.mps.html" />
+    <link rel="prev" title="tenpy.networks package" href="tenpy.networks.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tenpy.networks.mps.html" title="tenpy.networks.mps module"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="tenpy.networks.html" title="tenpy.networks package"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="tenpy.html" >tenpy package</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.networks.html" accesskey="U">tenpy.networks package</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-tenpy.networks.mpo">
+<span id="tenpy-networks-mpo-module"></span><h1>tenpy.networks.mpo module<a class="headerlink" href="#module-tenpy.networks.mpo" title="Permalink to this headline">¶</a></h1>
+<p>Matrix product operator (MPO).</p>
+<p>An MPO is the generalization of an <a class="reference internal" href="tenpy.networks.mps.html#tenpy.networks.mps.MPS" title="tenpy.networks.mps.MPS"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPS</span></code></a> to operators. Graphically:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>      <span class="o">^</span>        <span class="o">^</span>        <span class="o">^</span>
+<span class="o">|</span>      <span class="o">|</span>        <span class="o">|</span>        <span class="o">|</span>
+<span class="o">|</span>  <span class="o">-&gt;-</span> <span class="n">W</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-&gt;-</span> <span class="n">W</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-&gt;-</span> <span class="n">W</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-&gt;-</span> <span class="o">...</span>
+<span class="o">|</span>      <span class="o">|</span>        <span class="o">|</span>        <span class="o">|</span>
+<span class="o">|</span>      <span class="o">^</span>        <span class="o">^</span>        <span class="o">^</span>
+</pre></div>
+</div>
+<p>So each ‘matrix’ has two physical legs <code class="docutils literal notranslate"><span class="pre">p,</span> <span class="pre">p*</span></code> instead of just one,
+i.e. the entries of the ‘matrices’ are local operators.
+Valid boundary conditions of an MPO are the same as for an MPS
+(i.e. <code class="docutils literal notranslate"><span class="pre">'finite'</span> <span class="pre">|</span> <span class="pre">'segment'</span> <span class="pre">|</span> <span class="pre">'infinite'</span></code>).
+(In general, you can view the MPO as an MPS with larger physical space and bring it into
+canoncial form. However, unlike for an MPS, this doesn’t simplify calculations.
+Thus, an MPO has no <cite>form</cite>.)</p>
+<p>We use the following label convention for the <cite>W</cite> (where arrows indicate <cite>qconj</cite>):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>            <span class="n">p</span><span class="o">*</span>
+<span class="o">|</span>            <span class="o">^</span>
+<span class="o">|</span>            <span class="o">|</span>
+<span class="o">|</span>     <span class="n">wL</span> <span class="o">-&gt;-</span> <span class="n">W</span> <span class="o">-&gt;-</span> <span class="n">wR</span>
+<span class="o">|</span>            <span class="o">|</span>
+<span class="o">|</span>            <span class="o">^</span>
+<span class="o">|</span>            <span class="n">p</span>
+</pre></div>
+</div>
+<p>If an MPO describes a sum of local terms (e.g. most Hamiltonians),
+some bond indices correspond to ‘only identities to the left/right’.
+We store these indices in <cite>IdL</cite> and <cite>IdR</cite> (if there are such indices).</p>
+<p>Similar as for the MPS, a bond index <code class="docutils literal notranslate"><span class="pre">i</span></code> is <em>left</em> of site <cite>i</cite>,
+i.e. between sites <code class="docutils literal notranslate"><span class="pre">i-1</span></code> and <code class="docutils literal notranslate"><span class="pre">i</span></code>.</p>
+<div class="admonition-todo admonition" id="index-0">
+<p class="first admonition-title">Todo</p>
+<p class="last">transfermatrix for MPO</p>
+</div>
+<dl class="class">
+<dt id="tenpy.networks.mpo.MPO">
+<em class="property">class </em><code class="descclassname">tenpy.networks.mpo.</code><code class="descname">MPO</code><span class="sig-paren">(</span><em>sites</em>, <em>Ws</em>, <em>bc='finite'</em>, <em>IdL=None</em>, <em>IdR=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#MPO"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.MPO" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Matrix product operator, finite (MPO) or infinite (iMPO).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>sites</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></span></dt>
+<dd><p class="first last">Defines the local Hilbert space for each site.</p>
+</dd>
+<dt><strong>Ws</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">The matrices of the MPO. Should have labels <code class="docutils literal notranslate"><span class="pre">wL,</span> <span class="pre">wR,</span> <span class="pre">p,</span> <span class="pre">p*</span></code>.</p>
+</dd>
+<dt><strong>bc</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{‘finite’ | ‘segment’ | ‘infinite’}</span></dt>
+<dd><p class="first last">Boundary conditions as described in <a class="reference internal" href="tenpy.networks.mps.html#module-tenpy.networks.mps" title="tenpy.networks.mps"><code class="xref py py-mod docutils literal notranslate"><span class="pre">mps</span></code></a>.
+<code class="docutils literal notranslate"><span class="pre">'finite'</span></code> requires <code class="docutils literal notranslate"><span class="pre">Ws[0].get_leg('wL').ind_len</span> <span class="pre">=</span> <span class="pre">1</span></code>.</p>
+</dd>
+<dt><strong>IdL</strong> <span class="classifier-delimiter">:</span> <span class="classifier">(iterable of) {int | None}</span></dt>
+<dd><p class="first last">Indices on the bonds, which correpond to ‘only identities to the left’.
+A single entry holds for all bonds.</p>
+</dd>
+<dt><strong>IdR</strong> <span class="classifier-delimiter">:</span> <span class="classifier">(iterable of) {int | None}</span></dt>
+<dd><p class="first last">Indices on the bonds, which correpond to ‘only identities to the right’.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
+<dt><a class="reference internal" href="#tenpy.networks.mpo.MPO.L" title="tenpy.networks.mpo.MPO.L"><code class="xref py py-obj docutils literal notranslate"><span class="pre">L</span></code></a> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Number of physical sites.</p>
+</dd>
+<dt><strong>chinfo</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.ChargeInfo" title="tenpy.linalg.np_conserved.ChargeInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChargeInfo</span></code></a></span></dt>
+<dd><p class="first last">The nature of the charge.</p>
+</dd>
+<dt><strong>sites</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></span></dt>
+<dd><p class="first last">Defines the local Hilbert space for each site.</p>
+</dd>
+<dt><strong>dtype</strong> <span class="classifier-delimiter">:</span> <span class="classifier">type</span></dt>
+<dd><p class="first last">The data type of the <cite>_W</cite>.</p>
+</dd>
+<dt><strong>bc</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{‘finite’ | ‘segment’ | ‘infinite’}</span></dt>
+<dd><p class="first last">Boundary conditions as described in <a class="reference internal" href="tenpy.networks.mps.html#module-tenpy.networks.mps" title="tenpy.networks.mps"><code class="xref py py-mod docutils literal notranslate"><span class="pre">mps</span></code></a>.
+<code class="docutils literal notranslate"><span class="pre">'finite'</span></code> requires <code class="docutils literal notranslate"><span class="pre">Ws[0].get_leg('wL').ind_len</span> <span class="pre">=</span> <span class="pre">1</span></code>.</p>
+</dd>
+<dt><strong>IdL</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of {int | None}</span></dt>
+<dd><p class="first last">Indices on the bonds, which correpond to ‘only identities to the left’.
+<code class="docutils literal notranslate"><span class="pre">None</span></code> for bonds where it is not set.</p>
+</dd>
+<dt><strong>IdR</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of {int | None}</span></dt>
+<dd><p class="first last">Indices on the bonds, which correpond to ‘only identities to the right’.
+<code class="docutils literal notranslate"><span class="pre">None</span></code> for bonds where it is not set.</p>
+</dd>
+<dt><strong>_W</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">The matrices of the MPO. Labels are <code class="docutils literal notranslate"><span class="pre">'wL',</span> <span class="pre">'wR',</span> <span class="pre">'p',</span> <span class="pre">'p*'</span></code>.</p>
+</dd>
+<dt><strong>_valid_bc</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple of str</span></dt>
+<dd><p class="first last">Valid boundary conditions. The same as for an MPS.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.networks.mpo.MPO.get_IdL" title="tenpy.networks.mpo.MPO.get_IdL"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_IdL</span></code></a>(i)</td>
+<td>Return index of <cite>IdL</cite> at bond to the <em>left</em> of site <cite>i</cite>.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.networks.mpo.MPO.get_IdR" title="tenpy.networks.mpo.MPO.get_IdR"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_IdR</span></code></a>(i)</td>
+<td>Return index of <cite>IdR</cite> at bond to the <em>right</em> of site <cite>i</cite>.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.networks.mpo.MPO.get_W" title="tenpy.networks.mpo.MPO.get_W"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_W</span></code></a>(i[,&nbsp;copy])</td>
+<td>Return <cite>W</cite> at site <cite>i</cite>.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.networks.mpo.MPO.set_W" title="tenpy.networks.mpo.MPO.set_W"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_W</span></code></a>(i,&nbsp;W)</td>
+<td>Set <cite>W</cite> at site <cite>i</cite>.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.networks.mpo.MPO.test_sanity" title="tenpy.networks.mpo.MPO.test_sanity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code></a>()</td>
+<td>Sanity check.</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="tenpy.networks.mpo.MPO.L">
+<code class="descname">L</code><a class="headerlink" href="#tenpy.networks.mpo.MPO.L" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of physical sites. For an iMPO the len of the MPO unit cell.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.networks.mpo.MPO.chi">
+<code class="descname">chi</code><a class="headerlink" href="#tenpy.networks.mpo.MPO.chi" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dimensions of the (nontrivial) virtual bonds.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.networks.mpo.MPO.dim">
+<code class="descname">dim</code><a class="headerlink" href="#tenpy.networks.mpo.MPO.dim" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of local physical dimensions.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.networks.mpo.MPO.finite">
+<code class="descname">finite</code><a class="headerlink" href="#tenpy.networks.mpo.MPO.finite" title="Permalink to this definition">¶</a></dt>
+<dd><p>Distinguish MPO (<code class="docutils literal notranslate"><span class="pre">True;</span> <span class="pre">bc='finite',</span> <span class="pre">'segment'</span></code> ) vs. iMPO (<code class="docutils literal notranslate"><span class="pre">False;</span> <span class="pre">bc='infinite'</span></code>)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.mpo.MPO.get_IdL">
+<code class="descname">get_IdL</code><span class="sig-paren">(</span><em>i</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#MPO.get_IdL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.MPO.get_IdL" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return index of <cite>IdL</cite> at bond to the <em>left</em> of site <cite>i</cite>.</p>
+<p>May be <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.mpo.MPO.get_IdR">
+<code class="descname">get_IdR</code><span class="sig-paren">(</span><em>i</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#MPO.get_IdR"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.MPO.get_IdR" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return index of <cite>IdR</cite> at bond to the <em>right</em> of site <cite>i</cite>.</p>
+<p>May be <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.mpo.MPO.get_W">
+<code class="descname">get_W</code><span class="sig-paren">(</span><em>i</em>, <em>copy=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#MPO.get_W"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.MPO.get_W" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return <cite>W</cite> at site <cite>i</cite>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.mpo.MPO.set_W">
+<code class="descname">set_W</code><span class="sig-paren">(</span><em>i</em>, <em>W</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#MPO.set_W"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.MPO.set_W" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set <cite>W</cite> at site <cite>i</cite>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.mpo.MPO.test_sanity">
+<code class="descname">test_sanity</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#MPO.test_sanity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.MPO.test_sanity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sanity check. Raises Errors if something is wrong.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tenpy.networks.mpo.MPOGraph">
+<em class="property">class </em><code class="descclassname">tenpy.networks.mpo.</code><code class="descname">MPOGraph</code><span class="sig-paren">(</span><em>sites</em>, <em>bc='finite'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#MPOGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.MPOGraph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Representation of an MPO by a graph, based on a ‘finite state machine’.</p>
+<p>This representation is used for building H_MPO from the interactions.
+The idea is to view the MPO as a kind of ‘finite state machine’.
+The ‘states’ or <strong>keys</strong> of this finite state machine life on the MPO bonds <em>between</em> the <cite>Ws</cite>,
+and are the <strong>vertices</strong> of the graph. They label the indices of the virtul bonds
+of the MPOS (i.e. the indices on legs <code class="docutils literal notranslate"><span class="pre">wL</span></code> and <code class="docutils literal notranslate"><span class="pre">wR</span></code>).
+They can be anything hash-able like a <code class="docutils literal notranslate"><span class="pre">str</span></code>, <code class="docutils literal notranslate"><span class="pre">int</span></code> or a tuple of them.</p>
+<p>The <strong>edges</strong> of the graph are the entries <code class="docutils literal notranslate"><span class="pre">W[wL,</span> <span class="pre">wR]</span></code>, which itself are onsite operators
+on the local Hilbert space. The entry <code class="docutils literal notranslate"><span class="pre">W[wL,</span> <span class="pre">wR]</span></code> connects the vertex <code class="docutils literal notranslate"><span class="pre">wL</span></code> on bond
+<code class="docutils literal notranslate"><span class="pre">(i-1,</span> <span class="pre">i)</span></code> with the vertex <code class="docutils literal notranslate"><span class="pre">wR</span></code> on bond <code class="docutils literal notranslate"><span class="pre">(i,</span> <span class="pre">i+1)</span></code>.</p>
+<p>The keys <code class="docutils literal notranslate"><span class="pre">'IdR'</span></code> (for ‘idenity left’) and <code class="docutils literal notranslate"><span class="pre">'IdR'</span></code> (for ‘identity right’) are reserved to
+represent only <code class="docutils literal notranslate"><span class="pre">'Id'</span></code> (=identity) operators to the left and right of the bond, respectively.</p>
+<div class="admonition-todo admonition" id="index-1">
+<p class="first admonition-title">Todo</p>
+<p class="last">might be useful to add a “cleanup” function which removes operators cancelling each other
+and/or unused states. Or better use a ‘compress’ of the MPO?</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>sites</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></span></dt>
+<dd><p class="first last">Local sites of the Hilbert space.</p>
+</dd>
+<dt><strong>bc</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{‘finite’, ‘infinite’}</span></dt>
+<dd><p class="first last">MPO boundary conditions.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
+<dt><a class="reference internal" href="#tenpy.networks.mpo.MPOGraph.L" title="tenpy.networks.mpo.MPOGraph.L"><code class="xref py py-obj docutils literal notranslate"><span class="pre">L</span></code></a></dt>
+<dd><p class="first last">Number of physical sites.</p>
+</dd>
+<dt><strong>sites</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></span></dt>
+<dd><p class="first last">Defines the local Hilbert space for each site.</p>
+</dd>
+<dt><strong>chinfo</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.ChargeInfo" title="tenpy.linalg.np_conserved.ChargeInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChargeInfo</span></code></a></span></dt>
+<dd><p class="first last">The nature of the charge.</p>
+</dd>
+<dt><strong>bc</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{‘finite’, ‘infinite’}</span></dt>
+<dd><p class="first last">MPO boundary conditions.</p>
+</dd>
+<dt><strong>states</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of set of keys</span></dt>
+<dd><p class="first last"><code class="docutils literal notranslate"><span class="pre">states[i]</span></code> gives the possible keys at the virtual bond <code class="docutils literal notranslate"><span class="pre">(i-1,</span> <span class="pre">i)</span></code> of the MPO.</p>
+</dd>
+<dt><strong>graph</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of dict of dict of list of tuples</span></dt>
+<dd><p class="first last">For each site <cite>i</cite> a dictionary <code class="docutils literal notranslate"><span class="pre">{keyL:</span> <span class="pre">{keyR:</span> <span class="pre">[(opname,</span> <span class="pre">strength)]}}</span></code> with
+<code class="docutils literal notranslate"><span class="pre">keyL</span> <span class="pre">in</span> <span class="pre">vertices[i]</span></code> and <code class="docutils literal notranslate"><span class="pre">keyR</span> <span class="pre">in</span> <span class="pre">vertices[i+1]</span></code>.</p>
+</dd>
+<dt><strong>_grid_legs</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None | list of LegCharge</span></dt>
+<dd><p class="first last">The charges for the MPO</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.networks.mpo.MPOGraph.add" title="tenpy.networks.mpo.MPOGraph.add"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add</span></code></a>(i,&nbsp;keyL,&nbsp;keyR,&nbsp;opname,&nbsp;strength[,&nbsp;check_op])</td>
+<td>Insert an edge into the graph.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.networks.mpo.MPOGraph.add_missing_IdL_IdR" title="tenpy.networks.mpo.MPOGraph.add_missing_IdL_IdR"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_missing_IdL_IdR</span></code></a>()</td>
+<td>Add missing identity (‘Id’) edges connecting <code class="docutils literal notranslate"><span class="pre">'IdL'-&gt;'IdL'</span> <span class="pre">and</span> <span class="pre">``'IdR'-&gt;'IdR'</span></code>.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.networks.mpo.MPOGraph.add_string" title="tenpy.networks.mpo.MPOGraph.add_string"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_string</span></code></a>(i,&nbsp;j,&nbsp;key[,&nbsp;opname,&nbsp;check_op])</td>
+<td>Insert a bunch of edges for an ‘operator string’ into the graph.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.networks.mpo.MPOGraph.build_MPO" title="tenpy.networks.mpo.MPOGraph.build_MPO"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_MPO</span></code></a>([W_qtotal,&nbsp;leg0])</td>
+<td>Build the MPO represented by the graph (<cite>self</cite>).</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.networks.mpo.MPOGraph.has_edge" title="tenpy.networks.mpo.MPOGraph.has_edge"><code class="xref py py-obj docutils literal notranslate"><span class="pre">has_edge</span></code></a>(i,&nbsp;keyL,&nbsp;keyR)</td>
+<td>True if there is an edge from <cite>keyL</cite> on bond (i-1, i) to <cite>keyR</cite> on bond (i, i+1).</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.networks.mpo.MPOGraph.test_sanity" title="tenpy.networks.mpo.MPOGraph.test_sanity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code></a>()</td>
+<td>Sanity check.</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="tenpy.networks.mpo.MPOGraph.L">
+<code class="descname">L</code><a class="headerlink" href="#tenpy.networks.mpo.MPOGraph.L" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of physical sites. For an iMPS the length of the unit cell.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.mpo.MPOGraph.add">
+<code class="descname">add</code><span class="sig-paren">(</span><em>i</em>, <em>keyL</em>, <em>keyR</em>, <em>opname</em>, <em>strength</em>, <em>check_op=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#MPOGraph.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.MPOGraph.add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Insert an edge into the graph.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>i</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Site index at which the edge of the graph is to be inserted.</p>
+</dd>
+<dt><strong>keyL</strong> <span class="classifier-delimiter">:</span> <span class="classifier">hashable</span></dt>
+<dd><p class="first last">The state at bond (i-1, i) to connect from.</p>
+</dd>
+<dt><strong>keyR</strong> <span class="classifier-delimiter">:</span> <span class="classifier">hashable</span></dt>
+<dd><p class="first last">The state at bond (i, i+1) to connect to.</p>
+</dd>
+<dt><strong>opname</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Name of the operator.</p>
+</dd>
+<dt><strong>strength</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Prefactor of the operator to be inserted.</p>
+</dd>
+<dt><strong>check_op</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">Wheter to check that ‘opname’ exists on the given <cite>site</cite>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.mpo.MPOGraph.add_missing_IdL_IdR">
+<code class="descname">add_missing_IdL_IdR</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#MPOGraph.add_missing_IdL_IdR"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.MPOGraph.add_missing_IdL_IdR" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add missing identity (‘Id’) edges connecting <code class="docutils literal notranslate"><span class="pre">'IdL'-&gt;'IdL'</span> <span class="pre">and</span> <span class="pre">``'IdR'-&gt;'IdR'</span></code>.</p>
+<p>For <code class="docutils literal notranslate"><span class="pre">bc='infinite'</span></code>, insert missing identities at <em>all</em> bonds.
+For <code class="docutils literal notranslate"><span class="pre">bc='finite'</span> <span class="pre">|</span> <span class="pre">'segment'</span></code> only insert
+<code class="docutils literal notranslate"><span class="pre">'IdL'-&gt;'IdL'</span></code> to the left of the rightmost existing ‘IdL’ and
+<code class="docutils literal notranslate"><span class="pre">'IdR'-&gt;'IdR'</span></code> to the right of the leftmost existing ‘IdR’.</p>
+<p>This function should be called <em>after</em> all other operators have been inserted.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.mpo.MPOGraph.add_string">
+<code class="descname">add_string</code><span class="sig-paren">(</span><em>i</em>, <em>j</em>, <em>key</em>, <em>opname='Id'</em>, <em>check_op=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#MPOGraph.add_string"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.MPOGraph.add_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Insert a bunch of edges for an ‘operator string’ into the graph.</p>
+<p>Terms like <span class="math notranslate">\(S^z_i S^z_j\)</span> actually stand for
+<span class="math notranslate">\(S^z_i \otimes \prod_{i &lt; k &lt; j} \mathbb{1}_k \otimes S^z_j\)</span>.
+This function adds the <span class="math notranslate">\(\mathbb{1}\)</span> terms.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>i, j: int</strong></dt>
+<dd><p class="first last">An edge is inserted on all bonds between <cite>i</cite> and <cite>j</cite>.</p>
+</dd>
+<dt><strong>key: hashable</strong></dt>
+<dd><p class="first last">The state at bond (i-1, i) to connect from and on bond (j-1, j) to connect to.
+Also used for the intermediate states.
+No operator is inserted on a site <cite>i &lt; k &lt; j</cite> if <code class="docutils literal notranslate"><span class="pre">has_edge(k,</span> <span class="pre">key,</span> <span class="pre">key)</span></code>.</p>
+</dd>
+<dt><strong>opname</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Name of the operator to be used for the string.
+Useful for the Jordan-Wigner transformation to fermions.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.mpo.MPOGraph.build_MPO">
+<code class="descname">build_MPO</code><span class="sig-paren">(</span><em>W_qtotal=None</em>, <em>leg0=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#MPOGraph.build_MPO"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.MPOGraph.build_MPO" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build the MPO represented by the graph (<cite>self</cite>).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>W_qtotal</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None | charge</span></dt>
+<dd><p class="first last">A single qtotal used for <em>each</em> of the individual <cite>W</cite>.</p>
+</dd>
+<dt><strong>leg0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None | <code class="xref py py-class docutils literal notranslate"><span class="pre">npc.LegCharge</span></code></span></dt>
+<dd><p class="first last">The charges to be used for the very first leg (which is a gauge freedom).
+If <code class="docutils literal notranslate"><span class="pre">None</span></code> (default), use zeros.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>mpo</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="#tenpy.networks.mpo.MPO" title="tenpy.networks.mpo.MPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPO</span></code></a></span></dt>
+<dd><p class="first last">the MPO which self represents.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.mpo.MPOGraph.has_edge">
+<code class="descname">has_edge</code><span class="sig-paren">(</span><em>i</em>, <em>keyL</em>, <em>keyR</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#MPOGraph.has_edge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.MPOGraph.has_edge" title="Permalink to this definition">¶</a></dt>
+<dd><p>True if there is an edge from <cite>keyL</cite> on bond (i-1, i) to <cite>keyR</cite> on bond (i, i+1).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.mpo.MPOGraph.test_sanity">
+<code class="descname">test_sanity</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#MPOGraph.test_sanity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.MPOGraph.test_sanity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sanity check. Raises ValueErrors, if something is wrong.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tenpy.networks.mpo.MPOEnvironment">
+<em class="property">class </em><code class="descclassname">tenpy.networks.mpo.</code><code class="descname">MPOEnvironment</code><span class="sig-paren">(</span><em>bra</em>, <em>H</em>, <em>ket</em>, <em>firstLP=None</em>, <em>lastRP=None</em>, <em>age_LP=0</em>, <em>age_RP=0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#MPOEnvironment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.MPOEnvironment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tenpy.networks.mps.html#tenpy.networks.mps.MPSEnvironment" title="tenpy.networks.mps.MPSEnvironment"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.networks.mps.MPSEnvironment</span></code></a></p>
+<p>Stores partial contractions of <span class="math notranslate">\(&lt;bra|H|ket&gt;\)</span> for an MPO <cite>H</cite>.</p>
+<p>The network for a contraction <span class="math notranslate">\(&lt;bra|H|ket&gt;\)</span> of an MPO <cite>H</cite> bewteen two MPS looks like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>     <span class="o">.------&gt;-</span><span class="n">M</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">--&gt;-</span><span class="n">M</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">--&gt;-</span><span class="n">M</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">--&gt;-</span> <span class="o">...</span>  <span class="o">-&gt;--.</span>
+<span class="o">|</span>     <span class="o">|</span>        <span class="o">|</span>       <span class="o">|</span>       <span class="o">|</span>                 <span class="o">|</span>
+<span class="o">|</span>     <span class="o">|</span>        <span class="o">^</span>       <span class="o">^</span>       <span class="o">^</span>                 <span class="o">|</span>
+<span class="o">|</span>     <span class="o">|</span>        <span class="o">|</span>       <span class="o">|</span>       <span class="o">|</span>                 <span class="o">|</span>
+<span class="o">|</span>     <span class="n">LP</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-&gt;-</span><span class="n">W</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">--&gt;-</span><span class="n">W</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">--&gt;-</span><span class="n">W</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">--&gt;-</span> <span class="o">...</span>  <span class="o">-&gt;-</span> <span class="n">RP</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+<span class="o">|</span>     <span class="o">|</span>        <span class="o">|</span>       <span class="o">|</span>       <span class="o">|</span>                 <span class="o">|</span>
+<span class="o">|</span>     <span class="o">|</span>        <span class="o">^</span>       <span class="o">^</span>       <span class="o">^</span>                 <span class="o">|</span>
+<span class="o">|</span>     <span class="o">|</span>        <span class="o">|</span>       <span class="o">|</span>       <span class="o">|</span>                 <span class="o">|</span>
+<span class="o">|</span>     <span class="o">.------&gt;-</span><span class="n">N</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*-&gt;-</span><span class="n">N</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*-&gt;-</span><span class="n">N</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*-&gt;-</span> <span class="o">...</span>  <span class="o">-&gt;--.</span>
+</pre></div>
+</div>
+<p>We use the following label convention (where arrows indicate <cite>qconj</cite>):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>    <span class="o">.--&gt;-</span> <span class="n">vR</span>           <span class="n">vL</span> <span class="o">-&gt;-.</span>
+<span class="o">|</span>    <span class="o">|</span>                        <span class="o">|</span>
+<span class="o">|</span>    <span class="n">LP</span><span class="o">-&gt;-</span> <span class="n">wR</span>           <span class="n">wL</span> <span class="o">-&gt;-</span><span class="n">RP</span>
+<span class="o">|</span>    <span class="o">|</span>                        <span class="o">|</span>
+<span class="o">|</span>    <span class="o">.--&lt;-</span> <span class="n">vR</span><span class="o">*</span>         <span class="n">vL</span><span class="o">*</span> <span class="o">-&lt;-.</span>
+</pre></div>
+</div>
+<p>To avoid recalculations of the whole network e.g. in the DMRG sweeps,
+we store the contractions up to some site index in this class.
+For <code class="docutils literal notranslate"><span class="pre">bc='finite','segment'</span></code>, the very left and right part <code class="docutils literal notranslate"><span class="pre">LP[0]</span></code> and
+<code class="docutils literal notranslate"><span class="pre">RP[-1]</span></code> are trivial and don’t change in the DMRG algorithm,
+but for iDMRG (<code class="docutils literal notranslate"><span class="pre">bc='infinite'</span></code>) they are also updated
+(by inserting another unit cell to the left/right).</p>
+<p>The MPS <cite>bra</cite> and <cite>ket</cite> have to be in canonical form.
+All the environments are constructed without the singular values on the open bond.
+In other words, we contract left-canonical <cite>A</cite> to the left parts <cite>LP</cite>
+and right-canonical <cite>B</cite> to the right parts <cite>RP</cite>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>bra</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.networks.mps.html#tenpy.networks.mps.MPS" title="tenpy.networks.mps.MPS"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPS</span></code></a></span></dt>
+<dd><p class="first last">The MPS to project on. Should be given in usual ‘ket’ form;
+we call <cite>conj()</cite> on the matrices directly.</p>
+</dd>
+<dt><strong>H</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="#tenpy.networks.mpo.MPO" title="tenpy.networks.mpo.MPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPO</span></code></a></span></dt>
+<dd><p class="first last">The MPO sandwiched between <cite>bra</cite> and <cite>ket</cite>.
+Should have ‘IdL’ and ‘IdR’ set on the first and last bond.</p>
+</dd>
+<dt><strong>ket</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="#tenpy.networks.mpo.MPO" title="tenpy.networks.mpo.MPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPO</span></code></a></span></dt>
+<dd><p class="first last">The MPS on which <cite>H</cite> acts. May be identical with <cite>bra</cite>.</p>
+</dd>
+<dt><strong>firstLP</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">None</span></code> | <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Initial very left part. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, build trivial one.</p>
+</dd>
+<dt><strong>rightRP</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">None</span></code> | <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Initial very right part. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, build trivial one.</p>
+</dd>
+<dt><strong>age_LP</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">The number of physical sites involved into the contraction yielding <cite>firstLP</cite>.</p>
+</dd>
+<dt><strong>age_RP</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">The number of physical sites involved into the contraction yielding <cite>lastRP</cite>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>H</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="#tenpy.networks.mpo.MPO" title="tenpy.networks.mpo.MPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPO</span></code></a></span></dt>
+<dd><p class="first last">The MPO sandwiched between <cite>bra</cite> and <cite>ket</cite>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">del_LP</span></code>(i)</td>
+<td>Delete stored part strictly to the left of site <cite>i</cite>.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">del_RP</span></code>(i)</td>
+<td>Delete storde part scrictly to the right of site <cite>i</cite>.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">expectation_value</span></code>(ops[,&nbsp;sites,&nbsp;axes])</td>
+<td>Expectation value <code class="docutils literal notranslate"><span class="pre">&lt;bra|ops|ket&gt;</span></code> of (n-site) operator(s).</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.networks.mpo.MPOEnvironment.full_contraction" title="tenpy.networks.mpo.MPOEnvironment.full_contraction"><code class="xref py py-obj docutils literal notranslate"><span class="pre">full_contraction</span></code></a>(i0)</td>
+<td>Calculate the energy by a full contraction of the network.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.networks.mpo.MPOEnvironment.get_LP" title="tenpy.networks.mpo.MPOEnvironment.get_LP"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_LP</span></code></a>(i[,&nbsp;store])</td>
+<td>Calculate LP at given site from nearest available one (including <cite>i</cite>).</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_LP_age</span></code>(i)</td>
+<td>Return number of physical sites in the contractions of get_LP(i).</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.networks.mpo.MPOEnvironment.get_RP" title="tenpy.networks.mpo.MPOEnvironment.get_RP"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_RP</span></code></a>(i[,&nbsp;store])</td>
+<td>Calculate RP at given site from nearest available one (including <cite>i</cite>).</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_RP_age</span></code>(i)</td>
+<td>Return number of physical sites in the contractions of get_LP(i).</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_LP</span></code>(i,&nbsp;LP,&nbsp;age)</td>
+<td>Store part to the left of site <cite>i</cite>.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_RP</span></code>(i,&nbsp;RP,&nbsp;age)</td>
+<td>Store part to the right of site 1i1.</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="60%" />
+<col width="40%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>test_sanity</strong></td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="tenpy.networks.mpo.MPOEnvironment.full_contraction">
+<code class="descname">full_contraction</code><span class="sig-paren">(</span><em>i0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#MPOEnvironment.full_contraction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.MPOEnvironment.full_contraction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the energy by a full contraction of the network.</p>
+<p>The full contraction of the environments gives the value
+<code class="docutils literal notranslate"><span class="pre">&lt;bra|H|ket&gt;</span> <span class="pre">/</span> <span class="pre">(norm(|bra&gt;)*norm(|ket&gt;))</span></code>,
+i.e. if <cite>bra</cite> is <cite>ket</cite> and normalized, the total energy.
+For this purpose, this function contracts
+<code class="docutils literal notranslate"><span class="pre">get_LP(i0+1,</span> <span class="pre">store=False)</span></code> and <code class="docutils literal notranslate"><span class="pre">get_RP(i0,</span> <span class="pre">store=False)</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>i0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Site index.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.mpo.MPOEnvironment.get_LP">
+<code class="descname">get_LP</code><span class="sig-paren">(</span><em>i</em>, <em>store=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#MPOEnvironment.get_LP"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.MPOEnvironment.get_LP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate LP at given site from nearest available one (including <cite>i</cite>).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>i</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">The returned <cite>LP</cite> will contain the contraction <em>strictly</em> left of site <cite>i</cite>.</p>
+</dd>
+<dt><strong>store</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">Wheter to store the calculated <cite>LP</cite> in <cite>self</cite> (<code class="docutils literal notranslate"><span class="pre">True</span></code>) or discard them (<code class="docutils literal notranslate"><span class="pre">False</span></code>).</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>LP_i</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Contraction of everything left of site <cite>i</cite>,
+with labels <code class="docutils literal notranslate"><span class="pre">'vR*',</span> <span class="pre">'vR'</span></code> for <cite>bra</cite>, <cite>ket</cite>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.mpo.MPOEnvironment.get_RP">
+<code class="descname">get_RP</code><span class="sig-paren">(</span><em>i</em>, <em>store=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#MPOEnvironment.get_RP"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.MPOEnvironment.get_RP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate RP at given site from nearest available one (including <cite>i</cite>).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>i</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">The returned <cite>RP</cite> will contain the contraction <em>strictly</em> rigth of site <cite>i</cite>.</p>
+</dd>
+<dt><strong>store</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">Wheter to store the calculated <cite>RP</cite> in <cite>self</cite> (<code class="docutils literal notranslate"><span class="pre">True</span></code>) or discard them (<code class="docutils literal notranslate"><span class="pre">False</span></code>).</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>RP_i</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Contraction of everything left of site <cite>i</cite>,
+with labels <code class="docutils literal notranslate"><span class="pre">'vL*',</span> <span class="pre">'wL',</span> <span class="pre">'vL'</span></code> for <cite>bra</cite>, <cite>H</cite>, <cite>ket</cite>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.mpo.MPOEnvironment.test_sanity">
+<code class="descname">test_sanity</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#MPOEnvironment.test_sanity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.MPOEnvironment.test_sanity" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/logo.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="tenpy.networks.html"
+                        title="previous chapter">tenpy.networks package</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="tenpy.networks.mps.html"
+                        title="next chapter">tenpy.networks.mps module</a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../index.html">Table Of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../userguide.html">User Guide</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tenpy.html">tenpy package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tenpy.html#subpackages">Subpackages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.html#module-tenpy">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tenpy.networks.mps.html" title="tenpy.networks.mps module"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="tenpy.networks.html" title="tenpy.networks package"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="tenpy.html" >tenpy package</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.networks.html" >tenpy.networks package</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2018, TeNPy Developers.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

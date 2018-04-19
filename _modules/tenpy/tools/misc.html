@@ -1,0 +1,436 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>tenpy.tools.misc &#8212; TeNPy 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tenpy.tools.misc</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Miscellaneous tools, somewhat random mix yet often helpful.&quot;&quot;&quot;</span>
+<span class="c1"># Copyright 2018 TeNPy Developers</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">.optimization</span> <span class="k">import</span> <span class="n">bottleneck</span>
+
+<span class="nb">all</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">&#39;to_iterable&#39;</span><span class="p">,</span> <span class="s1">&#39;to_ndarray&#39;</span><span class="p">,</span> <span class="s1">&#39;anynan&#39;</span><span class="p">,</span> <span class="s1">&#39;argsort&#39;</span><span class="p">,</span> <span class="s1">&#39;inverse_permutation&#39;</span><span class="p">,</span> <span class="s1">&#39;list_to_dict_list&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;atleast_2d_pad&#39;</span><span class="p">,</span> <span class="s1">&#39;transpose_list_list&#39;</span><span class="p">,</span> <span class="s1">&#39;zero_if_close&#39;</span><span class="p">,</span> <span class="s1">&#39;pad&#39;</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="to_iterable"><a class="viewcode-back" href="../../../reference/tenpy.tools.misc.html#tenpy.tools.misc.to_iterable">[docs]</a><span class="k">def</span> <span class="nf">to_iterable</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;If `a` is a not iterable or a string, return ``[a]``, else return ``a``.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="nb">iter</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">a</span></div>
+
+
+<div class="viewcode-block" id="to_array"><a class="viewcode-back" href="../../../reference/tenpy.tools.misc.html#tenpy.tools.misc.to_array">[docs]</a><span class="k">def</span> <span class="nf">to_array</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="p">)):</span>
+    <span class="sd">&quot;&quot;&quot;Convert `a` to an numpy array and tile to matching dimension/shape.</span>
+
+<span class="sd">    This function provides similar functionality as numpys broadcast, but not quite the same:</span>
+<span class="sd">    Only scalars are broadcasted to higher dimensions,</span>
+<span class="sd">    for a non-scalar, we require the number of dimension to match.</span>
+<span class="sd">    If the shape does not match, we repeat periodically, e.g. we tile ``(3, 4) -&gt; (6, 16)``,</span>
+<span class="sd">    but ``(4, 4) -&gt; (6, 16)`` will raise an error.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    a : scalar | array_like</span>
+<span class="sd">        The input to be converted to an array. A scalar is reshaped to the desired dimension.</span>
+<span class="sd">    shape : tuple of {None | int}</span>
+<span class="sd">        The desired shape of the array. An entry ``None`` indicates arbitrary len &gt;=1.</span>
+<span class="sd">        For int entries, tile the array periodically to fit the len.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    a_array : ndarray</span>
+<span class="sd">        A copy of `a` converted to a numpy ndarray of desired dimension and shape.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>  <span class="c1"># copy</span>
+    <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># extending dimensions is ambiguous, so we better raise an Error.</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;don&#39;t know how to cast `a` to required dimensions.&quot;</span><span class="p">)</span>
+    <span class="n">reps</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">a</span><span class="o">.</span><span class="n">ndim</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">ndim</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">%</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;incomensurate len for tiling from </span><span class="si">{0:d}</span><span class="s2"> to </span><span class="si">{1:d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+        <span class="n">reps</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">//</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">reps</span><span class="p">)</span></div>
+
+
+<span class="k">if</span> <span class="n">bottleneck</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">anynan</span> <span class="o">=</span> <span class="n">bottleneck</span><span class="o">.</span><span class="n">anynan</span>
+<span class="k">else</span><span class="p">:</span>
+
+<div class="viewcode-block" id="anynan"><a class="viewcode-back" href="../../../reference/tenpy.tools.misc.html#tenpy.tools.misc.anynan">[docs]</a>    <span class="k">def</span> <span class="nf">anynan</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;check whether any entry of a ndarray `a` is &#39;NaN&#39;&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a</span><span class="p">))</span>  <span class="c1"># still faster than &#39;np.isnan(a).any()&#39;</span></div>
+
+
+<div class="viewcode-block" id="argsort"><a class="viewcode-back" href="../../../reference/tenpy.tools.misc.html#tenpy.tools.misc.argsort">[docs]</a><span class="k">def</span> <span class="nf">argsort</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;wrapper around np.argsort to allow sorting ascending/descending and by magnitude.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    a : array_like</span>
+<span class="sd">        the array to sort</span>
+<span class="sd">    sort : ``&#39;m&gt;&#39;, &#39;m&lt;&#39;, &#39;&gt;&#39;, &#39;&lt;&#39;, None``</span>
+<span class="sd">        Specify how the arguments should be sorted.</span>
+
+<span class="sd">        ================ ===========================</span>
+<span class="sd">        `sort`           order</span>
+<span class="sd">        ================ ===========================</span>
+<span class="sd">        ``&#39;m&gt;&#39;, &#39;LM&#39;``   Largest magnitude first</span>
+<span class="sd">        ``&#39;m&lt;&#39;, &#39;SM&#39;``   Smallest magnitude first</span>
+<span class="sd">        ``&#39;&gt;&#39;, &#39;LR&#39;``    Largest real part first</span>
+<span class="sd">        ``&#39;&lt;&#39;, &#39;SR&#39;``    Smallest real part first</span>
+<span class="sd">        ``&#39;LI&#39;``         Largest imaginary part first</span>
+<span class="sd">        ``&#39;Si&#39;``         Smallest imaginary part first</span>
+<span class="sd">        ``None``         numpy default: same as &#39;&lt;&#39;</span>
+<span class="sd">        ================ ===========================</span>
+<span class="sd">    **kwargs :</span>
+<span class="sd">        further keyword arguments given directly to ``numpy.argsort``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    index_array : ndarray, int</span>
+<span class="sd">        same shape as `a`, such that ``a[index_array]`` is sorted in the specified way.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">sort</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">sort</span> <span class="o">==</span> <span class="s1">&#39;m&lt;&#39;</span> <span class="ow">or</span> <span class="n">sort</span> <span class="o">==</span> <span class="s1">&#39;SM&#39;</span><span class="p">:</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">sort</span> <span class="o">==</span> <span class="s1">&#39;m&gt;&#39;</span> <span class="ow">or</span> <span class="n">sort</span> <span class="o">==</span> <span class="s1">&#39;LM&#39;</span><span class="p">:</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">sort</span> <span class="o">==</span> <span class="s1">&#39;&lt;&#39;</span> <span class="ow">or</span> <span class="n">sort</span> <span class="o">==</span> <span class="s1">&#39;SR&#39;</span><span class="p">:</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">sort</span> <span class="o">==</span> <span class="s1">&#39;&gt;&#39;</span> <span class="ow">or</span> <span class="n">sort</span> <span class="o">==</span> <span class="s1">&#39;LR&#39;</span><span class="p">:</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">sort</span> <span class="o">==</span> <span class="s1">&#39;SI&#39;</span><span class="p">:</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">sort</span> <span class="o">==</span> <span class="s1">&#39;LI&#39;</span><span class="p">:</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;unknown sort option &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">sort</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="lexsort"><a class="viewcode-back" href="../../../reference/tenpy.tools.misc.html#tenpy.tools.misc.lexsort">[docs]</a><span class="k">def</span> <span class="nf">lexsort</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;wrapper around ``np.lexsort``: allow for trivial case ``a.shape[0] = 0`` without sorting&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">s</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">]):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">axis</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">lexsort</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="inverse_permutation"><a class="viewcode-back" href="../../../reference/tenpy.tools.misc.html#tenpy.tools.misc.inverse_permutation">[docs]</a><span class="k">def</span> <span class="nf">inverse_permutation</span><span class="p">(</span><span class="n">perm</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;reverse sorting indices.</span>
+
+<span class="sd">    Sort functions (as :meth:`LegCharge.sort`) return a (1D) permutation `perm` array,</span>
+<span class="sd">    such that ``sorted_array = old_array[perm]``.</span>
+<span class="sd">    This function inverts the permutation `perm`,</span>
+<span class="sd">    such that ``old_array = sorted_array[inverse_permutation(perm)]``.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    perm : 1D array_like</span>
+<span class="sd">        the permutation to be reversed. *Assumes* that it is a permutation with unique indices.</span>
+<span class="sd">        If it is, ``inverse_permutation(inverse_permutation(perm)) == perm``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    inv_perm : 1D array (int)</span>
+<span class="sd">        the inverse permutation of `perm`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># with O(n log(n)) not the fastes possible implementation, but sufficient for all our needs</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">perm</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="list_to_dict_list"><a class="viewcode-back" href="../../../reference/tenpy.tools.misc.html#tenpy.tools.misc.list_to_dict_list">[docs]</a><span class="k">def</span> <span class="nf">list_to_dict_list</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Given a list `l` of objects, construct a lookup table.</span>
+
+<span class="sd">    This function will handle duplicate entries in `l`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    l: iterable of iterabele of immutable</span>
+<span class="sd">        A list of objects that can be converted to tuples to be used as keys for a dictionary.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    lookup : dict</span>
+<span class="sd">        A dictionary with (key, value) pairs ``(key):[i1,i2,...]``</span>
+<span class="sd">        where ``i1, i2, ...`` are the indices where `key` is found in `l`:</span>
+<span class="sd">        i.e. ``key == tuple(l[i1]) == tuple(l[i2]) == ...``</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">d</span></div>
+
+
+<div class="viewcode-block" id="atleast_2d_pad"><a class="viewcode-back" href="../../../reference/tenpy.tools.misc.html#tenpy.tools.misc.atleast_2d_pad">[docs]</a><span class="k">def</span> <span class="nf">atleast_2d_pad</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">pad_item</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Transform `a` into a 2D array, filling missing places with `pad_item`.</span>
+
+<span class="sd">    Given a list of lists, turn it to a 2D array (pad with 0), or turn a 1D list to 2D.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    a : list of lists</span>
+<span class="sd">        to be converted into ad 2D array.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    a_2D : 2D ndarray</span>
+<span class="sd">        a converted into a numpy array.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; atleast_2d_pad([3, 4, 0])</span>
+<span class="sd">    array([[3, 4, 0]])</span>
+
+<span class="sd">    &gt;&gt;&gt; atleast_2d_pad([[3, 4],[1, 6, 7]])</span>
+<span class="sd">    array([[ 3.,  4.,  0.],</span>
+<span class="sd">           [ 1.,  6.,  7.]])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">iter</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>  <span class="c1"># check that a is at least 1D iterable</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="c1"># Check if every element of a is a list</span>
+    <span class="n">is_list_of_list</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">a</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="nb">iter</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="n">is_list_of_list</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">break</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_list_of_list</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">a</span><span class="p">])</span>
+    <span class="n">maxlen</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">a</span><span class="p">])</span>
+    <span class="c1"># Pad if necessary</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">s</span><span class="p">,</span> <span class="p">[</span><span class="n">pad_item</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">maxlen</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">))])</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">a</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="transpose_list_list"><a class="viewcode-back" href="../../../reference/tenpy.tools.misc.html#tenpy.tools.misc.transpose_list_list">[docs]</a><span class="k">def</span> <span class="nf">transpose_list_list</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a list of lists T, such that ``T[i][j] = D[j][i]``.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    D : list of list</span>
+<span class="sd">        to be transposed</span>
+<span class="sd">    pad :</span>
+<span class="sd">        Used to fill missing places, if D is not rectangular.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    T : list of lists</span>
+<span class="sd">        transposed, rectangular version of `D`.</span>
+<span class="sd">        constructed such that ``T[i][j] = D[j][i] if i &lt; len(D[j]) else pad``</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nRow</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">D</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">nRow</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[[]]</span>
+    <span class="n">nCol</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">R</span><span class="p">)</span> <span class="k">for</span> <span class="n">R</span> <span class="ow">in</span> <span class="n">D</span><span class="p">])</span>
+    <span class="n">T</span> <span class="o">=</span> <span class="p">[[</span><span class="n">pad</span><span class="p">]</span> <span class="o">*</span> <span class="n">nRow</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nCol</span><span class="p">)]</span>
+    <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">R</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">D</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">R</span><span class="p">):</span>
+            <span class="n">T</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">e</span>
+    <span class="k">return</span> <span class="n">T</span></div>
+
+
+<div class="viewcode-block" id="zero_if_close"><a class="viewcode-back" href="../../../reference/tenpy.tools.misc.html#tenpy.tools.misc.zero_if_close">[docs]</a><span class="k">def</span> <span class="nf">zero_if_close</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1.e-15</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;set real and/or imaginary part to 0 if their absolute value is smaller than `tol`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    a : ndarray</span>
+<span class="sd">        numpy array to be rounded</span>
+<span class="sd">    tol : float</span>
+<span class="sd">        the threashold which values to consider as &#39;0&#39;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">complex128</span> <span class="ow">or</span> <span class="n">a</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">complex64</span><span class="p">:</span>
+        <span class="n">ar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">choose</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">real</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">tol</span><span class="p">,</span> <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">)])</span>
+        <span class="n">ai</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">choose</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">imag</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">tol</span><span class="p">,</span> <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">imag</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">)])</span>
+        <span class="k">return</span> <span class="n">ar</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">ai</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">choose</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">tol</span><span class="p">,</span> <span class="p">[</span><span class="n">a</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">a</span><span class="p">)])</span></div>
+
+
+<div class="viewcode-block" id="pad"><a class="viewcode-back" href="../../../reference/tenpy.tools.misc.html#tenpy.tools.misc.pad">[docs]</a><span class="k">def</span> <span class="nf">pad</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">w_l</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">v_l</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">w_r</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">v_r</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Pad an array along a given `axis`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    a : ndarray</span>
+<span class="sd">        the array to be padded</span>
+<span class="sd">    w_l : int</span>
+<span class="sd">        the width to be padded in the front</span>
+<span class="sd">    v_l : dtype</span>
+<span class="sd">        the value to be inserted before `a`</span>
+<span class="sd">    w_r : int</span>
+<span class="sd">        the width to be padded after the last index</span>
+<span class="sd">    v_l : dtype</span>
+<span class="sd">        the value to be inserted after `a`</span>
+<span class="sd">    axis : int</span>
+<span class="sd">        the axis along which to pad</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    padded : ndarray</span>
+<span class="sd">        a copy of `a` with enlarged `axis`, padded with the given values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">shp</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">shp</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span> <span class="o">+=</span> <span class="n">w_r</span> <span class="o">+</span> <span class="n">w_l</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">shp</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="c1"># tuple of full slices</span>
+    <span class="n">take</span> <span class="o">=</span> <span class="p">[</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">shp</span><span class="p">))]</span>
+    <span class="c1"># prepend</span>
+    <span class="n">take</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">w_l</span><span class="p">)</span>
+    <span class="n">b</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">take</span><span class="p">)]</span> <span class="o">=</span> <span class="n">v_l</span>
+    <span class="c1"># copy a</span>
+    <span class="n">take</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">w_l</span><span class="p">,</span> <span class="o">-</span><span class="n">w_r</span><span class="p">)</span>
+    <span class="n">b</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">take</span><span class="p">)]</span> <span class="o">=</span> <span class="n">a</span>
+    <span class="c1"># append</span>
+    <span class="n">take</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="o">-</span><span class="n">w_r</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">b</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">take</span><span class="p">)]</span> <span class="o">=</span> <span class="n">v_r</span>
+    <span class="k">return</span> <span class="n">b</span></div>
+
+
+<div class="viewcode-block" id="any_nonzero"><a class="viewcode-back" href="../../../reference/tenpy.tools.misc.html#tenpy.tools.misc.any_nonzero">[docs]</a><span class="k">def</span> <span class="nf">any_nonzero</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">verbose_msg</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Check for any non-zero or non-equal entries in some parameters.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    params : dict</span>
+<span class="sd">        A dictionary of parameters.</span>
+<span class="sd">    keys : list of {key | tuple of keys}</span>
+<span class="sd">        For a single key, check ``params[key]`` for non-zero entries.</span>
+<span class="sd">        For a tuple of keys, all the ``params[key]`` have to be equal.</span>
+<span class="sd">    verbose_msg : None | str</span>
+<span class="sd">        If params[&#39;verbose&#39;] &gt;= 1, we print `verbose_msg` before checking,</span>
+<span class="sd">        and a short notice with the `key`, if a non-zero entry is found.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    match : bool</span>
+<span class="sd">        False, if all params[key] are zero or `None` and</span>
+<span class="sd">        True, if any of the params[key] for single `key` in `keys`,</span>
+
+<span class="sd">        of if any of the entries for a tuple of `keys`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">verbose</span> <span class="o">=</span> <span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1.</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="c1"># check equality</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+            <span class="k">for</span> <span class="n">k1</span> <span class="ow">in</span> <span class="n">k</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">val</span> <span class="o">==</span> <span class="n">params</span><span class="p">[</span><span class="n">k1</span><span class="p">]):</span>
+                    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{k0!r}</span><span class="s2"> and </span><span class="si">{k1!r}</span><span class="s2"> have different entries.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k0</span><span class="o">=</span><span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">k1</span><span class="o">=</span><span class="n">k1</span><span class="p">))</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">!=</span> <span class="mf">0.</span><span class="p">):</span>  <span class="c1"># count `None` as zero</span>
+                <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">verbose_mesg</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; has nonzero entries&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="kc">False</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/logo.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../userguide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.html">tenpy package</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2018, TeNPy Developers.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

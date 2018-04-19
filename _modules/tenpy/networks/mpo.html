@@ -1,0 +1,851 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>tenpy.networks.mpo &#8212; TeNPy 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tenpy.networks.mpo</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Matrix product operator (MPO).</span>
+
+<span class="sd">An MPO is the generalization of an :class:`~tenpy.networks.mps.MPS` to operators. Graphically::</span>
+
+<span class="sd">    |      ^        ^        ^</span>
+<span class="sd">    |      |        |        |</span>
+<span class="sd">    |  -&gt;- W[0] -&gt;- W[1] -&gt;- W[2] -&gt;- ...</span>
+<span class="sd">    |      |        |        |</span>
+<span class="sd">    |      ^        ^        ^</span>
+
+<span class="sd">So each &#39;matrix&#39; has two physical legs ``p, p*`` instead of just one,</span>
+<span class="sd">i.e. the entries of the &#39;matrices&#39; are local operators.</span>
+<span class="sd">Valid boundary conditions of an MPO are the same as for an MPS</span>
+<span class="sd">(i.e. ``&#39;finite&#39; | &#39;segment&#39; | &#39;infinite&#39;``).</span>
+<span class="sd">(In general, you can view the MPO as an MPS with larger physical space and bring it into</span>
+<span class="sd">canoncial form. However, unlike for an MPS, this doesn&#39;t simplify calculations.</span>
+<span class="sd">Thus, an MPO has no `form`.)</span>
+
+<span class="sd">We use the following label convention for the `W` (where arrows indicate `qconj`)::</span>
+
+<span class="sd">    |            p*</span>
+<span class="sd">    |            ^</span>
+<span class="sd">    |            |</span>
+<span class="sd">    |     wL -&gt;- W -&gt;- wR</span>
+<span class="sd">    |            |</span>
+<span class="sd">    |            ^</span>
+<span class="sd">    |            p</span>
+
+
+<span class="sd">If an MPO describes a sum of local terms (e.g. most Hamiltonians),</span>
+<span class="sd">some bond indices correspond to &#39;only identities to the left/right&#39;.</span>
+<span class="sd">We store these indices in `IdL` and `IdR` (if there are such indices).</span>
+
+<span class="sd">Similar as for the MPS, a bond index ``i`` is *left* of site `i`,</span>
+<span class="sd">i.e. between sites ``i-1`` and ``i``.</span>
+
+<span class="sd">.. todo ::</span>
+<span class="sd">    transfermatrix for MPO</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># Copyright 2018 TeNPy Developers</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">..linalg</span> <span class="k">import</span> <span class="n">np_conserved</span> <span class="k">as</span> <span class="n">npc</span>
+<span class="kn">from</span> <span class="nn">..tools.string</span> <span class="k">import</span> <span class="n">vert_join</span>
+<span class="kn">from</span> <span class="nn">.mps</span> <span class="k">import</span> <span class="n">MPS</span> <span class="k">as</span> <span class="n">_MPS</span>  <span class="c1"># only for MPS._valid_bc</span>
+<span class="kn">from</span> <span class="nn">.mps</span> <span class="k">import</span> <span class="n">MPSEnvironment</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;MPO&#39;</span><span class="p">,</span> <span class="s1">&#39;MPOGraph&#39;</span><span class="p">,</span> <span class="s1">&#39;MPOEnvironment&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="MPO"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPO">[docs]</a><span class="k">class</span> <span class="nc">MPO</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Matrix product operator, finite (MPO) or infinite (iMPO).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sites : list of :class:`~tenpy.models.lattice.Site`</span>
+<span class="sd">        Defines the local Hilbert space for each site.</span>
+<span class="sd">    Ws : list of :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">        The matrices of the MPO. Should have labels ``wL, wR, p, p*``.</span>
+<span class="sd">    bc : {&#39;finite&#39; | &#39;segment&#39; | &#39;infinite&#39;}</span>
+<span class="sd">        Boundary conditions as described in :mod:`~tenpy.networks.mps`.</span>
+<span class="sd">        ``&#39;finite&#39;`` requires ``Ws[0].get_leg(&#39;wL&#39;).ind_len = 1``.</span>
+<span class="sd">    IdL : (iterable of) {int | None}</span>
+<span class="sd">        Indices on the bonds, which correpond to &#39;only identities to the left&#39;.</span>
+<span class="sd">        A single entry holds for all bonds.</span>
+<span class="sd">    IdR : (iterable of) {int | None}</span>
+<span class="sd">        Indices on the bonds, which correpond to &#39;only identities to the right&#39;.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    L : int</span>
+<span class="sd">        ``len(sites)``. For an iMPS, this is the number of sites in the MPS unit cell.</span>
+<span class="sd">    chinfo : :class:`~tenpy.linalg.np_conserved.ChargeInfo`</span>
+<span class="sd">        The nature of the charge.</span>
+<span class="sd">    sites : list of :class:`~tenpy.models.lattice.Site`</span>
+<span class="sd">        Defines the local Hilbert space for each site.</span>
+<span class="sd">    dtype : type</span>
+<span class="sd">        The data type of the `_W`.</span>
+<span class="sd">    bc : {&#39;finite&#39; | &#39;segment&#39; | &#39;infinite&#39;}</span>
+<span class="sd">        Boundary conditions as described in :mod:`~tenpy.networks.mps`.</span>
+<span class="sd">        ``&#39;finite&#39;`` requires ``Ws[0].get_leg(&#39;wL&#39;).ind_len = 1``.</span>
+<span class="sd">    IdL : list of {int | None}</span>
+<span class="sd">        Indices on the bonds, which correpond to &#39;only identities to the left&#39;.</span>
+<span class="sd">        ``None`` for bonds where it is not set.</span>
+<span class="sd">    IdR : list of {int | None}</span>
+<span class="sd">        Indices on the bonds, which correpond to &#39;only identities to the right&#39;.</span>
+<span class="sd">        ``None`` for bonds where it is not set.</span>
+<span class="sd">    _W : list of :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">        The matrices of the MPO. Labels are ``&#39;wL&#39;, &#39;wR&#39;, &#39;p&#39;, &#39;p*&#39;``.</span>
+<span class="sd">    _valid_bc : tuple of str</span>
+<span class="sd">        Valid boundary conditions. The same as for an MPS.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_valid_bc</span> <span class="o">=</span> <span class="n">_MPS</span><span class="o">.</span><span class="n">_valid_bc</span>  <span class="c1"># same valid boundary conditions as an MPS.</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sites</span><span class="p">,</span> <span class="n">Ws</span><span class="p">,</span> <span class="n">bc</span><span class="o">=</span><span class="s1">&#39;finite&#39;</span><span class="p">,</span> <span class="n">IdL</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">IdR</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sites</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sites</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">find_common_type</span><span class="p">([</span><span class="n">W</span><span class="o">.</span><span class="n">dtype</span> <span class="k">for</span> <span class="n">W</span> <span class="ow">in</span> <span class="n">Ws</span><span class="p">],</span> <span class="p">[])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_W</span> <span class="o">=</span> <span class="p">[</span><span class="n">W</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">for</span> <span class="n">W</span> <span class="ow">in</span> <span class="n">Ws</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">IdL</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">IdL</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">IdL</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">IdL</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">IdL</span> <span class="o">=</span> <span class="p">[</span><span class="n">IdL</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">IdR</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">IdR</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">IdR</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">IdR</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">IdR</span> <span class="o">=</span> <span class="p">[</span><span class="n">IdR</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="o">=</span> <span class="n">bc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">()</span>
+
+<div class="viewcode-block" id="MPO.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPO.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sanity check. Raises Errors if something is wrong.&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_valid_bc</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;invalid MPO boundary conditions: &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bc</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
+            <span class="n">S</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">W</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_W</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">S</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">test_equal</span><span class="p">(</span><span class="n">W</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;p&#39;</span><span class="p">))</span>
+            <span class="n">S</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">test_contractible</span><span class="p">(</span><span class="n">W</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;p*&#39;</span><span class="p">))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="o">==</span> <span class="s1">&#39;infinite&#39;</span> <span class="ow">or</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">:</span>
+                <span class="n">W2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">W</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;wR&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">test_contractible</span><span class="p">(</span><span class="n">W2</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;wL&#39;</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="o">==</span> <span class="s1">&#39;finite&#39;</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_W</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;wL&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">ind_len</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_W</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;wR&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">ind_len</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">IdL</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">IdR</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;wrong len of `IdL`/`IdR`&quot;</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">L</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Number of physical sites. For an iMPO the len of the MPO unit cell.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;List of local physical dimensions.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">site</span><span class="o">.</span><span class="n">dim</span> <span class="k">for</span> <span class="n">site</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">finite</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;Distinguish MPO (``True; bc=&#39;finite&#39;, &#39;segment&#39;`` ) vs. iMPO (``False; bc=&#39;infinite&#39;``)&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_valid_bc</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="o">!=</span> <span class="s1">&#39;infinite&#39;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">chi</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Dimensions of the (nontrivial) virtual bonds.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">W</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;wL&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">ind_len</span> <span class="k">for</span> <span class="n">W</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_W</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_W</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;wR&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">ind_len</span><span class="p">]</span>
+
+<div class="viewcode-block" id="MPO.get_W"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPO.get_W">[docs]</a>    <span class="k">def</span> <span class="nf">get_W</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return `W` at site `i`.&quot;&quot;&quot;</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_valid_index</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">copy</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_W</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_W</span><span class="p">[</span><span class="n">i</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="MPO.set_W"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPO.set_W">[docs]</a>    <span class="k">def</span> <span class="nf">set_W</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">W</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set `W` at site `i`.&quot;&quot;&quot;</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_valid_index</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_W</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">W</span></div>
+
+<div class="viewcode-block" id="MPO.get_IdL"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPO.get_IdL">[docs]</a>    <span class="k">def</span> <span class="nf">get_IdL</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return index of `IdL` at bond to the *left* of site `i`.</span>
+
+<span class="sd">        May be ``None``.&quot;&quot;&quot;</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_valid_index</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">IdL</span><span class="p">[</span><span class="n">i</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="MPO.get_IdR"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPO.get_IdR">[docs]</a>    <span class="k">def</span> <span class="nf">get_IdR</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return index of `IdR` at bond to the *right* of site `i`.</span>
+
+<span class="sd">        May be ``None``.&quot;&quot;&quot;</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_valid_index</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">IdR</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span></div>
+
+    <span class="k">def</span> <span class="nf">_to_valid_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Make sure `i` is a valid index (depending on `self.bc`).&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">i</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="ow">or</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;i = </span><span class="si">{0:d}</span><span class="s2"> out of bounds for finite MPO&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">i</span></div>
+
+
+<div class="viewcode-block" id="MPOGraph"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOGraph">[docs]</a><span class="k">class</span> <span class="nc">MPOGraph</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Representation of an MPO by a graph, based on a &#39;finite state machine&#39;.</span>
+
+<span class="sd">    This representation is used for building H_MPO from the interactions.</span>
+<span class="sd">    The idea is to view the MPO as a kind of &#39;finite state machine&#39;.</span>
+<span class="sd">    The &#39;states&#39; or **keys** of this finite state machine life on the MPO bonds *between* the `Ws`,</span>
+<span class="sd">    and are the **vertices** of the graph. They label the indices of the virtul bonds</span>
+<span class="sd">    of the MPOS (i.e. the indices on legs ``wL`` and ``wR``).</span>
+<span class="sd">    They can be anything hash-able like a ``str``, ``int`` or a tuple of them.</span>
+
+<span class="sd">    The **edges** of the graph are the entries ``W[wL, wR]``, which itself are onsite operators</span>
+<span class="sd">    on the local Hilbert space. The entry ``W[wL, wR]`` connects the vertex ``wL`` on bond</span>
+<span class="sd">    ``(i-1, i)`` with the vertex ``wR`` on bond ``(i, i+1)``.</span>
+
+<span class="sd">    The keys ``&#39;IdR&#39;`` (for &#39;idenity left&#39;) and ``&#39;IdR&#39;`` (for &#39;identity right&#39;) are reserved to</span>
+<span class="sd">    represent only ``&#39;Id&#39;`` (=identity) operators to the left and right of the bond, respectively.</span>
+
+<span class="sd">    .. todo ::</span>
+<span class="sd">        might be useful to add a &quot;cleanup&quot; function which removes operators cancelling each other</span>
+<span class="sd">        and/or unused states. Or better use a &#39;compress&#39; of the MPO?</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sites : list of :class:`~tenpy.models.lattice.Site`</span>
+<span class="sd">        Local sites of the Hilbert space.</span>
+<span class="sd">    bc : {&#39;finite&#39;, &#39;infinite&#39;}</span>
+<span class="sd">        MPO boundary conditions.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    L</span>
+<span class="sd">    sites : list of :class:`~tenpy.models.lattice.Site`</span>
+<span class="sd">        Defines the local Hilbert space for each site.</span>
+<span class="sd">    chinfo : :class:`~tenpy.linalg.np_conserved.ChargeInfo`</span>
+<span class="sd">        The nature of the charge.</span>
+<span class="sd">    bc : {&#39;finite&#39;, &#39;infinite&#39;}</span>
+<span class="sd">        MPO boundary conditions.</span>
+<span class="sd">    states : list of set of keys</span>
+<span class="sd">        ``states[i]`` gives the possible keys at the virtual bond ``(i-1, i)`` of the MPO.</span>
+<span class="sd">    graph : list of dict of dict of list of tuples</span>
+<span class="sd">        For each site `i` a dictionary ``{keyL: {keyR: [(opname, strength)]}}`` with</span>
+<span class="sd">        ``keyL in vertices[i]`` and ``keyR in vertices[i+1]``.</span>
+<span class="sd">    _grid_legs : None | list of LegCharge</span>
+<span class="sd">        The charges for the MPO</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sites</span><span class="p">,</span> <span class="n">bc</span><span class="o">=</span><span class="s1">&#39;finite&#39;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sites</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sites</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="o">=</span> <span class="n">bc</span>
+        <span class="c1"># empty graph</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="nb">set</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">graph</span> <span class="o">=</span> <span class="p">[{}</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ordered_states</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_grids</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_grid_legs</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">()</span>
+
+<div class="viewcode-block" id="MPOGraph.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOGraph.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sanity check. Raises ValueErrors, if something is wrong.&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">MPO</span><span class="o">.</span><span class="n">_valid_bc</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;invalid MPO boundary conditions: &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bc</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">site</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">site</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;invalid ChargeInfo for site </span><span class="si">{i:d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">))</span>
+            <span class="n">stL</span><span class="p">,</span> <span class="n">stR</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]</span>
+            <span class="c1"># check graph</span>
+            <span class="n">gr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">keyL</span> <span class="ow">in</span> <span class="n">gr</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="n">keyL</span> <span class="ow">in</span> <span class="n">stL</span>
+                <span class="k">for</span> <span class="n">keyR</span> <span class="ow">in</span> <span class="n">gr</span><span class="p">[</span><span class="n">keyL</span><span class="p">]:</span>
+                    <span class="k">assert</span> <span class="n">keyR</span> <span class="ow">in</span> <span class="n">stR</span>
+                    <span class="k">for</span> <span class="n">opname</span><span class="p">,</span> <span class="n">strength</span> <span class="ow">in</span> <span class="n">gr</span><span class="p">[</span><span class="n">keyL</span><span class="p">][</span><span class="n">keyR</span><span class="p">]:</span>
+                        <span class="k">assert</span> <span class="n">site</span><span class="o">.</span><span class="n">valid_opname</span><span class="p">(</span><span class="n">opname</span><span class="p">)</span></div>
+        <span class="c1"># done</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">L</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Number of physical sites. For an iMPS the length of the unit cell.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MPOGraph.add"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOGraph.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">keyL</span><span class="p">,</span> <span class="n">keyR</span><span class="p">,</span> <span class="n">opname</span><span class="p">,</span> <span class="n">strength</span><span class="p">,</span> <span class="n">check_op</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Insert an edge into the graph.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        i : int</span>
+<span class="sd">            Site index at which the edge of the graph is to be inserted.</span>
+<span class="sd">        keyL : hashable</span>
+<span class="sd">            The state at bond (i-1, i) to connect from.</span>
+<span class="sd">        keyR : hashable</span>
+<span class="sd">            The state at bond (i, i+1) to connect to.</span>
+<span class="sd">        opname : str</span>
+<span class="sd">            Name of the operator.</span>
+<span class="sd">        strength : str</span>
+<span class="sd">            Prefactor of the operator to be inserted.</span>
+<span class="sd">        check_op : bool</span>
+<span class="sd">            Wheter to check that &#39;opname&#39; exists on the given `site`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">i</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
+        <span class="k">if</span> <span class="n">check_op</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">valid_opname</span><span class="p">(</span><span class="n">opname</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;operator </span><span class="si">{0!r}</span><span class="s2"> not existent on site </span><span class="si">{1:d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">opname</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">keyL</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">keyL</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">keyR</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">keyR</span><span class="p">)</span>
+        <span class="n">D</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">keyL</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="k">if</span> <span class="n">keyR</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">D</span><span class="p">:</span>
+            <span class="n">D</span><span class="p">[</span><span class="n">keyR</span><span class="p">]</span> <span class="o">=</span> <span class="p">[(</span><span class="n">opname</span><span class="p">,</span> <span class="n">strength</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">D</span><span class="p">[</span><span class="n">keyR</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">opname</span><span class="p">,</span> <span class="n">strength</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="MPOGraph.add_string"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOGraph.add_string">[docs]</a>    <span class="k">def</span> <span class="nf">add_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">opname</span><span class="o">=</span><span class="s1">&#39;Id&#39;</span><span class="p">,</span> <span class="n">check_op</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Insert a bunch of edges for an &#39;operator string&#39; into the graph.</span>
+
+<span class="sd">        Terms like :math:`S^z_i S^z_j` actually stand for</span>
+<span class="sd">        :math:`S^z_i \otimes \prod_{i &lt; k &lt; j} \mathbb{1}_k \otimes S^z_j`.</span>
+<span class="sd">        This function adds the :math:`\mathbb{1}` terms.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        i, j: int</span>
+<span class="sd">            An edge is inserted on all bonds between `i` and `j`.</span>
+<span class="sd">        key: hashable</span>
+<span class="sd">            The state at bond (i-1, i) to connect from and on bond (j-1, j) to connect to.</span>
+<span class="sd">            Also used for the intermediate states.</span>
+<span class="sd">            No operator is inserted on a site `i &lt; k &lt; j` if ``has_edge(k, key, key)``.</span>
+<span class="sd">        opname : str</span>
+<span class="sd">            Name of the operator to be used for the string.</span>
+<span class="sd">            Useful for the Jordan-Wigner transformation to fermions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">i</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="o">!=</span> <span class="s1">&#39;infinite&#39;</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;j &lt; i not allowed for finite boundary conditions&quot;</span><span class="p">)</span>
+            <span class="n">j</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span>
+            <span class="n">k</span> <span class="o">=</span> <span class="n">k</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_edge</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">opname</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">check_op</span><span class="o">=</span><span class="n">check_op</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MPOGraph.add_missing_IdL_IdR"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOGraph.add_missing_IdL_IdR">[docs]</a>    <span class="k">def</span> <span class="nf">add_missing_IdL_IdR</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add missing identity (&#39;Id&#39;) edges connecting ``&#39;IdL&#39;-&gt;&#39;IdL&#39; and ``&#39;IdR&#39;-&gt;&#39;IdR&#39;``.</span>
+
+<span class="sd">        For ``bc=&#39;infinite&#39;``, insert missing identities at *all* bonds.</span>
+<span class="sd">        For ``bc=&#39;finite&#39; | &#39;segment&#39;`` only insert</span>
+<span class="sd">        ``&#39;IdL&#39;-&gt;&#39;IdL&#39;`` to the left of the rightmost existing &#39;IdL&#39; and</span>
+<span class="sd">        ``&#39;IdR&#39;-&gt;&#39;IdR&#39;`` to the right of the leftmost existing &#39;IdR&#39;.</span>
+
+<span class="sd">        This function should be called *after* all other operators have been inserted.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="o">==</span> <span class="s1">&#39;infinite&#39;</span><span class="p">:</span>
+            <span class="c1"># infinite boundary connections: add for all sites</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_string</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="s1">&#39;IdL&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_string</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="s1">&#39;IdR&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">max_IdL</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="k">if</span> <span class="s1">&#39;IdL&#39;</span> <span class="ow">in</span> <span class="n">s</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_string</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_IdL</span><span class="p">,</span> <span class="s1">&#39;IdL&#39;</span><span class="p">,</span> <span class="s1">&#39;Id&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">)</span>
+            <span class="n">min_IdR</span> <span class="o">=</span> <span class="nb">min</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="k">if</span> <span class="s1">&#39;IdR&#39;</span> <span class="ow">in</span> <span class="n">s</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_string</span><span class="p">(</span><span class="n">min_IdR</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="s1">&#39;IdR&#39;</span><span class="p">,</span> <span class="s1">&#39;Id&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">)</span></div>
+        <span class="c1"># done</span>
+
+<div class="viewcode-block" id="MPOGraph.has_edge"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOGraph.has_edge">[docs]</a>    <span class="k">def</span> <span class="nf">has_edge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">keyL</span><span class="p">,</span> <span class="n">keyR</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;True if there is an edge from `keyL` on bond (i-1, i) to `keyR` on bond (i, i+1).&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">keyR</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">keyL</span><span class="p">,</span> <span class="p">[])</span></div>
+
+<div class="viewcode-block" id="MPOGraph.build_MPO"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOGraph.build_MPO">[docs]</a>    <span class="k">def</span> <span class="nf">build_MPO</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">W_qtotal</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">leg0</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Build the MPO represented by the graph (`self`).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        W_qtotal : None | charge</span>
+<span class="sd">            A single qtotal used for *each* of the individual `W`.</span>
+<span class="sd">        leg0 : None | :class:`npc.LegCharge`</span>
+<span class="sd">            The charges to be used for the very first leg (which is a gauge freedom).</span>
+<span class="sd">            If ``None`` (default), use zeros.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        mpo : :class:`MPO`</span>
+<span class="sd">            the MPO which self represents.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">()</span>
+        <span class="c1"># pre-work: generate the grid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_ordered_states</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_build_grids</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_calc_grid_legs</span><span class="p">(</span><span class="n">W_qtotal</span><span class="p">,</span> <span class="n">leg0</span><span class="p">)</span>
+        <span class="c1"># now build the `W` from the grid</span>
+        <span class="n">Ws</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
+            <span class="n">legs</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_grid_legs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_legs</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">()]</span>
+            <span class="n">W</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">grid_outer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_grids</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">legs</span><span class="p">,</span> <span class="n">W_qtotal</span><span class="p">)</span>
+            <span class="n">W</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;wL&#39;</span><span class="p">,</span> <span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">])</span>
+            <span class="n">Ws</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">W</span><span class="p">)</span>
+        <span class="n">IdL</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;IdL&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ordered_states</span><span class="p">]</span>
+        <span class="n">IdR</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;IdR&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ordered_states</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">MPO</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">,</span> <span class="n">Ws</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span><span class="p">,</span> <span class="n">IdL</span><span class="p">,</span> <span class="n">IdR</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;MPOGraph L=</span><span class="si">{L:d}</span><span class="s2">&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">L</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;string showing the graph for debug output.&quot;&quot;&quot;</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
+            <span class="n">G</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">strs</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">keyL</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+                <span class="n">s</span> <span class="o">=</span> <span class="p">[</span><span class="nb">repr</span><span class="p">(</span><span class="n">keyL</span><span class="p">)]</span>
+                <span class="n">s</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+                <span class="n">D</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">keyL</span><span class="p">,</span> <span class="p">[])</span>
+                <span class="k">for</span> <span class="n">keyR</span> <span class="ow">in</span> <span class="n">D</span><span class="p">:</span>
+                    <span class="n">s</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">keyR</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;:&quot;</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">optuple</span> <span class="ow">in</span> <span class="n">D</span><span class="p">[</span><span class="n">keyR</span><span class="p">]:</span>
+                        <span class="n">s</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;  &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">optuple</span><span class="p">))</span>
+                <span class="n">strs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vert_join</span><span class="p">(</span><span class="n">strs</span><span class="p">,</span> <span class="n">delim</span><span class="o">=</span><span class="s1">&#39;|&#39;</span><span class="p">))</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="c1"># &amp; states on last MPO bond</span>
+        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vert_join</span><span class="p">([</span><span class="nb">repr</span><span class="p">(</span><span class="n">keyR</span><span class="p">)</span> <span class="k">for</span> <span class="n">keyR</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="n">delim</span><span class="o">=</span><span class="s1">&#39; |&#39;</span><span class="p">))</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_set_ordered_states</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Define an ordering of the &#39;states&#39; on each MPO bond.</span>
+
+<span class="sd">        Set ``self._ordered_states`` to a list of dictionaries ``{state: index}``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ordered_states</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">:</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="c1"># try &#39;IdL&#39;=0 and &#39;IdR&#39;=-1.</span>
+            <span class="k">if</span> <span class="s1">&#39;IdL&#39;</span> <span class="ow">in</span> <span class="n">s</span><span class="p">:</span>
+                <span class="n">offset</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">d</span><span class="p">[</span><span class="s1">&#39;IdL&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">s</span> <span class="o">-</span> <span class="p">{</span><span class="s1">&#39;IdL&#39;</span><span class="p">,</span> <span class="s1">&#39;IdR&#39;</span><span class="p">},</span> <span class="n">key</span><span class="o">=</span><span class="nb">str</span><span class="p">)):</span>
+                <span class="n">d</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="n">offset</span>
+            <span class="k">if</span> <span class="s1">&#39;IdR&#39;</span> <span class="ow">in</span> <span class="n">s</span><span class="p">:</span>
+                <span class="n">d</span><span class="p">[</span><span class="s1">&#39;IdR&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_build_grids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;translate the graph dictionaries into grids for the `Ws`.&quot;&quot;&quot;</span>
+        <span class="n">states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ordered_states</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="n">states</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>  <span class="c1"># make sure that _set_ordered_states was called</span>
+        <span class="n">grids</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
+            <span class="n">stL</span><span class="p">,</span> <span class="n">stR</span> <span class="o">=</span> <span class="n">states</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]</span>
+            <span class="n">graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>  <span class="c1"># ``{keyL: {keyR: [(opname, strength)]}}``</span>
+            <span class="n">grid</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">stL</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">sL</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">stL</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">row</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">stR</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">sR</span><span class="p">,</span> <span class="n">lst</span> <span class="ow">in</span> <span class="n">graph</span><span class="p">[</span><span class="n">sL</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">b</span> <span class="o">=</span> <span class="n">stR</span><span class="p">[</span><span class="n">sR</span><span class="p">]</span>
+                    <span class="n">row</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">lst</span>
+                <span class="n">grid</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="o">=</span> <span class="n">row</span>
+            <span class="n">grid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_insert_ops</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>  <span class="c1"># replace `lst` by the actual operators</span>
+            <span class="n">grids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">grid</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_grids</span> <span class="o">=</span> <span class="n">grids</span>
+
+    <span class="k">def</span> <span class="nf">_grid_insert_ops</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Replaces ``[(&#39;opname&#39;, strength)]`` in a grid representing W[i] with actual Arrays.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        grid : list of list of entries</span>
+<span class="sd">            Entries may be ``None`` or like ``[(opname, strength)]``. Modified.</span>
+<span class="sd">        i : int</span>
+<span class="sd">            MPS index at which the grid is define</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        grid : list of list of {None | :class:`~tenpy.linalg.np_conserved.Array`}</span>
+<span class="sd">            The grid W[i] with operators</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">site</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">grid</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">row</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">entry</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">opname</span><span class="p">,</span> <span class="n">strength</span> <span class="o">=</span> <span class="n">entry</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">res</span> <span class="o">=</span> <span class="n">strength</span> <span class="o">*</span> <span class="n">site</span><span class="o">.</span><span class="n">get_op</span><span class="p">(</span><span class="n">opname</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">opname</span><span class="p">,</span> <span class="n">strength</span> <span class="ow">in</span> <span class="n">entry</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+                    <span class="n">res</span> <span class="o">=</span> <span class="n">res</span> <span class="o">+</span> <span class="n">strength</span> <span class="o">*</span> <span class="n">site</span><span class="o">.</span><span class="n">get_op</span><span class="p">(</span><span class="n">opname</span><span class="p">)</span>
+                <span class="n">row</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">res</span>  <span class="c1"># replace entry</span>
+        <span class="k">return</span> <span class="n">grid</span>
+
+    <span class="k">def</span> <span class="nf">_calc_grid_legs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">W_qtotal</span><span class="p">,</span> <span class="n">leg0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;calculate LegCharges for the grids from self.grid&quot;&quot;&quot;</span>
+        <span class="n">grids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grids</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="n">grids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>  <span class="c1"># make sure _grid_insert_ops was called</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="o">!=</span> <span class="s1">&#39;infinite&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_calc_grid_legs_finite</span><span class="p">(</span><span class="n">grids</span><span class="p">,</span> <span class="n">W_qtotal</span><span class="p">,</span> <span class="n">leg0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_calc_grid_legs_infinite</span><span class="p">(</span><span class="n">grids</span><span class="p">,</span> <span class="n">W_qtotal</span><span class="p">,</span> <span class="n">leg0</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_calc_grid_legs_finite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grids</span><span class="p">,</span> <span class="n">W_qtotal</span><span class="p">,</span> <span class="n">leg0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;calculate LegCharges from `self._grid` for a finite MPO.</span>
+
+<span class="sd">        This is the easier case. We just gauge the very first leg to the left to zeros,</span>
+<span class="sd">        then all other charges (hopefully) follow from the entries of the grid.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">leg0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">grids</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;finite MPO with len of first bond != 1: how????&quot;</span><span class="p">)</span>
+            <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="o">.</span><span class="n">make_valid</span><span class="p">()</span>
+            <span class="n">leg0</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="p">,</span> <span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="n">qconj</span><span class="o">=+</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">legs</span> <span class="o">=</span> <span class="p">[</span><span class="n">leg0</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">gr</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">grids</span><span class="p">):</span>
+            <span class="n">gr_legs</span> <span class="o">=</span> <span class="p">[</span><span class="n">legs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span>
+            <span class="n">gr_legs</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">detect_grid_outer_legcharge</span><span class="p">(</span>
+                <span class="n">gr</span><span class="p">,</span> <span class="n">gr_legs</span><span class="p">,</span> <span class="n">qtotal</span><span class="o">=</span><span class="n">W_qtotal</span><span class="p">,</span> <span class="n">qconj</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">bunch</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">legs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gr_legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_grid_legs</span> <span class="o">=</span> <span class="n">legs</span>
+
+    <span class="k">def</span> <span class="nf">_calc_grid_legs_infinite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grids</span><span class="p">,</span> <span class="n">W_qtotal</span><span class="p">,</span> <span class="n">leg0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;calculate LegCharges from `self._grid` for an iMPO.</span>
+
+<span class="sd">        The hard case. Initially, we do not know all charges of the first leg; and they have to</span>
+<span class="sd">        be consistent with the final leg.</span>
+
+<span class="sd">        The way to go: gauge &#39;IdL&#39; on the very left leg to 0, then gradually calculate the charges</span>
+<span class="sd">        by going along the edges of the graph (maybe also over the iMPO boundary).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">leg0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># have charges of first leg: simple case, can use the *_finite version.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_calc_grid_legs_finite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grids</span><span class="p">,</span> <span class="n">W_qtotal</span><span class="p">,</span> <span class="n">leg0</span><span class="p">)</span>
+            <span class="c1"># just make sure, that everything is self consistent over the MPS boundary.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">test_contractible</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">return</span>
+        <span class="n">chinfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span>
+        <span class="n">W_qtotal</span> <span class="o">=</span> <span class="n">chinfo</span><span class="o">.</span><span class="n">make_valid</span><span class="p">(</span><span class="n">W_qtotal</span><span class="p">)</span>
+        <span class="n">states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ordered_states</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="n">states</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>  <span class="c1"># make sure self._set_ordered_states() was called</span>
+        <span class="n">charges</span> <span class="o">=</span> <span class="p">[{}</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">)]</span>
+        <span class="n">charges</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">charges</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>  <span class="c1"># the *same* dictionary is shared for 0 and -1.</span>
+        <span class="n">charges</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;IdL&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="o">.</span><span class="n">make_valid</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>  <span class="c1"># default charge = 0.</span>
+        <span class="n">chis</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
+                <span class="mi">1000</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>  <span class="c1"># I don&#39;t expect interactions with larger range than that...</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
+                <span class="n">chL</span><span class="p">,</span> <span class="n">chR</span> <span class="o">=</span> <span class="n">charges</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]</span>
+                <span class="n">stL</span><span class="p">,</span> <span class="n">stR</span> <span class="o">=</span> <span class="n">states</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]</span>
+                <span class="n">graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">grid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">keyL</span><span class="p">,</span> <span class="n">qL</span> <span class="ow">in</span> <span class="n">chL</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>  <span class="c1"># copy: for L=1 infinite, chL is chR</span>
+                    <span class="k">for</span> <span class="n">keyR</span> <span class="ow">in</span> <span class="n">graph</span><span class="p">[</span><span class="n">keyL</span><span class="p">]:</span>
+                        <span class="c1"># calculate charge qR from the entry of the grid</span>
+                        <span class="n">op</span> <span class="o">=</span> <span class="n">grid</span><span class="p">[</span><span class="n">stL</span><span class="p">[</span><span class="n">keyL</span><span class="p">]][</span><span class="n">stR</span><span class="p">[</span><span class="n">keyR</span><span class="p">]]</span>
+                        <span class="k">assert</span> <span class="p">(</span><span class="n">op</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+                        <span class="n">qR</span> <span class="o">=</span> <span class="n">chinfo</span><span class="o">.</span><span class="n">make_valid</span><span class="p">(</span><span class="n">qL</span> <span class="o">+</span> <span class="n">op</span><span class="o">.</span><span class="n">qtotal</span> <span class="o">-</span> <span class="n">W_qtotal</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">keyR</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">chR</span><span class="p">:</span>
+                            <span class="n">chR</span><span class="p">[</span><span class="n">keyR</span><span class="p">]</span> <span class="o">=</span> <span class="n">qR</span>
+                        <span class="k">elif</span> <span class="nb">any</span><span class="p">(</span><span class="n">chR</span><span class="p">[</span><span class="n">keyR</span><span class="p">]</span> <span class="o">!=</span> <span class="n">qR</span><span class="p">):</span>
+                            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;incompatible charges while creating the MPO&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">qs</span><span class="p">)</span> <span class="o">==</span> <span class="n">chi</span> <span class="k">for</span> <span class="n">qs</span><span class="p">,</span> <span class="n">chi</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">charges</span><span class="p">,</span> <span class="n">chis</span><span class="p">)]):</span>
+                <span class="k">break</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># no `break` in the for loop, i.e. we are unable to determine all grid legcharges.</span>
+            <span class="c1"># this should not happen (if we have no bugs), but who knows ^_^</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># maybe some unconnected parts in the graph?</span>
+        <span class="c1"># finally generate LegCharge from the dictionaries</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_grid_legs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">qs</span><span class="p">,</span> <span class="n">st</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">charges</span><span class="p">,</span> <span class="n">states</span><span class="p">):</span>
+            <span class="n">qfl</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">qs</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">qs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">qfl</span><span class="p">[</span><span class="n">st</span><span class="p">[</span><span class="n">key</span><span class="p">]]</span> <span class="o">=</span> <span class="n">q</span>
+            <span class="n">leg</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="n">qfl</span><span class="p">,</span> <span class="n">qconj</span><span class="o">=+</span><span class="mi">1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_grid_legs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">leg</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MPOEnvironment"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOEnvironment">[docs]</a><span class="k">class</span> <span class="nc">MPOEnvironment</span><span class="p">(</span><span class="n">MPSEnvironment</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Stores partial contractions of :math:`&lt;bra|H|ket&gt;` for an MPO `H`.</span>
+
+<span class="sd">    The network for a contraction :math:`&lt;bra|H|ket&gt;` of an MPO `H` bewteen two MPS looks like::</span>
+
+<span class="sd">        |     .------&gt;-M[0]--&gt;-M[1]--&gt;-M[2]--&gt;- ...  -&gt;--.</span>
+<span class="sd">        |     |        |       |       |                 |</span>
+<span class="sd">        |     |        ^       ^       ^                 |</span>
+<span class="sd">        |     |        |       |       |                 |</span>
+<span class="sd">        |     LP[0] -&gt;-W[0]--&gt;-W[1]--&gt;-W[2]--&gt;- ...  -&gt;- RP[-1]</span>
+<span class="sd">        |     |        |       |       |                 |</span>
+<span class="sd">        |     |        ^       ^       ^                 |</span>
+<span class="sd">        |     |        |       |       |                 |</span>
+<span class="sd">        |     .------&gt;-N[0]*-&gt;-N[1]*-&gt;-N[2]*-&gt;- ...  -&gt;--.</span>
+
+<span class="sd">    We use the following label convention (where arrows indicate `qconj`)::</span>
+
+<span class="sd">        |    .--&gt;- vR           vL -&gt;-.</span>
+<span class="sd">        |    |                        |</span>
+<span class="sd">        |    LP-&gt;- wR           wL -&gt;-RP</span>
+<span class="sd">        |    |                        |</span>
+<span class="sd">        |    .--&lt;- vR*         vL* -&lt;-.</span>
+
+<span class="sd">    To avoid recalculations of the whole network e.g. in the DMRG sweeps,</span>
+<span class="sd">    we store the contractions up to some site index in this class.</span>
+<span class="sd">    For ``bc=&#39;finite&#39;,&#39;segment&#39;``, the very left and right part ``LP[0]`` and</span>
+<span class="sd">    ``RP[-1]`` are trivial and don&#39;t change in the DMRG algorithm,</span>
+<span class="sd">    but for iDMRG (``bc=&#39;infinite&#39;``) they are also updated</span>
+<span class="sd">    (by inserting another unit cell to the left/right).</span>
+
+<span class="sd">    The MPS `bra` and `ket` have to be in canonical form.</span>
+<span class="sd">    All the environments are constructed without the singular values on the open bond.</span>
+<span class="sd">    In other words, we contract left-canonical `A` to the left parts `LP`</span>
+<span class="sd">    and right-canonical `B` to the right parts `RP`.</span>
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    bra : :class:`~tenpy.networks.mps.MPS`</span>
+<span class="sd">        The MPS to project on. Should be given in usual &#39;ket&#39; form;</span>
+<span class="sd">        we call `conj()` on the matrices directly.</span>
+<span class="sd">    H : :class:`~tenpy.networks.mpo.MPO`</span>
+<span class="sd">        The MPO sandwiched between `bra` and `ket`.</span>
+<span class="sd">        Should have &#39;IdL&#39; and &#39;IdR&#39; set on the first and last bond.</span>
+<span class="sd">    ket : :class:`~tenpy.networks.mpo.MPO`</span>
+<span class="sd">        The MPS on which `H` acts. May be identical with `bra`.</span>
+<span class="sd">    firstLP : ``None`` | :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">        Initial very left part. If ``None``, build trivial one.</span>
+<span class="sd">    rightRP : ``None`` | :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">        Initial very right part. If ``None``, build trivial one.</span>
+<span class="sd">    age_LP : int</span>
+<span class="sd">        The number of physical sites involved into the contraction yielding `firstLP`.</span>
+<span class="sd">    age_RP : int</span>
+<span class="sd">        The number of physical sites involved into the contraction yielding `lastRP`.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    H : :class:`~tenpy.networks.mpo.MPO`</span>
+<span class="sd">        The MPO sandwiched between `bra` and `ket`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bra</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">ket</span><span class="p">,</span> <span class="n">firstLP</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lastRP</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">age_LP</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">age_RP</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">ket</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ket</span> <span class="o">=</span> <span class="n">bra</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bra</span> <span class="o">=</span> <span class="n">bra</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ket</span> <span class="o">=</span> <span class="n">ket</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">H</span> <span class="o">=</span> <span class="n">H</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">=</span> <span class="n">L</span> <span class="o">=</span> <span class="n">bra</span><span class="o">.</span><span class="n">L</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">finite</span> <span class="o">=</span> <span class="n">bra</span><span class="o">.</span><span class="n">finite</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">find_common_type</span><span class="p">([</span><span class="n">bra</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">ket</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">H</span><span class="o">.</span><span class="n">dtype</span><span class="p">],</span> <span class="p">[])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_LP</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">L</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_RP</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">L</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_LP_age</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">L</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_RP_age</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">L</span>
+        <span class="k">if</span> <span class="n">firstLP</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Build trivial verly first LP</span>
+            <span class="n">leg_bra</span> <span class="o">=</span> <span class="n">bra</span><span class="o">.</span><span class="n">get_B</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;vL&#39;</span><span class="p">)</span>
+            <span class="n">leg_mpo</span> <span class="o">=</span> <span class="n">H</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;wL&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>
+            <span class="n">leg_ket</span> <span class="o">=</span> <span class="n">ket</span><span class="o">.</span><span class="n">get_B</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;vL&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>
+            <span class="n">leg_ket</span><span class="o">.</span><span class="n">test_contractible</span><span class="p">(</span><span class="n">leg_bra</span><span class="p">)</span>
+            <span class="n">firstLP</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">leg_bra</span><span class="p">,</span> <span class="n">leg_mpo</span><span class="p">,</span> <span class="n">leg_ket</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="c1"># should work for both finite and segment bc</span>
+            <span class="n">firstLP</span><span class="p">[:,</span> <span class="n">H</span><span class="o">.</span><span class="n">IdL</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="n">leg_bra</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="n">firstLP</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_LP</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">firstLP</span><span class="p">,</span> <span class="n">age</span><span class="o">=</span><span class="n">age_LP</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">lastRP</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Build trivial verly last RP</span>
+            <span class="n">leg_bra</span> <span class="o">=</span> <span class="n">bra</span><span class="o">.</span><span class="n">get_B</span><span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">)</span>
+            <span class="n">leg_mpo</span> <span class="o">=</span> <span class="n">H</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;wR&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>
+            <span class="n">leg_ket</span> <span class="o">=</span> <span class="n">ket</span><span class="o">.</span><span class="n">get_B</span><span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>
+            <span class="n">leg_ket</span><span class="o">.</span><span class="n">test_contractible</span><span class="p">(</span><span class="n">leg_bra</span><span class="p">)</span>
+            <span class="n">lastRP</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">leg_bra</span><span class="p">,</span> <span class="n">leg_mpo</span><span class="p">,</span> <span class="n">leg_ket</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="n">lastRP</span><span class="p">[:,</span> <span class="n">H</span><span class="o">.</span><span class="n">IdR</span><span class="p">[</span><span class="n">L</span><span class="p">],</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="n">leg_bra</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="n">lastRP</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;vL*&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_RP</span><span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">lastRP</span><span class="p">,</span> <span class="n">age</span><span class="o">=</span><span class="n">age_RP</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">()</span>
+
+<div class="viewcode-block" id="MPOEnvironment.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOEnvironment.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bra</span><span class="o">.</span><span class="n">L</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">L</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="o">.</span><span class="n">L</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bra</span><span class="o">.</span><span class="n">finite</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">finite</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="o">.</span><span class="n">finite</span><span class="p">)</span>
+        <span class="c1"># check that the network is contractable</span>
+        <span class="k">for</span> <span class="n">b_s</span><span class="p">,</span> <span class="n">H_s</span><span class="p">,</span> <span class="n">k_s</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bra</span><span class="o">.</span><span class="n">sites</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="o">.</span><span class="n">sites</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">sites</span><span class="p">):</span>
+            <span class="n">b_s</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">test_equal</span><span class="p">(</span><span class="n">k_s</span><span class="o">.</span><span class="n">leg</span><span class="p">)</span>
+            <span class="n">b_s</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">test_equal</span><span class="p">(</span><span class="n">H_s</span><span class="o">.</span><span class="n">leg</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">any</span><span class="p">([</span><span class="n">LP</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">LP</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LP</span><span class="p">])</span>
+        <span class="k">assert</span> <span class="nb">any</span><span class="p">([</span><span class="n">RP</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">RP</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RP</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="MPOEnvironment.get_LP"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOEnvironment.get_LP">[docs]</a>    <span class="k">def</span> <span class="nf">get_LP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate LP at given site from nearest available one (including `i`).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        i : int</span>
+<span class="sd">            The returned `LP` will contain the contraction *strictly* left of site `i`.</span>
+<span class="sd">        store : bool</span>
+<span class="sd">            Wheter to store the calculated `LP` in `self` (``True``) or discard them (``False``).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        LP_i : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Contraction of everything left of site `i`,</span>
+<span class="sd">            with labels ``&#39;vR*&#39;, &#39;vR&#39;`` for `bra`, `ket`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># actually same as MPSEnvironment, just updated the labels in the doc string.</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">MPOEnvironment</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_LP</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MPOEnvironment.get_RP"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOEnvironment.get_RP">[docs]</a>    <span class="k">def</span> <span class="nf">get_RP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate RP at given site from nearest available one (including `i`).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        i : int</span>
+<span class="sd">            The returned `RP` will contain the contraction *strictly* rigth of site `i`.</span>
+<span class="sd">        store : bool</span>
+<span class="sd">            Wheter to store the calculated `RP` in `self` (``True``) or discard them (``False``).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        RP_i : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Contraction of everything left of site `i`,</span>
+<span class="sd">            with labels ``&#39;vL*&#39;, &#39;wL&#39;, &#39;vL&#39;`` for `bra`, `H`, `ket`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># actually same as MPSEnvironment, just updated the labels in the doc string.</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">MPOEnvironment</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_RP</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MPOEnvironment.full_contraction"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOEnvironment.full_contraction">[docs]</a>    <span class="k">def</span> <span class="nf">full_contraction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate the energy by a full contraction of the network.</span>
+
+<span class="sd">        The full contraction of the environments gives the value</span>
+<span class="sd">        ``&lt;bra|H|ket&gt; / (norm(|bra&gt;)*norm(|ket&gt;))``,</span>
+<span class="sd">        i.e. if `bra` is `ket` and normalized, the total energy.</span>
+<span class="sd">        For this purpose, this function contracts</span>
+<span class="sd">        ``get_LP(i0+1, store=False)`` and ``get_RP(i0, store=False)``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        i0 : int</span>
+<span class="sd">            Site index.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># same as MPSEnvironment.full_contraction, but also contract &#39;wL&#39; with &#39;wR&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">finite</span> <span class="ow">and</span> <span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">:</span>
+            <span class="c1"># special case to handle `_to_valid_index` correctly:</span>
+            <span class="c1"># get_LP(L) is not valid for finite b.c, so we use need to calculate it explicitly.</span>
+            <span class="n">LP</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_LP</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">LP</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_contract_LP</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">LP</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">LP</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_LP</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="c1"># multiply with `S`: a bit of a hack: use &#39;private&#39; MPS._scale_axis_B</span>
+        <span class="n">S_bra</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bra</span><span class="o">.</span><span class="n">get_SR</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>
+        <span class="n">LP</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bra</span><span class="o">.</span><span class="n">_scale_axis_B</span><span class="p">(</span><span class="n">LP</span><span class="p">,</span> <span class="n">S_bra</span><span class="p">,</span> <span class="n">form_diff</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">axis_B</span><span class="o">=</span><span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="n">cutoff</span><span class="o">=</span><span class="mf">0.</span><span class="p">)</span>
+        <span class="c1"># cutoff is not used for form_diff = 1</span>
+        <span class="n">S_ket</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">get_SR</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span>
+        <span class="n">LP</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bra</span><span class="o">.</span><span class="n">_scale_axis_B</span><span class="p">(</span><span class="n">LP</span><span class="p">,</span> <span class="n">S_ket</span><span class="p">,</span> <span class="n">form_diff</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">axis_B</span><span class="o">=</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="n">cutoff</span><span class="o">=</span><span class="mf">0.</span><span class="p">)</span>
+        <span class="n">RP</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_RP</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">npc</span><span class="o">.</span><span class="n">inner</span><span class="p">(</span><span class="n">LP</span><span class="p">,</span> <span class="n">RP</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vL*&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">]],</span> <span class="n">do_conj</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_contract_LP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">LP</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Contract LP with the tensors on site `i` to form ``self._LP[i+1]``&quot;&quot;&quot;</span>
+        <span class="c1"># same as MPSEnvironment._contract_LP, but also contract with `H.get_W(i)`</span>
+        <span class="n">LP</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">LP</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">get_B</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;A&#39;</span><span class="p">),</span> <span class="n">axes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">))</span>
+        <span class="n">LP</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">LP</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p*&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;wR&#39;</span><span class="p">]))</span>
+        <span class="n">LP</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bra</span><span class="o">.</span><span class="n">get_B</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;A&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">LP</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p*&#39;</span><span class="p">,</span> <span class="s1">&#39;vL*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;vR*&#39;</span><span class="p">]))</span>
+        <span class="k">return</span> <span class="n">LP</span>  <span class="c1"># labels &#39;vR*&#39;, &#39;wR&#39;, &#39;vR&#39;</span>
+
+    <span class="k">def</span> <span class="nf">_contract_RP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">RP</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Contract RP with the tensors on site `i` to form ``self._RP[i-1]``&quot;&quot;&quot;</span>
+        <span class="c1"># same as MPSEnvironment._contract_RP, but also contract with `H.get_W(i)`</span>
+        <span class="n">RP</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">get_B</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">),</span> <span class="n">RP</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">))</span>
+        <span class="n">RP</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">RP</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p*&#39;</span><span class="p">,</span> <span class="s1">&#39;wR&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">]))</span>
+        <span class="n">RP</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bra</span><span class="o">.</span><span class="n">get_B</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">RP</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p*&#39;</span><span class="p">,</span> <span class="s1">&#39;vR*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;vL*&#39;</span><span class="p">]))</span>
+        <span class="k">return</span> <span class="n">RP</span>  <span class="c1"># labels &#39;vL&#39;, &#39;wL&#39;, &#39;vL*&#39;</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/logo.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../userguide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.html">tenpy package</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2018, TeNPy Developers.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

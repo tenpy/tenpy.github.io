@@ -1,0 +1,1276 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>tenpy.linalg.charges &#8212; TeNPy 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tenpy.linalg.charges</h1><div class="highlight"><pre>
+<span></span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Basic definitions of a charge.</span>
+
+<span class="sd">Contains implementation of classes</span>
+<span class="sd">:class:`ChargeInfo`,</span>
+<span class="sd">:class:`LegCharge` and</span>
+<span class="sd">:class:`LegPipe`.</span>
+
+<span class="sd">.. note ::</span>
+<span class="sd">    The contents of this module are imported in :mod:`~tenpy.linalg.np_conserved`,</span>
+<span class="sd">    so you usually don&#39;t need to import this module in your application.</span>
+
+<span class="sd">A detailed introduction to `np_conserved` can be found in :doc:`../intro_npc`.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># Copyright 2018 TeNPy Developers</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">bisect</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">from</span> <span class="nn">..tools.misc</span> <span class="k">import</span> <span class="n">lexsort</span><span class="p">,</span> <span class="n">inverse_permutation</span>
+<span class="kn">from</span> <span class="nn">..tools.string</span> <span class="k">import</span> <span class="n">vert_join</span>
+<span class="kn">from</span> <span class="nn">..tools.optimization</span> <span class="k">import</span> <span class="n">optimize</span><span class="p">,</span> <span class="n">OptimizationFlag</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ChargeInfo&#39;</span><span class="p">,</span> <span class="s1">&#39;LegCharge&#39;</span><span class="p">,</span> <span class="s1">&#39;LegPipe&#39;</span><span class="p">]</span>
+
+<span class="n">QTYPE</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int_</span>  <span class="c1"># numpy dtype for the charges</span>
+<span class="sd">&quot;&quot;&quot;Numpy data type for the charges.&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="ChargeInfo"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.ChargeInfo">[docs]</a><span class="k">class</span> <span class="nc">ChargeInfo</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Meta-data about the charge of a tensor.</span>
+
+<span class="sd">    Saves info about the nature of the charge of a tensor.</span>
+<span class="sd">    Provides :meth:`make_valid` for taking modulo `m`.</span>
+
+<span class="sd">    (This class is implemented in :mod:`tenpy.linalg.charges` but also imported in</span>
+<span class="sd">    :mod:`tenpy.linalg.np_conserved` for convenience.)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mod : iterable of QTYPE</span>
+<span class="sd">        The len gives the number of charges, `qnumber`.</span>
+<span class="sd">        For each charge one entry `m`: the charge is conserved modulo `m`.</span>
+<span class="sd">        Defaults to trivial, i.e., no charge.</span>
+<span class="sd">    names : list of str</span>
+<span class="sd">        Descriptive names for the charges.  Defaults to ``[&#39;&#39;]*qnumber``.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    qnumber</span>
+<span class="sd">    mod</span>
+<span class="sd">    names : list of strings</span>
+<span class="sd">        A descriptive name for each of the charges.  May have &#39;&#39; entries.</span>
+<span class="sd">    _mask_mod1 : 1D array bool</span>
+<span class="sd">        mask ``(mod == 1)``, to speed up `make_valid`</span>
+<span class="sd">    _mod_masked : 1D array QTYPE</span>
+<span class="sd">        Equivalent to ``self.mod[self._maks_mod1]``</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Instances of this class can (should) be shared between different `LegCharge` and `Array`&#39;s.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mod</span><span class="o">=</span><span class="p">[],</span> <span class="n">names</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">mod</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">QTYPE</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># where we need to take modulo in :meth:`make_valid`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mod_masked</span> <span class="o">=</span> <span class="n">mod</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_mask</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>  <span class="c1"># only where mod != 1</span>
+        <span class="k">if</span> <span class="n">names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">qnumber</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">names</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">()</span>  <span class="c1"># checks for invalid arguments</span>
+
+<div class="viewcode-block" id="ChargeInfo.add"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.ChargeInfo.add">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">chinfo1</span><span class="p">,</span> <span class="n">chinfo2</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a :class:`ChargeInfo` combining multiple charges.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        chinfo1, chinfo2 : :class:`ChargeInfo`</span>
+<span class="sd">            Two ChargeInfo to be added into one.</span>
+<span class="sd">            The charges of `chinfo2` are appended at the end of `chinfo1`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        chinfo : :class:`ChargeInfo`</span>
+<span class="sd">            ChargeInfo combining all the given charges.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">chinfo1</span><span class="o">.</span><span class="n">mod</span><span class="p">,</span> <span class="n">chinfo2</span><span class="o">.</span><span class="n">mod</span><span class="p">)),</span> <span class="n">chinfo1</span><span class="o">.</span><span class="n">names</span> <span class="o">+</span> <span class="n">chinfo2</span><span class="o">.</span><span class="n">names</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ChargeInfo.drop"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.ChargeInfo.drop">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">drop</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">chinfo</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Remove a charge from a :class:`ChargeInfo`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        chinfo : :class:`ChargeInfo`</span>
+<span class="sd">            The ChargeInfo from where to drop/remove a charge.</span>
+<span class="sd">        charge : int | str</span>
+<span class="sd">            Number or `name` of the charge (within `chinfo`) which is to be dropped.</span>
+<span class="sd">            ``None`` means dropping all charges.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        chinfo : :class:`ChargeInfo`</span>
+<span class="sd">            ChargeInfo where the specified charge is dropped.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">charge</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="p">()</span>  <span class="c1"># trivial charge</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">charge</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">charge</span> <span class="o">=</span> <span class="n">chinfo</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">charge</span><span class="p">)</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">chinfo</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
+        <span class="n">names</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">charge</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">chinfo</span><span class="o">.</span><span class="n">mod</span><span class="p">,</span> <span class="n">charge</span><span class="p">),</span> <span class="n">names</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ChargeInfo.change"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.ChargeInfo.change">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">change</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">chinfo</span><span class="p">,</span> <span class="n">charge</span><span class="p">,</span> <span class="n">new_qmod</span><span class="p">,</span> <span class="n">new_name</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Change the `qmod` of a given charge.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        chinfo : :class:`ChargeInfo`</span>
+<span class="sd">            The ChargeInfo for which `qmod` of `charge` should be changed.</span>
+<span class="sd">        new_qmod : int</span>
+<span class="sd">            The new `qmod` to be set.</span>
+<span class="sd">        new_name : str</span>
+<span class="sd">            The new name of the charge.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        chinfo : :class:`ChargeInfo`</span>
+<span class="sd">            ChargeInfo where `qmod` of the specified charge was changed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">charge</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">charge</span> <span class="o">=</span> <span class="n">chinfo</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">charge</span><span class="p">)</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">chinfo</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
+        <span class="n">names</span><span class="p">[</span><span class="n">charge</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_name</span>
+        <span class="n">mod</span> <span class="o">=</span> <span class="n">chinfo</span><span class="o">.</span><span class="n">mod</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">mod</span><span class="p">[</span><span class="n">charge</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_qmod</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="n">names</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ChargeInfo.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.ChargeInfo.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sanity check. Raises ValueErrors, if something is wrong.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mod_masked</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;mod has wrong shape&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mod_masked</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;mod should be &gt; 0&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qnumber</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;names has incompatible length with mod&quot;</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">qnumber</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The number of charges.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mask</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">mod</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Modulo how much each of the charges is taken.</span>
+<span class="sd">        1 for a U(1) charge, i.e., mod 1 -&gt; mod infinity.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qnumber</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">QTYPE</span><span class="p">)</span>
+        <span class="n">res</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_mask</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mod_masked</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+<div class="viewcode-block" id="ChargeInfo.make_valid"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.ChargeInfo.make_valid">[docs]</a>    <span class="k">def</span> <span class="nf">make_valid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">charges</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Take charges modulo self.mod.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        charges : array_like or None</span>
+<span class="sd">            1D or 2D array of charges, last dimension `self.qnumber`</span>
+<span class="sd">            None defaults to np.zeros(qnumber).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        charges :</span>
+<span class="sd">            A copy of `charges` taken modulo `mod`, but with ``x % 1 := x``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">charges</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">qnumber</span><span class="p">,</span> <span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">QTYPE</span><span class="p">)</span>
+        <span class="n">charges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">charges</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">QTYPE</span><span class="p">)</span>
+        <span class="n">charges</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">charges</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mod_masked</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">charges</span></div>
+
+<div class="viewcode-block" id="ChargeInfo.check_valid"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.ChargeInfo.check_valid">[docs]</a>    <span class="k">def</span> <span class="nf">check_valid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">charges</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Check, if `charges` has all entries as expected from self.mod.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        charges : 2D ndarray QTYPE_t</span>
+<span class="sd">            Charge values to be checked.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        res : bool</span>
+<span class="sd">            True, if all 0 &lt;= charges &lt;= self.mod (wherever self.mod != 1)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">charges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">charges</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">QTYPE</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">charges</span><span class="p">,</span> <span class="n">charges</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mod_masked</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Full string representation.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;ChargeInfo(</span><span class="si">{0!s}</span><span class="s2">, </span><span class="si">{1!s}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mod</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compare self.mod and self.names for equality, ignore missing names.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span> <span class="ow">is</span> <span class="n">other</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mod</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">mod</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">l</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">names</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">r</span> <span class="o">!=</span> <span class="n">l</span> <span class="ow">and</span> <span class="n">l</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span> <span class="ow">and</span> <span class="n">r</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Define `self != other` as `not (self == other)`&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__eq__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__getstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Allow to pickle and copy.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qnumber</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mod</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__setstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Allow to pickle and copy.&quot;&quot;&quot;</span>
+        <span class="n">qnumber</span><span class="p">,</span> <span class="n">mod</span><span class="p">,</span> <span class="n">names</span> <span class="o">=</span> <span class="n">state</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># where we need to take modulo in :meth:`make_valid`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mod_masked</span> <span class="o">=</span> <span class="n">mod</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_mask</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>  <span class="c1"># only where mod != 1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">names</span> <span class="o">=</span> <span class="n">names</span></div>
+
+
+<div class="viewcode-block" id="LegCharge"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge">[docs]</a><span class="k">class</span> <span class="nc">LegCharge</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Save the charge data associated to a leg of a tensor.</span>
+
+<span class="sd">    This class is more or less a wrapper around a 2D numpy array `charges` and a 1D array `slices`.</span>
+<span class="sd">    See :doc:`../intro_npc` for more details.</span>
+
+<span class="sd">    (This class is implemented in :mod:`tenpy.linalg.charges` but also imported in</span>
+<span class="sd">    :mod:`tenpy.linalg.np_conserved` for convenience.)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    chargeinfo : :class:`ChargeInfo`</span>
+<span class="sd">        The nature of the charge.</span>
+<span class="sd">    slices: 1D array_like, len(block_number+1)</span>
+<span class="sd">        A block with &#39;qindex&#39; ``qi`` correspondes to the leg indices in</span>
+<span class="sd">        ``slice(slices[qi], slices[qi+1])``.</span>
+<span class="sd">    charges : 2D array_like, shape(block_number, chargeinfo.qnumber)</span>
+<span class="sd">        ``charges[qi]`` gives the charges for a block with &#39;qindex&#39; ``qi``.</span>
+<span class="sd">    qconj : {+1, -1}</span>
+<span class="sd">        A flag telling whether the charge points inwards (+1, default) or outwards (-1).</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ind_len</span>
+<span class="sd">    block_number</span>
+<span class="sd">    chinfo : :class:`ChargeInfo` instance</span>
+<span class="sd">        The nature of the charge. Can be shared between LegCharges.</span>
+<span class="sd">    slices : ndarray (block_number+1)</span>
+<span class="sd">        A block with &#39;qindex&#39; ``qi`` correspondes to the leg indices in</span>
+<span class="sd">        ``slice(self.slices[qi], self.slices[qi+1])``. See :meth:`get_slice`.</span>
+<span class="sd">    charges : ndarray (block_number, chinfo.qnumber)</span>
+<span class="sd">        ``charges[qi]`` gives the charges for a block with &#39;qindex&#39; ``qi``.</span>
+<span class="sd">        Note: the sign might be changed by `qconj`. See also :meth:`get_charge`.</span>
+<span class="sd">    qconj : {-1, 1}</span>
+<span class="sd">        A flag telling whether the charge points inwards (+1) or outwards (-1).</span>
+<span class="sd">        Whenever charges are added, they should be multiplied with their `qconj` value.</span>
+<span class="sd">    sorted : bool</span>
+<span class="sd">        Whether the charges are guaranteed to be sorted.</span>
+<span class="sd">    bunched : bool</span>
+<span class="sd">        Whether the charges are guaranteed to be bunched.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Instances of this class can be shared between different `npc.Array`.</span>
+<span class="sd">    Thus, functions changing ``self.slices`` or ``self.charges`` *must* always make copies.</span>
+<span class="sd">    Further they *must* set `sorted` and `bunched` to ``False`` (if they might not preserve them).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chargeinfo</span><span class="p">,</span> <span class="n">slices</span><span class="p">,</span> <span class="n">charges</span><span class="p">,</span> <span class="n">qconj</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span> <span class="o">=</span> <span class="n">chargeinfo</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">slices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">slices</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">charges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">charges</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">QTYPE</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qconj</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">qconj</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sorted</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bunched</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">()</span>
+
+<div class="viewcode-block" id="LegCharge.from_trivial"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.from_trivial">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_trivial</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ind_len</span><span class="p">,</span> <span class="n">chargeinfo</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">qconj</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create trivial (qnumber=0) LegCharge for given len of indices `ind_len`.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">chargeinfo</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">chargeinfo</span> <span class="o">=</span> <span class="n">ChargeInfo</span><span class="p">()</span>
+            <span class="n">charges</span> <span class="o">=</span> <span class="p">[[]]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">charges</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">chargeinfo</span><span class="o">.</span><span class="n">qnumber</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">chargeinfo</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">ind_len</span><span class="p">],</span> <span class="n">charges</span><span class="p">,</span> <span class="n">qconj</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LegCharge.from_qflat"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.from_qflat">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_qflat</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">chargeinfo</span><span class="p">,</span> <span class="n">qflat</span><span class="p">,</span> <span class="n">qconj</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a LegCharge from qflat form.</span>
+
+<span class="sd">        Does *neither* bunch *nor* sort. We recommend to sort (and bunch) afterwards,</span>
+<span class="sd">        if you expect that tensors using the LegCharge have entries at all positions compatible</span>
+<span class="sd">        with the charges.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        chargeinfo : :class:`ChargeInfo`</span>
+<span class="sd">            The nature of the charge.</span>
+<span class="sd">        qflat : array_like (ind_len, `qnumber`)</span>
+<span class="sd">            `qnumber` charges for each index of the leg on entry.</span>
+<span class="sd">        qconj : {-1, 1}</span>
+<span class="sd">            A flag telling whether the charge points inwards (+1) or outwards (-1).</span>
+
+<span class="sd">        See also</span>
+<span class="sd">        --------</span>
+<span class="sd">        :meth:`sort` : sorts by charges</span>
+<span class="sd">        :meth:`bunch` : bunches contiguous blocks of the same charge.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">qflat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">qflat</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">QTYPE</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">qflat</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">chargeinfo</span><span class="o">.</span><span class="n">qnumber</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># accept also 1D arrays, if the qnumber is 1</span>
+            <span class="n">qflat</span> <span class="o">=</span> <span class="n">qflat</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">ind_len</span><span class="p">,</span> <span class="n">qnum</span> <span class="o">=</span> <span class="n">qflat</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">if</span> <span class="n">qnum</span> <span class="o">!=</span> <span class="n">chargeinfo</span><span class="o">.</span><span class="n">qnumber</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;qflat with second dimension != qnumber&quot;</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">chargeinfo</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">ind_len</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">qflat</span><span class="p">,</span> <span class="n">qconj</span><span class="p">)</span>
+        <span class="n">res</span><span class="o">.</span><span class="n">sorted</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">is_sorted</span><span class="p">()</span>
+        <span class="n">res</span><span class="o">.</span><span class="n">bunched</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">is_bunched</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="LegCharge.from_qind"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.from_qind">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_qind</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">chargeinfo</span><span class="p">,</span> <span class="n">slices</span><span class="p">,</span> <span class="n">charges</span><span class="p">,</span> <span class="n">qconj</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Just a wrapper around self.__init__(), see class doc-string for parameters.</span>
+
+<span class="sd">        See also</span>
+<span class="sd">        --------</span>
+<span class="sd">        sort : sorts by charges</span>
+<span class="sd">        block : blocks by charges</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">chargeinfo</span><span class="p">,</span> <span class="n">slices</span><span class="p">,</span> <span class="n">charges</span><span class="p">,</span> <span class="n">qconj</span><span class="p">)</span>
+        <span class="n">res</span><span class="o">.</span><span class="n">sorted</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">is_sorted</span><span class="p">()</span>
+        <span class="n">res</span><span class="o">.</span><span class="n">bunched</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">is_bunched</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="LegCharge.from_qdict"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.from_qdict">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_qdict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">chargeinfo</span><span class="p">,</span> <span class="n">qdict</span><span class="p">,</span> <span class="n">qconj</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a LegCharge from qdict form.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        chargeinfo : :class:`ChargeInfo`</span>
+<span class="sd">            The nature of the charge.</span>
+<span class="sd">        qdict : dict</span>
+<span class="sd">            A dictionary mapping a tuple of charges to slices.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">slices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([(</span><span class="n">sl</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">sl</span><span class="o">.</span><span class="n">stop</span><span class="p">)</span> <span class="k">for</span> <span class="n">sl</span> <span class="ow">in</span> <span class="n">qdict</span><span class="o">.</span><span class="n">values</span><span class="p">()],</span> <span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
+        <span class="n">charges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">qdict</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">QTYPE</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">chargeinfo</span><span class="o">.</span><span class="n">qnumber</span><span class="p">))</span>
+        <span class="n">sort</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">slices</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>  <span class="c1"># sort by slice start</span>
+        <span class="n">slices</span> <span class="o">=</span> <span class="n">slices</span><span class="p">[</span><span class="n">sort</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">charges</span> <span class="o">=</span> <span class="n">charges</span><span class="p">[</span><span class="n">sort</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">slices</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">slices</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="mi">0</span><span class="p">]):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The slices are not contiguous.</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">slices</span><span class="p">))</span>
+        <span class="n">slices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">slices</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">slices</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">chargeinfo</span><span class="p">,</span> <span class="n">slices</span><span class="p">,</span> <span class="n">charges</span><span class="p">,</span> <span class="n">qconj</span><span class="p">)</span>
+        <span class="n">res</span><span class="o">.</span><span class="n">sorted</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">res</span><span class="o">.</span><span class="n">bunched</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">is_bunched</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="LegCharge.from_add_charge"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.from_add_charge">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_add_charge</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">leg1</span><span class="p">,</span> <span class="n">leg2</span><span class="p">,</span> <span class="n">chargeinfo</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add the (independent) charges of two legs to get larger `qnumber`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        leg1, leg2 : :class:`LegCharge`</span>
+<span class="sd">            The legs for which the charges are to be combined/added.</span>
+<span class="sd">        chargeinfo : :class:`ChargeInfo`</span>
+<span class="sd">            The ChargeInfo for all charges; create new if ``None``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        combined : :class:`LegCharge`</span>
+<span class="sd">            A LegCharge with the charges of both legs. Is neither sorted nor bunched!</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">chinfo</span> <span class="o">=</span> <span class="n">ChargeInfo</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">leg1</span><span class="o">.</span><span class="n">chinfo</span><span class="p">,</span> <span class="n">leg2</span><span class="o">.</span><span class="n">chinfo</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">chargeinfo</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">chinfo</span> <span class="o">==</span> <span class="n">chargeinfo</span>
+            <span class="n">chinfo</span> <span class="o">=</span> <span class="n">chargeinfo</span>
+        <span class="k">if</span> <span class="n">leg1</span><span class="o">.</span><span class="n">ind_len</span> <span class="o">!=</span> <span class="n">leg2</span><span class="o">.</span><span class="n">ind_len</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;different length&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">leg1</span><span class="o">.</span><span class="n">qconj</span> <span class="o">!=</span> <span class="n">leg2</span><span class="o">.</span><span class="n">qconj</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;different qconj&quot;</span><span class="p">)</span>
+        <span class="n">qflat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">([</span><span class="n">leg1</span><span class="o">.</span><span class="n">ind_len</span><span class="p">,</span> <span class="n">chinfo</span><span class="o">.</span><span class="n">qnumber</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">QTYPE</span><span class="p">)</span>
+        <span class="n">qflat</span><span class="p">[:,</span> <span class="p">:</span><span class="n">leg1</span><span class="o">.</span><span class="n">chinfo</span><span class="o">.</span><span class="n">qnumber</span><span class="p">]</span> <span class="o">=</span> <span class="n">leg1</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()</span>
+        <span class="n">qflat</span><span class="p">[:,</span> <span class="n">leg1</span><span class="o">.</span><span class="n">chinfo</span><span class="o">.</span><span class="n">qnumber</span><span class="p">:]</span> <span class="o">=</span> <span class="n">leg2</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="n">qflat</span><span class="p">,</span> <span class="n">leg1</span><span class="o">.</span><span class="n">qconj</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LegCharge.from_drop_charge"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.from_drop_charge">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_drop_charge</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">leg</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">chargeinfo</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Remove a charge from a LegCharge.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        leg : :class:`LegCharge`</span>
+<span class="sd">            The leg from which to drop/remove a charge.</span>
+<span class="sd">        charge : int | str</span>
+<span class="sd">            Number or `name` of the charge (within `chinfo`) which is to be dropped.</span>
+<span class="sd">            ``None`` means dropping all charges.</span>
+<span class="sd">        chargeinfo : :class:`ChargeInfo`</span>
+<span class="sd">            The ChargeInfo with `charge` dropped; create new if ``None``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dropped : :class:`LegCharge`</span>
+<span class="sd">            A LegCharge with the specified charge dropped. Is neither sorted nor bunched!</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">charge</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_trivial</span><span class="p">(</span><span class="n">leg</span><span class="o">.</span><span class="n">ind_len</span><span class="p">,</span> <span class="n">chargeinfo</span><span class="p">,</span> <span class="n">leg</span><span class="o">.</span><span class="n">qconj</span><span class="p">)</span>
+        <span class="n">chinfo</span> <span class="o">=</span> <span class="n">ChargeInfo</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span><span class="p">,</span> <span class="n">charge</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">chargeinfo</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">chinfo</span> <span class="o">==</span> <span class="n">chargeinfo</span>
+            <span class="n">chinfo</span> <span class="o">=</span> <span class="n">chargeinfo</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">charge</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">charge</span> <span class="o">=</span> <span class="n">chinfo</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">charge</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">leg</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">(),</span> <span class="n">charge</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">leg</span><span class="o">.</span><span class="n">qconj</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LegCharge.from_change_charge"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.from_change_charge">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_change_charge</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">leg</span><span class="p">,</span> <span class="n">charge</span><span class="p">,</span> <span class="n">new_qmod</span><span class="p">,</span> <span class="n">new_name</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">chargeinfo</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Remove a charge from a LegCharge.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        leg : :class:`LegCharge`</span>
+<span class="sd">            The leg from which to drop/remove a charge.</span>
+<span class="sd">        charge : int | str</span>
+<span class="sd">            Number or `name` of the charge (within `chinfo`) for which `mod` is to be changed.</span>
+<span class="sd">        new_qmod : int</span>
+<span class="sd">            The new `mod` to be set for `charge` in the :class:`ChargeInfo`.</span>
+<span class="sd">        new_name : str</span>
+<span class="sd">            The new name for `charge`.</span>
+<span class="sd">        chargeinfo : :class:`ChargeInfo`</span>
+<span class="sd">            The ChargeInfo with `charge` changed; create new if ``None``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        leg : :class:`LegCharge`</span>
+<span class="sd">            A LegCharge with the specified charge changed. Is neither sorted nor bunched!</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">chinfo</span> <span class="o">=</span> <span class="n">ChargeInfo</span><span class="o">.</span><span class="n">change</span><span class="p">(</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span><span class="p">,</span> <span class="n">charge</span><span class="p">,</span> <span class="n">new_qmod</span><span class="p">,</span> <span class="n">new_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">chargeinfo</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">chinfo</span> <span class="o">==</span> <span class="n">chargeinfo</span>
+            <span class="n">chinfo</span> <span class="o">=</span> <span class="n">chargeinfo</span>
+        <span class="n">charges</span> <span class="o">=</span> <span class="n">chinfo</span><span class="o">.</span><span class="n">make_valid</span><span class="p">(</span><span class="n">leg</span><span class="o">.</span><span class="n">charges</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_qind</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="n">leg</span><span class="o">.</span><span class="n">slices</span><span class="p">,</span> <span class="n">charges</span><span class="p">,</span> <span class="n">leg</span><span class="o">.</span><span class="n">qconj</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LegCharge.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sanity check. Raises ValueErrors, if something is wrong.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">optimize</span><span class="p">(</span><span class="n">OptimizationFlag</span><span class="o">.</span><span class="n">skip_arg_checks</span><span class="p">):</span>
+            <span class="k">return</span>
+        <span class="n">sl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">slices</span>
+        <span class="n">ch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">charges</span>
+        <span class="k">if</span> <span class="n">sl</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">block_number</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;wrong len of `slices`&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;slices does not start with 0&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ch</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="o">.</span><span class="n">qnumber</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;shape of `charges` incompatible with qnumber&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="o">.</span><span class="n">check_valid</span><span class="p">(</span><span class="n">ch</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;charges invalid for &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">qconj</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;qconj has invalid value != +-1 :&quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qconj</span><span class="p">))</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ind_len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The number of indices for this leg.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">block_number</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The number of blocks, i.e., a &#39;qindex&#39; for this leg is in ``range(block_number)``.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">charges</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+<div class="viewcode-block" id="LegCharge.conj"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.conj">[docs]</a>    <span class="k">def</span> <span class="nf">conj</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a (shallow) copy with opposite ``self.qconj``.&quot;&quot;&quot;</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>  <span class="c1"># shallow</span>
+        <span class="n">res</span><span class="o">.</span><span class="n">qconj</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="LegCharge.to_qflat"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.to_qflat">[docs]</a>    <span class="k">def</span> <span class="nf">to_qflat</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return charges in `qflat` form.&quot;&quot;&quot;</span>
+        <span class="n">qflat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">ind_len</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="o">.</span><span class="n">qnumber</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">QTYPE</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="n">ch</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="bp">self</span><span class="o">.</span><span class="n">charges</span><span class="p">):</span>
+            <span class="n">qflat</span><span class="p">[</span><span class="nb">slice</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">)]</span> <span class="o">=</span> <span class="n">ch</span>
+        <span class="k">return</span> <span class="n">qflat</span></div>
+
+<div class="viewcode-block" id="LegCharge.to_qdict"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.to_qdict">[docs]</a>    <span class="k">def</span> <span class="nf">to_qdict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return charges in `qdict` form. Raises ValueError, if not blocked.&quot;&quot;&quot;</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="n">ch</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="bp">self</span><span class="o">.</span><span class="n">charges</span><span class="p">):</span>
+            <span class="n">res</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">ch</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_number</span><span class="p">:</span>  <span class="c1"># ensures self is blocked</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;can&#39;t convert qflat to qdict for non-blocked LegCharge&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="LegCharge.is_blocked"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.is_blocked">[docs]</a>    <span class="k">def</span> <span class="nf">is_blocked</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns whether self is blocked, i.e. qindex map 1:1 to charge values.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sorted</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">bunched</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="p">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">charges</span><span class="p">}</span>  <span class="c1"># a set has unique elements</span>
+        <span class="k">return</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_number</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LegCharge.is_sorted"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.is_sorted">[docs]</a>    <span class="k">def</span> <span class="nf">is_sorted</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns whether `self.charges` is sorted lexiographically.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="o">.</span><span class="n">qnumber</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">lexsort</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">charges</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">res</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)))</span></div>
+
+<div class="viewcode-block" id="LegCharge.is_bunched"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.is_bunched">[docs]</a>    <span class="k">def</span> <span class="nf">is_bunched</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Checks whether :meth:`bunch` would change something.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">_find_row_differences</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">charges</span><span class="p">))</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_number</span> <span class="o">+</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="LegCharge.test_contractible"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.test_contractible">[docs]</a>    <span class="k">def</span> <span class="nf">test_contractible</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Raises a ValueError if charges are incompatible for contraction with other.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other : :class:`LegCharge`</span>
+<span class="sd">            The LegCharge of the other leg condsidered for contraction.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the charges are incompatible for direct contraction.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        This function checks that two legs are `ready` for contraction.</span>
+<span class="sd">        This is the case, if all of the following conditions are met:</span>
+
+<span class="sd">        - the ``ChargeInfo`` is equal</span>
+<span class="sd">        - the `slices` are equal</span>
+<span class="sd">        - the `charges` are the same up to *opposite* signs ``qconj``::</span>
+
+<span class="sd">                self.charges * self.qconj = - other.charges * other.qconj</span>
+
+<span class="sd">        In general, there could also be a change of the total charge, see :doc:`../intro_npc`</span>
+<span class="sd">        This special case is not considered here - instead use</span>
+<span class="sd">        :meth:`~tenpy.linalg.np_conserved.gauge_total_charge`,</span>
+<span class="sd">        if a change of the charge is desired.</span>
+
+<span class="sd">        If you are sure that the legs should be contractable,</span>
+<span class="sd">        check whether the charges are actually valid</span>
+<span class="sd">        or whether ``self`` and ``other`` are blocked or should be sorted.</span>
+
+<span class="sd">        See also</span>
+<span class="sd">        --------</span>
+<span class="sd">        test_equal :</span>
+<span class="sd">            ``self.test_contractible(other)`` just performs ``self.test_equal(other.conj())``.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">optimize</span><span class="p">(</span><span class="n">OptimizationFlag</span><span class="o">.</span><span class="n">skip_arg_checks</span><span class="p">):</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_equal</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="LegCharge.test_equal"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.test_equal">[docs]</a>    <span class="k">def</span> <span class="nf">test_equal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test if charges are *equal* including `qconj`.</span>
+
+<span class="sd">        Check that all of the following conditions are met:</span>
+
+<span class="sd">        - the ``ChargeInfo`` is equal</span>
+<span class="sd">        - the `slices` are equal</span>
+<span class="sd">        - the `charges` are the same up to the signs ``qconj``::</span>
+
+<span class="sd">                self.charges * self.qconj = other.charges * other.qconj</span>
+
+<span class="sd">        See also</span>
+<span class="sd">        --------</span>
+<span class="sd">        test_contractible :</span>
+<span class="sd">            ``self.test_equal(other)`` is equivalent to ``self.test_contractible(other.conj())``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">optimize</span><span class="p">(</span><span class="n">OptimizationFlag</span><span class="o">.</span><span class="n">skip_arg_checks</span><span class="p">):</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">chinfo</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="p">[</span><span class="s2">&quot;incompatible ChargeInfo</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+                 <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="p">),</span>
+                 <span class="nb">str</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">chinfo</span><span class="p">)]))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">charges</span> <span class="ow">is</span> <span class="n">other</span><span class="o">.</span><span class="n">charges</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">qconj</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">qconj</span> <span class="ow">and</span> \
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">slices</span> <span class="ow">is</span> <span class="n">other</span><span class="o">.</span><span class="n">slices</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">slices</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">slices</span><span class="p">)):</span>
+            <span class="k">return</span>  <span class="c1"># optimize: don&#39;t need to check all charges explicitly</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">slices</span><span class="p">)</span> <span class="ow">or</span> \
+                <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">charges</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">qconj</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">charges</span> <span class="o">*</span> <span class="n">other</span><span class="o">.</span><span class="n">qconj</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;incompatible LegCharge</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="n">vert_join</span><span class="p">(</span>
+                <span class="p">[</span><span class="s2">&quot;self</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="s2">&quot;other</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">other</span><span class="p">)],</span> <span class="n">delim</span><span class="o">=</span><span class="s1">&#39; | &#39;</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="LegCharge.get_slice"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.get_slice">[docs]</a>    <span class="k">def</span> <span class="nf">get_slice</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">qindex</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return slice selecting the block for a given `qindex`.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">slice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">[</span><span class="n">qindex</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">[</span><span class="n">qindex</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="LegCharge.get_qindex"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.get_qindex">[docs]</a>    <span class="k">def</span> <span class="nf">get_qindex</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">flat_index</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Find qindex containing a flat index.</span>
+
+<span class="sd">        Given a flat index, to find the corresponding entry in an Array, we need to determine the</span>
+<span class="sd">        block it is saved in. For example, if ``qind[:, 2] = [[0, 3], [3, 7], [7, 12]]``,</span>
+<span class="sd">        the flat index ``5`` corresponds to the second entry, ``qindex = 1`` (since 5 is in [3:7]),</span>
+<span class="sd">        and the index within the block would be ``5-3 =2``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        flat_index : int</span>
+<span class="sd">            A flat index of the leg. Negative index counts from behind.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        qindex : int</span>
+<span class="sd">            The qindex, i.e. the index of the block containing `flat_index`.</span>
+<span class="sd">        index_within_block : int</span>
+<span class="sd">            The index of `flat_index` within the block given by `qindex`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">flat_index</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">flat_index</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ind_len</span>
+            <span class="k">if</span> <span class="n">flat_index</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s2">&quot;flat index </span><span class="si">{0:d}</span><span class="s2"> too negative for leg with ind_len </span><span class="si">{1:d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">flat_index</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">ind_len</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ind_len</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">flat_index</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">ind_len</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s2">&quot;flat index </span><span class="si">{0:d}</span><span class="s2"> too large for leg with ind_len </span><span class="si">{1:d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">flat_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ind_len</span><span class="p">))</span>
+        <span class="n">qind</span> <span class="o">=</span> <span class="n">bisect</span><span class="o">.</span><span class="n">bisect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">,</span> <span class="n">flat_index</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">qind</span><span class="p">,</span> <span class="n">flat_index</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">[</span><span class="n">qind</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="LegCharge.get_charge"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.get_charge">[docs]</a>    <span class="k">def</span> <span class="nf">get_charge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">qindex</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return charge ``self.charges[qindex] * self.qconj`` for a given `qindex`.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">charges</span><span class="p">[</span><span class="n">qindex</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">qconj</span></div>
+
+<div class="viewcode-block" id="LegCharge.sort"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.sort">[docs]</a>    <span class="k">def</span> <span class="nf">sort</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bunch</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a copy of `self` sorted by charges (but maybe not bunched).</span>
+
+<span class="sd">        If bunch=True, the returned copy is completely blocked by charge.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        bunch : bool</span>
+<span class="sd">            Whether `self.bunch` is called after sorting.</span>
+<span class="sd">            If True, the leg is guaranteed to be fully blocked by charge.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        perm_qind : array (self.block_len,)</span>
+<span class="sd">            The permutation of the qindices (before bunching) used for the sorting.</span>
+<span class="sd">            To obtain the flat permuation such that</span>
+<span class="sd">            ``sorted_array[..., :] = unsorted_array[..., perm_flat]``, use</span>
+<span class="sd">            ``perm_flat = unsorted_leg.perm_flat_from_perm_qind(perm_qind)``</span>
+<span class="sd">        sorted_copy : :class:`LegCharge`</span>
+<span class="sd">            A shallow copy of self, with new qind sorted (and thus blocked if bunch) by charges.</span>
+
+<span class="sd">        See also</span>
+<span class="sd">        --------</span>
+<span class="sd">        bunch : enlarge blocks for contiguous qind of the same charges.</span>
+<span class="sd">        np.take : can apply `perm_flat` to a given axis</span>
+<span class="sd">        inverse_permutation : returns inverse of a permutation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sorted</span> <span class="ow">and</span> <span class="p">((</span><span class="ow">not</span> <span class="n">bunch</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">bunched</span><span class="p">):</span>  <span class="c1"># nothing to do</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">block_number</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">),</span> <span class="bp">self</span>
+        <span class="n">perm_qind</span> <span class="o">=</span> <span class="n">lexsort</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">charges</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="n">cp</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">cp</span><span class="o">.</span><span class="n">charges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">charges</span><span class="p">[</span><span class="n">perm_qind</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">block_sizes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_block_sizes</span><span class="p">()</span>
+        <span class="n">cp</span><span class="o">.</span><span class="n">_set_block_sizes</span><span class="p">(</span><span class="n">block_sizes</span><span class="p">[</span><span class="n">perm_qind</span><span class="p">])</span>
+        <span class="n">cp</span><span class="o">.</span><span class="n">sorted</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="c1"># finally bunch: re-ordering can have brought together equal charges</span>
+        <span class="k">if</span> <span class="n">bunch</span><span class="p">:</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">cp</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">bunch</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cp</span><span class="o">.</span><span class="n">bunched</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="n">perm_qind</span><span class="p">,</span> <span class="n">cp</span></div>
+
+<div class="viewcode-block" id="LegCharge.bunch"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.bunch">[docs]</a>    <span class="k">def</span> <span class="nf">bunch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a copy with bunched self.charges: form blocks for contiguous equal charges.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        idx : 1D array</span>
+<span class="sd">            ``idx[:-1]`` are the indices of the old qind which are kept,</span>
+<span class="sd">            ``idx[-1] = old_block_number``.</span>
+<span class="sd">        cp : :class:`LegCharge`</span>
+<span class="sd">            A new LegCharge with the same charges at given indices of the leg,</span>
+<span class="sd">            but (possibly) shorter ``self.charges`` and ``self.slices``.</span>
+
+<span class="sd">        See also</span>
+<span class="sd">        --------</span>
+<span class="sd">        sort : sorts by charges, thus enforcing complete blocking in combination with bunch&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bunched</span><span class="p">:</span>  <span class="c1"># nothing to do</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">block_number</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">),</span> <span class="bp">self</span>
+        <span class="n">cp</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">_find_row_differences</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">charges</span><span class="p">)</span>
+        <span class="n">cp</span><span class="o">.</span><span class="n">charges</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">charges</span><span class="p">[</span><span class="n">idx</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>  <span class="c1"># avanced indexing -&gt; copy</span>
+        <span class="n">cp</span><span class="o">.</span><span class="n">slices</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">slices</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+        <span class="n">cp</span><span class="o">.</span><span class="n">bunched</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="n">idx</span><span class="p">,</span> <span class="n">cp</span></div>
+
+<div class="viewcode-block" id="LegCharge.project"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.project">[docs]</a>    <span class="k">def</span> <span class="nf">project</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return copy keeping only the indices specified by `mask`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        mask : 1D array(bool)</span>
+<span class="sd">            Whether to keep of the indices.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        map_qind : 1D array</span>
+<span class="sd">            Map of qindices, such that ``qind_new = map_qind[qind_old]``,</span>
+<span class="sd">            and ``map_qind[qind_old] = -1`` for qindices projected out.</span>
+<span class="sd">        block_masks : 1D array</span>
+<span class="sd">            The bool mask for each of the *remaining* blocks.</span>
+<span class="sd">        projected_copy : :class:`LegCharge`</span>
+<span class="sd">            Copy of self with the qind projected by `mask`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)</span>
+        <span class="n">cp</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">block_masks</span> <span class="o">=</span> <span class="p">[</span><span class="n">mask</span><span class="p">[</span><span class="n">b</span><span class="p">:</span><span class="n">e</span><span class="p">]</span> <span class="k">for</span> <span class="n">b</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slice_start_stop</span><span class="p">()]</span>
+        <span class="n">new_block_lens</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">bm</span><span class="p">)</span> <span class="k">for</span> <span class="n">bm</span> <span class="ow">in</span> <span class="n">block_masks</span><span class="p">]</span>
+        <span class="n">keep</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">new_block_lens</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">block_masks</span> <span class="o">=</span> <span class="p">[</span><span class="n">block_masks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">keep</span><span class="p">]</span>
+        <span class="n">cp</span><span class="o">.</span><span class="n">charges</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">charges</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
+        <span class="n">map_qind</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">block_number</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int_</span><span class="p">)</span>
+        <span class="n">map_qind</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">keep</span><span class="p">))</span>
+        <span class="n">cp</span><span class="o">.</span><span class="n">_set_block_sizes</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">new_block_lens</span><span class="p">)[</span><span class="n">keep</span><span class="p">])</span>
+        <span class="n">cp</span><span class="o">.</span><span class="n">bunched</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_blocked</span><span class="p">()</span>  <span class="c1"># no, it&#39;s not `is_bunched`</span>
+        <span class="k">return</span> <span class="n">map_qind</span><span class="p">,</span> <span class="n">block_masks</span><span class="p">,</span> <span class="n">cp</span></div>
+
+<div class="viewcode-block" id="LegCharge.charge_sectors"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.charge_sectors">[docs]</a>    <span class="k">def</span> <span class="nf">charge_sectors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return unique rows of self.charges.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        charges : 2D array</span>
+<span class="sd">            Rows are the rows of self.charges lexsorted and without duplicates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">charges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">charges</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">sorted</span><span class="p">:</span>
+            <span class="n">charges</span> <span class="o">=</span> <span class="n">charges</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">lexsort</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">charges</span><span class="o">.</span><span class="n">T</span><span class="p">),</span> <span class="p">:]</span>
+        <span class="n">charges</span> <span class="o">=</span> <span class="n">charges</span><span class="p">[</span><span class="n">_find_row_differences</span><span class="p">(</span><span class="n">charges</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">:]</span>
+        <span class="k">return</span> <span class="n">charges</span></div>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a string of nicely formatted slices &amp; charges.&quot;&quot;&quot;</span>
+        <span class="n">qconj</span> <span class="o">=</span> <span class="s2">&quot; </span><span class="si">{0:+d}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qconj</span><span class="p">)</span>
+        <span class="n">slices</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">qconj</span> <span class="o">+</span> <span class="n">vert_join</span><span class="p">([</span><span class="n">slices</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">charges</span><span class="p">)],</span> <span class="n">delim</span><span class="o">=</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Full string representation.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;LegCharge(</span><span class="si">{0!r}</span><span class="s2">, qconj=</span><span class="si">{1:+d}</span><span class="s2">,</span><span class="se">\n</span><span class="si">{2!r}</span><span class="s2">, </span><span class="si">{3!r}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">qconj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">charges</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_set_block_sizes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_sizes</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set self.slices from an list of the block-sizes.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">slices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">block_sizes</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_block_sizes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return block sizes.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_slice_start_stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Yield (start, stop) for each qindex.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+
+<div class="viewcode-block" id="LegCharge.perm_flat_from_perm_qind"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.perm_flat_from_perm_qind">[docs]</a>    <span class="k">def</span> <span class="nf">perm_flat_from_perm_qind</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">perm_qind</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convert a permutation of qind (acting on self) into a flat permutation.&quot;&quot;&quot;</span>
+        <span class="n">begend</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">[</span><span class="mi">1</span><span class="p">:]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span> <span class="k">for</span> <span class="n">b</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">begend</span><span class="p">[</span><span class="n">perm_qind</span><span class="p">]]</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">res</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LegCharge.perm_qind_from_perm_flat"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.perm_qind_from_perm_flat">[docs]</a>    <span class="k">def</span> <span class="nf">perm_qind_from_perm_flat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">perm_flat</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convert flat permutation into qind permutation.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        perm_flat : 1D array</span>
+<span class="sd">            A permutation acting on self, which doesn&#39;t mix the blocks of qind.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        perm_qind : 1D array</span>
+<span class="sd">            The permutation of self.qind described by perm_flat.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If perm_flat mixes blocks of different qindex.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">perm_flat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">perm_flat</span><span class="p">)</span>
+        <span class="n">perm_qind</span> <span class="o">=</span> <span class="n">perm_flat</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="c1"># check if perm_qind indeed resembles the permutation</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">perm_flat</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">perm_flat_from_perm_qind</span><span class="p">(</span><span class="n">perm_qind</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Permutation mixes qind&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">perm_qind</span></div>
+
+    <span class="k">def</span> <span class="nf">__getstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Allow to pickle and copy.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ind_len</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_number</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">charges</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">qconj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sorted</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bunched</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__setstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Allow to pickle and copy.&quot;&quot;&quot;</span>
+        <span class="n">ind_len</span><span class="p">,</span> <span class="n">block_number</span><span class="p">,</span> <span class="n">chinfo</span><span class="p">,</span> <span class="n">slices</span><span class="p">,</span> <span class="n">charges</span><span class="p">,</span> <span class="n">qconj</span><span class="p">,</span> <span class="nb">sorted</span><span class="p">,</span> <span class="n">bunched</span> <span class="o">=</span> <span class="n">state</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span> <span class="o">=</span> <span class="n">chinfo</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">slices</span> <span class="o">=</span> <span class="n">slices</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">charges</span> <span class="o">=</span> <span class="n">charges</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qconj</span> <span class="o">=</span> <span class="n">qconj</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sorted</span> <span class="o">=</span> <span class="nb">sorted</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bunched</span> <span class="o">=</span> <span class="n">bunched</span></div>
+
+
+<div class="viewcode-block" id="LegPipe"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegPipe">[docs]</a><span class="k">class</span> <span class="nc">LegPipe</span><span class="p">(</span><span class="n">LegCharge</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;A `LegPipe` combines multiple legs of a tensor to one.</span>
+
+<span class="sd">    Often, it is necessary to &quot;combine&quot; multiple legs into one:</span>
+<span class="sd">    for example to perfom a SVD, the tensor needs to be viewed as a matrix.</span>
+
+<span class="sd">    This class does exactly this job: it combines multiple LegCharges (&#39;incoming legs&#39;)</span>
+<span class="sd">    into one &#39;pipe&#39; (*the* &#39;outgoing leg&#39;).</span>
+<span class="sd">    The pipe itself is a :class:`LegCharge`, with indices running from 0 to the product of the</span>
+<span class="sd">    individual legs&#39; `ind_len`, corresponding to all possible combinations of input leg indices.</span>
+
+<span class="sd">    (This class is implemented in :mod:`tenpy.linalg.charges` but also imported in</span>
+<span class="sd">    :mod:`tenpy.linalg.np_conserved` for convenience.)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    legs : list of :class:`LegCharge`</span>
+<span class="sd">        The legs which are to be combined.</span>
+<span class="sd">    qconj : {+1, -1}</span>
+<span class="sd">        A flag telling whether the charge of the *resulting* pipe points inwards</span>
+<span class="sd">        (+1, default) or outwards (-1).</span>
+<span class="sd">    sort : bool</span>
+<span class="sd">        Whether the outgoing pipe should be sorted. Defaults ``True``; recommended.</span>
+<span class="sd">        Note: calling :meth:`sort` after initialization converts to a LegCharge.</span>
+<span class="sd">    bunch : bool</span>
+<span class="sd">        Whether the outgoing pipe should be bunched. Default ``True``; recommended.</span>
+<span class="sd">        Note: calling :meth:`bunch` after initialization converts to a LegCharge.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    nlegs</span>
+<span class="sd">    legs : tuple of :class:`LegCharge`</span>
+<span class="sd">        The original legs, which were combined in the pipe.</span>
+<span class="sd">    subshape : tuple of int</span>
+<span class="sd">        `ind_len` for each of the incoming legs.</span>
+<span class="sd">    subqshape : tuple of int</span>
+<span class="sd">        `block_number` for each of the incoming legs.</span>
+<span class="sd">    q_map:  2D array</span>
+<span class="sd">        Shape (`block_number`, 3 + `nlegs`). Rows: ``[ m_j, m_{j+1}, I_s, i_1, ..., i_{nlegs}]``,</span>
+<span class="sd">        See Notes below for details.</span>
+<span class="sd">    q_map_slices : list of views onto q_map</span>
+<span class="sd">        Defined such that ``q_map_slices[I_s] == q_map[(q_map[:, 2] == I_s)]``.</span>
+<span class="sd">    _perm : 1D array</span>
+<span class="sd">        A permutation such that ``q_map[_perm, 3:]`` is sorted by `i_l`.</span>
+<span class="sd">    _strides : 1D array</span>
+<span class="sd">        Strides for mapping incoming qindices `i_l` to the index of of ``q_map[_perm, :]``.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    For np.reshape, taking, for example,  :math:`i,j,... \rightarrow k` amounted to</span>
+<span class="sd">    :math:`k = s_1*i + s_2*j + ...` for appropriate strides :math:`s_1,s_2`.</span>
+
+<span class="sd">    In the charged case, however, we want to block :math:`k` by charge, so we must</span>
+<span class="sd">    implicitly permute as well.  This reordering is encoded in `q_map`.</span>
+
+<span class="sd">    Each qindex combination of the `nlegs` input legs :math:`(i_1, ..., i_{nlegs})`,</span>
+<span class="sd">    will end up getting placed in some slice :math:`a_j:a_{j+1}` of the outgoing pipe.</span>
+<span class="sd">    Within this slice, the data is simply reshaped in usual row-major fashion (&#39;C&#39;-order),</span>
+<span class="sd">    i.e., with strides :math:`s_1 &gt; s_2 &gt; ...`.</span>
+
+<span class="sd">    It will be a subslice of a new total block labeled by qindex :math:`I_s`.</span>
+<span class="sd">    Because many charge combinations fuse to the same total charge,</span>
+<span class="sd">    in general there will be many tuples :math:`(i_1, ..., i_{nlegs})` belonging to the same</span>
+<span class="sd">    :math:`I_s`.  The rows of `q_map` are precisely the collections of</span>
+<span class="sd">    ``[b_j, b_{j+1}, I_s, i_1, . . . , i_{nlegs}]``.</span>
+<span class="sd">    Here, :math:`b_j:b_{j+1}` denotes the slice of this qindex combination *within*</span>
+<span class="sd">    the total block `I_s`, i.e., ``b_j = a_j - self.slices[I_s]``.</span>
+
+<span class="sd">    The rows of map_qind are lex-sorted first by ``I_s``, then the ``i``.</span>
+<span class="sd">    Each ``I_s`` will have multiple rows,</span>
+<span class="sd">    and the order in which they are stored in `q_map` is the order the data is stored</span>
+<span class="sd">    in the actual tensor, i.e., it might look like ::</span>
+
+<span class="sd">        [ ...,</span>
+<span class="sd">         [ b_j,     b_{j+1},  I_s,     i_1,    ..., i_{nlegs}   ],</span>
+<span class="sd">         [ b_{j+1}, b_{j+2},  I_s,     i&#39;_1,   ..., i&#39;_{nlegs}  ],</span>
+<span class="sd">         [ 0,       b_{j+3},  I_s + 1, i&#39;&#39;_1,  ..., i&#39;&#39;_{nlegs} ],</span>
+<span class="sd">         [ b_{j+3}, b_{j+4},  I_s + 1, i&#39;&#39;&#39;_1, ..., i&#39;&#39;&#39;_{nlegs}],</span>
+<span class="sd">         ...]</span>
+
+
+<span class="sd">    The charge fusion rule is::</span>
+
+<span class="sd">        self.charges[Qi]*self.qconj == sum([l.charges[qi_l]*l.qconj for l in self.legs])  mod qmod</span>
+
+<span class="sd">    Here the qindex ``Qi`` of the pipe corresponds to qindices ``qi_l`` on the individual legs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">legs</span><span class="p">,</span> <span class="n">qconj</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">bunch</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">chinfo</span> <span class="o">=</span> <span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">chinfo</span>
+        <span class="c1"># initialize LegCharge with trivial charges/slices; gets overwritten in _init_from_legs</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">LegPipe</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">chinfo</span><span class="o">.</span><span class="n">qnumber</span><span class="p">],</span> <span class="n">qconj</span><span class="p">)</span>
+        <span class="c1"># additional attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">legs</span> <span class="o">=</span> <span class="n">legs</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">legs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subshape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">([</span><span class="n">l</span><span class="o">.</span><span class="n">ind_len</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">legs</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subqshape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">([</span><span class="n">l</span><span class="o">.</span><span class="n">block_number</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">legs</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">q_map</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># overwritten in _init_from_legs, but necessary for copies</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">q_map_slices</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># overwritten in _init_from_legs, but necessary for copies</span>
+        <span class="c1"># the diffuclt part: calculate self.slices, self.charges, self.q_map and self.q_map_slices</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_from_legs</span><span class="p">(</span><span class="n">sort</span><span class="p">,</span> <span class="n">bunch</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nlegs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The number of legs.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subshape</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LegPipe.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegPipe.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sanity check. Raises ValueErrors, if something is wrong.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">optimize</span><span class="p">(</span><span class="n">OptimizationFlag</span><span class="o">.</span><span class="n">skip_arg_checks</span><span class="p">):</span>
+            <span class="k">return</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">LegPipe</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;subshape&quot;</span><span class="p">):</span>
+            <span class="k">return</span>  <span class="c1"># omit further check during ``super(LegPipe, self).__init__``</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="nb">all</span><span class="p">([</span><span class="n">l</span><span class="o">.</span><span class="n">chinfo</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">legs</span><span class="p">]))</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subshape</span> <span class="o">==</span> <span class="nb">tuple</span><span class="p">([</span><span class="n">l</span><span class="o">.</span><span class="n">ind_len</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">legs</span><span class="p">]))</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subqshape</span> <span class="o">==</span> <span class="nb">tuple</span><span class="p">([</span><span class="n">l</span><span class="o">.</span><span class="n">block_number</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">legs</span><span class="p">]))</span></div>
+
+<div class="viewcode-block" id="LegPipe.to_LegCharge"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegPipe.to_LegCharge">[docs]</a>    <span class="k">def</span> <span class="nf">to_LegCharge</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convert self to a LegCharge, discarding the information how to split the legs.</span>
+<span class="sd">        Usually not needed, but called by functions, which are not implemented for a LegPipe.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">LegCharge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">charges</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">qconj</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LegPipe.conj"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegPipe.conj">[docs]</a>    <span class="k">def</span> <span class="nf">conj</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a shallow copy with opposite ``self.qconj``.</span>
+
+<span class="sd">        Also conjugates each of the incoming legs.&quot;&quot;&quot;</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">LegPipe</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>  <span class="c1"># invert self.qconj</span>
+        <span class="n">res</span><span class="o">.</span><span class="n">legs</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">([</span><span class="n">l</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">legs</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="LegPipe.outer_conj"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegPipe.outer_conj">[docs]</a>    <span class="k">def</span> <span class="nf">outer_conj</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Like :meth:`conj`, but don&#39;t change ``qconj`` for incoming legs.&quot;&quot;&quot;</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>  <span class="c1"># shallow</span>
+        <span class="n">res</span><span class="o">.</span><span class="n">qconj</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">res</span><span class="o">.</span><span class="n">charges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="o">.</span><span class="n">make_valid</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">charges</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="LegPipe.sort"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegPipe.sort">[docs]</a>    <span class="k">def</span> <span class="nf">sort</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convert to LegCharge and call :meth:`LegCharge.sort`.&quot;&quot;&quot;</span>
+        <span class="c1"># could be implemented for a LegPipe, but who needs it?</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Converting LegPipe to LegCharge for `sort`&quot;</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_LegCharge</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">res</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LegPipe.bunch"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegPipe.bunch">[docs]</a>    <span class="k">def</span> <span class="nf">bunch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convert to LegCharge and call :meth:`LegCharge.bunch`.&quot;&quot;&quot;</span>
+        <span class="c1"># could be implemented for a LegPipe, but who needs it?</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Converting LegPipe to LegCharge for `bunch`&quot;</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_LegCharge</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">res</span><span class="o">.</span><span class="n">bunch</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LegPipe.project"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegPipe.project">[docs]</a>    <span class="k">def</span> <span class="nf">project</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convert self to LegCharge and call :meth:`LegCharge.project`.</span>
+
+<span class="sd">        In general, this could be implemented for a LegPipe, but would make</span>
+<span class="sd">        :meth:`~tenpy.linalg.np_conserved.Array.split_legs` more complicated, thus we keep it</span>
+<span class="sd">        simple.  If you really want to project and split afterwards, use the following work-around,</span>
+<span class="sd">        which is for example used in :class:`~tenpy.algorithms.exact_diagonalization`:</span>
+
+<span class="sd">        1) Create the full pipe and save it separetely.</span>
+<span class="sd">        2) Convert the Pipe to a Leg &amp; project the array with it.</span>
+<span class="sd">        3) [... do calculations ...]</span>
+<span class="sd">        4) To split the &#39;projected pipe&#39; of `A`, create and empty array `B` with the legs of A,</span>
+<span class="sd">           but replace the projected leg by the full pipe. Set `A` as a slice of `B`.</span>
+<span class="sd">           Finally split the pipe.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Converting LegPipe to LegCharge for `project`&quot;</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_LegCharge</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">res</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LegPipe.map_incoming_flat"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegPipe.map_incoming_flat">[docs]</a>    <span class="k">def</span> <span class="nf">map_incoming_flat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">incoming_indices</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Map (flat) incoming indices to an index in the outgoing pipe.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        incoming_indices : iterable of int</span>
+<span class="sd">            One (flat) index on each of the incoming legs.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        outgoing_index : int</span>
+<span class="sd">            The index in the outgoing leg.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># need to calculate the `a_j` in the Notes of the doc-string of self.</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">incoming_indices</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlegs</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;wrong len of flat_ind_incoming&quot;</span><span class="p">)</span>
+        <span class="n">qind_in</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlegs</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
+        <span class="n">within_block_out</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">stride</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nlegs</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>  <span class="c1"># reversed: C order within the block</span>
+            <span class="n">leg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="n">ax</span><span class="p">]</span>
+            <span class="n">qind</span><span class="p">,</span> <span class="n">within_block</span> <span class="o">=</span> <span class="n">leg</span><span class="o">.</span><span class="n">get_qindex</span><span class="p">(</span><span class="n">incoming_indices</span><span class="p">[</span><span class="n">ax</span><span class="p">])</span>
+            <span class="n">qind_in</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">ax</span><span class="p">]</span> <span class="o">=</span> <span class="n">qind</span>
+            <span class="n">within_block_out</span> <span class="o">+=</span> <span class="n">stride</span> <span class="o">*</span> <span class="n">within_block</span>
+            <span class="n">stride</span> <span class="o">*=</span> <span class="p">(</span><span class="n">leg</span><span class="o">.</span><span class="n">slices</span><span class="p">[</span><span class="n">qind</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">leg</span><span class="o">.</span><span class="n">slices</span><span class="p">[</span><span class="n">qind</span><span class="p">])</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_map_incoming_qind</span><span class="p">(</span><span class="n">qind_in</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">q_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">q_map</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="n">q_map</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">q_map</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">stride</span><span class="p">)</span>
+        <span class="n">qind_out</span> <span class="o">=</span> <span class="n">q_map</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>  <span class="c1"># I_s</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">[</span><span class="n">qind_out</span><span class="p">]</span> <span class="o">+</span> <span class="n">q_map</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">within_block_out</span></div>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Fairly short debug output.&quot;&quot;&quot;</span>
+        <span class="n">res_lines</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;LegPipe(shape </span><span class="si">{0!s}</span><span class="s2">-&gt;</span><span class="si">{1:d}</span><span class="s2">, &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">subshape</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ind_len</span><span class="p">),</span> <span class="s2">&quot;    qconj </span><span class="si">{0}</span><span class="s2">-&gt;</span><span class="si">{1:+1}</span><span class="s2">;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="s1">&#39;(&#39;</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;</span><span class="si">%+d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">l</span><span class="o">.</span><span class="n">qconj</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">legs</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">qconj</span><span class="p">),</span>
+            <span class="s2">&quot;    block numbers </span><span class="si">{0!s}</span><span class="s2">-&gt;</span><span class="si">{1:d}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subqshape</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_number</span><span class="p">),</span>
+            <span class="n">vert_join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">l</span><span class="p">)</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">legs</span><span class="p">],</span> <span class="n">delim</span><span class="o">=</span><span class="s1">&#39; | &#39;</span><span class="p">),</span> <span class="s1">&#39;)&#39;</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">res_lines</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Full string representation.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;LegPipe(</span><span class="si">{legs}</span><span class="s2">,</span><span class="se">\n</span><span class="s2">qconj=</span><span class="si">{qconj:+d}</span><span class="s2">, sort=</span><span class="si">{s!r}</span><span class="s2">, bunch=</span><span class="si">{b!r}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">legs</span><span class="o">=</span><span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="s1">&#39;,</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">repr</span><span class="p">(</span><span class="n">l</span><span class="p">)</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">legs</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39;]&#39;</span><span class="p">,</span>
+            <span class="n">qconj</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">qconj</span><span class="p">,</span>
+            <span class="n">s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sorted</span><span class="p">,</span>
+            <span class="n">b</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bunched</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_init_from_legs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">bunch</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate ``self.qind``, ``self.q_map`` and ``self.q_map_slices`` from ``self.legs``.</span>
+
+<span class="sd">        `qind` is constructed to fullfill the charge fusion rule stated in the class doc-string.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># this function heavily uses numpys advanced indexing, for details see</span>
+        <span class="c1"># `http://docs.scipy.org/doc/numpy/reference/arrays.indexing.html`_</span>
+        <span class="c1"># and the documentation of np.mgrid</span>
+        <span class="n">nlegs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlegs</span>
+        <span class="n">qnumber</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="o">.</span><span class="n">qnumber</span>
+        <span class="n">qshape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subqshape</span>
+
+        <span class="c1"># create a grid to select the multi-index sector</span>
+        <span class="n">grid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mgrid</span><span class="p">[[</span><span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">qshape</span><span class="p">]]</span>
+        <span class="c1"># grid is an array with shape ``(nlegs,) + qshape``,</span>
+        <span class="c1"># with grid[li, ...] = {np.arange(qshape[li]) increasing in the li-th direcion}</span>
+        <span class="c1"># save the strides of grid, which is needed for :meth:`_map_incoming_qind`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_strides</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">strides</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">//</span> <span class="n">grid</span><span class="o">.</span><span class="n">itemsize</span>
+        <span class="c1"># collapse the different directions into one.</span>
+        <span class="n">grid</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nlegs</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># *this* is the actual `reshaping`</span>
+        <span class="c1"># *columns* of grid are now all possible cominations of qindices.</span>
+
+        <span class="n">nblocks</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># number of blocks in the pipe = np.product(qshape)</span>
+        <span class="c1"># determine q_map -- it&#39;s essentially the grid.</span>
+        <span class="n">q_map</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">nblocks</span><span class="p">,</span> <span class="mi">3</span> <span class="o">+</span> <span class="n">nlegs</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">QTYPE</span><span class="p">)</span>
+        <span class="n">q_map</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">:]</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">T</span>  <span class="c1"># transpose -&gt; rows are possible combinations.</span>
+        <span class="c1"># the block size for given (i1, i2, ...) is the product of ``legs._get_block_sizes()[il]``</span>
+        <span class="n">legbs</span> <span class="o">=</span> <span class="p">[</span><span class="n">l</span><span class="o">.</span><span class="n">_get_block_sizes</span><span class="p">()</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">legs</span><span class="p">]</span>
+        <span class="c1"># andvanced indexing:</span>
+        <span class="c1"># ``grid[li]`` is a 1D array containing the qindex `q_li` of leg ``li`` for all blocks</span>
+        <span class="n">blocksizes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">([</span><span class="n">lbs</span><span class="p">[</span><span class="n">gr</span><span class="p">]</span> <span class="k">for</span> <span class="n">lbs</span><span class="p">,</span> <span class="n">gr</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">legbs</span><span class="p">,</span> <span class="n">grid</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="c1"># q_map[:, :3] is initialized after sort/bunch.</span>
+
+        <span class="c1"># calculate total charges</span>
+        <span class="n">charges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nblocks</span><span class="p">,</span> <span class="n">qnumber</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">QTYPE</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">qnumber</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># similar scheme as for the block sizes above, but now for 1D arrays of charges</span>
+            <span class="n">legcharges</span> <span class="o">=</span> <span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">qconj</span> <span class="o">*</span> <span class="n">l</span><span class="o">.</span><span class="n">qconj</span><span class="p">)</span> <span class="o">*</span> <span class="n">l</span><span class="o">.</span><span class="n">charges</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">legs</span><span class="p">]</span>
+            <span class="c1"># ``legcharges[li]`` is a 2D array mapping `q_li` to the charges.</span>
+            <span class="c1"># thus ``(legcharges[li])[grid[li], :]`` gives a 2D array of shape (nblocks, qnumber)</span>
+            <span class="n">charges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">([</span><span class="n">lq</span><span class="p">[</span><span class="n">gr</span><span class="p">]</span> <span class="k">for</span> <span class="n">lq</span><span class="p">,</span> <span class="n">gr</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">legcharges</span><span class="p">,</span> <span class="n">grid</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="c1"># now, we have what we need according to the charge **fusion rule**</span>
+            <span class="c1"># namely for qi=`leg qindices` and li=`legs`:</span>
+            <span class="c1"># charges[(q1, q2,...)] == self.qconj * (l1.qind[q1]*l1.qconj +</span>
+            <span class="c1">#                                        l2.qind[q2]*l2.qconj + ...)</span>
+            <span class="n">charges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="o">.</span><span class="n">make_valid</span><span class="p">(</span><span class="n">charges</span><span class="p">)</span>  <span class="c1"># modulo qmod</span>
+
+        <span class="k">if</span> <span class="n">sort</span><span class="p">:</span>
+            <span class="c1"># sort by charge. Similar code as in :meth:`LegCharge.sort`,</span>
+            <span class="c1"># but don&#39;t want to create a copy, nor is qind[:, 0] initialized yet.</span>
+            <span class="n">perm_qind</span> <span class="o">=</span> <span class="n">lexsort</span><span class="p">(</span><span class="n">charges</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+            <span class="n">q_map</span> <span class="o">=</span> <span class="n">q_map</span><span class="p">[</span><span class="n">perm_qind</span><span class="p">]</span>
+            <span class="n">charges</span> <span class="o">=</span> <span class="n">charges</span><span class="p">[</span><span class="n">perm_qind</span><span class="p">]</span>
+            <span class="n">blocksizes</span> <span class="o">=</span> <span class="n">blocksizes</span><span class="p">[</span><span class="n">perm_qind</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_perm</span> <span class="o">=</span> <span class="n">inverse_permutation</span><span class="p">(</span><span class="n">perm_qind</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_perm</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">charges</span> <span class="o">=</span> <span class="n">charges</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sorted</span> <span class="o">=</span> <span class="n">sort</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_block_sizes</span><span class="p">(</span><span class="n">blocksizes</span><span class="p">)</span>  <span class="c1"># sets self.slices</span>
+        <span class="n">q_map</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">q_map</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+        <span class="k">if</span> <span class="n">bunch</span><span class="p">:</span>
+            <span class="c1"># call LegCharge.bunch(), which also calculates new blocksizes</span>
+            <span class="n">idx</span><span class="p">,</span> <span class="n">bunched</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">LegPipe</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">bunch</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">charges</span> <span class="o">=</span> <span class="n">bunched</span><span class="o">.</span><span class="n">charges</span>  <span class="c1"># copy information back to self</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">slices</span> <span class="o">=</span> <span class="n">bunched</span><span class="o">.</span><span class="n">slices</span>
+            <span class="c1"># calculate q_map[:, 2], the qindices corresponding to the rows of q_map</span>
+            <span class="n">q_map_Qi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">q_map</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">q_map</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="n">q_map_Qi</span><span class="p">[</span><span class="n">idx</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># not for the first entry =&gt; np.cumsum starts with 0</span>
+            <span class="n">q_map</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">q_map_Qi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">q_map_Qi</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">q_map</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">q_map_Qi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">q_map</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">q_map</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">q_map</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
+        <span class="c1"># calculate the slices within blocks: subtract the start of each block</span>
+        <span class="n">q_map</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">-=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">[</span><span class="n">q_map_Qi</span><span class="p">])[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">q_map</span> <span class="o">=</span> <span class="n">q_map</span>  <span class="c1"># finished</span>
+
+        <span class="c1"># finally calculate q_map_slices</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">q_map_slices</span> <span class="o">=</span> <span class="p">[</span><span class="n">q_map</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">idx</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">idx</span><span class="p">[</span><span class="mi">1</span><span class="p">:])]</span>
+        <span class="c1"># q_map_slices contains only views!</span>
+
+    <span class="k">def</span> <span class="nf">_map_incoming_qind</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">qind_incoming</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Map incoming qindices to indices of q_map.</span>
+
+<span class="sd">        Needed for :meth:`~tenpy.linalg.np_conserved.Array.combine_legs`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        qind_incoming : 2D array</span>
+<span class="sd">            Rows are qindices :math:`(i_1, i_2, ... i_{nlegs})` for incoming legs.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        q_map_indices : 1D array</span>
+<span class="sd">            For each row of `qind_incoming` an index `j` such that</span>
+<span class="sd">            ``self.q_map[j, 3:] == qind_incoming[j]``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="n">qind_incoming</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlegs</span><span class="p">)</span>
+        <span class="c1"># calculate indices of q_map[_perm], which is sorted by :math:`i_1, i_2, ...`,</span>
+        <span class="c1"># by using the appropriate strides</span>
+        <span class="n">inds_before_perm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">qind_incoming</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_strides</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># permute them to indices in q_map</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_perm</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">inds_before_perm</span>  <span class="c1"># no permutation necessary</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_perm</span><span class="p">[</span><span class="n">inds_before_perm</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__getstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Allow to pickle and copy.&quot;&quot;&quot;</span>
+        <span class="n">super_state</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">LegPipe</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__getstate__</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">super_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlegs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">legs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">subshape</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">subqshape</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">q_map</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">q_map_slices</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_perm</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_strides</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__setstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Allow to pickle and copy.&quot;&quot;&quot;</span>
+        <span class="n">super_state</span><span class="p">,</span> <span class="n">nlegs</span><span class="p">,</span> <span class="n">legs</span><span class="p">,</span> <span class="n">subshape</span><span class="p">,</span> <span class="n">subqshape</span><span class="p">,</span> <span class="n">q_map</span><span class="p">,</span> <span class="n">q_map_slices</span><span class="p">,</span> <span class="n">_perm</span><span class="p">,</span> <span class="n">_strides</span> <span class="o">=</span> <span class="n">state</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">legs</span> <span class="o">=</span> <span class="n">legs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subshape</span> <span class="o">=</span> <span class="n">subshape</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subqshape</span> <span class="o">=</span> <span class="n">subqshape</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">q_map</span> <span class="o">=</span> <span class="n">q_map</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">q_map_slices</span> <span class="o">=</span> <span class="n">q_map_slices</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_perm</span> <span class="o">=</span> <span class="n">_perm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_strides</span> <span class="o">=</span> <span class="n">_strides</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">LegPipe</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__setstate__</span><span class="p">(</span><span class="n">super_state</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">_find_row_differences</span><span class="p">(</span><span class="n">qflat</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return indices where the rows of the 2D array `qflat` change.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    qflat : 2D array</span>
+<span class="sd">        The rows of this array are compared.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    diffs: 1D array</span>
+<span class="sd">        The indices where rows change, including the first and last. Equivalent to:</span>
+<span class="sd">        ``[0]+[i for i in range(1, len(qflat)) if np.any(qflat[i-1] != qflat[i])] + [len(qflat)]``</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">qflat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="n">qflat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
+    <span class="n">diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">qflat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)</span>
+    <span class="n">diff</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">qflat</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">!=</span> <span class="n">qflat</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">diff</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># get the indices of True-values</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/logo.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../userguide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.html">tenpy package</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2018, TeNPy Developers.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

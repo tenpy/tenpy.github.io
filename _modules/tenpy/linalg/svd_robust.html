@@ -1,0 +1,375 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>tenpy.linalg.svd_robust &#8212; TeNPy 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tenpy.linalg.svd_robust</h1><div class="highlight"><pre>
+<span></span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;(More) robust version of singular value decomposition.</span>
+
+<span class="sd">We often need to perform an SVD.</span>
+<span class="sd">In general, an SVD is a matrix factorization that is always well defined and should also work</span>
+<span class="sd">for ill-conditioned matrices.</span>
+<span class="sd">But sadly, both `numpy.linalg.svd` and `scipy.linalg.svd` fail from time to time, raising</span>
+<span class="sd">``LinalgError(&quot;SVD did not converge&quot;)``.</span>
+<span class="sd">The reason is that both of them call the LAPACK function `#gesdd`</span>
+<span class="sd">(where `#` depends on the data type), which (to make it short) fails in some cases.</span>
+<span class="sd">However, it is usually much faster than the alternative (and robust) `#gesvd`.</span>
+
+<span class="sd">Our workaround is as follows: we provide a function :func:`svd` with call signature as scipy&#39;s svd.</span>
+<span class="sd">This function is basically just a wrapper around scipy&#39;s svd, i.e., we keep calling the faster</span>
+<span class="sd">`dgesdd`. But if that fails, we can still use `dgesvd` as a backup.</span>
+
+<span class="sd">Sadly, `dgesvd` and `zgesvd` were not included into scipy until version &#39;0.18.0&#39; (nor in numpy),</span>
+<span class="sd">which is as the time of this writing the latest stable scipy version.</span>
+<span class="sd">For scipy version newer than &#39;0.18.0&#39;, we make use of the new keyword &#39;lapack_driver&#39; for svd,</span>
+<span class="sd">otherwise we (try to) load `dgesvd` and `zgesvd` from shared LAPACK libraries.</span>
+
+<span class="sd">The tribute for the dgesvd wrapper code goes to &#39;jgarcke&#39;, originally posted at</span>
+<span class="sd">http://projects.scipy.org/numpy/ticket/990, which is now hosted</span>
+<span class="sd">at https://github.com/numpy/numpy/issues/1588</span>
+<span class="sd">He explains a bit more in detail what fails.</span>
+
+<span class="sd">The include of `dgesvd` to scipy was done in https://github.com/scipy/scipy/pull/5994.</span>
+
+<span class="sd">Examples</span>
+<span class="sd">--------</span>
+<span class="sd">The idea is that you just import the `svd` from this module and use it as replacement for</span>
+<span class="sd">``np.linalg.svd`` or ``scipy.linalg.svd``:</span>
+
+<span class="sd">&gt;&gt;&gt; from svd_robust import svd</span>
+<span class="sd">&gt;&gt;&gt; U, S, VT = svd([[1., 1.], [0., [1.]])</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># Copyright 2018 TeNPy Developers</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy</span>
+<span class="kn">import</span> <span class="nn">scipy.linalg</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">from</span> <span class="nn">ctypes</span> <span class="k">import</span> <span class="n">CDLL</span><span class="p">,</span> <span class="n">POINTER</span><span class="p">,</span> <span class="n">c_int</span><span class="p">,</span> <span class="n">c_char</span>
+<span class="kn">from</span> <span class="nn">ctypes.util</span> <span class="k">import</span> <span class="n">find_library</span>
+<span class="kn">from</span> <span class="nn">numpy.core</span> <span class="k">import</span> <span class="n">single</span><span class="p">,</span> <span class="n">double</span><span class="p">,</span> <span class="n">csingle</span><span class="p">,</span> <span class="n">cdouble</span>  <span class="c1"># for those, &#39;c&#39; = complex</span>
+
+<span class="kn">from</span> <span class="nn">numpy.linalg.linalg</span> <span class="k">import</span> <span class="n">LinAlgError</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">numpy.linalg.linalg</span> <span class="k">import</span> <span class="n">_makearray</span><span class="p">,</span> <span class="n">_fastCopyAndTranspose</span><span class="p">,</span> \
+        <span class="n">isComplexType</span><span class="p">,</span> <span class="n">_realType</span><span class="p">,</span> <span class="n">_commonType</span><span class="p">,</span> <span class="n">_assertRank2</span><span class="p">,</span> <span class="n">_assertFinite</span><span class="p">,</span> <span class="n">_assertNoEmpty2d</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Import problems: the work-around `svd_gesvd` will fail.&quot;</span><span class="p">)</span>
+    <span class="c1"># If you get this warning, you might still be lucky and not need the workaround,</span>
+    <span class="c1"># for examply, if you have a recent version of scipy....</span>
+
+    <span class="c1"># If you can&#39;t upgrade your scipy, you might try to copy&amp;paste the corresponding functions</span>
+    <span class="c1"># from the numpy code (version 1.11.0 works for me) on github.</span>
+
+<span class="c1"># check the scipy version wheter it includes LAPACK&#39;s &#39;gesvd&#39;</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="c1"># simply check wether scipy.linalg.svd has the keyword it should have</span>
+    <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">svd</span><span class="p">([[</span><span class="mf">1.</span><span class="p">]],</span> <span class="n">lapack_driver</span><span class="o">=</span><span class="s1">&#39;gesvd&#39;</span><span class="p">)</span>
+    <span class="n">_old_scipy</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+    <span class="n">_old_scipy</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="c1"># (NumpyVersion parses the argument for version comparsion, not ``numpy.__version__``)</span>
+
+<span class="c1">#: will be the the CLAPACK library loaded with _load_lapack()</span>
+<span class="n">_lapack_lib</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="svd"><a class="viewcode-back" href="../../../reference/tenpy.linalg.svd_robust.html#tenpy.linalg.svd_robust.svd">[docs]</a><span class="k">def</span> <span class="nf">svd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span>
+        <span class="n">full_matrices</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">compute_uv</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">overwrite_a</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">check_finite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">lapack_driver</span><span class="o">=</span><span class="s1">&#39;gesdd&#39;</span><span class="p">,</span>
+        <span class="n">warn</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Wrapper around `scipy.linalg.svd` with `gesvd` backup plan.</span>
+
+<span class="sd">    Tries to avoid raising an LinAlgError by using using the lapack_driver `gesvd`,</span>
+<span class="sd">    if `gesdd` failed.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    overwrite_a : bool</span>
+<span class="sd">        Ignored (i.e. set to ``False``) if ``lapack_driver=&#39;gesdd&#39;``.</span>
+<span class="sd">        Otherwise described in doc-string of `scipy.linalg.svd`.</span>
+<span class="sd">    lapack_driver : {&#39;gesdd&#39;, &#39;gesvd&#39;}, optional</span>
+<span class="sd">        Whether to use the more efficient divide-and-conquer approach (``&#39;gesdd&#39;``)</span>
+<span class="sd">        or general rectangular approach (``&#39;gesvd&#39;``) to compute the SVD.</span>
+<span class="sd">        MATLAB and Octave use the ``&#39;gesvd&#39;`` approach.</span>
+<span class="sd">        Default is ``&#39;gesdd&#39;``.</span>
+<span class="sd">        If ``&#39;gesdd&#39;`` fails, ``&#39;gesvd&#39;`` is used as backup.</span>
+<span class="sd">    warn : bool</span>
+<span class="sd">        whether to create a warning when the SVD failed.</span>
+
+<span class="sd">    Other parameters as described in doc-string of `scipy.linalg.svd`</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    U, S, Vh : ndarray</span>
+<span class="sd">        As described in doc-string of `scipy.linalg.svd`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">lapack_driver</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;gesdd&#39;</span><span class="p">,</span> <span class="s1">&#39;gesvd&#39;</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;invalid `lapack_driver`: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">lapack_driver</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">lapack_driver</span> <span class="o">==</span> <span class="s1">&#39;gesdd&#39;</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">full_matrices</span><span class="p">,</span> <span class="n">compute_uv</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">check_finite</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">LinAlgError</span><span class="p">:</span>
+            <span class="c1"># &#39;gesdd&#39; failed to converge, so we continue with the backup plan</span>
+            <span class="k">if</span> <span class="n">warn</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;SVD with lapack_driver &#39;gesdd&#39; failed. Use backup &#39;gesvd&#39;&quot;</span><span class="p">)</span>
+            <span class="k">pass</span>
+    <span class="c1"># &#39;gesvd&#39; lapack driver</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_old_scipy</span><span class="p">:</span>
+        <span class="c1"># use LAPACK wrapper included in scipy version &gt;= 0.18.0</span>
+        <span class="k">return</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">full_matrices</span><span class="p">,</span> <span class="n">compute_uv</span><span class="p">,</span> <span class="n">overwrite_a</span><span class="p">,</span> <span class="n">check_finite</span><span class="p">,</span> <span class="s1">&#39;gesvd&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># for backwards compatibility</span>
+        <span class="n">_load_lapack</span><span class="p">(</span><span class="n">warn</span><span class="o">=</span><span class="n">warn</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">svd_gesvd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">full_matrices</span><span class="p">,</span> <span class="n">compute_uv</span><span class="p">,</span> <span class="n">check_finite</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="svd_gesvd"><a class="viewcode-back" href="../../../reference/tenpy.linalg.svd_robust.html#tenpy.linalg.svd_robust.svd_gesvd">[docs]</a><span class="k">def</span> <span class="nf">svd_gesvd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">full_matrices</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">compute_uv</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">check_finite</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;svd with LAPACK&#39;s &#39;#gesvd&#39; (with # = d/z for float/complex).</span>
+
+<span class="sd">    Similar as `numpy.linalg.svd`, but use LAPACK &#39;gesvd&#39; driver.</span>
+<span class="sd">    Works only with 2D arrays.</span>
+<span class="sd">    Outer part is based on the code of `numpy.linalg.svd`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    a, full_matrices, compute_uv :</span>
+<span class="sd">        see doc-string of `numpy.linalg.svd` for details.</span>
+<span class="sd">    check_finite :</span>
+<span class="sd">        check whether input arrays contain &#39;NaN&#39; or &#39;inf&#39;.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    U, S, Vh : ndarray</span>
+<span class="sd">        see doc-string of `numpy.linalg.svd` for details.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">a</span><span class="p">,</span> <span class="n">wrap</span> <span class="o">=</span> <span class="n">_makearray</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>  <span class="c1"># uses order=&#39;C&#39;</span>
+    <span class="n">_assertNoEmpty2d</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="n">_assertRank2</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">check_finite</span><span class="p">:</span>
+        <span class="n">_assertFinite</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="n">M</span><span class="p">,</span> <span class="n">N</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span>
+    <span class="c1"># determine types</span>
+    <span class="n">t</span><span class="p">,</span> <span class="n">result_t</span> <span class="o">=</span> <span class="n">_commonType</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="c1"># t = type for calculation, (for my numpy version) actually always one of {double, cdouble}</span>
+    <span class="c1"># result_t = one of {single, double, csingle, cdouble}</span>
+    <span class="n">is_complex</span> <span class="o">=</span> <span class="n">isComplexType</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+    <span class="n">real_t</span> <span class="o">=</span> <span class="n">_realType</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>  <span class="c1"># real version of t with same precision</span>
+    <span class="c1"># copy: the array is destroyed</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">_fastCopyAndTranspose</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>  <span class="c1"># casts a to t, copy and transpose (=change to order=&#39;F&#39;)</span>
+
+    <span class="n">lapack_routine</span> <span class="o">=</span> <span class="n">_get_gesvd</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+    <span class="c1"># allocate output space &amp; options</span>
+    <span class="k">if</span> <span class="n">compute_uv</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">full_matrices</span><span class="p">:</span>
+            <span class="n">nu</span> <span class="o">=</span> <span class="n">M</span>
+            <span class="n">lvt</span> <span class="o">=</span> <span class="n">N</span>
+            <span class="n">option</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;A&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nu</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+            <span class="n">lvt</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+            <span class="n">option</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;S&#39;</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">M</span><span class="p">,</span> <span class="n">nu</span><span class="p">),</span> <span class="n">t</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span>
+        <span class="n">vt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">lvt</span><span class="p">,</span> <span class="n">N</span><span class="p">),</span> <span class="n">t</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">option</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;N&#39;</span>
+        <span class="n">nu</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">t</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span>
+        <span class="n">vt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">t</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">min</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">M</span><span class="p">),</span> <span class="p">),</span> <span class="n">real_t</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span>
+    <span class="n">INFO</span> <span class="o">=</span> <span class="n">c_int</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">c_int</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">c_int</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+    <span class="n">lu</span> <span class="o">=</span> <span class="n">c_int</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">lvt</span> <span class="o">=</span> <span class="n">c_int</span><span class="p">(</span><span class="n">vt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">work</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="p">),</span> <span class="n">t</span><span class="p">)</span>
+    <span class="n">lwork</span> <span class="o">=</span> <span class="n">c_int</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># first call with lwork=-1</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="n">option</span><span class="p">,</span> <span class="n">option</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">lu</span><span class="p">,</span> <span class="n">vt</span><span class="p">,</span> <span class="n">lvt</span><span class="p">,</span> <span class="n">work</span><span class="p">,</span> <span class="n">lwork</span><span class="p">,</span> <span class="n">INFO</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">is_complex</span><span class="p">:</span>
+        <span class="c1"># differnt call signature: additional array &#39;rwork&#39; of fixed size</span>
+        <span class="n">rwork</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">5</span> <span class="o">*</span> <span class="nb">min</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">M</span><span class="p">),</span> <span class="p">),</span> <span class="n">real_t</span><span class="p">)</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">rwork</span><span class="p">)</span>
+    <span class="n">lapack_routine</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>  <span class="c1"># first call: just calculate the required `work` size</span>
+    <span class="k">if</span> <span class="n">INFO</span><span class="o">.</span><span class="n">value</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%d</span><span class="s1">-th argument had an illegal value&#39;</span> <span class="o">%</span> <span class="n">INFO</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">is_complex</span><span class="p">:</span>
+        <span class="n">lwork</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">work</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">real</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">lwork</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">work</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">work</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">lwork</span><span class="p">,</span> <span class="p">),</span> <span class="n">t</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span>
+    <span class="n">args</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span> <span class="o">=</span> <span class="n">work</span>
+    <span class="n">args</span><span class="p">[</span><span class="mi">12</span><span class="p">]</span> <span class="o">=</span> <span class="n">c_int</span><span class="p">(</span><span class="n">lwork</span><span class="p">)</span>
+
+    <span class="n">lapack_routine</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>  <span class="c1"># second call: the actual calculation</span>
+
+    <span class="k">if</span> <span class="n">INFO</span><span class="o">.</span><span class="n">value</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%d</span><span class="s1">-th argument had an illegal value&#39;</span> <span class="o">%</span> <span class="n">INFO</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">INFO</span><span class="o">.</span><span class="n">value</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">LinAlgError</span><span class="p">(</span><span class="s2">&quot;SVD did not converge with &#39;gesvd&#39;&quot;</span><span class="p">)</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">_realType</span><span class="p">(</span><span class="n">result_t</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">compute_uv</span><span class="p">:</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">result_t</span><span class="p">)</span>  <span class="c1"># no repeated transpose: used fortran order</span>
+        <span class="n">vt</span> <span class="o">=</span> <span class="n">vt</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">result_t</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">wrap</span><span class="p">(</span><span class="n">u</span><span class="p">),</span> <span class="n">s</span><span class="p">,</span> <span class="n">wrap</span><span class="p">(</span><span class="n">vt</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">s</span></div>
+
+
+<span class="k">def</span> <span class="nf">_load_lapack</span><span class="p">(</span><span class="n">libs</span><span class="o">=</span><span class="p">[</span>
+        <span class="s2">&quot;libLAPACK.dylib&quot;</span><span class="p">,</span> <span class="s2">&quot;libmkl_rt.so&quot;</span><span class="p">,</span> <span class="s2">&quot;libmkl_intel_lp64.so&quot;</span><span class="p">,</span> <span class="s2">&quot;liblapack.so&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;libopenblas.dll&quot;</span><span class="p">,</span>
+        <span class="n">find_library</span><span class="p">(</span><span class="s1">&#39;lapack&#39;</span><span class="p">)</span>
+<span class="p">],</span>
+                 <span class="n">warn</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;load &amp; return a CLAPACK library.&quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">_lapack_lib</span>
+    <span class="k">if</span> <span class="n">_lapack_lib</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">libs</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">_lapack_lib</span> <span class="o">=</span> <span class="n">CDLL</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+                <span class="n">_set_CLAPACK_callsignatures</span><span class="p">(</span><span class="n">_lapack_lib</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">warn</span><span class="p">:</span>
+                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;[Loaded &quot;</span> <span class="o">+</span> <span class="n">l</span> <span class="o">+</span> <span class="s2">&quot; for gesvd]&quot;</span><span class="p">)</span>
+                <span class="k">break</span>
+            <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+                <span class="k">pass</span>
+    <span class="k">if</span> <span class="n">_lapack_lib</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="s2">&quot;Couldn&#39;t find LAPACK library for &#39;gesvd&#39; workaround.</span><span class="se">\n</span><span class="s2">Tried: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">libs</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">_lapack_lib</span>
+
+
+<span class="k">def</span> <span class="nf">_set_CLAPACK_callsignatures</span><span class="p">(</span><span class="n">lapack_lib</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;define the call signature of the CLAPACK functions which we need.</span>
+<span class="sd">    See http://www.netlib.org/lapack/explore-html/d8/d70/group__lapack.html</span>
+<span class="sd">    for the (fortran) signature.</span>
+<span class="sd">    In the C version, all arguments must be given as pointers of the corresponding C types.&quot;&quot;&quot;</span>
+    <span class="c1"># Shorthand data type for the arrays.</span>
+    <span class="c1"># s/d/c/z = fortran single/double/complex_single/complex_double</span>
+    <span class="n">s_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ctypeslib</span><span class="o">.</span><span class="n">ndpointer</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">d_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ctypeslib</span><span class="o">.</span><span class="n">ndpointer</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">c_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ctypeslib</span><span class="o">.</span><span class="n">ndpointer</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex64</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">z_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ctypeslib</span><span class="o">.</span><span class="n">ndpointer</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">s_2arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ctypeslib</span><span class="o">.</span><span class="n">ndpointer</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">d_2arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ctypeslib</span><span class="o">.</span><span class="n">ndpointer</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">c_2arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ctypeslib</span><span class="o">.</span><span class="n">ndpointer</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex64</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">z_2arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ctypeslib</span><span class="o">.</span><span class="n">ndpointer</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">lapack_lib</span><span class="o">.</span><span class="n">sgesvd_</span><span class="o">.</span><span class="n">argtypes</span> <span class="o">=</span> \
+        <span class="p">[</span><span class="n">POINTER</span><span class="p">(</span><span class="n">c_char</span><span class="p">),</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_char</span><span class="p">),</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">),</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">),</span>
+            <span class="n">s_2arr</span><span class="p">,</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">),</span> <span class="n">s_arr</span><span class="p">,</span> <span class="n">s_2arr</span><span class="p">,</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">),</span> <span class="n">s_2arr</span><span class="p">,</span>
+            <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">),</span> <span class="n">s_arr</span><span class="p">,</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">),</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">)]</span>
+    <span class="n">lapack_lib</span><span class="o">.</span><span class="n">dgesvd_</span><span class="o">.</span><span class="n">argtypes</span> <span class="o">=</span> \
+        <span class="p">[</span><span class="n">POINTER</span><span class="p">(</span><span class="n">c_char</span><span class="p">),</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_char</span><span class="p">),</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">),</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">),</span>
+            <span class="n">d_2arr</span><span class="p">,</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">),</span> <span class="n">d_arr</span><span class="p">,</span> <span class="n">d_2arr</span><span class="p">,</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">),</span> <span class="n">d_2arr</span><span class="p">,</span>
+            <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">),</span> <span class="n">d_arr</span><span class="p">,</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">),</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">)]</span>
+    <span class="n">lapack_lib</span><span class="o">.</span><span class="n">cgesvd_</span><span class="o">.</span><span class="n">argtypes</span> <span class="o">=</span> \
+        <span class="p">[</span><span class="n">POINTER</span><span class="p">(</span><span class="n">c_char</span><span class="p">),</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_char</span><span class="p">),</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">),</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">),</span>
+            <span class="n">c_2arr</span><span class="p">,</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">),</span> <span class="n">s_arr</span><span class="p">,</span> <span class="n">c_2arr</span><span class="p">,</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">),</span>
+            <span class="n">c_2arr</span><span class="p">,</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">),</span> <span class="n">c_arr</span><span class="p">,</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">),</span> <span class="n">s_arr</span><span class="p">,</span>
+            <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">)]</span>
+    <span class="n">lapack_lib</span><span class="o">.</span><span class="n">zgesvd_</span><span class="o">.</span><span class="n">argtypes</span> <span class="o">=</span> \
+        <span class="p">[</span><span class="n">POINTER</span><span class="p">(</span><span class="n">c_char</span><span class="p">),</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_char</span><span class="p">),</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">),</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">),</span>
+            <span class="n">z_2arr</span><span class="p">,</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">),</span> <span class="n">d_arr</span><span class="p">,</span> <span class="n">z_2arr</span><span class="p">,</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">),</span>
+            <span class="n">z_2arr</span><span class="p">,</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">),</span> <span class="n">z_arr</span><span class="p">,</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">),</span> <span class="n">d_arr</span><span class="p">,</span>
+            <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">)]</span>
+
+
+<span class="k">def</span> <span class="nf">_get_gesvd</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;return _lapack_lib.#gesvd_ where # = d/z is chosen depending on type `t`&quot;&quot;&quot;</span>
+    <span class="n">lib</span> <span class="o">=</span> <span class="n">_load_lapack</span><span class="p">()</span>
+    <span class="n">type2gesvd</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">single</span><span class="p">:</span> <span class="n">lib</span><span class="o">.</span><span class="n">sgesvd_</span><span class="p">,</span>
+        <span class="n">double</span><span class="p">:</span> <span class="n">lib</span><span class="o">.</span><span class="n">dgesvd_</span><span class="p">,</span>
+        <span class="n">csingle</span><span class="p">:</span> <span class="n">lib</span><span class="o">.</span><span class="n">cgesvd_</span><span class="p">,</span>
+        <span class="n">cdouble</span><span class="p">:</span> <span class="n">lib</span><span class="o">.</span><span class="n">zgesvd_</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">type2gesvd</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/logo.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../userguide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.html">tenpy package</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2018, TeNPy Developers.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

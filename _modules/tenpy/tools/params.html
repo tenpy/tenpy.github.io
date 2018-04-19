@@ -1,0 +1,207 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>tenpy.tools.params &#8212; TeNPy 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tenpy.tools.params</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Tools to handle paramters for algorithms.</span>
+
+<span class="sd">See the doc-string of :func:`get_parameter` for details.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># Copyright 2018 TeNPy Developers</span>
+
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;get_parameter&quot;</span><span class="p">,</span> <span class="s2">&quot;unused_parameters&quot;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="get_parameter"><a class="viewcode-back" href="../../../reference/tenpy.tools.params.html#tenpy.tools.params.get_parameter">[docs]</a><span class="k">def</span> <span class="nf">get_parameter</span><span class="p">(</span><span class="n">par_dict</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">,</span> <span class="n">descr</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Read out a parameter from the dictionary and/or provide default values.</span>
+
+<span class="sd">    This function provides a similar functionality as ``par_dict.get(key, default)``.</span>
+<span class="sd">    *Unlike* `dict.get` this function writes the default value into the dictionary</span>
+<span class="sd">    (i.e. in other words it&#39;s more similar to ``par_dict.setdefault(key, default)``).</span>
+
+<span class="sd">    However, a special key ``&#39;verbose&#39;`` *in* the `par_dict` with value &gt; 0 triggers this function</span>
+<span class="sd">    to additionally print the used value. If verbose &gt;= 10, it is printed every time its used,</span>
+<span class="sd">    otherwise only for the first use.</span>
+<span class="sd">    (Wheter a parameter was used is saved in the set ``par_dict[&#39;_used_param&#39;]``.)</span>
+
+<span class="sd">    This function should be used in the algorithms to read out parameters.</span>
+<span class="sd">    Then, when the algorithms are calleed by tenpy users,</span>
+<span class="sd">    simply including ``verbose=1`` into a parameter dictionary will trigger the algorithms to</span>
+<span class="sd">    print all the actually used parameters during runtime.</span>
+
+<span class="sd">    In addition, the user can save the modified dictionary along with other data, which gives a</span>
+<span class="sd">    concrete record of the actually used parameters and simplifies reproducing the results.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    par_dict : dict</span>
+<span class="sd">        A dicionary of the parameters as provided by the user.</span>
+<span class="sd">        If `key` is not a valid key, ``par_dict[key]`` is set to `default`.</span>
+<span class="sd">    key : string</span>
+<span class="sd">        The key for the parameter which should be read out from the dictionary.</span>
+<span class="sd">    default :</span>
+<span class="sd">        The default value for the parameter.</span>
+<span class="sd">    descr : str</span>
+<span class="sd">        A short description for verbose output, like &#39;TEBD&#39;, &#39;XXZ_model&#39;, &#39;truncation&#39;.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    value :</span>
+<span class="sd">        ``par_dict[key]`` if the key is in par_dict, otherwise `default`.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    :func:`~tenpy.algorithms.tebd.time_evolution` gets a dictionary of parameters.</span>
+<span class="sd">    Beside doing other stuff, it calls :meth:`tenpy.models.model.NearestNeighborModel.calc_U_bond`</span>
+<span class="sd">    with the dictionary as argument, which looks similar like:</span>
+
+<span class="sd">    &gt;&gt;&gt; def model_calc_U(U_param):</span>
+<span class="sd">    &gt;&gt;&gt;    dt = get_parameter(U_param, &#39;dt&#39;, 0.01, &#39;TEBD&#39;)</span>
+<span class="sd">    &gt;&gt;&gt;    # ... calculate exp(-i * dt* H) ....</span>
+
+<span class="sd">    Then, when you call `time_evolution` without any parameters, it just uses the default value:</span>
+
+<span class="sd">    &gt;&gt;&gt; tenpy.algorithms.tebd.time_evolution(..., dict())  # uses dt=0.01</span>
+
+<span class="sd">    If you provide the special keyword ``&#39;verbose&#39;`` you can triger this function to print the</span>
+<span class="sd">    used parameter values:</span>
+
+<span class="sd">    &gt;&gt;&gt; tenpy.algorithms.tebd.time_evolution(..., dict(verbose=1))</span>
+<span class="sd">    parameter &#39;dt&#39;=0.01 (default) for TEBD</span>
+
+<span class="sd">    Of course you can also provide the parameter to use a non-default value:</span>
+
+<span class="sd">    &gt;&gt;&gt; tenpy.algorithms.tebd.time_evolution(..., dict(dt=0.1, verbose=1))</span>
+<span class="sd">    parameter &#39;dt&#39;=0.1 for TEBD</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">defaultstring</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">par_dict</span> <span class="k">else</span> <span class="s2">&quot;(default) &quot;</span>
+    <span class="n">val</span> <span class="o">=</span> <span class="n">par_dict</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>  <span class="c1"># get the value; set default if not existent</span>
+    <span class="n">used</span> <span class="o">=</span> <span class="n">par_dict</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;_used_param&#39;</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span>
+    <span class="n">verbose</span> <span class="o">=</span> <span class="n">par_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">100</span> <span class="ow">or</span> <span class="p">(</span><span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">used</span> <span class="ow">and</span> <span class="n">verbose</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;parameter </span><span class="si">{key!r}</span><span class="s2">=</span><span class="si">{val!r}</span><span class="s2"> </span><span class="si">{defaultstring}</span><span class="s2">for </span><span class="si">{descr!s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">descr</span><span class="o">=</span><span class="n">descr</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">val</span><span class="p">,</span> <span class="n">defaultstring</span><span class="o">=</span><span class="n">defaultstring</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">used</span><span class="p">:</span>
+        <span class="n">used</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">val</span></div>
+
+
+<div class="viewcode-block" id="unused_parameters"><a class="viewcode-back" href="../../../reference/tenpy.tools.params.html#tenpy.tools.params.unused_parameters">[docs]</a><span class="k">def</span> <span class="nf">unused_parameters</span><span class="p">(</span><span class="n">par_dict</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a set of the parameters which have not been read out with `get_parameters`.</span>
+
+<span class="sd">    This function might be useful to check for typos in the parameter keys.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    par_dict : dict</span>
+<span class="sd">        A dictionary of parameters which was given to (functions using) :meth:`get_parameter`</span>
+<span class="sd">    warn : None | str</span>
+<span class="sd">        If given, print a warning &quot;unused parameter for {warn!s}: {unused_keys!s}&quot;.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    unused_keys : set</span>
+<span class="sd">        The set of keys of the par_dict which was not used</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">used</span> <span class="o">=</span> <span class="n">par_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;_used_param&#39;</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span>
+    <span class="n">unused</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">par_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">-</span> <span class="n">used</span>
+    <span class="n">unused</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="s1">&#39;_used_param&#39;</span><span class="p">)</span>
+    <span class="n">unused</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="s1">&#39;verbose&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">warn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">unused</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">unused</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;unused parameters for </span><span class="si">{descr!s}</span><span class="s2">:</span><span class="se">\n</span><span class="si">{keys!s}</span><span class="s2">&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;unused parameter </span><span class="si">{keys!s}</span><span class="s2"> for </span><span class="si">{descr!s}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">keys</span><span class="o">=</span><span class="nb">sorted</span><span class="p">(</span><span class="n">unused</span><span class="p">),</span> <span class="n">descr</span><span class="o">=</span><span class="n">warn</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">unused</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/logo.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../userguide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.html">tenpy package</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2018, TeNPy Developers.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

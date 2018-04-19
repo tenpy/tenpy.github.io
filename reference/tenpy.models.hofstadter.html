@@ -1,0 +1,275 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>tenpy.models.hofstadter module &#8212; TeNPy 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="tenpy.models.lattice module" href="tenpy.models.lattice.html" />
+    <link rel="prev" title="tenpy.models.fermions_hubbard module" href="tenpy.models.fermions_hubbard.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tenpy.models.lattice.html" title="tenpy.models.lattice module"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="tenpy.models.fermions_hubbard.html" title="tenpy.models.fermions_hubbard module"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="tenpy.html" >tenpy package</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.models.html" accesskey="U">tenpy.models package</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-tenpy.models.hofstadter">
+<span id="tenpy-models-hofstadter-module"></span><h1>tenpy.models.hofstadter module<a class="headerlink" href="#module-tenpy.models.hofstadter" title="Permalink to this headline">¶</a></h1>
+<p>Cold atomic (Harper-)Hofstadter model on a strip or cylinder.</p>
+<dl class="class">
+<dt id="tenpy.models.hofstadter.HofstadterBosons">
+<em class="property">class </em><code class="descclassname">tenpy.models.hofstadter.</code><code class="descname">HofstadterBosons</code><span class="sig-paren">(</span><em>model_param</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/hofstadter.html#HofstadterBosons"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.hofstadter.HofstadterBosons" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.CouplingModel</span></code></a>, <a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.MPOModel" title="tenpy.models.model.MPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.MPOModel</span></code></a></p>
+<p>Bosons on a square lattice with magnetic flux.</p>
+<p>For now, the Hamiltonian reads:</p>
+<div class="math notranslate">
+\[\begin{split}H = - \sum_{x, y} \mathtt{Jx} (a^\dagger_{x+1,y} a_{x,y} + h.c.)   \\
+    - \sum_{x, y} \mathtt{Jy} (e^{i \mathtt{phi} x} a^\dagger_{x,y+1} a_{x,y} + h.c.)   \\
+    + \sum_{x, y} \frac{\mathtt{U}}{2} n_{x,y} (n_{x,y} - 1) - \mathtt{mu} n_{x,y}\end{split}\]</div>
+<p>All parameters are collected in a single dictionary <cite>model_param</cite> and read out with
+<a class="reference internal" href="tenpy.tools.params.html#tenpy.tools.params.get_parameter" title="tenpy.tools.params.get_parameter"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_parameter()</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>Lx, Ly</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Size of the simulation unit cell in terms of lattice sites.</p>
+</dd>
+<dt><strong>N_max</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Maximum number of bosons per site.</p>
+</dd>
+<dt><strong>filling</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Average number of bosons per site.
+Changes the definition of <code class="docutils literal notranslate"><span class="pre">'dN'</span></code> in the <a class="reference internal" href="tenpy.networks.site.html#tenpy.networks.site.BosonSite" title="tenpy.networks.site.BosonSite"><code class="xref py py-class docutils literal notranslate"><span class="pre">BosonSite</span></code></a>.</p>
+</dd>
+<dt><strong>Jx, Jy, phi, mu, U: float</strong></dt>
+<dd><p class="first last">Hamiltonian parameters as defined above.</p>
+</dd>
+<dt><strong>bc_MPS</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{‘finite’ | ‘infinte’}</span></dt>
+<dd><p class="first last">MPS boundary conditions along the x-direction.
+For ‘infinite’ boundary conditions, repeat the unit cell in x-direction.
+Coupling boundary conditions in x-direction are chosen accordingly.</p>
+</dd>
+<dt><strong>bc_y</strong> <span class="classifier-delimiter">:</span> <span class="classifier">‘ladder’ | ‘cylinder’</span></dt>
+<dd><p class="first last">Boundary conditions in y-direction.</p>
+</dd>
+<dt><strong>conserve</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{‘N’ | ‘parity’ | None}</span></dt>
+<dd><p class="first last">What quantum number to conserve.</p>
+</dd>
+<dt><strong>order</strong> <span class="classifier-delimiter">:</span> <span class="classifier">string</span></dt>
+<dd><p class="first last">Ordering of the sites in the MPS, e.g. ‘default’, ‘snake’;
+see <a class="reference internal" href="tenpy.models.lattice.html#tenpy.models.lattice.Lattice.ordering" title="tenpy.models.lattice.Lattice.ordering"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ordering()</span></code></a>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_coupling</span></code>(strength,&nbsp;u1,&nbsp;op1,&nbsp;u2,&nbsp;op2,&nbsp;dx)</td>
+<td>Add twosite coupling terms to the Hamiltonian.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite</span></code>(strength,&nbsp;u,&nbsp;opname)</td>
+<td>Add onsite terms to self.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_MPO</span></code>([tol_zero])</td>
+<td>Calculate MPO representation of the Hamiltonian.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_bond</span></code>([tol_zero])</td>
+<td>calculate <cite>H_bond</cite> from <cite>self.coupling_terms</cite> and <cite>self.H_onsite</cite>.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_onsite</span></code>([tol_zero])</td>
+<td>Calculate <cite>H_onsite</cite> from <cite>self.onsite_terms</cite>.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
+<td>Sanity check.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="tenpy.models.hofstadter.HofstadterFermions">
+<em class="property">class </em><code class="descclassname">tenpy.models.hofstadter.</code><code class="descname">HofstadterFermions</code><span class="sig-paren">(</span><em>model_param</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/hofstadter.html#HofstadterFermions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.hofstadter.HofstadterFermions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.CouplingModel</span></code></a>, <a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.MPOModel" title="tenpy.models.model.MPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.MPOModel</span></code></a></p>
+<p>Fermions on a square lattice with magnetic flux.</p>
+<p>For now, the Hamiltonian reads:</p>
+<div class="math notranslate">
+\[\begin{split}H = - \sum_{x, y} \mathtt{Jx} (c^\dagger_{x,y} c_{x+1,y} + h.c.)   \\
+    - \sum_{x, y} \mathtt{Jy} (e^{i \mathtt{phi} x} c^\dagger_{x,y} c_{x,y+1} + h.c.)\end{split}\]</div>
+<p>All parameters are collected in a single dictionary <cite>model_param</cite> and read out with
+<a class="reference internal" href="tenpy.tools.params.html#tenpy.tools.params.get_parameter" title="tenpy.tools.params.get_parameter"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_parameter()</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>Lx, Ly</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Size of the simulation unit cell in terms of lattice sites.</p>
+</dd>
+<dt><strong>filling</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Average number of fermions per site.
+Changes the definition of <code class="docutils literal notranslate"><span class="pre">'dN'</span></code> in the <a class="reference internal" href="tenpy.networks.site.html#tenpy.networks.site.FermionSite" title="tenpy.networks.site.FermionSite"><code class="xref py py-class docutils literal notranslate"><span class="pre">FermionSite</span></code></a>.</p>
+</dd>
+<dt><strong>Jx, Jy, phi: float</strong></dt>
+<dd><p class="first last">Hamiltonian parameters as defined above.</p>
+</dd>
+<dt><strong>bc_MPS</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{‘finite’ | ‘infinte’}</span></dt>
+<dd><p class="first last">MPS boundary conditions along the x-direction.
+For ‘infinite’ boundary conditions, repeat the unit cell in x-direction.
+Coupling boundary conditions in x-direction are chosen accordingly.</p>
+</dd>
+<dt><strong>bc_y</strong> <span class="classifier-delimiter">:</span> <span class="classifier">‘ladder’ | ‘cylinder’</span></dt>
+<dd><p class="first last">Boundary conditions in y-direction.</p>
+</dd>
+<dt><strong>conserve</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{‘N’ | ‘parity’ | None}</span></dt>
+<dd><p class="first last">What quantum number to conserve.</p>
+</dd>
+<dt><strong>order</strong> <span class="classifier-delimiter">:</span> <span class="classifier">string</span></dt>
+<dd><p class="first last">Ordering of the sites in the MPS, e.g. ‘default’, ‘snake’;
+see <a class="reference internal" href="tenpy.models.lattice.html#tenpy.models.lattice.Lattice.ordering" title="tenpy.models.lattice.Lattice.ordering"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ordering()</span></code></a>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_coupling</span></code>(strength,&nbsp;u1,&nbsp;op1,&nbsp;u2,&nbsp;op2,&nbsp;dx)</td>
+<td>Add twosite coupling terms to the Hamiltonian.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite</span></code>(strength,&nbsp;u,&nbsp;opname)</td>
+<td>Add onsite terms to self.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_MPO</span></code>([tol_zero])</td>
+<td>Calculate MPO representation of the Hamiltonian.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_bond</span></code>([tol_zero])</td>
+<td>calculate <cite>H_bond</cite> from <cite>self.coupling_terms</cite> and <cite>self.H_onsite</cite>.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_onsite</span></code>([tol_zero])</td>
+<td>Calculate <cite>H_onsite</cite> from <cite>self.onsite_terms</cite>.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
+<td>Sanity check.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/logo.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="tenpy.models.fermions_hubbard.html"
+                        title="previous chapter">tenpy.models.fermions_hubbard module</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="tenpy.models.lattice.html"
+                        title="next chapter">tenpy.models.lattice module</a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../index.html">Table Of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../userguide.html">User Guide</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tenpy.html">tenpy package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tenpy.html#subpackages">Subpackages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.html#module-tenpy">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tenpy.models.lattice.html" title="tenpy.models.lattice module"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="tenpy.models.fermions_hubbard.html" title="tenpy.models.fermions_hubbard module"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="tenpy.html" >tenpy package</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.models.html" >tenpy.models package</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2018, TeNPy Developers.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,1391 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>tenpy.networks.site module &#8212; TeNPy 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="tenpy.tools package" href="tenpy.tools.html" />
+    <link rel="prev" title="tenpy.networks.purification_mps module" href="tenpy.networks.purification_mps.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tenpy.tools.html" title="tenpy.tools package"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="tenpy.networks.purification_mps.html" title="tenpy.networks.purification_mps module"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="tenpy.html" >tenpy package</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.networks.html" accesskey="U">tenpy.networks package</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-tenpy.networks.site">
+<span id="tenpy-networks-site-module"></span><h1>tenpy.networks.site module<a class="headerlink" href="#module-tenpy.networks.site" title="Permalink to this headline">¶</a></h1>
+<p>Defines a class describing the local physical Hilbert space.</p>
+<p>The <a class="reference internal" href="#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a> is the prototype, read it’s docstring.
+We</p>
+<dl class="class">
+<dt id="tenpy.networks.site.Site">
+<em class="property">class </em><code class="descclassname">tenpy.networks.site.</code><code class="descname">Site</code><span class="sig-paren">(</span><em>leg</em>, <em>state_labels=None</em>, <em>**site_ops</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/site.html#Site"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.site.Site" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Collects necessary information about a single local site of a lattice.</p>
+<p>This class defines what the local basis states are: it provides the <code class="xref py py-attr docutils literal notranslate"><span class="pre">leg</span></code>
+defining the charges of the physical leg for this site.
+Moreover, it stores (local) on-site operators, which are directly available as attribute,
+e.g., <code class="docutils literal notranslate"><span class="pre">self.Sz</span></code> is the Sz operator for the <a class="reference internal" href="#tenpy.networks.site.SpinSite" title="tenpy.networks.site.SpinSite"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinSite</span></code></a>.
+Alternatively, operators can be obained with <a class="reference internal" href="#tenpy.networks.site.Site.get_op" title="tenpy.networks.site.Site.get_op"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_op()</span></code></a>.
+The operator names <code class="docutils literal notranslate"><span class="pre">Id</span></code> and <code class="docutils literal notranslate"><span class="pre">JW</span></code> are reserved for the identy and Jordan-Wigner strings.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">The order of the local basis can change depending on the charge conservation!
+This is a <em>necessary</em> feature since we need to sort the basis by charges for efficiency.
+We use the <code class="xref py py-attr docutils literal notranslate"><span class="pre">state_labels</span></code> (and <code class="xref py py-attr docutils literal notranslate"><span class="pre">perm</span></code>) to keep track of these permutations.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>leg</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge" title="tenpy.linalg.charges.LegCharge"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegCharge</span></code></a></span></dt>
+<dd><p class="first last">Charges of the physical states, to be used for the physical leg of MPS &amp; co).</p>
+</dd>
+<dt><strong>state_labels</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None | list of str</span></dt>
+<dd><p class="first last">Optionally a label for each local basis states. <code class="docutils literal notranslate"><span class="pre">None</span></code> entries are ignored / not set.</p>
+</dd>
+<dt><strong>**site_ops :</strong></dt>
+<dd><p class="first last">Additional keyword arguments of the form <code class="docutils literal notranslate"><span class="pre">name=op</span></code> given to <a class="reference internal" href="#tenpy.networks.site.Site.add_op" title="tenpy.networks.site.Site.add_op"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_op()</span></code></a>.
+The identity operator <code class="docutils literal notranslate"><span class="pre">'Id'</span></code> is automatically included.
+If no <code class="docutils literal notranslate"><span class="pre">'JW'</span></code> for the Jordan-Wigner string is given,
+<code class="docutils literal notranslate"><span class="pre">'JW'</span></code> is set as an alias to <code class="docutils literal notranslate"><span class="pre">'Id'</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<p>The following generates a site for spin-1/2 with Sz conservation.
+Note that <code class="docutils literal notranslate"><span class="pre">Sx</span> <span class="pre">=</span> <span class="pre">(Sp</span> <span class="pre">+</span> <span class="pre">Sm)/2</span></code> violates Sz conservation and is thus not a valid
+on-site operator.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">chinfo</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">ChargeInfo</span><span class="p">([</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;Sz&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ch</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Sp</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Sm</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Sz</span> <span class="o">=</span> <span class="p">[[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">]]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">site</span> <span class="o">=</span> <span class="n">Site</span><span class="p">(</span><span class="n">ch</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;up&#39;</span><span class="p">,</span> <span class="s1">&#39;down&#39;</span><span class="p">],</span> <span class="n">Splus</span><span class="o">=</span><span class="n">Sp</span><span class="p">,</span> <span class="n">Sminus</span><span class="o">=</span><span class="n">Sm</span><span class="p">,</span> <span class="n">Sz</span><span class="o">=</span><span class="n">Sz</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">site</span><span class="o">.</span><span class="n">Splus</span><span class="o">.</span><span class="n">to_ndarray</span><span class="p">()</span>
+<span class="go">array([[ 0.,  1.],</span>
+<span class="go">       [ 0.,  0.]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">site</span><span class="o">.</span><span class="n">get_op</span><span class="p">(</span><span class="s1">&#39;Sminus&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">to_ndarray</span><span class="p">()</span>
+<span class="go">array([[ 0.,  0.],</span>
+<span class="go">       [ 1.,  0.]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">site</span><span class="o">.</span><span class="n">get_op</span><span class="p">(</span><span class="s1">&#39;Splus Sminus&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">to_ndarry</span><span class="p">()</span>
+<span class="go">array([[ 1.,  0.],</span>
+<span class="go">       [ 0.,  0.]])</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
+<dt><a class="reference internal" href="#tenpy.networks.site.Site.dim" title="tenpy.networks.site.Site.dim"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dim</span></code></a></dt>
+<dd><p class="first last">Dimension of the local Hilbert space</p>
+</dd>
+<dt><a class="reference internal" href="#tenpy.networks.site.Site.onsite_ops" title="tenpy.networks.site.Site.onsite_ops"><code class="xref py py-obj docutils literal notranslate"><span class="pre">onsite_ops</span></code></a></dt>
+<dd><p class="first last">Dictionary of on-site operators for iteration.</p>
+</dd>
+<dt><strong>leg</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge" title="tenpy.linalg.charges.LegCharge"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegCharge</span></code></a></span></dt>
+<dd><p class="first last">Charges of the local basis states.</p>
+</dd>
+<dt><strong>state_labels</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{str: int}</span></dt>
+<dd><p class="first last">(Optional) labels for the local basis states.</p>
+</dd>
+<dt><strong>opnames</strong> <span class="classifier-delimiter">:</span> <span class="classifier">set</span></dt>
+<dd><p class="first last">Labels of all onsite operators (i.e. <code class="docutils literal notranslate"><span class="pre">self.op</span></code> exists if <code class="docutils literal notranslate"><span class="pre">'op'</span></code> in <code class="docutils literal notranslate"><span class="pre">self.opnames</span></code>).
+Note that <a class="reference internal" href="#tenpy.networks.site.Site.get_op" title="tenpy.networks.site.Site.get_op"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_op()</span></code></a> allow arbitrary concatenations of them.</p>
+</dd>
+<dt><strong>need_JW_string</strong> <span class="classifier-delimiter">:</span> <span class="classifier">set</span></dt>
+<dd><p class="first last">Labels of all onsite operators that need a Jordan-Wigner string.</p>
+</dd>
+<dt><strong>ops</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Onsite operators are added directly as attributes to self.
+For example after <code class="docutils literal notranslate"><span class="pre">self.add_op('Sz',</span> <span class="pre">Sz)</span></code> you can use <code class="docutils literal notranslate"><span class="pre">self.Sz</span></code> for the <cite>Sz</cite> operator.
+All onsite operators have labels <code class="docutils literal notranslate"><span class="pre">'p',</span> <span class="pre">'p*'</span></code>.</p>
+</dd>
+<dt><strong>perm</strong> <span class="classifier-delimiter">:</span> <span class="classifier">1D array</span></dt>
+<dd><p class="first last">Index permutation of the physical leg compared to <cite>conserve=None</cite>.</p>
+</dd>
+<dt><strong>JW_exponent</strong> <span class="classifier-delimiter">:</span> <span class="classifier">1D array</span></dt>
+<dd><p class="first last">Exponents of the <code class="docutils literal notranslate"><span class="pre">'JW'</span></code> operator, such that
+<code class="docutils literal notranslate"><span class="pre">self.JW.to_ndarray()</span> <span class="pre">=</span> <span class="pre">np.diag(np.exp(1.j*np.pi*</span> <span class="pre">JW_exponent))</span></code></p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.networks.site.Site.add_op" title="tenpy.networks.site.Site.add_op"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_op</span></code></a>(name,&nbsp;op[,&nbsp;need_JW])</td>
+<td>Add one on-site operators</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.networks.site.Site.copy_change_charge" title="tenpy.networks.site.Site.copy_change_charge"><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy_change_charge</span></code></a>([new_leg_charge,&nbsp;permute])</td>
+<td>Generate a copy of a site with different charges.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.networks.site.Site.get_op" title="tenpy.networks.site.Site.get_op"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_op</span></code></a>(name)</td>
+<td>Return operator of given name.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.networks.site.Site.op_needs_JW" title="tenpy.networks.site.Site.op_needs_JW"><code class="xref py py-obj docutils literal notranslate"><span class="pre">op_needs_JW</span></code></a>(name)</td>
+<td>Wheter an (composite) onsite operator needs a Jordan-Wigner string.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.networks.site.Site.remove_op" title="tenpy.networks.site.Site.remove_op"><code class="xref py py-obj docutils literal notranslate"><span class="pre">remove_op</span></code></a>(name)</td>
+<td>Remove an added operator.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.networks.site.Site.rename_op" title="tenpy.networks.site.Site.rename_op"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rename_op</span></code></a>(old_name,&nbsp;new_name)</td>
+<td>Rename an added operator.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.networks.site.Site.state_index" title="tenpy.networks.site.Site.state_index"><code class="xref py py-obj docutils literal notranslate"><span class="pre">state_index</span></code></a>(label)</td>
+<td>Return index of a basis state from its label.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.networks.site.Site.state_indices" title="tenpy.networks.site.Site.state_indices"><code class="xref py py-obj docutils literal notranslate"><span class="pre">state_indices</span></code></a>(labels)</td>
+<td>Same as <a class="reference internal" href="#tenpy.networks.site.Site.state_index" title="tenpy.networks.site.Site.state_index"><code class="xref py py-meth docutils literal notranslate"><span class="pre">state_index()</span></code></a>, but for multiple labels.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.networks.site.Site.test_sanity" title="tenpy.networks.site.Site.test_sanity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code></a>()</td>
+<td>Sanity check.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.networks.site.Site.valid_opname" title="tenpy.networks.site.Site.valid_opname"><code class="xref py py-obj docutils literal notranslate"><span class="pre">valid_opname</span></code></a>(name)</td>
+<td>Check wheter ‘name’ labels a valid onsite-operator.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="tenpy.networks.site.Site.add_op">
+<code class="descname">add_op</code><span class="sig-paren">(</span><em>name</em>, <em>op</em>, <em>need_JW=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/site.html#Site.add_op"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.site.Site.add_op" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add one on-site operators</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>name</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">A valid python variable name, used to label the operator.
+The name under which <cite>op</cite> is added as attribute to self.</p>
+</dd>
+<dt><strong>op</strong> <span class="classifier-delimiter">:</span> <span class="classifier">np.ndarray | <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">A matrix acting on the local hilbert space representing the local operator.
+Dense numpy arrays are automatically converted to
+<a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a>.
+LegCharges have to be <code class="docutils literal notranslate"><span class="pre">[leg,</span> <span class="pre">leg.conj()]</span></code>.
+We set labels <code class="docutils literal notranslate"><span class="pre">'p',</span> <span class="pre">'p*'</span></code>.</p>
+</dd>
+<dt><strong>need_JW</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">Wheter the operator needs a Jordan-Wigner string.
+If <code class="docutils literal notranslate"><span class="pre">True</span></code>, the function adds <cite>name</cite> to <code class="xref py py-attr docutils literal notranslate"><span class="pre">need_JW_string</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.site.Site.copy_change_charge">
+<code class="descname">copy_change_charge</code><span class="sig-paren">(</span><em>new_leg_charge=None</em>, <em>permute=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/site.html#Site.copy_change_charge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.site.Site.copy_change_charge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a copy of a site with different charges.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>new_leg_charge</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegCharge</span></code> | None</span></dt>
+<dd><p class="first last">The new charges to be used. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, use trivial charges.</p>
+</dd>
+<dt><strong>permute</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">None</span></code> | ndarray</span></dt>
+<dd><p class="first last">Ignored if <code class="docutils literal notranslate"><span class="pre">None</span></code>; otherwise an permuation applied to the physical leg.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>cpy</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a></span></dt>
+<dd><p class="first last">A copy of <cite>self</cite> with a different (possibly permuted) <code class="xref py py-attr docutils literal notranslate"><span class="pre">leg</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.networks.site.Site.dim">
+<code class="descname">dim</code><a class="headerlink" href="#tenpy.networks.site.Site.dim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dimension of the local Hilbert space</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.site.Site.get_op">
+<code class="descname">get_op</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/site.html#Site.get_op"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.site.Site.get_op" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return operator of given name.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>name</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">The name of the operator to be returned.
+In case of multiple operator names separated by whitespace,
+we multiply them together to a single on-site operator
+(with the one on the right acting first).</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>op</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#module-tenpy.linalg.np_conserved" title="tenpy.linalg.np_conserved"><code class="xref py py-class docutils literal notranslate"><span class="pre">np_conserved</span></code></a></span></dt>
+<dd><p class="first last">The operator given by <cite>name</cite>, with labels <code class="docutils literal notranslate"><span class="pre">'p',</span> <span class="pre">'p*'</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.networks.site.Site.onsite_ops">
+<code class="descname">onsite_ops</code><a class="headerlink" href="#tenpy.networks.site.Site.onsite_ops" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dictionary of on-site operators for iteration.</p>
+<p>(single operators are accessible as attributes.)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.site.Site.op_needs_JW">
+<code class="descname">op_needs_JW</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/site.html#Site.op_needs_JW"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.site.Site.op_needs_JW" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wheter an (composite) onsite operator needs a Jordan-Wigner string.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>name</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">The name of the operator, as in <a class="reference internal" href="#tenpy.networks.site.Site.get_op" title="tenpy.networks.site.Site.get_op"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_op()</span></code></a>.
+In case of multiple operator names separated by whitespace,
+we multiply them together to a single on-site operator
+(with the one on the right acting first).</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>needs_JW</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">Wheter the operator needs a Jordan-Wigner string, judging from <code class="xref py py-attr docutils literal notranslate"><span class="pre">need_JW_string</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.site.Site.remove_op">
+<code class="descname">remove_op</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/site.html#Site.remove_op"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.site.Site.remove_op" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove an added operator.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>name</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">The name of the operator to be removed.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.site.Site.rename_op">
+<code class="descname">rename_op</code><span class="sig-paren">(</span><em>old_name</em>, <em>new_name</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/site.html#Site.rename_op"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.site.Site.rename_op" title="Permalink to this definition">¶</a></dt>
+<dd><p>Rename an added operator.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>old_name</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">The old name of the operator.</p>
+</dd>
+<dt><strong>new_name</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">The new name of the operator.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.site.Site.state_index">
+<code class="descname">state_index</code><span class="sig-paren">(</span><em>label</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/site.html#Site.state_index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.site.Site.state_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return index of a basis state from its label.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>label</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int | string</span></dt>
+<dd><p class="first last">eather the index directly or a label (string) set before.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>state_index</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">the index of the basis state associated with the label.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.site.Site.state_indices">
+<code class="descname">state_indices</code><span class="sig-paren">(</span><em>labels</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/site.html#Site.state_indices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.site.Site.state_indices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Same as <a class="reference internal" href="#tenpy.networks.site.Site.state_index" title="tenpy.networks.site.Site.state_index"><code class="xref py py-meth docutils literal notranslate"><span class="pre">state_index()</span></code></a>, but for multiple labels.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.site.Site.test_sanity">
+<code class="descname">test_sanity</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/site.html#Site.test_sanity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.site.Site.test_sanity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sanity check. Raises ValueErrors, if something is wrong.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.site.Site.valid_opname">
+<code class="descname">valid_opname</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/site.html#Site.valid_opname"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.site.Site.valid_opname" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check wheter ‘name’ labels a valid onsite-operator.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>name</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Label for the operator. Can be multiple operator(labels) separated by whitespace,
+indicating that they should  be multiplied together.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>valid</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last"><code class="docutils literal notranslate"><span class="pre">True</span></code> if <cite>name</cite> is a valid argument to <a class="reference internal" href="#tenpy.networks.site.Site.get_op" title="tenpy.networks.site.Site.get_op"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_op()</span></code></a>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tenpy.networks.site.DoubleSite">
+<em class="property">class </em><code class="descclassname">tenpy.networks.site.</code><code class="descname">DoubleSite</code><span class="sig-paren">(</span><em>site0</em>, <em>site1</em>, <em>label0='0'</em>, <em>label1='1'</em>, <em>charges='drop'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/site.html#DoubleSite"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.site.DoubleSite" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.networks.site.Site</span></code></a></p>
+<p>Group two <a class="reference internal" href="#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a> into a larger one.</p>
+<p>A typical use-case is that you want a NearestNeigborModel for TEBD although you have
+next-nearest neighbor interactions: you just double your local Hilbertspace to consist of
+two original sites.
+Note that this is a ‘hack’ at the cost of other things (e.g., measurements of ‘local’
+operators) getting more complicated/computationally expensive.</p>
+<p>If the individual sites indicate fermionic operators (with entries in <cite>needs_JW_string</cite>),
+we construct the new on-site oerators of <cite>site1</cite> to include the JW string of <cite>site0</cite>,
+i.e., we use the Kronecker product of <code class="docutils literal notranslate"><span class="pre">[JW,</span> <span class="pre">op]</span></code> instead of <code class="docutils literal notranslate"><span class="pre">[Id,</span> <span class="pre">op]</span></code> if necessary
+(but always <code class="docutils literal notranslate"><span class="pre">[op,</span> <span class="pre">Id]</span></code>).
+In that way the onsite operators of this DoubleSite automatically fulfill the
+expected commutation relations. See also <a class="reference internal" href="../intro_JordanWigner.html"><span class="doc">Fermions and the Jordan-Wigner transformation</span></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>site0</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a></span></dt>
+<dd><p class="first last">The first site to be included.</p>
+</dd>
+<dt><strong>site1</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a></span></dt>
+<dd><p class="first last">The second site to be included.</p>
+</dd>
+<dt><strong>label0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Include the Kronecker product of <code class="docutils literal notranslate"><span class="pre">[op,</span> <span class="pre">Id]</span></code> as onsite operators with name
+<code class="docutils literal notranslate"><span class="pre">opname+label0</span></code> for each of the operators <cite>op</cite> in <cite>site0</cite> (with name <cite>opname</cite>).</p>
+</dd>
+<dt><strong>label1</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Include the Kronecker product of <code class="docutils literal notranslate"><span class="pre">[Id,</span> <span class="pre">op]</span></code> as onsite operators with name
+<code class="docutils literal notranslate"><span class="pre">opname+label1</span></code> for each of the operators <cite>op</cite> in <cite>site1</cite> (with name <cite>opname</cite>).</p>
+</dd>
+<dt><strong>charges</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">'same'</span></code> | <code class="docutils literal notranslate"><span class="pre">'independent'</span> <span class="pre">|</span> <span class="pre">'drop'</span></code></span></dt>
+<dd><p class="first last">How to handle charges, defaults to ‘drop’.
+<code class="docutils literal notranslate"><span class="pre">'same'</span></code> means that <cite>site0</cite> and <cite>site1</cite> have the same <cite>ChargeInfo</cite>, and the total charge
+is the sum of the charges on <cite>site0</cite> and <cite>site1</cite>.
+<code class="docutils literal notranslate"><span class="pre">'independent'</span></code> means that <cite>site0</cite> and <cite>site1</cite> have possibly different <cite>ChargeInfo</cite>,
+and the charges are conserved separately, i.e., we have two conserved charges.
+For <code class="docutils literal notranslate"><span class="pre">'drop'</span></code>, we drop any charges, such that the remaining legcharges are trivial.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>site0, site1</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a></span></dt>
+<dd><p class="first last">The sites from which this is build.</p>
+</dd>
+<dt><strong>label0, label1</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">The labels which are added to the single-site operators during construction.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_op</span></code>(name,&nbsp;op[,&nbsp;need_JW])</td>
+<td>Add one on-site operators</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy_change_charge</span></code>([new_leg_charge,&nbsp;permute])</td>
+<td>Generate a copy of a site with different charges.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_op</span></code>(name)</td>
+<td>Return operator of given name.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.networks.site.DoubleSite.kroneckerproduct" title="tenpy.networks.site.DoubleSite.kroneckerproduct"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kroneckerproduct</span></code></a>(op0,&nbsp;op1)</td>
+<td>Return the Kronecker product <span class="math notranslate">\(op0 \otimes op1\)</span> of local operators.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">op_needs_JW</span></code>(name)</td>
+<td>Wheter an (composite) onsite operator needs a Jordan-Wigner string.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">remove_op</span></code>(name)</td>
+<td>Remove an added operator.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">rename_op</span></code>(old_name,&nbsp;new_name)</td>
+<td>Rename an added operator.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">state_index</span></code>(label)</td>
+<td>Return index of a basis state from its label.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">state_indices</span></code>(labels)</td>
+<td>Same as <code class="xref py py-meth docutils literal notranslate"><span class="pre">state_index()</span></code>, but for multiple labels.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
+<td>Sanity check.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">valid_opname</span></code>(name)</td>
+<td>Check wheter ‘name’ labels a valid onsite-operator.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="tenpy.networks.site.DoubleSite.kroneckerproduct">
+<code class="descname">kroneckerproduct</code><span class="sig-paren">(</span><em>op0</em>, <em>op1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/site.html#DoubleSite.kroneckerproduct"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.site.DoubleSite.kroneckerproduct" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the Kronecker product <span class="math notranslate">\(op0 \otimes op1\)</span> of local operators.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>op0, op1</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Onsite operators on <cite>site0</cite> and <cite>site1</cite>, respectively.
+Should have labels <code class="docutils literal notranslate"><span class="pre">['p',</span> <span class="pre">'p*']</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>prod</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Kronecker product <span class="math notranslate">\(op0 \otimes op1\)</span>, with labels <code class="docutils literal notranslate"><span class="pre">['p',</span> <span class="pre">'p*']</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tenpy.networks.site.SpinHalfSite">
+<em class="property">class </em><code class="descclassname">tenpy.networks.site.</code><code class="descname">SpinHalfSite</code><span class="sig-paren">(</span><em>conserve='Sz'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/site.html#SpinHalfSite"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.site.SpinHalfSite" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.networks.site.Site</span></code></a></p>
+<p>Spin-1/2 site.</p>
+<p>Local states are <code class="docutils literal notranslate"><span class="pre">up</span></code> (0) and <code class="docutils literal notranslate"><span class="pre">down</span></code> (1).
+Local operators are the usual spin-1/2 operators, e.g. <code class="docutils literal notranslate"><span class="pre">Sz</span> <span class="pre">=</span> <span class="pre">[[0.5,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">-0.5]]</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Sx</span> <span class="pre">=</span> <span class="pre">0.5*sigma_x</span></code> for the Pauli matrix <cite>sigma_x</cite>.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="23%" />
+<col width="77%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">operator</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">Id,</span> <span class="pre">JW</span></code></td>
+<td>Identity <span class="math notranslate">\(\mathbb{1}\)</span></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">Sx,</span> <span class="pre">Sy,</span> <span class="pre">Sz</span></code></td>
+<td>Spin components <span class="math notranslate">\(S^{x,y,z}\)</span>,
+equal to half the Pauli matrices.</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">Sigmax</span></code></td>
+<td>Pauli matrix <span class="math notranslate">\(Sigmax\)</span></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">Sigmay</span></code></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">Sigmaz</span></code></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">Sp,</span> <span class="pre">Sm</span></code></td>
+<td>Spin flips <span class="math notranslate">\(S^{\pm} = S^{x} \pm i S^{y}\)</span></td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="30%" />
+<col width="9%" />
+<col width="61%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head"><cite>conserve</cite></th>
+<th class="head">qmod</th>
+<th class="head"><em>excluded</em> onsite operators</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">'Sz'</span></code></td>
+<td>[1]</td>
+<td><code class="docutils literal notranslate"><span class="pre">Sx,</span> <span class="pre">Sy,</span> <span class="pre">Sigmax,</span> <span class="pre">Sigmay</span></code></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">'parity'</span></code></td>
+<td>[2]</td>
+<td>–</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">None</span></code></td>
+<td>[]</td>
+<td>–</td>
+</tr>
+</tbody>
+</table>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>conserve</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Defines what is conserved, see table above.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>conserve</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Defines what is conserved, see table above.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_op</span></code>(name,&nbsp;op[,&nbsp;need_JW])</td>
+<td>Add one on-site operators</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy_change_charge</span></code>([new_leg_charge,&nbsp;permute])</td>
+<td>Generate a copy of a site with different charges.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_op</span></code>(name)</td>
+<td>Return operator of given name.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">op_needs_JW</span></code>(name)</td>
+<td>Wheter an (composite) onsite operator needs a Jordan-Wigner string.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">remove_op</span></code>(name)</td>
+<td>Remove an added operator.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">rename_op</span></code>(old_name,&nbsp;new_name)</td>
+<td>Rename an added operator.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">state_index</span></code>(label)</td>
+<td>Return index of a basis state from its label.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">state_indices</span></code>(labels)</td>
+<td>Same as <code class="xref py py-meth docutils literal notranslate"><span class="pre">state_index()</span></code>, but for multiple labels.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
+<td>Sanity check.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">valid_opname</span></code>(name)</td>
+<td>Check wheter ‘name’ labels a valid onsite-operator.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="tenpy.networks.site.SpinSite">
+<em class="property">class </em><code class="descclassname">tenpy.networks.site.</code><code class="descname">SpinSite</code><span class="sig-paren">(</span><em>S=0.5</em>, <em>conserve='Sz'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/site.html#SpinSite"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.site.SpinSite" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.networks.site.Site</span></code></a></p>
+<p>General Spin S site.</p>
+<p>There are <cite>2S+1</cite> local states range from <code class="docutils literal notranslate"><span class="pre">down</span></code> (0)  to <code class="docutils literal notranslate"><span class="pre">up</span></code> (2S+1),
+corresponding to <code class="docutils literal notranslate"><span class="pre">Sz=-S,</span> <span class="pre">-S+1,</span> <span class="pre">...,</span> <span class="pre">S-1,</span> <span class="pre">S</span></code>.
+Local operators are the spin-S operators,
+e.g. <code class="docutils literal notranslate"><span class="pre">Sz</span> <span class="pre">=</span> <span class="pre">[[0.5,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">-0.5]]</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Sx</span> <span class="pre">=</span> <span class="pre">0.5*sigma_x</span></code> for the Pauli matrix <cite>sigma_x</cite>.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="23%" />
+<col width="77%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">operator</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">Id,</span> <span class="pre">JW</span></code></td>
+<td>Identity <span class="math notranslate">\(\mathbb{1}\)</span></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">Sx,</span> <span class="pre">Sy,</span> <span class="pre">Sz</span></code></td>
+<td>Spin components <span class="math notranslate">\(S^{x,y,z}\)</span>,
+equal to half the Pauli matrices.</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">Sp,</span> <span class="pre">Sm</span></code></td>
+<td>Spin flips <span class="math notranslate">\(S^{\pm} = S^{x} \pm i S^{y}\)</span></td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="30%" />
+<col width="9%" />
+<col width="61%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head"><cite>conserve</cite></th>
+<th class="head">qmod</th>
+<th class="head"><em>excluded</em> onsite operators</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">'Sz'</span></code></td>
+<td>[1]</td>
+<td><code class="docutils literal notranslate"><span class="pre">Sx,</span> <span class="pre">Sy</span></code></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">'parity'</span></code></td>
+<td>[2]</td>
+<td>–</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">None</span></code></td>
+<td>[]</td>
+<td>–</td>
+</tr>
+</tbody>
+</table>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>conserve</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Defines what is conserved, see table above.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>S</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{0.5, 1, 1.5, 2, …}</span></dt>
+<dd><p class="first last">The 2S+1 states range from m = -S, -S+1, … +S.</p>
+</dd>
+<dt><strong>conserve</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Defines what is conserved, see table above.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_op</span></code>(name,&nbsp;op[,&nbsp;need_JW])</td>
+<td>Add one on-site operators</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy_change_charge</span></code>([new_leg_charge,&nbsp;permute])</td>
+<td>Generate a copy of a site with different charges.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_op</span></code>(name)</td>
+<td>Return operator of given name.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">op_needs_JW</span></code>(name)</td>
+<td>Wheter an (composite) onsite operator needs a Jordan-Wigner string.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">remove_op</span></code>(name)</td>
+<td>Remove an added operator.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">rename_op</span></code>(old_name,&nbsp;new_name)</td>
+<td>Rename an added operator.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">state_index</span></code>(label)</td>
+<td>Return index of a basis state from its label.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">state_indices</span></code>(labels)</td>
+<td>Same as <code class="xref py py-meth docutils literal notranslate"><span class="pre">state_index()</span></code>, but for multiple labels.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
+<td>Sanity check.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">valid_opname</span></code>(name)</td>
+<td>Check wheter ‘name’ labels a valid onsite-operator.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="tenpy.networks.site.FermionSite">
+<em class="property">class </em><code class="descclassname">tenpy.networks.site.</code><code class="descname">FermionSite</code><span class="sig-paren">(</span><em>conserve='N'</em>, <em>filling=0.5</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/site.html#FermionSite"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.site.FermionSite" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.networks.site.Site</span></code></a></p>
+<p>Create a <a class="reference internal" href="#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a> for spin-less fermions.</p>
+<p>Local states are <code class="docutils literal notranslate"><span class="pre">empty</span></code> and <code class="docutils literal notranslate"><span class="pre">full</span></code>.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Using the Jordan-Wigner string (<code class="docutils literal notranslate"><span class="pre">JW</span></code>) is crucial to get correct results,
+otherwise you just describe hardcore bosons!
+Further details in <a class="reference internal" href="../intro_JordanWigner.html"><span class="doc">Fermions and the Jordan-Wigner transformation</span></a>.</p>
+</div>
+<table border="1" class="docutils">
+<colgroup>
+<col width="17%" />
+<col width="83%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">operator</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">Id</span></code></td>
+<td>Identity <span class="math notranslate">\(\mathbb{1}\)</span></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">JW</span></code></td>
+<td>Sign for the Jordan-Wigner string.</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">C</span></code></td>
+<td>Annihilation operator <span class="math notranslate">\(c\)</span> (up to ‘JW’-string left of it)</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">Cd</span></code></td>
+<td>Creation operator <span class="math notranslate">\(c^\dagger\)</span> (up to ‘JW’-string left of it)</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">N</span></code></td>
+<td>Number operator <span class="math notranslate">\(n= c^\dagger c\)</span></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">dN</span></code></td>
+<td><span class="math notranslate">\(\delta n := n - filling\)</span></td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">dNdN</span></code></td>
+<td><span class="math notranslate">\((\delta n)^2\)</span></td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="29%" />
+<col width="8%" />
+<col width="63%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head"><cite>conserve</cite></th>
+<th class="head">qmod</th>
+<th class="head"><em>exluded</em> onsite operators</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">'N'</span></code></td>
+<td>[1]</td>
+<td>–</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">'parity'</span></code></td>
+<td>[2]</td>
+<td>–</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">None</span></code></td>
+<td>[]</td>
+<td>–</td>
+</tr>
+</tbody>
+</table>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>conserve</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Defines what is conserved, see table above.</p>
+</dd>
+<dt><strong>filling</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Average filling. Used to define <code class="docutils literal notranslate"><span class="pre">dN</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>conserve</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Defines what is conserved, see table above.</p>
+</dd>
+<dt><strong>filling</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Average filling. Used to define <code class="docutils literal notranslate"><span class="pre">dN</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_op</span></code>(name,&nbsp;op[,&nbsp;need_JW])</td>
+<td>Add one on-site operators</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy_change_charge</span></code>([new_leg_charge,&nbsp;permute])</td>
+<td>Generate a copy of a site with different charges.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_op</span></code>(name)</td>
+<td>Return operator of given name.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">op_needs_JW</span></code>(name)</td>
+<td>Wheter an (composite) onsite operator needs a Jordan-Wigner string.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">remove_op</span></code>(name)</td>
+<td>Remove an added operator.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">rename_op</span></code>(old_name,&nbsp;new_name)</td>
+<td>Rename an added operator.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">state_index</span></code>(label)</td>
+<td>Return index of a basis state from its label.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">state_indices</span></code>(labels)</td>
+<td>Same as <code class="xref py py-meth docutils literal notranslate"><span class="pre">state_index()</span></code>, but for multiple labels.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
+<td>Sanity check.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">valid_opname</span></code>(name)</td>
+<td>Check wheter ‘name’ labels a valid onsite-operator.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="tenpy.networks.site.SpinHalfFermionSite">
+<em class="property">class </em><code class="descclassname">tenpy.networks.site.</code><code class="descname">SpinHalfFermionSite</code><span class="sig-paren">(</span><em>cons_N='N'</em>, <em>cons_Sz='Sz'</em>, <em>filling=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/site.html#SpinHalfFermionSite"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.site.SpinHalfFermionSite" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.networks.site.Site</span></code></a></p>
+<p>Create a <a class="reference internal" href="#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a> for spinful (spin-1/2) fermions.</p>
+<dl class="docutils">
+<dt>Local states are:</dt>
+<dd><code class="docutils literal notranslate"><span class="pre">empty</span></code>  (vacuum),
+<code class="docutils literal notranslate"><span class="pre">up</span></code>     (one spin-up electron),
+<code class="docutils literal notranslate"><span class="pre">down</span></code>   (one spin-down electron), and
+<code class="docutils literal notranslate"><span class="pre">full</span></code>   (both electrons)</dd>
+</dl>
+<p>Local operators can be built from creation operators.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Using the Jordan-Wigner string (<code class="docutils literal notranslate"><span class="pre">JW</span></code>) in the correct way is crucial to get correct
+results, otherwise you just describe hardcore bosons!</p>
+</div>
+<table border="1" class="docutils">
+<colgroup>
+<col width="15%" />
+<col width="85%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">operator</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">Id</span></code></td>
+<td>Identity <span class="math notranslate">\(\mathbb{1}\)</span></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">JW</span></code></td>
+<td>Sign for the Jordan-Wigner string <span class="math notranslate">\((-1)^{n_{\uparrow}+n_{\downarrow}}\)</span></td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">JWu</span></code></td>
+<td>Partial sign for the Jordan-Wigner string <span class="math notranslate">\((-1)^{n_{\uparrow}}\)</span></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">JWd</span></code></td>
+<td>Partial sign for the Jordan-Wigner string <span class="math notranslate">\((-1)^{n_{\downarrow}}\)</span></td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">Cu</span></code></td>
+<td>Annihilation operator spin-up <span class="math notranslate">\(c_{\uparrow}\)</span>
+(up to ‘JW’-string on sites left of it).</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">Cdu</span></code></td>
+<td>Creation operator spin-up <span class="math notranslate">\(c^\dagger_{\uparrow}\)</span>
+(up to ‘JW’-string on sites left of it).</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">Cd</span></code></td>
+<td>Annihilation operator spin-down <span class="math notranslate">\(c_{\downarrow}\)</span>
+(up to ‘JW’-string on sites left of it).
+Includes <code class="docutils literal notranslate"><span class="pre">JWu</span></code> such that it anti-commutes onsite with <code class="docutils literal notranslate"><span class="pre">Cu,</span> <span class="pre">Cdu</span></code>.</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">Cdd</span></code></td>
+<td>Creation operator spin-down <span class="math notranslate">\(c^\dagger_{\downarrow}\)</span>
+(up to ‘JW’-string on sites left of it).
+Includes <code class="docutils literal notranslate"><span class="pre">JWu</span></code> such that it anti-commutes onsite with <code class="docutils literal notranslate"><span class="pre">Cu,</span> <span class="pre">Cdu</span></code>.</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">Nu</span></code></td>
+<td>Number operator <span class="math notranslate">\(n_{\uparrow}= c^\dagger_{\uparrow} c_{\uparrow}\)</span></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">Nd</span></code></td>
+<td>Number operator <span class="math notranslate">\(n_{\downarrow}= c^\dagger_{\downarrow} c_{\downarrow}\)</span></td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">NuNd</span></code></td>
+<td>Dotted number operators <span class="math notranslate">\(n_{\uparrow} n_{\downarrow}\)</span></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">Ntot</span></code></td>
+<td>Total number operator <span class="math notranslate">\(n_t= n_{\uparrow} + n_{\downarrow}\)</span></td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">dN</span></code></td>
+<td>Total number operator compared to the filling <span class="math notranslate">\(\Delta n = n_t-filling\)</span></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">Sx,</span> <span class="pre">Sy,</span> <span class="pre">Sz</span></code></td>
+<td>Spin operators <span class="math notranslate">\(S^{x,y,z}\)</span>, in particular
+<span class="math notranslate">\(S^z = \frac{1}{2}( n_\uparrow - n_\downarrow )\)</span></td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">Sp,</span> <span class="pre">Sm</span></code></td>
+<td>Spin flips <span class="math notranslate">\(S^{\pm} = S^{x} \pm i S^{y}\)</span>,
+e.g. <span class="math notranslate">\(S^{+} = c^\dagger_\uparrow c_\downarrow\)</span></td>
+</tr>
+</tbody>
+</table>
+<p>The spin operators are defined as <span class="math notranslate">\(S^\gamma =
+(c^\dagger_{\uparrow}, c^\dagger_{\downarrow}) \sigma^\gamma (c_{\uparrow}, c_{\downarrow})^T\)</span>,
+where <span class="math notranslate">\(\sigma^\gamma\)</span> are spin-1/2 matrices (i.e. half the pauli matrices).</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="18%" />
+<col width="18%" />
+<col width="10%" />
+<col width="54%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head"><cite>cons_N</cite></th>
+<th class="head"><cite>cons_Sz</cite></th>
+<th class="head">qmod</th>
+<th class="head"><em>excluded</em> onsite operators</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">'N'</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">'Sz'</span></code></td>
+<td>[1, 1]</td>
+<td><code class="docutils literal notranslate"><span class="pre">Sx,</span> <span class="pre">Sy</span></code></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">'N'</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">'parity'</span></code></td>
+<td>[1, 2]</td>
+<td>–</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">'N'</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">None</span></code></td>
+<td>[1]</td>
+<td>–</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">'parity'</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">'Sz'</span></code></td>
+<td>[2, 1]</td>
+<td><code class="docutils literal notranslate"><span class="pre">Sx,</span> <span class="pre">Sy</span></code></td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">'parity'</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">'parity'</span></code></td>
+<td>[2, 2]</td>
+<td>–</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">'parity'</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">None</span></code></td>
+<td>[2]</td>
+<td>–</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">None</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">'Sz'</span></code></td>
+<td>[1]</td>
+<td><code class="docutils literal notranslate"><span class="pre">Sx,</span> <span class="pre">Sy</span></code></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">None</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">'parity'</span></code></td>
+<td>[2]</td>
+<td>–</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">None</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">None</span></code></td>
+<td>[]</td>
+<td>–</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition-todo admonition" id="index-0">
+<p class="first admonition-title">Todo</p>
+<p class="last">Check if Jordan-Wigner strings for 4x4 operators are correct.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>cons_N</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">'N'</span> <span class="pre">|</span> <span class="pre">'parity'</span> <span class="pre">|</span> <span class="pre">None</span></code></span></dt>
+<dd><p class="first last">Whether particle number is conserved, c.f. table above.</p>
+</dd>
+<dt><strong>cons_Sz</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">'Sz'</span> <span class="pre">|</span> <span class="pre">'parity'</span> <span class="pre">|</span> <span class="pre">None</span></code></span></dt>
+<dd><p class="first last">Whether spin is conserved, c.f. table above.</p>
+</dd>
+<dt><strong>filling</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Average filling. Used to define <code class="docutils literal notranslate"><span class="pre">dN</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>cons_N</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">'N'</span> <span class="pre">|</span> <span class="pre">'parity'</span> <span class="pre">|</span> <span class="pre">None</span></code></span></dt>
+<dd><p class="first last">Whether particle number is conserved, c.f. table above.</p>
+</dd>
+<dt><strong>cons_Sz</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">'Sz'</span> <span class="pre">|</span> <span class="pre">'parity'</span> <span class="pre">|</span> <span class="pre">None</span></code></span></dt>
+<dd><p class="first last">Whether spin is conserved, c.f. table above.</p>
+</dd>
+<dt><strong>filling</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Average filling. Used to define <code class="docutils literal notranslate"><span class="pre">dN</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_op</span></code>(name,&nbsp;op[,&nbsp;need_JW])</td>
+<td>Add one on-site operators</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy_change_charge</span></code>([new_leg_charge,&nbsp;permute])</td>
+<td>Generate a copy of a site with different charges.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_op</span></code>(name)</td>
+<td>Return operator of given name.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">op_needs_JW</span></code>(name)</td>
+<td>Wheter an (composite) onsite operator needs a Jordan-Wigner string.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">remove_op</span></code>(name)</td>
+<td>Remove an added operator.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">rename_op</span></code>(old_name,&nbsp;new_name)</td>
+<td>Rename an added operator.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">state_index</span></code>(label)</td>
+<td>Return index of a basis state from its label.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">state_indices</span></code>(labels)</td>
+<td>Same as <code class="xref py py-meth docutils literal notranslate"><span class="pre">state_index()</span></code>, but for multiple labels.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
+<td>Sanity check.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">valid_opname</span></code>(name)</td>
+<td>Check wheter ‘name’ labels a valid onsite-operator.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="tenpy.networks.site.BosonSite">
+<em class="property">class </em><code class="descclassname">tenpy.networks.site.</code><code class="descname">BosonSite</code><span class="sig-paren">(</span><em>Nmax=1</em>, <em>conserve='N'</em>, <em>filling=0.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/site.html#BosonSite"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.site.BosonSite" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.networks.site.Site</span></code></a></p>
+<p>Create a <a class="reference internal" href="#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a> for up to <cite>Nmax</cite> bosons.</p>
+<p>Local states are <code class="docutils literal notranslate"><span class="pre">vac,</span> <span class="pre">1,</span> <span class="pre">2,</span> <span class="pre">...</span> <span class="pre">,</span> <span class="pre">Nc</span></code>.
+(Exception: for parity conservation, we sort as <code class="docutils literal notranslate"><span class="pre">vac,</span> <span class="pre">2,</span> <span class="pre">4,</span> <span class="pre">...,</span> <span class="pre">1,</span> <span class="pre">3,</span> <span class="pre">5,</span> <span class="pre">...</span></code>.)</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="26%" />
+<col width="74%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">operator</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">Id,</span> <span class="pre">JW</span></code></td>
+<td>Identity <span class="math notranslate">\(\mathbb{1}\)</span></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">B</span></code></td>
+<td>Annihilation operator <span class="math notranslate">\(b\)</span></td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">Bd</span></code></td>
+<td>Creation operator <span class="math notranslate">\(b^\dagger\)</span></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">N</span></code></td>
+<td>Number operator <span class="math notranslate">\(n= b^\dagger b\)</span></td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">NN</span></code></td>
+<td><span class="math notranslate">\(n^2\)</span></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">dN</span></code></td>
+<td><span class="math notranslate">\(\delta n := n - filling\)</span></td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">dNdN</span></code></td>
+<td><span class="math notranslate">\((\delta n)^2\)</span></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">P</span></code></td>
+<td>Parity <span class="math notranslate">\(Id - 2 (n \mod 2)\)</span>.</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="27%" />
+<col width="8%" />
+<col width="65%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head"><cite>conserve</cite></th>
+<th class="head">qmod</th>
+<th class="head"><em>excluded</em> onsite operators</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">'N'</span></code></td>
+<td>[1]</td>
+<td>–</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">'parity'</span></code></td>
+<td>[2]</td>
+<td>–</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">None</span></code></td>
+<td>[]</td>
+<td>–</td>
+</tr>
+</tbody>
+</table>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>Nmax</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Cutoff defining the maximum number of bosons per site.
+The default <code class="docutils literal notranslate"><span class="pre">Nmax=1</span></code> describes hard-core bosons.</p>
+</dd>
+<dt><strong>conserve</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Defines what is conserved, see table above.</p>
+</dd>
+<dt><strong>filling</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Average filling. Used to define <code class="docutils literal notranslate"><span class="pre">dN</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>conserve</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Defines what is conserved, see table above.</p>
+</dd>
+<dt><strong>filling</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Average filling. Used to define <code class="docutils literal notranslate"><span class="pre">dN</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_op</span></code>(name,&nbsp;op[,&nbsp;need_JW])</td>
+<td>Add one on-site operators</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy_change_charge</span></code>([new_leg_charge,&nbsp;permute])</td>
+<td>Generate a copy of a site with different charges.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_op</span></code>(name)</td>
+<td>Return operator of given name.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">op_needs_JW</span></code>(name)</td>
+<td>Wheter an (composite) onsite operator needs a Jordan-Wigner string.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">remove_op</span></code>(name)</td>
+<td>Remove an added operator.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">rename_op</span></code>(old_name,&nbsp;new_name)</td>
+<td>Rename an added operator.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">state_index</span></code>(label)</td>
+<td>Return index of a basis state from its label.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">state_indices</span></code>(labels)</td>
+<td>Same as <code class="xref py py-meth docutils literal notranslate"><span class="pre">state_index()</span></code>, but for multiple labels.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
+<td>Sanity check.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">valid_opname</span></code>(name)</td>
+<td>Check wheter ‘name’ labels a valid onsite-operator.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/logo.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="tenpy.networks.purification_mps.html"
+                        title="previous chapter">tenpy.networks.purification_mps module</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="tenpy.tools.html"
+                        title="next chapter">tenpy.tools package</a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../index.html">Table Of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../userguide.html">User Guide</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tenpy.html">tenpy package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tenpy.html#subpackages">Subpackages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.html#module-tenpy">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tenpy.tools.html" title="tenpy.tools package"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="tenpy.networks.purification_mps.html" title="tenpy.networks.purification_mps module"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="tenpy.html" >tenpy package</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.networks.html" >tenpy.networks package</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2018, TeNPy Developers.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

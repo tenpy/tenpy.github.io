@@ -1,0 +1,231 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>tenpy.linalg.svd_robust module &#8212; TeNPy 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="tenpy.models package" href="tenpy.models.html" />
+    <link rel="prev" title="tenpy.linalg.sparse module" href="tenpy.linalg.sparse.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tenpy.models.html" title="tenpy.models package"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="tenpy.linalg.sparse.html" title="tenpy.linalg.sparse module"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="tenpy.html" >tenpy package</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.linalg.html" accesskey="U">tenpy.linalg package</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-tenpy.linalg.svd_robust">
+<span id="tenpy-linalg-svd-robust-module"></span><h1>tenpy.linalg.svd_robust module<a class="headerlink" href="#module-tenpy.linalg.svd_robust" title="Permalink to this headline">¶</a></h1>
+<p>(More) robust version of singular value decomposition.</p>
+<p>We often need to perform an SVD.
+In general, an SVD is a matrix factorization that is always well defined and should also work
+for ill-conditioned matrices.
+But sadly, both <cite>numpy.linalg.svd</cite> and <cite>scipy.linalg.svd</cite> fail from time to time, raising
+<code class="docutils literal notranslate"><span class="pre">LinalgError(&quot;SVD</span> <span class="pre">did</span> <span class="pre">not</span> <span class="pre">converge&quot;)</span></code>.
+The reason is that both of them call the LAPACK function <cite>#gesdd</cite>
+(where <cite>#</cite> depends on the data type), which (to make it short) fails in some cases.
+However, it is usually much faster than the alternative (and robust) <cite>#gesvd</cite>.</p>
+<p>Our workaround is as follows: we provide a function <a class="reference internal" href="#tenpy.linalg.svd_robust.svd" title="tenpy.linalg.svd_robust.svd"><code class="xref py py-func docutils literal notranslate"><span class="pre">svd()</span></code></a> with call signature as scipy’s svd.
+This function is basically just a wrapper around scipy’s svd, i.e., we keep calling the faster
+<cite>dgesdd</cite>. But if that fails, we can still use <cite>dgesvd</cite> as a backup.</p>
+<p>Sadly, <cite>dgesvd</cite> and <cite>zgesvd</cite> were not included into scipy until version ‘0.18.0’ (nor in numpy),
+which is as the time of this writing the latest stable scipy version.
+For scipy version newer than ‘0.18.0’, we make use of the new keyword ‘lapack_driver’ for svd,
+otherwise we (try to) load <cite>dgesvd</cite> and <cite>zgesvd</cite> from shared LAPACK libraries.</p>
+<p>The tribute for the dgesvd wrapper code goes to ‘jgarcke’, originally posted at
+<a class="reference external" href="http://projects.scipy.org/numpy/ticket/990">http://projects.scipy.org/numpy/ticket/990</a>, which is now hosted
+at <a class="reference external" href="https://github.com/numpy/numpy/issues/1588">https://github.com/numpy/numpy/issues/1588</a>
+He explains a bit more in detail what fails.</p>
+<p>The include of <cite>dgesvd</cite> to scipy was done in <a class="reference external" href="https://github.com/scipy/scipy/pull/5994">https://github.com/scipy/scipy/pull/5994</a>.</p>
+<div class="section" id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
+<p>The idea is that you just import the <cite>svd</cite> from this module and use it as replacement for
+<code class="docutils literal notranslate"><span class="pre">np.linalg.svd</span></code> or <code class="docutils literal notranslate"><span class="pre">scipy.linalg.svd</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">svd_robust</span> <span class="k">import</span> <span class="n">svd</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">VT</span> <span class="o">=</span> <span class="n">svd</span><span class="p">([[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="p">[</span><span class="mf">1.</span><span class="p">]])</span>
+</pre></div>
+</div>
+<dl class="function">
+<dt id="tenpy.linalg.svd_robust.svd">
+<code class="descclassname">tenpy.linalg.svd_robust.</code><code class="descname">svd</code><span class="sig-paren">(</span><em>a</em>, <em>full_matrices=True</em>, <em>compute_uv=True</em>, <em>overwrite_a=False</em>, <em>check_finite=True</em>, <em>lapack_driver='gesdd'</em>, <em>warn=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/svd_robust.html#svd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.svd_robust.svd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper around <cite>scipy.linalg.svd</cite> with <cite>gesvd</cite> backup plan.</p>
+<p>Tries to avoid raising an LinAlgError by using using the lapack_driver <cite>gesvd</cite>,
+if <cite>gesdd</cite> failed.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>overwrite_a</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">Ignored (i.e. set to <code class="docutils literal notranslate"><span class="pre">False</span></code>) if <code class="docutils literal notranslate"><span class="pre">lapack_driver='gesdd'</span></code>.
+Otherwise described in doc-string of <cite>scipy.linalg.svd</cite>.</p>
+</dd>
+<dt><strong>lapack_driver</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{‘gesdd’, ‘gesvd’}, optional</span></dt>
+<dd><p class="first last">Whether to use the more efficient divide-and-conquer approach (<code class="docutils literal notranslate"><span class="pre">'gesdd'</span></code>)
+or general rectangular approach (<code class="docutils literal notranslate"><span class="pre">'gesvd'</span></code>) to compute the SVD.
+MATLAB and Octave use the <code class="docutils literal notranslate"><span class="pre">'gesvd'</span></code> approach.
+Default is <code class="docutils literal notranslate"><span class="pre">'gesdd'</span></code>.
+If <code class="docutils literal notranslate"><span class="pre">'gesdd'</span></code> fails, <code class="docutils literal notranslate"><span class="pre">'gesvd'</span></code> is used as backup.</p>
+</dd>
+<dt><strong>warn</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">whether to create a warning when the SVD failed.</p>
+</dd>
+<dt><strong>Other parameters as described in doc-string of `scipy.linalg.svd`</strong></dt>
+<dd></dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>U, S, Vh</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">As described in doc-string of <cite>scipy.linalg.svd</cite></p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tenpy.linalg.svd_robust.svd_gesvd">
+<code class="descclassname">tenpy.linalg.svd_robust.</code><code class="descname">svd_gesvd</code><span class="sig-paren">(</span><em>a</em>, <em>full_matrices=True</em>, <em>compute_uv=True</em>, <em>check_finite=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/svd_robust.html#svd_gesvd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.svd_robust.svd_gesvd" title="Permalink to this definition">¶</a></dt>
+<dd><p>svd with LAPACK’s ‘#gesvd’ (with # = d/z for float/complex).</p>
+<p>Similar as <cite>numpy.linalg.svd</cite>, but use LAPACK ‘gesvd’ driver.
+Works only with 2D arrays.
+Outer part is based on the code of <cite>numpy.linalg.svd</cite>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>a, full_matrices, compute_uv :</strong></dt>
+<dd><p class="first last">see doc-string of <cite>numpy.linalg.svd</cite> for details.</p>
+</dd>
+<dt><strong>check_finite :</strong></dt>
+<dd><p class="first last">check whether input arrays contain ‘NaN’ or ‘inf’.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>U, S, Vh</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">see doc-string of <cite>numpy.linalg.svd</cite> for details.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/logo.png" alt="Logo"/>
+            </a></p>
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">tenpy.linalg.svd_robust module</a><ul>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="tenpy.linalg.sparse.html"
+                        title="previous chapter">tenpy.linalg.sparse module</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="tenpy.models.html"
+                        title="next chapter">tenpy.models package</a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../index.html">Table Of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../userguide.html">User Guide</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tenpy.html">tenpy package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tenpy.html#subpackages">Subpackages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.html#module-tenpy">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tenpy.models.html" title="tenpy.models package"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="tenpy.linalg.sparse.html" title="tenpy.linalg.sparse module"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="tenpy.html" >tenpy package</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.linalg.html" >tenpy.linalg package</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2018, TeNPy Developers.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,315 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>tenpy.tools.optimization module &#8212; TeNPy 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="tenpy.tools.params module" href="tenpy.tools.params.html" />
+    <link rel="prev" title="tenpy.tools.misc module" href="tenpy.tools.misc.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tenpy.tools.params.html" title="tenpy.tools.params module"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="tenpy.tools.misc.html" title="tenpy.tools.misc module"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="tenpy.html" >tenpy package</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.tools.html" accesskey="U">tenpy.tools package</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-tenpy.tools.optimization">
+<span id="tenpy-tools-optimization-module"></span><h1>tenpy.tools.optimization module<a class="headerlink" href="#module-tenpy.tools.optimization" title="Permalink to this headline">¶</a></h1>
+<p>Optimization options for this library.</p>
+<p>Let me start with a <a class="reference external" href="http://wiki.c2.com/?RulesOfOptimization">quote</a> of “Micheal Jackson”
+(a programmer, not the musician):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">First</span> <span class="n">rule</span> <span class="n">of</span> <span class="n">optimization</span><span class="p">:</span> <span class="s2">&quot;Don&#39;t do it.&quot;</span>
+<span class="n">Second</span> <span class="n">rule</span> <span class="n">of</span> <span class="n">optimization</span> <span class="p">(</span><span class="k">for</span> <span class="n">experts</span> <span class="n">only</span><span class="p">):</span> <span class="s2">&quot;Don&#39;t do it yet.&quot;</span>
+<span class="n">Third</span> <span class="n">rule</span> <span class="n">of</span> <span class="n">optimization</span><span class="p">:</span> <span class="s2">&quot;Profile before optimizing.&quot;</span>
+</pre></div>
+</div>
+<p>That being said, I actually did profile and optimize (parts of) the library; and there are a few
+knobs you can turn to tweak the most out of this library, explained in the following.</p>
+<ol class="arabic">
+<li><p class="first">Simply install the ‘bottleneck’ python package, which allows to optimize slow parts of numpy,
+most notably ‘NaN’ checking.</p>
+</li>
+<li><p class="first">Figure out which numpy/scipy/python you are using. As explained in <a class="reference internal" href="../INSTALL.html"><span class="doc">Installation instructions</span></a>,
+we recommend to use the Python distributed provided by Intel or Anaconda. They ship with numpy
+and scipy which use Intels MKL library, such that e.g. <code class="docutils literal notranslate"><span class="pre">np.tensordot</span></code> is parallelized to use
+multiple cores.</p>
+</li>
+<li><p class="first">In case you didn’t do that yet: some parts of the library are written in both python and Cython
+with the same interface, so you can simply compile the Cython code, as explained in
+<a class="reference internal" href="../INSTALL.html"><span class="doc">Installation instructions</span></a>. Then everything should work the same way from a user perspective,
+while internally the faster, pre-compiled cython code is used.
+This should also be a safe thing to do.</p>
+</li>
+<li><p class="first">One of the great things about python is its dynamical nature - anything can be done at runtime.
+In that spirit, this module allows to set a global  “optimization level” which can be changed
+<em>dynamically</em> (i.e., during runtime) with <a class="reference internal" href="#tenpy.tools.optimization.set_level" title="tenpy.tools.optimization.set_level"><code class="xref py py-func docutils literal notranslate"><span class="pre">set_level()</span></code></a>. The library will then try some
+extra optimiztion, e.g., skip sanity checks.
+See <a class="reference internal" href="#tenpy.tools.optimization.OptimizationFlag" title="tenpy.tools.optimization.OptimizationFlag"><code class="xref py py-class docutils literal notranslate"><span class="pre">OptimizationFlag</span></code></a> and <a class="reference internal" href="#tenpy.tools.optimization.set_level" title="tenpy.tools.optimization.set_level"><code class="xref py py-func docutils literal notranslate"><span class="pre">set_level()</span></code></a> for more details.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">When this optimizing is enabled, we skip (some) sanity checks.
+Thus, errors will not be detected that easily, and debugging is much harder!
+Use this kind of optimization only for code which you succesfully ran before
+with (very) similar parmeters!
+Enable this optimization only during the parts of the code where it is really necessary.
+Check whether it actually helps - if it doesn’t, keep the optimization disabled!</p>
+</div>
+</li>
+<li><p class="first">You might want to try some different compile time options for the cython code, set in the
+<cite>setup.py</cite> in the top directory.  Since the <cite>setup.py</cite> reads out the <cite>TENPY_OPTIMIZE</cite>
+environment variable, you can simple use an <code class="docutils literal notranslate"><span class="pre">export</span> <span class="pre">TENPY_OPTIMIZE=1</span></code> (in your bash/terminal)
+right before compilation. An <code class="docutils literal notranslate"><span class="pre">export</span> <span class="pre">TENPY_OPTIMIZE=-1</span></code> activates profiling hooks instead.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">This increases the probability of getting segmentation faults and anyway might not
+help that much; in the crucial parts of the cython code, these optimizations are already
+applied. We do <em>not</em> recommend using this!</p>
+</div>
+</li>
+<li><p class="first">If you’re still not satisfied with the speed of this library: this code is written in python,
+which is ‘slow’ due to its dynamical nature. Use a library written in another programming
+language, there are plenty of them out there…</p>
+</li>
+</ol>
+<p>Finally, let me note that following the third optimization rule, namely profiling code, is
+fairly simple in python, see the <a class="reference external" href="https://docs.python.org/3/library/profile.html">documentation</a>.
+If you have a python skript running your code, you can simply call it with
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">&quot;cProfile&quot;</span> <span class="pre">-s</span> <span class="pre">&quot;tottime&quot;</span> <span class="pre">your_skript.py</span></code>. Alternative, save the profiling statistics
+with <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">&quot;cProfile&quot;</span> <span class="pre">-o</span> <span class="pre">&quot;profile_data.stat&quot;</span> <span class="pre">your_skript.py</span></code> and
+run these few lines of python code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pstats</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">pstats</span><span class="o">.</span><span class="n">Pstats</span><span class="p">(</span><span class="s2">&quot;profile_data.stat&quot;</span><span class="p">)</span>
+<span class="n">p</span><span class="o">.</span><span class="n">sort_stats</span><span class="p">(</span><span class="s1">&#39;cumtime&#39;</span><span class="p">)</span>  <span class="c1"># sort by &#39;cumtime&#39; column</span>
+<span class="n">p</span><span class="o">.</span><span class="n">print_stats</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span>   <span class="c1"># prints first 30 entries</span>
+</pre></div>
+</div>
+<dl class="class">
+<dt id="tenpy.tools.optimization.OptimizationFlag">
+<em class="property">class </em><code class="descclassname">tenpy.tools.optimization.</code><code class="descname">OptimizationFlag</code><a class="reference internal" href="../_modules/tenpy/tools/optimization.html#OptimizationFlag"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.tools.optimization.OptimizationFlag" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.IntEnum" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">enum.IntEnum</span></code></a></p>
+<p>Options for the global ‘optimization level’ used for dynamical optimizations.</p>
+<blockquote>
+<div><p>Whether we optimize dynamically is decided by comparison of the global “optimization level”
+with one of the following flags. A higher level <em>includes</em> all the previous optimizations.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="5%" />
+<col width="17%" />
+<col width="77%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Level</th>
+<th class="head">Flag</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>0</td>
+<td>none</td>
+<td>Don’t do any optimizations, i.e., run many sanity checks.
+Used for testing.</td>
+</tr>
+<tr class="row-odd"><td>1</td>
+<td>default</td>
+<td>Skip really unnecessary sanity checks, but also don’t try any
+optional optimizations if they might give an overhead.</td>
+</tr>
+<tr class="row-even"><td>2</td>
+<td>safe</td>
+<td>Activate safe optimizations in algorithms, even if they might
+give a small overhead.
+Example: Try to compress the MPO representing the hamiltonian.</td>
+</tr>
+<tr class="row-odd"><td>3</td>
+<td>skip_arg_checks</td>
+<td>Unsafe! Skip (some) class sanity tests and (function) argument checks.</td>
+</tr>
+</tbody>
+</table>
+</div></blockquote>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">When unsafe optimizations are enabled, errors will not be detected that easily,
+debugging is much harder, and you might even get segmentation faults in the compiled parts.
+Use this kind of optimization only for code which you succesfully ran before
+with (very) similar parmeters and disabled optimiztions!
+Enable this optimization only during the parts of the code where it is really necessary.
+Check whether it actually helps - if it doesn’t, keep the optimization disabled!</p>
+</div>
+<dl class="attribute">
+<dt id="tenpy.tools.optimization.OptimizationFlag.default">
+<code class="descname">default</code><em class="property"> = 1</em><a class="headerlink" href="#tenpy.tools.optimization.OptimizationFlag.default" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.tools.optimization.OptimizationFlag.none">
+<code class="descname">none</code><em class="property"> = 0</em><a class="headerlink" href="#tenpy.tools.optimization.OptimizationFlag.none" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.tools.optimization.OptimizationFlag.safe">
+<code class="descname">safe</code><em class="property"> = 2</em><a class="headerlink" href="#tenpy.tools.optimization.OptimizationFlag.safe" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.tools.optimization.OptimizationFlag.skip_arg_checks">
+<code class="descname">skip_arg_checks</code><em class="property"> = 3</em><a class="headerlink" href="#tenpy.tools.optimization.OptimizationFlag.skip_arg_checks" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="tenpy.tools.optimization.get_level">
+<code class="descclassname">tenpy.tools.optimization.</code><code class="descname">get_level</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/tools/optimization.html#get_level"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.tools.optimization.get_level" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the global optimization level.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tenpy.tools.optimization.optimize">
+<code class="descclassname">tenpy.tools.optimization.</code><code class="descname">optimize</code><span class="sig-paren">(</span><em>level_compare=&lt;OptimizationFlag.default: 1&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/tools/optimization.html#optimize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.tools.optimization.optimize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Called by algorithms to check whether it should (try to) do some optimizations.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>level_compare</strong> <span class="classifier-delimiter">:</span> <span class="classifier">OptimizationFlag</span></dt>
+<dd><p class="first last">At which level to start optimization, i.e., how safe the suggested optimization is.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>optimize</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">True if the algorithms should try to optimize, i.e., i.e. whether the global
+“optimization level” is equal or higher than the level to compare to.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tenpy.tools.optimization.set_level">
+<code class="descclassname">tenpy.tools.optimization.</code><code class="descname">set_level</code><span class="sig-paren">(</span><em>new_level=1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/tools/optimization.html#set_level"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.tools.optimization.set_level" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the global optimization level.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>new_level</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int | OptimizationFlag</span></dt>
+<dd><p class="first last">The new global optimization level to be set.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/logo.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="tenpy.tools.misc.html"
+                        title="previous chapter">tenpy.tools.misc module</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="tenpy.tools.params.html"
+                        title="next chapter">tenpy.tools.params module</a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../index.html">Table Of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../userguide.html">User Guide</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tenpy.html">tenpy package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tenpy.html#subpackages">Subpackages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.html#module-tenpy">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tenpy.tools.params.html" title="tenpy.tools.params module"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="tenpy.tools.misc.html" title="tenpy.tools.misc module"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="tenpy.html" >tenpy package</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.tools.html" >tenpy.tools package</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2018, TeNPy Developers.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

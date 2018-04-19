@@ -1,0 +1,383 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Introduction to models &#8212; TeNPy 0.3.0 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="_static/logo.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Fermions and the Jordan-Wigner transformation" href="intro_JordanWigner.html" />
+    <link rel="prev" title="Introduction to np_conserved" href="intro_npc.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="intro_JordanWigner.html" title="Fermions and the Jordan-Wigner transformation"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="intro_npc.html" title="Introduction to np_conserved"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="userguide.html" accesskey="U">User Guide</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="introduction-to-models">
+<h1>Introduction to models<a class="headerlink" href="#introduction-to-models" title="Permalink to this headline">¶</a></h1>
+<p>A <cite>model</cite> stands for some physical (quantum) system to be described.
+Tensor networks are useful if the model is specified as a Hamiltonian written in terms of second quantization, written in terms of local operators.</p>
+<p>Usually, some kind of lattice structure is defined implicitly in the Hamiltonian, e.g. by the sum over next neighbours
+<span class="math notranslate">\(\sum_{&lt;i, j&gt;}\)</span>. Of course, DMRG and related MPS methods are most successfull for 1D chains; yet they can be
+generalized to cylinders with small circumference.</p>
+<p>The basic building block of the lattice is a <a class="reference internal" href="reference/tenpy.networks.site.html#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a>. The site collects both the local
+Hilbert space and local operators.
+The most common sites (for spins, spin-less or spin-full fermions, or bosons) are predefined in <a class="reference internal" href="reference/tenpy.networks.site.html#module-tenpy.networks.site" title="tenpy.networks.site"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tenpy.networks.site</span></code></a>,
+but if necessary you can easily extend them (e.g. by adding further local operators) or completely write your own sites.</p>
+<p>A <a class="reference internal" href="reference/tenpy.models.lattice.html#tenpy.models.lattice.Lattice" title="tenpy.models.lattice.Lattice"><code class="xref py py-class docutils literal notranslate"><span class="pre">Lattice</span></code></a> specifies the geometry how the sites are arranged. In general, it consists of a unit
+cell which is repeated periodically. Again, there are multiple pre-defined lattices, but you can also define your own
+lattice if needed (More details on that can be found in the doc-string of <a class="reference internal" href="reference/tenpy.models.lattice.html#tenpy.models.lattice.Lattice" title="tenpy.models.lattice.Lattice"><code class="xref py py-class docutils literal notranslate"><span class="pre">Lattice</span></code></a>).
+In the simplest case – namely a <a class="reference internal" href="reference/tenpy.models.lattice.html#tenpy.models.lattice.Chain" title="tenpy.models.lattice.Chain"><code class="xref py py-class docutils literal notranslate"><span class="pre">Chain</span></code></a> – a unit-cell with just a single site is repeated periodicaly in one dimension.</p>
+<p>A <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></a> is a general, abstract way to specify a Hamiltonian of two-site couplings.
+Given a lattice, it allows to <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingModel.add_coupling" title="tenpy.models.model.CouplingModel.add_coupling"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_coupling()</span></code></a> between the repeated unit cells.
+In that way, we obtain an abstract way of defining an Hamiltonian by its coupling terms.
+Given these couplings, it is possible to automatically build an MPO with <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingModel.calc_H_MPO" title="tenpy.models.model.CouplingModel.calc_H_MPO"><code class="xref py py-meth docutils literal notranslate"><span class="pre">calc_H_MPO()</span></code></a>, which in turn can be used to initialize
+the <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.MPOModel" title="tenpy.models.model.MPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPOModel</span></code></a>.
+If the model consists only of nearest-neighbor terms (in terms of a 1D chain used for the MPS),
+you can also build the bond terms for TEBD with <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingModel.calc_H_bond" title="tenpy.models.model.CouplingModel.calc_H_bond"><code class="xref py py-meth docutils literal notranslate"><span class="pre">calc_H_bond()</span></code></a> and initialize a
+<a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel" title="tenpy.models.model.NearestNeighborModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NearestNeighborModel</span></code></a>.</p>
+<p>The <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.MPOModel" title="tenpy.models.model.MPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPOModel</span></code></a> and <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel" title="tenpy.models.model.NearestNeighborModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NearestNeighborModel</span></code></a> store the Hamiltonian
+exactly in the form needed for the various algorithms like DMRG (<a class="reference internal" href="reference/tenpy.algorithms.dmrg.html#module-tenpy.algorithms.dmrg" title="tenpy.algorithms.dmrg"><code class="xref py py-mod docutils literal notranslate"><span class="pre">dmrg</span></code></a>) and TEBD (<a class="reference internal" href="reference/tenpy.algorithms.tebd.html#module-tenpy.algorithms.tebd" title="tenpy.algorithms.tebd"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tebd</span></code></a>).
+Of course, an MPO is all you need to initialize a <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.MPOModel" title="tenpy.models.model.MPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPOModel</span></code></a> to be used for DMRG; you don’t have to use
+the <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></a>.
+For example exponentially decaying long-range interactions are not supported by the coupling model but straight-forward to include to an MPO.</p>
+<p>We suggest writing the model to take a single parameter dicitionary for the initialization, which is to be read out inside the class with
+<a class="reference internal" href="reference/tenpy.tools.params.html#tenpy.tools.params.get_parameter" title="tenpy.tools.params.get_parameter"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_parameter()</span></code></a>. Read the doc-string of this function for more details why this is a good idea.</p>
+<p>If the model you’re interested in contains Fermions, read the user-guide to <a class="reference internal" href="intro_JordanWigner.html"><span class="doc">Fermions and the Jordan-Wigner transformation</span></a>.</p>
+<p>When you write a model, don’t forget to write some tests. The file <code class="docutils literal notranslate"><span class="pre">tests/test_model.py</span></code> provides basic functionality for that.</p>
+<p>The <a class="reference internal" href="reference/tenpy.models.xxz_chain.html#tenpy.models.xxz_chain.XXZChain" title="tenpy.models.xxz_chain.XXZChain"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.xxz_chain.XXZChain</span></code></a> demonstrates nicely how a new model can be defined using the <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></a>.
+The complete source code for this model is included in the following and should be straight-forward to understand and
+generalize.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;Prototypical example of a 1D quantum model: the spin-1/2 XXZ chain.</span>
+
+<span class="sd">The XXZ chain is contained in the more general :class:`~tenpy.models.spins.SpinChain`;</span>
+<span class="sd">the idea of this class is more to serve as a pedagogical example for a &#39;model&#39;.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># Copyright 2018 TeNPy Developers</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">.lattice</span> <span class="k">import</span> <span class="n">Site</span><span class="p">,</span> <span class="n">Chain</span>
+<span class="kn">from</span> <span class="nn">.model</span> <span class="k">import</span> <span class="n">CouplingModel</span><span class="p">,</span> <span class="n">NearestNeighborModel</span><span class="p">,</span> <span class="n">MPOModel</span>
+<span class="kn">from</span> <span class="nn">..linalg</span> <span class="k">import</span> <span class="n">np_conserved</span> <span class="k">as</span> <span class="n">npc</span>
+<span class="kn">from</span> <span class="nn">..tools.params</span> <span class="k">import</span> <span class="n">get_parameter</span><span class="p">,</span> <span class="n">unused_parameters</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;XXZChain&#39;</span><span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">XXZChain</span><span class="p">(</span><span class="n">CouplingModel</span><span class="p">,</span> <span class="n">NearestNeighborModel</span><span class="p">,</span> <span class="n">MPOModel</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Spin-1/2 XXZ chain with Sz conservation.</span>
+
+<span class="sd">    The Hamiltonian reads:</span>
+
+<span class="sd">    .. math ::</span>
+<span class="sd">        H = \sum_i \mathtt{Jxx}/2 (S^{+}_i S^{-}_{i+1} + S^{-}_i S^{+}_{i+1})</span>
+<span class="sd">                 + \mathtt{Jz} S^z_i S^z_{i+1} \\</span>
+<span class="sd">            - \sum_i \mathtt{hz} S^z_i</span>
+
+<span class="sd">    All parameters are collected in a single dictionary `model_param` and read out with</span>
+<span class="sd">    :func:`~tenpy.tools.params.get_parameter`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    L : int</span>
+<span class="sd">        Length of the chain</span>
+<span class="sd">    Jxx, Jz, hz : float | array</span>
+<span class="sd">        Couplings as defined for the Hamiltonian above.</span>
+<span class="sd">    bc_MPS : {&#39;finite&#39; | &#39;infinte&#39;}</span>
+<span class="sd">        MPS boundary conditions. Coupling boundary conditions are chosen appropriately.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">):</span>
+        <span class="c1"># 0) read out/set default parameters</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;L&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">Jxx</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;Jxx&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">Jz</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;Jz&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">hz</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;hz&#39;</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">bc_MPS</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;bc_MPS&#39;</span><span class="p">,</span> <span class="s1">&#39;finite&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">unused_parameters</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>  <span class="c1"># checks for mistyped parameters</span>
+        <span class="c1"># 1) charges of the physical leg. The only time that we actually define charges!</span>
+        <span class="n">leg</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="n">npc</span><span class="o">.</span><span class="n">ChargeInfo</span><span class="p">([</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;2*Sz&#39;</span><span class="p">]),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="c1"># 2) onsite operators</span>
+        <span class="n">Sp</span> <span class="o">=</span> <span class="p">[[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]]</span>
+        <span class="n">Sm</span> <span class="o">=</span> <span class="p">[[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]]</span>
+        <span class="n">Sz</span> <span class="o">=</span> <span class="p">[[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">]]</span>
+        <span class="c1"># (Can&#39;t define Sx and Sy as onsite operators: they are incompatible with Sz charges.)</span>
+        <span class="c1"># 3) local physical site</span>
+        <span class="n">site</span> <span class="o">=</span> <span class="n">Site</span><span class="p">(</span><span class="n">leg</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;up&#39;</span><span class="p">,</span> <span class="s1">&#39;down&#39;</span><span class="p">],</span> <span class="n">Sp</span><span class="o">=</span><span class="n">Sp</span><span class="p">,</span> <span class="n">Sm</span><span class="o">=</span><span class="n">Sm</span><span class="p">,</span> <span class="n">Sz</span><span class="o">=</span><span class="n">Sz</span><span class="p">)</span>
+        <span class="c1"># NOTE: the most common `site` are pre-defined in tenpy.networks.site.</span>
+        <span class="c1"># you could (and should) replace steps 1)-3) by::</span>
+        <span class="c1">#     from tenpy.networks.site import SpinHalfSite</span>
+        <span class="c1">#     site = SpinHalfSite(conserve=&#39;Sz&#39;)</span>
+        <span class="c1"># 4) lattice</span>
+        <span class="n">lat</span> <span class="o">=</span> <span class="n">Chain</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="n">bc_MPS</span><span class="p">)</span>
+        <span class="n">bc_coupling</span> <span class="o">=</span> <span class="s1">&#39;periodic&#39;</span> <span class="k">if</span> <span class="n">bc_MPS</span> <span class="o">==</span> <span class="s1">&#39;infinite&#39;</span> <span class="k">else</span> <span class="s1">&#39;open&#39;</span>
+        <span class="c1"># 5) initialize CouplingModel</span>
+        <span class="n">CouplingModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">bc_coupling</span><span class="p">)</span>
+        <span class="c1"># 6) add terms of the Hamiltonian</span>
+        <span class="c1"># (u is always 0 as we have only one site in the unit cell)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_onsite</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">hz</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sz&#39;</span><span class="p">)</span>
+        <span class="n">Jxx_half</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">Jxx</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.5</span>  <span class="c1"># convert to array: allow `array_like` Jxx</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">Jxx_half</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sp&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sm&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">Jxx_half</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sm&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sp&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">Jz</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sz&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sz&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># 7) initialize MPO</span>
+        <span class="n">MPOModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_H_MPO</span><span class="p">())</span>
+        <span class="c1"># 8) initialize bonds (the order of 7/8 doesn&#39;t matter)</span>
+        <span class="n">NearestNeighborModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_H_bond</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>Another standard example is the transverse field Ising model. Below, it is defined
+in one dimension on a chain, or a square lattice in 2 dimensions, illustrating how easily geometries can be changed in TeNPy.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;Prototypical example of a quantum model: the transverse field Ising model.</span>
+
+<span class="sd">Like the :class:`~tenpy.models.xxz_chain.XXZChain`, the transverse field ising chain</span>
+<span class="sd">:class:`TFIChain` is contained in the more general :class:`~tenpy.models.spins.SpinChain`;</span>
+<span class="sd">the idea is more to serve as a pedagogical example for a &#39;model&#39;.</span>
+<span class="sd">Choosing the field along z allow to preserve parity, if desired, at the expense of a larger MPO</span>
+<span class="sd">bond dimension for the Hamiltion.</span>
+
+<span class="sd">The :class:`TFIModel2D` contains the same couplings but on a square lattice in 2D</span>
+<span class="sd">(with chooseable boundary conditions).</span>
+<span class="sd">As such, it illustrates the correct usage of the :class:`~tenpy.models.lattice.Lattice` classes.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># Copyright 2018 TeNPy Developers</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">.lattice</span> <span class="k">import</span> <span class="n">Chain</span><span class="p">,</span> <span class="n">SquareLattice</span>
+<span class="kn">from</span> <span class="nn">.model</span> <span class="k">import</span> <span class="n">CouplingModel</span><span class="p">,</span> <span class="n">NearestNeighborModel</span><span class="p">,</span> <span class="n">MPOModel</span>
+<span class="kn">from</span> <span class="nn">..tools.params</span> <span class="k">import</span> <span class="n">get_parameter</span><span class="p">,</span> <span class="n">unused_parameters</span>
+<span class="kn">from</span> <span class="nn">..networks.site</span> <span class="k">import</span> <span class="n">SpinHalfSite</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;TFIChain&#39;</span><span class="p">,</span> <span class="s1">&#39;TFIModel2D&#39;</span><span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">TFIChain</span><span class="p">(</span><span class="n">CouplingModel</span><span class="p">,</span> <span class="n">NearestNeighborModel</span><span class="p">,</span> <span class="n">MPOModel</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Transverse field Ising chain.</span>
+
+<span class="sd">    The Hamiltonian reads:</span>
+
+<span class="sd">    .. math ::</span>
+<span class="sd">        H = - \sum_{i} \mathtt{J} \sigma^x_i \sigma^x_{i+1}</span>
+<span class="sd">            - \sum_{i} \mathtt{g} \sigma^z_i</span>
+
+<span class="sd">    All parameters are collected in a single dictionary `model_param` and read out with</span>
+<span class="sd">    :func:`~tenpy.tools.params.get_parameter`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    L : int</span>
+<span class="sd">        Length of the chain</span>
+<span class="sd">    J, g : float | array</span>
+<span class="sd">        Couplings as defined for the Hamiltonian above.</span>
+<span class="sd">    bc_MPS : {&#39;finite&#39; | &#39;infinte&#39;}</span>
+<span class="sd">        MPS boundary conditions. Coupling boundary conditions are chosen appropriately.</span>
+<span class="sd">    conserve : &#39;parity&#39; | None</span>
+<span class="sd">        What should be conserved. See :class:`~tenpy.networks.Site.SpinSite`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">):</span>
+        <span class="c1"># 0) read out/set default parameters</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;L&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">J</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;J&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;g&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>  <span class="c1"># critical!</span>
+        <span class="n">bc_MPS</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;bc_MPS&#39;</span><span class="p">,</span> <span class="s1">&#39;finite&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">conserve</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;conserve&#39;</span><span class="p">,</span> <span class="s1">&#39;parity&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">conserve</span> <span class="o">!=</span> <span class="s1">&#39;Sz&#39;</span>
+        <span class="n">unused_parameters</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>  <span class="c1"># checks for mistyped parameters</span>
+        <span class="c1"># 1-3)</span>
+        <span class="n">site</span> <span class="o">=</span> <span class="n">SpinHalfSite</span><span class="p">(</span><span class="n">conserve</span><span class="o">=</span><span class="n">conserve</span><span class="p">)</span>
+        <span class="c1"># 4) lattice</span>
+        <span class="n">lat</span> <span class="o">=</span> <span class="n">Chain</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="n">bc_MPS</span><span class="p">)</span>
+        <span class="n">bc_coupling</span> <span class="o">=</span> <span class="s1">&#39;periodic&#39;</span> <span class="k">if</span> <span class="n">bc_MPS</span> <span class="o">==</span> <span class="s1">&#39;infinite&#39;</span> <span class="k">else</span> <span class="s1">&#39;open&#39;</span>
+        <span class="c1"># 5) initialize CouplingModel</span>
+        <span class="n">CouplingModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">bc_coupling</span><span class="p">)</span>
+        <span class="c1"># 6) add terms of the Hamiltonian</span>
+        <span class="c1"># (u is always 0 as we have only one site in the unit cell)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_onsite</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">g</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sigmaz&#39;</span><span class="p">)</span>
+        <span class="n">J</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">J</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">conserve</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="o">-</span><span class="n">J</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sigmax&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sigmax&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># individual &#39;Sigmax&#39; does not conserve parity; rewrite in terms of Sp and Sm</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="o">-</span><span class="n">J</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sp&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sp&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="o">-</span><span class="n">J</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sp&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sm&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="o">-</span><span class="n">J</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sm&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sp&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="o">-</span><span class="n">J</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sm&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sm&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># 7) initialize MPO</span>
+        <span class="n">MPOModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_H_MPO</span><span class="p">())</span>
+        <span class="c1"># 8) initialize bonds (the order of 7/8 doesn&#39;t matter)</span>
+        <span class="n">NearestNeighborModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_H_bond</span><span class="p">())</span>
+
+
+<span class="k">class</span> <span class="nc">TFIModel2D</span><span class="p">(</span><span class="n">CouplingModel</span><span class="p">,</span> <span class="n">MPOModel</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Transverse field Ising model on a square lattice.</span>
+
+<span class="sd">    The Hamiltonian reads:</span>
+
+<span class="sd">    .. math ::</span>
+<span class="sd">        H = - \sum_{\langle i,j\rangle, i &lt; j} \mathtt{J} \sigma^x_i \sigma^x_{j}</span>
+<span class="sd">            - \sum_{i} \mathtt{g} \sigma^z_i</span>
+
+<span class="sd">    Here, :math:`\langle i,j \rangle, i&lt; j` denotes nearest neighbor pairs, each pair appearing</span>
+<span class="sd">    exactly once.</span>
+<span class="sd">    All parameters are collected in a single dictionary `model_param` and read out with</span>
+<span class="sd">    :func:`~tenpy.tools.params.get_parameter`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Lx, Ly : int</span>
+<span class="sd">        Length of the chain in x- and y-direction.</span>
+<span class="sd">    J, g : float | array</span>
+<span class="sd">        Couplings as defined for the Hamiltonian above.</span>
+<span class="sd">    bc_MPS : {&#39;finite&#39; | &#39;infinte&#39;}</span>
+<span class="sd">        MPS boundary conditions along the x-direction.</span>
+<span class="sd">        For &#39;infinite&#39; boundary conditions, repeat the unit cell in x-direction.</span>
+<span class="sd">        Coupling boundary conditions in x-direction are chosen accordingly.</span>
+<span class="sd">    bc_y : &#39;ladder&#39; | &#39;cylinder&#39;</span>
+<span class="sd">        Boundary conditions in y-direction.</span>
+<span class="sd">    conserve : None | &#39;parity&#39;</span>
+<span class="sd">        What should be conserved. See :class:`~tenpy.networks.Site.SpinSite`.</span>
+<span class="sd">    order : string</span>
+<span class="sd">        Ordering of the sites in the MPS, e.g. &#39;default&#39;, &#39;snake&#39;;</span>
+<span class="sd">        see :meth:`~tenpy.models.lattice.Lattice.ordering`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">):</span>
+        <span class="c1"># 0) read out/set default parameters</span>
+        <span class="n">Lx</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;Lx&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">Ly</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;Ly&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">J</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;J&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;g&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">bc_MPS</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;bc_MPS&#39;</span><span class="p">,</span> <span class="s1">&#39;infinite&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">bc_y</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;bc_y&#39;</span><span class="p">,</span> <span class="s1">&#39;cylinder&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">order</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;order&#39;</span><span class="p">,</span> <span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">conserve</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;conserve&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">conserve</span> <span class="o">!=</span> <span class="s1">&#39;Sz&#39;</span>  <span class="c1"># invalid!</span>
+        <span class="k">assert</span> <span class="n">bc_y</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;cylinder&#39;</span><span class="p">,</span> <span class="s1">&#39;ladder&#39;</span><span class="p">]</span>
+        <span class="n">unused_parameters</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>  <span class="c1"># checks for mistyped parameters</span>
+        <span class="c1"># 1-3)</span>
+        <span class="n">site</span> <span class="o">=</span> <span class="n">SpinHalfSite</span><span class="p">(</span><span class="n">conserve</span><span class="o">=</span><span class="n">conserve</span><span class="p">)</span>
+        <span class="c1"># 4) lattice</span>
+        <span class="n">lat</span> <span class="o">=</span> <span class="n">SquareLattice</span><span class="p">(</span><span class="n">Lx</span><span class="p">,</span> <span class="n">Ly</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="n">bc_MPS</span><span class="p">)</span>
+        <span class="n">bc_coupling_x</span> <span class="o">=</span> <span class="s1">&#39;periodic&#39;</span> <span class="k">if</span> <span class="n">bc_MPS</span> <span class="o">==</span> <span class="s1">&#39;infinite&#39;</span> <span class="k">else</span> <span class="s1">&#39;open&#39;</span>
+        <span class="n">bc_coupling_y</span> <span class="o">=</span> <span class="s1">&#39;periodic&#39;</span> <span class="k">if</span> <span class="n">bc_y</span> <span class="o">==</span> <span class="s1">&#39;cylinder&#39;</span> <span class="k">else</span> <span class="s1">&#39;open&#39;</span>
+        <span class="c1"># 5) initialize CouplingModel</span>
+        <span class="n">CouplingModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="p">[</span><span class="n">bc_coupling_x</span><span class="p">,</span> <span class="n">bc_coupling_y</span><span class="p">])</span>
+        <span class="c1"># 6) add terms of the Hamiltonian</span>
+        <span class="c1"># (u is always 0 as we have only one site in the unit cell)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_onsite</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">g</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sigmaz&#39;</span><span class="p">)</span>
+        <span class="n">J</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">J</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">conserve</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="o">-</span><span class="n">J</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sigmax&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sigmax&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="o">-</span><span class="n">J</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sigmax&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sigmax&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">op1</span><span class="p">,</span> <span class="n">op2</span> <span class="ow">in</span> <span class="p">[(</span><span class="s1">&#39;Sp&#39;</span><span class="p">,</span> <span class="s1">&#39;Sp&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;Sp&#39;</span><span class="p">,</span> <span class="s1">&#39;Sm&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;Sm&#39;</span><span class="p">,</span> <span class="s1">&#39;Sp&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;Sm&#39;</span><span class="p">,</span> <span class="s1">&#39;Sm&#39;</span><span class="p">)]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="o">-</span><span class="n">J</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">op1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">op2</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="o">-</span><span class="n">J</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">op1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">op2</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="c1"># 7) initialize MPO</span>
+        <span class="n">MPOModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_H_MPO</span><span class="p">())</span>
+        <span class="c1"># skip 8): not a NearestNeighborModel...</span>
+</pre></div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/logo.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="intro_npc.html"
+                        title="previous chapter">Introduction to np_conserved</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="intro_JordanWigner.html"
+                        title="next chapter">Fermions and the Jordan-Wigner transformation</a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="index.html">Table Of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="userguide.html">User Guide</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="userguide.html#library-overview">Library overview</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="userguide.html#content">Content</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reference/tenpy.html">tenpy package</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="intro_JordanWigner.html" title="Fermions and the Jordan-Wigner transformation"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="intro_npc.html" title="Introduction to np_conserved"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="userguide.html" >User Guide</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2018, TeNPy Developers.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,570 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>tenpy.models.model &#8212; TeNPy 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tenpy.models.model</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;This module contains a base class for a model.</span>
+
+<span class="sd">A &#39;model&#39; is supposed to represent a Hamiltonian in a generalized way.</span>
+<span class="sd">Beside a :class:`~tenpy.models.lattice.Lattice` specifying the geometry and</span>
+<span class="sd">underlying Hilbert space, it thus needs some way to represent the different terms</span>
+<span class="sd">of the Hamiltonian.</span>
+
+<span class="sd">Different algorithms require different representations of the Hamiltonian.</span>
+<span class="sd">For example, if you only want to do DRMG, it is enough to specify the Hamiltonian</span>
+<span class="sd">as an MPO with a :class:`MPOModel`.</span>
+<span class="sd">On the other hand, TEBD needs the model to be &#39;nearest neighbor&#39; and thus</span>
+<span class="sd">a representation by nearest-neighbor terms.</span>
+
+<span class="sd">The `CouplingModel` is the attempt to generalize the representation of `H`</span>
+<span class="sd">by explicitly specifying the couplings of onsite-terms, and providing functionality</span>
+<span class="sd">for converting the specified couplings into an MPO or nearest-neighbor bonds.</span>
+<span class="sd">This allows to quickly generate new &#39;models&#39; for a broad class of Hamiltonians.</span>
+<span class="sd">However, this class is (at least for now) limited to interactions involving</span>
+<span class="sd">only two sites. For other cases (e.g. exponentially decaying long-range interactions in 1D),</span>
+<span class="sd">it might be simpler to specify the MPO explicitly.</span>
+
+<span class="sd">Of course, we also provide ways to transform a :class:`NearestNeighborModel` into a</span>
+<span class="sd">:class:`MPOModel` and vice versa, as far as this is possible.</span>
+
+<span class="sd">See also the introduction :doc:`../intro_model`.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># Copyright 2018 TeNPy Developers</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..linalg</span> <span class="k">import</span> <span class="n">np_conserved</span> <span class="k">as</span> <span class="n">npc</span>
+<span class="kn">from</span> <span class="nn">..tools.misc</span> <span class="k">import</span> <span class="n">to_array</span>
+<span class="kn">from</span> <span class="nn">..networks</span> <span class="k">import</span> <span class="n">mpo</span>  <span class="c1"># used to construct the Hamiltonian as MPO</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;CouplingModel&#39;</span><span class="p">,</span> <span class="s1">&#39;NearestNeighborModel&#39;</span><span class="p">,</span> <span class="s1">&#39;MPOModel&#39;</span><span class="p">]</span>
+
+<span class="n">_bc_coupling_choices</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;open&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;periodic&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
+
+
+<div class="viewcode-block" id="CouplingModel"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.CouplingModel">[docs]</a><span class="k">class</span> <span class="nc">CouplingModel</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base class for a general model of a Hamiltonian consisting of two-site couplings.</span>
+
+<span class="sd">    In this class, the terms of the Hamiltonian are specified explicitly as onsite or coupling</span>
+<span class="sd">    terms.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    lattice : :class:`tenpy.model.lattice.Lattice`</span>
+<span class="sd">        The lattice defining the geometry and the local Hilbert space(s).</span>
+<span class="sd">    bc_coupling : (iterable of) {&#39;open&#39; | &#39;periodic&#39;}</span>
+<span class="sd">        Boundary conditions of the couplings in each direction of the lattice. Defines how the</span>
+<span class="sd">        couplings are added in :meth:`add_coupling`. A singe string holds for all directions.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    lat : :class:`tenpy.model.lattice.Lattice`</span>
+<span class="sd">        The lattice defining the geometry and the local Hilbert space(s).</span>
+<span class="sd">    bc_coupling : bool ndarray</span>
+<span class="sd">        Boundary conditions of the couplings in each direction of the lattice,</span>
+<span class="sd">        translated into a bool array with the global `_bc_coupling_choices`.</span>
+<span class="sd">    onsite_terms : list of dict</span>
+<span class="sd">        For each MPS index `i` a dictionary ``{&#39;opname&#39;: strength}`` defining the onsite terms.</span>
+<span class="sd">        Filled by :meth:`add_onsite`.</span>
+<span class="sd">    coupling_terms : list of dict</span>
+<span class="sd">        For each MPS index `i` a dictionary of the form</span>
+<span class="sd">        ``{(&#39;opname_i&#39;, &#39;opname_string&#39;): {j: {&#39;opname_j&#39;: strength}}}``.</span>
+<span class="sd">        Entries with ``j &lt; i`` are only allowed for ``lat.bc_MPS == &#39;infinite&#39;``, in which case</span>
+<span class="sd">        they indicate couplings over the iMPS boundary, i.e., between the sites</span>
+<span class="sd">        ``(i, j+lat.N_sites)`` and between the sites ``(i-lat.N_sites, j)``.</span>
+<span class="sd">        Filled by :meth:`add_coupling`.</span>
+<span class="sd">    H_onsite : list of :class:`npc.Array`</span>
+<span class="sd">        For each site (in MPS order) the onsite part of the Hamiltonian.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">,</span> <span class="n">bc_coupling</span><span class="o">=</span><span class="s1">&#39;open&#39;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lat</span> <span class="o">=</span> <span class="n">lattice</span>
+        <span class="k">global</span> <span class="n">_bc_coupling_choices</span>
+        <span class="k">if</span> <span class="n">bc_coupling</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">_bc_coupling_choices</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="n">bc_coupling</span> <span class="o">=</span> <span class="p">[</span><span class="n">_bc_coupling_choices</span><span class="p">[</span><span class="n">bc_coupling</span><span class="p">]]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">dim</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">bc_coupling</span> <span class="o">=</span> <span class="p">[</span><span class="n">_bc_coupling_choices</span><span class="p">[</span><span class="n">bc</span><span class="p">]</span> <span class="k">for</span> <span class="n">bc</span> <span class="ow">in</span> <span class="n">bc_coupling</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bc_coupling</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">bc_coupling</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">onsite_terms</span> <span class="o">=</span> <span class="p">[</span><span class="nb">dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">N_sites</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span> <span class="o">=</span> <span class="p">[</span><span class="nb">dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">N_sites</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">H_onsite</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">CouplingModel</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="c1"># like self.test_sanity(), but use the version defined below even for derived class</span>
+
+<div class="viewcode-block" id="CouplingModel.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.CouplingModel.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sanity check. Raises ValueErrors, if something is wrong.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc_coupling</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Wrong len of bc_coupling&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc_coupling</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">bool</span>
+        <span class="k">assert</span> <span class="nb">int</span><span class="p">(</span><span class="n">_bc_coupling_choices</span><span class="p">[</span><span class="s1">&#39;open&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1</span>  <span class="c1"># this is used explicitly</span>
+        <span class="k">assert</span> <span class="nb">int</span><span class="p">(</span><span class="n">_bc_coupling_choices</span><span class="p">[</span><span class="s1">&#39;periodic&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="n">sites</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">mps_sites</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">site</span><span class="p">,</span> <span class="n">terms</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">onsite_terms</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">opname</span><span class="p">,</span> <span class="n">strength</span> <span class="ow">in</span> <span class="n">terms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">site</span><span class="o">.</span><span class="n">valid_opname</span><span class="p">(</span><span class="n">opname</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Operator </span><span class="si">{op!r}</span><span class="s2"> not in site&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">opname</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">site_i</span><span class="p">,</span> <span class="n">d1</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span><span class="p">):</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">op_i</span><span class="p">,</span> <span class="n">opstring</span><span class="p">),</span> <span class="n">d2</span> <span class="ow">in</span> <span class="n">d1</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">site_i</span><span class="o">.</span><span class="n">valid_opname</span><span class="p">(</span><span class="n">op_i</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Operator </span><span class="si">{op!r}</span><span class="s2"> not in site&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op_i</span><span class="p">))</span>
+                <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">d3</span> <span class="ow">in</span> <span class="n">d2</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">for</span> <span class="n">op_j</span> <span class="ow">in</span> <span class="n">d3</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">sites</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">valid_opname</span><span class="p">(</span><span class="n">op_j</span><span class="p">):</span>
+                            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Operator </span><span class="si">{op!r}</span><span class="s2"> not in site&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op_j</span><span class="p">))</span></div>
+        <span class="c1"># done</span>
+
+<div class="viewcode-block" id="CouplingModel.add_onsite"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.CouplingModel.add_onsite">[docs]</a>    <span class="k">def</span> <span class="nf">add_onsite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strength</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">opname</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add onsite terms to self.</span>
+
+<span class="sd">        Adds ``sum_{x_0, ..., x_{dim-1}} strength[x_0, ..., x_{dim-1}] * lat.unit_cell[u].opname``,</span>
+<span class="sd">        where the operator acts on the site given by a lattice index ``(x_0, ..., x_{dim-1}, u)``,</span>
+<span class="sd">        to the represented Hamiltonian.</span>
+<span class="sd">        The necessary terms are just added to ``self.onsite_terms``; doesn&#39;t rebuild the MPO.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        strength : scalar | array</span>
+<span class="sd">            Prefactor of the onsite term. May vary spatially and is tiled to shape ``lat.Ls``.</span>
+<span class="sd">        u : int</span>
+<span class="sd">            Picks a :class:`~tenpy.model.lattice.Site` ``lat.unit_cell[u]`` out of the unit cell.</span>
+<span class="sd">        opname : str</span>
+<span class="sd">            valid operator name of an onsite operator in ``lat.unit_cell[u]``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">strength</span> <span class="o">=</span> <span class="n">to_array</span><span class="p">(</span><span class="n">strength</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">Ls</span><span class="p">)</span>  <span class="c1"># tile to lattice shape</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">strength</span> <span class="o">!=</span> <span class="mf">0.</span><span class="p">):</span>
+            <span class="k">return</span>  <span class="c1"># nothing to do: can even accept non-defined `opname`.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">[</span><span class="n">u</span><span class="p">]</span><span class="o">.</span><span class="n">valid_opname</span><span class="p">(</span><span class="n">opname</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;unknown onsite operator </span><span class="si">{0!r}</span><span class="s2"> for u=</span><span class="si">{1:d}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                             <span class="s2">&quot;</span><span class="si">{2!r}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">opname</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">[</span><span class="n">u</span><span class="p">]))</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">i_lat</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">mps_lat_idx_fix_u</span><span class="p">(</span><span class="n">u</span><span class="p">)):</span>
+            <span class="n">term</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">onsite_terms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">term</span><span class="p">[</span><span class="n">opname</span><span class="p">]</span> <span class="o">=</span> <span class="n">term</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">opname</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">strength</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">i_lat</span><span class="p">)]</span></div>
+
+<div class="viewcode-block" id="CouplingModel.add_coupling"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.CouplingModel.add_coupling">[docs]</a>    <span class="k">def</span> <span class="nf">add_coupling</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                     <span class="n">strength</span><span class="p">,</span>
+                     <span class="n">u1</span><span class="p">,</span>
+                     <span class="n">op1</span><span class="p">,</span>
+                     <span class="n">u2</span><span class="p">,</span>
+                     <span class="n">op2</span><span class="p">,</span>
+                     <span class="n">dx</span><span class="p">,</span>
+                     <span class="n">op_string</span><span class="o">=</span><span class="s1">&#39;Id&#39;</span><span class="p">,</span>
+                     <span class="n">str_on_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                     <span class="n">raise_op2_left</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add twosite coupling terms to the Hamiltonian.</span>
+
+<span class="sd">        Represents couplings of the form</span>
+<span class="sd">        ``sum_{x_0, ..., x_{dim-1}} strength[x_0, ... x_{dim-1}] * OP1 * OP2``</span>
+<span class="sd">        where ``OP1 := lat.unit_cell[u1].opname1`` acts on the site ``(x_0, ..., x_{dim-1}, u1)``</span>
+<span class="sd">        and ``OP2 := lat.unit_cell[u2].opname2`` acts on the site</span>
+<span class="sd">        ``(x_0+dx[0], ..., x_{dim-1}+dx[dim-1], u2)``.</span>
+<span class="sd">        For periodic boundary conditions (``bc_coupling[a] == False``)</span>
+<span class="sd">        the index ``x_a`` is taken modulo ``lat.Ls[a]`` and runs through ``range(lat.Ls[a])``.</span>
+<span class="sd">        For open boundary conditions, ``x_a`` is limited to ``0 &lt;= x_a &lt; Ls[a]`` and</span>
+<span class="sd">        ``0 &lt;= x_a+dx[a] &lt; lat.Ls[a]``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        strength : scalar | array</span>
+<span class="sd">            Prefactor of the coupling. May vary spatially and is tiled to shape ``lat.Ls``.</span>
+<span class="sd">        u1 : int</span>
+<span class="sd">            Picks the site ``lat.unit_cell[u]`` for OP1.</span>
+<span class="sd">        op1 : str</span>
+<span class="sd">            Valid operator name of an onsite operator in ``lat.unit_cell[u1]`` for OP1.</span>
+<span class="sd">        u2 : int</span>
+<span class="sd">            Picks the site ``lat.unit_cell[u]`` for OP2.</span>
+<span class="sd">        op2 : str</span>
+<span class="sd">            Valid operator name of an onsite operator in ``lat.unit_cell[u2]`` for OP2.</span>
+<span class="sd">        dx : iterable of int</span>
+<span class="sd">            Translation vector (of the unit cell) between OP1 and OP2.</span>
+<span class="sd">            For a 1D lattice, a single int is also fine.</span>
+<span class="sd">        op_string : str</span>
+<span class="sd">            Name of an operator to be used between OP1 and OP2 *and* on the smaller of the two sites.</span>
+<span class="sd">            Typical use case is the phase for a Jordan-Wigner transformation.</span>
+<span class="sd">            (This operator should be defined on all sites in the unit cell.)</span>
+<span class="sd">        str_on_first : bool</span>
+<span class="sd">            This option should be chosen as ``True`` for Jordan-Wigner strings.</span>
+<span class="sd">            When handling Jordan-Wigner strings we need to extend the `op_string` to also act on</span>
+<span class="sd">            the &#39;left&#39;, first site (in the sense of the MPS ordering of the sites given by the</span>
+<span class="sd">            lattice). In this case, there is a well-defined ordering of the operators in the</span>
+<span class="sd">            physical sense (i.e. which of `op1` or `op2` acts first on a given state).</span>
+<span class="sd">            We follow the convention that `op2` acts first (in the physical sense),</span>
+<span class="sd">            independent of the MPS ordering.</span>
+<span class="sd">        raise_op2_left : bool</span>
+<span class="sd">            Raise an error when `op2` appears left of `op1`</span>
+<span class="sd">            (in the sense of the MPS ordering given by the lattice).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">dim</span><span class="p">])</span>
+        <span class="n">strength</span> <span class="o">=</span> <span class="n">to_array</span><span class="p">(</span><span class="n">strength</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coupling_shape</span><span class="p">(</span><span class="n">dx</span><span class="p">))</span>  <span class="c1"># tile to correct shape</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">strength</span> <span class="o">!=</span> <span class="mf">0.</span><span class="p">):</span>
+            <span class="k">return</span>  <span class="c1"># nothing to do: can even accept non-defined onsite operators</span>
+        <span class="n">luc</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">op</span><span class="p">,</span> <span class="n">u</span> <span class="ow">in</span> <span class="p">[(</span><span class="n">op1</span><span class="p">,</span> <span class="n">u1</span><span class="p">),</span> <span class="p">(</span><span class="n">op2</span><span class="p">,</span> <span class="n">u2</span><span class="p">)]</span> <span class="o">+</span> <span class="p">[(</span><span class="n">op_string</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span> <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">luc</span><span class="p">)]:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">[</span><span class="n">u</span><span class="p">]</span><span class="o">.</span><span class="n">valid_opname</span><span class="p">(</span><span class="n">op</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;unknown onsite operator </span><span class="si">{0!r}</span><span class="s2"> for u=</span><span class="si">{1:d}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                                 <span class="s2">&quot;{2:!r}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">[</span><span class="n">u</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">dx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">and</span> <span class="n">u1</span> <span class="o">%</span> <span class="n">luc</span> <span class="o">==</span> <span class="n">u2</span> <span class="o">%</span> <span class="n">luc</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Coupling shouldn&#39;t be onsite!&quot;</span><span class="p">)</span>
+        <span class="n">idx_i</span><span class="p">,</span> <span class="n">idx_i_lat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">mps_lat_idx_fix_u</span><span class="p">(</span><span class="n">u1</span><span class="p">)</span>
+        <span class="n">idx_j_lat_shifted</span> <span class="o">=</span> <span class="n">idx_i_lat</span> <span class="o">+</span> <span class="n">dx</span>
+        <span class="n">idx_j_lat</span> <span class="o">=</span> <span class="n">idx_j_lat_shifted</span> <span class="o">%</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">Ls</span><span class="p">)</span>
+        <span class="n">keep</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
+                <span class="n">idx_j_lat_shifted</span> <span class="o">==</span> <span class="n">idx_j_lat</span><span class="p">,</span>  <span class="c1"># not accross the boundary</span>
+                <span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">bc_coupling</span><span class="p">),</span>  <span class="c1"># direction has periodic bound. cond.</span>
+            <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">idx_i</span> <span class="o">=</span> <span class="n">idx_i</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
+        <span class="n">idx_i_lat</span> <span class="o">=</span> <span class="n">idx_i_lat</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
+        <span class="n">idx_j_lat</span> <span class="o">=</span> <span class="n">idx_j_lat</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
+        <span class="n">idx_j</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">lat2mps_idx</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">idx_j_lat</span><span class="p">,</span> <span class="p">[[</span><span class="n">u2</span><span class="p">]]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">idx_i_lat</span><span class="p">)]))</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">i_lat</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">idx_i</span><span class="p">,</span> <span class="n">idx_i_lat</span><span class="p">,</span> <span class="n">idx_j</span><span class="p">):</span>
+            <span class="n">o1</span><span class="p">,</span> <span class="n">o2</span> <span class="o">=</span> <span class="n">op1</span><span class="p">,</span> <span class="n">op2</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">bc_MPS</span> <span class="o">==</span> <span class="s1">&#39;infinite&#39;</span><span class="p">:</span>
+                <span class="n">d_in</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">i</span> <span class="o">-</span> <span class="n">j</span><span class="p">)</span>  <span class="c1"># distance within the chain</span>
+                <span class="n">d_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">N_sites</span> <span class="o">-</span> <span class="n">d_in</span>  <span class="c1"># distance over the boundary</span>
+                <span class="k">if</span> <span class="n">d_in</span> <span class="o">&lt;</span> <span class="n">d_out</span><span class="p">:</span>
+                    <span class="n">swap</span> <span class="o">=</span> <span class="p">(</span><span class="n">j</span> <span class="o">&lt;</span> <span class="n">i</span><span class="p">)</span>  <span class="c1"># ensure coupling within the chain</span>
+                <span class="k">elif</span> <span class="n">d_in</span> <span class="o">&gt;</span> <span class="n">d_out</span><span class="p">:</span>
+                    <span class="n">swap</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="n">j</span><span class="p">)</span>  <span class="c1"># ensure coupling over the iMPS boundary</span>
+                <span class="k">else</span><span class="p">:</span>  <span class="c1"># d_in == d_out</span>
+                    <span class="n">swap</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># don&#39;t change the order</span>
+                    <span class="c1"># this is necessary for correct TEBD for iMPS with L=2</span>
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># finite MPS: allow periodic boundary conditions</span>
+                <span class="n">swap</span> <span class="o">=</span> <span class="p">(</span><span class="n">j</span> <span class="o">&lt;</span> <span class="n">i</span><span class="p">)</span>  <span class="c1"># ensure i &lt;= j</span>
+            <span class="k">if</span> <span class="n">swap</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">raise_op2_left</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Op2 is left&quot;</span><span class="p">)</span>
+                <span class="n">i</span><span class="p">,</span> <span class="n">o1</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">o2</span> <span class="o">=</span> <span class="n">j</span><span class="p">,</span> <span class="n">op2</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">op1</span>  <span class="c1"># swap OP1 &lt;-&gt; OP2</span>
+            <span class="c1"># now o1 is the &quot;left&quot; operator;</span>
+            <span class="c1"># if j &lt; i, o2 acts one unit cell &quot;right&quot; of o1.</span>
+            <span class="k">if</span> <span class="n">str_on_first</span> <span class="ow">and</span> <span class="n">op_string</span> <span class="o">!=</span> <span class="s1">&#39;Id&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">swap</span><span class="p">:</span>
+                    <span class="n">o1</span> <span class="o">=</span> <span class="n">op_string</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="n">o1</span>  <span class="c1"># o1==op2 should act first</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">o1</span> <span class="o">=</span> <span class="n">o1</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="n">op_string</span>  <span class="c1"># o1==op1 should act second</span>
+            <span class="n">d1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="c1"># form of d1: ``{(&#39;opname_i&#39;, &#39;opname_string&#39;): {j: {&#39;opname_j&#39;: strength}}}``</span>
+            <span class="n">d2</span> <span class="o">=</span> <span class="n">d1</span><span class="o">.</span><span class="n">setdefault</span><span class="p">((</span><span class="n">o1</span><span class="p">,</span> <span class="n">op_string</span><span class="p">),</span> <span class="nb">dict</span><span class="p">())</span>
+            <span class="n">d3</span> <span class="o">=</span> <span class="n">d2</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="nb">dict</span><span class="p">())</span>
+            <span class="n">d3</span><span class="p">[</span><span class="n">o2</span><span class="p">]</span> <span class="o">=</span> <span class="n">d3</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">o2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">strength</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">i_lat</span><span class="p">)]</span></div>
+
+<div class="viewcode-block" id="CouplingModel.calc_H_onsite"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.CouplingModel.calc_H_onsite">[docs]</a>    <span class="k">def</span> <span class="nf">calc_H_onsite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tol_zero</span><span class="o">=</span><span class="mf">1.e-15</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate `H_onsite` from `self.onsite_terms`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tol_zero : float</span>
+<span class="sd">            prefactors with ``abs(strength) &lt; tol_zero`` are considered to be zero.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        H_onsite : list of npc.Array</span>
+<span class="sd">            onsite terms of the Hamiltonian.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_remove_onsite_terms_zeros</span><span class="p">(</span><span class="n">tol_zero</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">terms</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">onsite_terms</span><span class="p">):</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">site</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="n">H</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">s</span><span class="o">.</span><span class="n">leg</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">conj</span><span class="p">()])</span>
+            <span class="k">for</span> <span class="n">opname</span><span class="p">,</span> <span class="n">strength</span> <span class="ow">in</span> <span class="n">terms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">H</span> <span class="o">=</span> <span class="n">H</span> <span class="o">+</span> <span class="n">strength</span> <span class="o">*</span> <span class="n">s</span><span class="o">.</span><span class="n">get_op</span><span class="p">(</span><span class="n">opname</span><span class="p">)</span>  <span class="c1"># (can&#39;t use ``+=``: may change dtype)</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">H</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="CouplingModel.calc_H_bond"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.CouplingModel.calc_H_bond">[docs]</a>    <span class="k">def</span> <span class="nf">calc_H_bond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tol_zero</span><span class="o">=</span><span class="mf">1.e-14</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;calculate `H_bond` from `self.coupling_terms` and `self.H_onsite`.</span>
+
+<span class="sd">        If ``self.H_onsite is None``, it is calculated with :meth:`self.calc_H_onsite`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tol_zero : float</span>
+<span class="sd">            prefactors with ``abs(strength) &lt; tol_zero`` are considered to be zero.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        H_bond : list of :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Bond terms as required by the constructor of :class:`NearestNeighborModel`.</span>
+<span class="sd">            Legs are ``[&#39;p0&#39;, &#39;p0*&#39;, &#39;p1&#39;, &#39;p1*&#39;]``</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError : if the Hamiltonian contains longer-range terms.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_remove_coupling_terms_zeros</span><span class="p">(</span><span class="n">tol_zero</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_onsite</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">H_onsite</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_H_onsite</span><span class="p">(</span><span class="n">tol_zero</span><span class="p">)</span>
+        <span class="n">finite</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">bc_MPS</span> <span class="o">!=</span> <span class="s1">&#39;infinite&#39;</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">N_sites</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">d1</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span><span class="p">):</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">N_sites</span>
+            <span class="n">d1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">site_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">site</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="n">site_j</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">site</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+            <span class="n">strength_i</span> <span class="o">=</span> <span class="mf">1.</span> <span class="k">if</span> <span class="n">finite</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.5</span>
+            <span class="n">strength_j</span> <span class="o">=</span> <span class="mf">1.</span> <span class="k">if</span> <span class="n">finite</span> <span class="ow">and</span> <span class="n">j</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">N_sites</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">else</span> <span class="mf">0.5</span>
+            <span class="k">if</span> <span class="n">finite</span> <span class="ow">and</span> <span class="n">j</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># over the boundary</span>
+                <span class="n">strength_i</span><span class="p">,</span> <span class="n">strength_j</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span>  <span class="c1"># just to make the assert below happy</span>
+            <span class="n">H</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">strength_i</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_onsite</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">site_j</span><span class="o">.</span><span class="n">Id</span><span class="p">)</span>
+            <span class="n">H</span> <span class="o">=</span> <span class="n">H</span> <span class="o">+</span> <span class="n">npc</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">site_i</span><span class="o">.</span><span class="n">Id</span><span class="p">,</span> <span class="n">strength_j</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_onsite</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">op1</span><span class="p">,</span> <span class="n">op_str</span><span class="p">),</span> <span class="n">d2</span> <span class="ow">in</span> <span class="n">d1</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">for</span> <span class="n">j2</span><span class="p">,</span> <span class="n">d3</span> <span class="ow">in</span> <span class="n">d2</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="c1"># i, j in terms are defined such that we expect j = j2,</span>
+                    <span class="c1"># (including the case N_sites = 2 and iMPS</span>
+                    <span class="k">if</span> <span class="n">j</span> <span class="o">!=</span> <span class="n">j2</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t give H_bond for long-range: </span><span class="si">{i:d}</span><span class="s2"> </span><span class="si">{j:d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="n">j2</span><span class="p">))</span>
+                    <span class="k">for</span> <span class="n">op2</span><span class="p">,</span> <span class="n">strength</span> <span class="ow">in</span> <span class="n">d3</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="n">H</span> <span class="o">=</span> <span class="n">H</span> <span class="o">+</span> <span class="n">strength</span> <span class="o">*</span> <span class="n">npc</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">site_i</span><span class="o">.</span><span class="n">get_op</span><span class="p">(</span><span class="n">op1</span><span class="p">),</span> <span class="n">site_j</span><span class="o">.</span><span class="n">get_op</span><span class="p">(</span><span class="n">op2</span><span class="p">))</span>
+            <span class="n">H</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">])</span>
+            <span class="n">res</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">H</span>
+        <span class="k">if</span> <span class="n">finite</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">tol_zero</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="CouplingModel.calc_H_MPO"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.CouplingModel.calc_H_MPO">[docs]</a>    <span class="k">def</span> <span class="nf">calc_H_MPO</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tol_zero</span><span class="o">=</span><span class="mf">1.e-15</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate MPO representation of the Hamiltonian.</span>
+
+<span class="sd">        Uses :attr:`onsite_terms` and :attr:`coupling_terms` to build an MPO graph</span>
+<span class="sd">        (and then an MPO).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tol_zero : float</span>
+<span class="sd">            prefactors with ``abs(strength) &lt; tol_zero`` are considered to be zero.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        H_MPO : :class:`~tenpy.networks.mpo.MPO`</span>
+<span class="sd">            MPO representation of the Hamiltonian.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">graph</span> <span class="o">=</span> <span class="n">mpo</span><span class="o">.</span><span class="n">MPOGraph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">mps_sites</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">bc_MPS</span><span class="p">)</span>
+        <span class="c1"># onsite terms</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_remove_onsite_terms_zeros</span><span class="p">(</span><span class="n">tol_zero</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">terms</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">onsite_terms</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">opname</span><span class="p">,</span> <span class="n">strength</span> <span class="ow">in</span> <span class="n">terms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">graph</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="s1">&#39;IdL&#39;</span><span class="p">,</span> <span class="s1">&#39;IdR&#39;</span><span class="p">,</span> <span class="n">opname</span><span class="p">,</span> <span class="n">strength</span><span class="p">)</span>
+        <span class="c1"># coupling terms</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_remove_coupling_terms_zeros</span><span class="p">(</span><span class="n">tol_zero</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">d1</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span><span class="p">):</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">opname_i</span><span class="p">,</span> <span class="n">op_string</span><span class="p">),</span> <span class="n">d2</span> <span class="ow">in</span> <span class="n">d1</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">label</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">opname_i</span><span class="p">,</span> <span class="n">op_string</span><span class="p">)</span>
+                <span class="n">graph</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="s1">&#39;IdL&#39;</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">opname_i</span><span class="p">,</span> <span class="mf">1.</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">d3</span> <span class="ow">in</span> <span class="n">d2</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">j2</span> <span class="o">=</span> <span class="n">j</span> <span class="k">if</span> <span class="n">j</span> <span class="o">&gt;</span> <span class="n">i</span> <span class="k">else</span> <span class="n">j</span> <span class="o">+</span> <span class="n">graph</span><span class="o">.</span><span class="n">L</span>
+                    <span class="n">graph</span><span class="o">.</span><span class="n">add_string</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j2</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">op_string</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">opname_j</span><span class="p">,</span> <span class="n">strength</span> <span class="ow">in</span> <span class="n">d3</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="n">graph</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="s1">&#39;IdR&#39;</span><span class="p">,</span> <span class="n">opname_j</span><span class="p">,</span> <span class="n">strength</span><span class="p">)</span>
+        <span class="c1"># add &#39;IdL&#39; and &#39;IdR&#39; and convert the graph to an MPO</span>
+        <span class="n">graph</span><span class="o">.</span><span class="n">add_missing_IdL_IdR</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">H_MPO_graph</span> <span class="o">=</span> <span class="n">graph</span>
+        <span class="n">H_MPO</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">build_MPO</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">H_MPO</span></div>
+
+    <span class="k">def</span> <span class="nf">_remove_onsite_terms_zeros</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tol_zero</span><span class="o">=</span><span class="mf">1.e-15</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;remove entries of strength `0` from ``self.onsite_terms``.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">onsite_terms</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">term</span><span class="p">[</span><span class="n">op</span><span class="p">])</span> <span class="o">&lt;</span> <span class="n">tol_zero</span><span class="p">:</span>
+                    <span class="k">del</span> <span class="n">term</span><span class="p">[</span><span class="n">op</span><span class="p">]</span>
+        <span class="c1"># done</span>
+
+    <span class="k">def</span> <span class="nf">_remove_coupling_terms_zeros</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tol_zero</span><span class="o">=</span><span class="mf">1.e-15</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;remove entries of strength `0` from ``self.coupling_terms``.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">d1</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span><span class="p">:</span>
+            <span class="c1"># d1 = ``{(&#39;opname_i&#39;, &#39;opname_string&#39;): {j: {&#39;opname_j&#39;: strength}}}``</span>
+            <span class="k">for</span> <span class="n">op_i_op_str</span><span class="p">,</span> <span class="n">d2</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">d1</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">d3</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">d2</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                    <span class="k">for</span> <span class="n">op_j</span><span class="p">,</span> <span class="n">st</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">d3</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">st</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">tol_zero</span><span class="p">:</span>
+                            <span class="k">del</span> <span class="n">d3</span><span class="p">[</span><span class="n">op_j</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">d3</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="k">del</span> <span class="n">d2</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">d2</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">del</span> <span class="n">d1</span><span class="p">[</span><span class="n">op_i_op_str</span><span class="p">]</span>
+        <span class="c1"># done</span>
+
+    <span class="k">def</span> <span class="nf">_coupling_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dx</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;calculate correct shape of the strengths for each coupling.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">La</span> <span class="o">-</span> <span class="n">dxa</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="n">bca</span><span class="p">)</span> <span class="k">for</span> <span class="n">La</span><span class="p">,</span> <span class="n">dxa</span><span class="p">,</span> <span class="n">bca</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">Ls</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc_coupling</span><span class="p">)])</span></div>
+
+
+<div class="viewcode-block" id="NearestNeighborModel"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel">[docs]</a><span class="k">class</span> <span class="nc">NearestNeighborModel</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base class for a model of nearest neigbor interactions (w.r.t. the MPS index).</span>
+
+<span class="sd">    Suitable for TEBD.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    lattice : :class:`tenpy.model.lattice.Lattice`</span>
+<span class="sd">        The lattice defining the geometry and the local Hilbert space(s).</span>
+<span class="sd">    H_bond : list of :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">        The Hamiltonian rewritten as ``sum_i H_bond[i]`` for MPS indices ``i``.</span>
+<span class="sd">        ``H_bond[i]`` acts on sites ``(i-1, i)``; we require ``len(H_bond) == lat.N_sites``.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    lat : :class:`tenpy.model.lattice.Lattice`</span>
+<span class="sd">        The lattice defining the geometry and the local Hilbert space(s).</span>
+<span class="sd">    H_bond : list of :class:`npc.Array`</span>
+<span class="sd">        The Hamiltonian rewritten as ``sum_i H_bond[i]`` for MPS indices ``i``.</span>
+<span class="sd">        ``H_bond[i]`` acts on sites ``(i-1, i)``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">H_bond</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lat</span> <span class="o">=</span> <span class="n">lat</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">H_bond</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">bc_MPS</span> <span class="o">!=</span> <span class="s1">&#39;infinite&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">NearestNeighborModel</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="c1"># like self.test_sanity(), but use the version defined below even for derived class</span>
+
+<div class="viewcode-block" id="NearestNeighborModel.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">N_sites</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;wrong len of H_bond&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NearestNeighborModel.trivial_like_NNModel"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel.trivial_like_NNModel">[docs]</a>    <span class="k">def</span> <span class="nf">trivial_like_NNModel</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a NearestNeighborModel with same lattice, but trivial (H=0) bonds.&quot;&quot;&quot;</span>
+        <span class="n">triv_H</span> <span class="o">=</span> <span class="p">[</span><span class="n">H</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">()</span> <span class="k">if</span> <span class="n">H</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">H</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">NearestNeighborModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span> <span class="n">triv_H</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NearestNeighborModel.bond_energies"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel.bond_energies">[docs]</a>    <span class="k">def</span> <span class="nf">bond_energies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">psi</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate bond energies &lt;psi|H_bond|psi&gt;.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        psi : :class:`~tenpy.networks.mps.MPS`</span>
+<span class="sd">            The MPS for which the bond energies should be calculated.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        E_bond : 1D ndarray</span>
+<span class="sd">            List of bond energies: for finite bc, ``E_Bond[i]`` is the energy of bond ``i, i+1``.</span>
+<span class="sd">            (i.e. we omit bond 0 between sites L-1 and 0);</span>
+<span class="sd">            for infinite bc ``E_bond[i]`` is the energy of bond ``i-1, i``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">bc_MPS</span> <span class="o">==</span> <span class="s1">&#39;infinite&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">psi</span><span class="o">.</span><span class="n">expectation_value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">]))</span>
+        <span class="c1"># else</span>
+        <span class="k">return</span> <span class="n">psi</span><span class="o">.</span><span class="n">expectation_value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">]))</span></div></div>
+
+
+<div class="viewcode-block" id="MPOModel"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.MPOModel">[docs]</a><span class="k">class</span> <span class="nc">MPOModel</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base class for a model with an MPO representation of the Hamiltonian.</span>
+
+<span class="sd">    Suitable for MPO-based algorithms, e.g. DMRG and MPO time evolution.</span>
+
+<span class="sd">    .. todo ::</span>
+<span class="sd">        implement: provide (function to calculate) the MPO for time evolution.</span>
+<span class="sd">        Also, provide function to get H_MPO from H_bond</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    lattice : :class:`tenpy.model.lattice.Lattice`</span>
+<span class="sd">        The lattice defining the geometry and the local Hilbert space(s).</span>
+<span class="sd">    H_MPO : :class:`~tenpy.networks.mpo.MPO`</span>
+<span class="sd">        The Hamiltonian rewritten as an MPO.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    lat : :class:`tenpy.model.lattice.Lattice`</span>
+<span class="sd">        The lattice defining the geometry and the local Hilbert space(s).</span>
+<span class="sd">    H_MPO : :class:`tenpy.tn.mpo.MPO`</span>
+<span class="sd">        MPO representation of the Hamiltonian.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">H_MPO</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lat</span> <span class="o">=</span> <span class="n">lat</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">H_MPO</span> <span class="o">=</span> <span class="n">H_MPO</span>
+        <span class="n">MPOModel</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="c1"># like self.test_sanity(), but use the version defined below even for derived class</span>
+
+<div class="viewcode-block" id="MPOModel.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.MPOModel.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_MPO</span><span class="o">.</span><span class="n">sites</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">mps_sites</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;lattice incompatible with H_MPO.sites&quot;</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/logo.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../userguide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.html">tenpy package</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2018, TeNPy Developers.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

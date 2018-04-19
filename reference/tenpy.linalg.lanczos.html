@@ -1,0 +1,385 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>tenpy.linalg.lanczos module &#8212; TeNPy 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="tenpy.linalg.np_conserved module" href="tenpy.linalg.np_conserved.html" />
+    <link rel="prev" title="tenpy.linalg.charges module" href="tenpy.linalg.charges.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tenpy.linalg.np_conserved.html" title="tenpy.linalg.np_conserved module"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="tenpy.linalg.charges.html" title="tenpy.linalg.charges module"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="tenpy.html" >tenpy package</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.linalg.html" accesskey="U">tenpy.linalg package</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-tenpy.linalg.lanczos">
+<span id="tenpy-linalg-lanczos-module"></span><h1>tenpy.linalg.lanczos module<a class="headerlink" href="#module-tenpy.linalg.lanczos" title="Permalink to this headline">¶</a></h1>
+<p>Lanczos algorithm for np_conserved arrays.</p>
+<dl class="class">
+<dt id="tenpy.linalg.lanczos.LanczosEvolution">
+<em class="property">class </em><code class="descclassname">tenpy.linalg.lanczos.</code><code class="descname">LanczosEvolution</code><span class="sig-paren">(</span><em>H</em>, <em>psi0</em>, <em>params</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/lanczos.html#LanczosEvolution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.lanczos.LanczosEvolution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tenpy.linalg.lanczos.LanczosGroundState" title="tenpy.linalg.lanczos.LanczosGroundState"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.linalg.lanczos.LanczosGroundState</span></code></a></p>
+<p>Calculate <span class="math notranslate">\(exp(delta H) |psi0&gt;\)</span> using Lanczos.</p>
+<p>It turns out that the Lanczos algorithm is also good for calculating the matrix exponential
+applied to the starting vector. Instead of diagonalizing the tri-diagonal <cite>T</cite> and taking the
+ground state, we now calculate <code class="docutils literal notranslate"><span class="pre">exp(delta</span> <span class="pre">T)</span> <span class="pre">e_0</span> <span class="pre">in</span> <span class="pre">the</span> <span class="pre">Krylov</span> <span class="pre">ONB,</span> <span class="pre">where</span>
+<span class="pre">``e_0</span> <span class="pre">=</span> <span class="pre">(1,</span> <span class="pre">0,</span> <span class="pre">0,</span> <span class="pre">...)</span></code> corresponds to <code class="docutils literal notranslate"><span class="pre">psi0</span></code> in the original basis.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>H, psi0, params :</strong></dt>
+<dd><p class="first last">Hamiltonian, starting vector and parameters as defined in <a class="reference internal" href="#tenpy.linalg.lanczos.LanczosGroundState" title="tenpy.linalg.lanczos.LanczosGroundState"><code class="xref py py-class docutils literal notranslate"><span class="pre">LanczosGroundState</span></code></a>.
+The parameters <cite>E_tol</cite> and <cite>min_gap</cite> are ignored,
+the parameters <cite>P_tol</cite> defines when convergence is reached, see <code class="xref py py-meth docutils literal notranslate"><span class="pre">_converged()</span></code> for
+details.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>delta</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float/complex</span></dt>
+<dd><p class="first last">Prefactor of H in the exponential.</p>
+</dd>
+<dt><strong>_result_norm</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Norm of the resulting vector.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.linalg.lanczos.LanczosEvolution.run" title="tenpy.linalg.lanczos.LanczosEvolution.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>(delta)</td>
+<td>Calculate <code class="docutils literal notranslate"><span class="pre">expm(delta</span> <span class="pre">H).dot(psi0)</span></code> using Lanczos.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="tenpy.linalg.lanczos.LanczosEvolution.run">
+<code class="descname">run</code><span class="sig-paren">(</span><em>delta</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/lanczos.html#LanczosEvolution.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.lanczos.LanczosEvolution.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate <code class="docutils literal notranslate"><span class="pre">expm(delta</span> <span class="pre">H).dot(psi0)</span></code> using Lanczos.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>delta</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float/complex</span></dt>
+<dd><p class="first last">Time step by which we should evolve psi0: prefactor of H in the exponential.
+Note that the complex <cite>i</cite> is <em>not</em> included!</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>psi_f</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Best approximation for <code class="docutils literal notranslate"><span class="pre">expm(delta</span> <span class="pre">H).dot(psi0)</span></code></p>
+</dd>
+<dt><strong>N</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Krylov space dimension used.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tenpy.linalg.lanczos.LanczosGroundState">
+<em class="property">class </em><code class="descclassname">tenpy.linalg.lanczos.</code><code class="descname">LanczosGroundState</code><span class="sig-paren">(</span><em>H</em>, <em>psi0</em>, <em>params</em>, <em>orthogonal_to=[]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/lanczos.html#LanczosGroundState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.lanczos.LanczosGroundState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Lanczos algorithm working on npc arrays.</p>
+<p>The Lanczos algorithm can finds extremal eigenvalues (in terms of magnitude) along with
+the corresponding eigenvectors. It assumes that the linear operator <cite>H</cite> is hermitian.
+Given a start vector <cite>psi0</cite>, it generates an orthonormal basis of the Krylov space,
+in which <cite>H</cite> is a small tridiagonal matrix, and solves the eigenvalue problem there.
+Finally, it transform the resulting ground state back into the original space.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>H</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">LinearOperator</span></code>-like</span></dt>
+<dd><p class="first last">A hermitian linear operator. Must implement the method <cite>matvec</cite> acting on a
+<a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a>; nothing else required.
+The result has to have the same legs as the argument.</p>
+</dd>
+<dt><strong>psi0</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">The starting vector defining the Krylov basis.
+For finding the ground state, this should be the best guess available.</p>
+</dd>
+<dt><strong>params</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
+<dd><p class="first">Further optional parameters as described in the following table.
+Add a parameter <code class="docutils literal notranslate"><span class="pre">verbose</span> <span class="pre">&gt;=1</span></code> to print the used parameters during runtime.
+The algorithm stops if <em>both</em> criteria for <cite>e_tol</cite> and <cite>p_tol</cite> are met
+or if the maximum number of steps was reached.</p>
+<table border="1" class="last docutils">
+<colgroup>
+<col width="9%" />
+<col width="8%" />
+<col width="83%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">key</th>
+<th class="head">type</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>N_min</td>
+<td>int</td>
+<td>Minimum number of steps to perform.</td>
+</tr>
+<tr class="row-odd"><td>N_max</td>
+<td>int</td>
+<td>Maximum number of steps to perform.</td>
+</tr>
+<tr class="row-even"><td>E_tol</td>
+<td>float</td>
+<td>Stop if energy difference per step &lt; <cite>E_tol</cite></td>
+</tr>
+<tr class="row-odd"><td>P_tol</td>
+<td>float</td>
+<td>Tolerance for the error estimate from the
+Ritz Residual, stop if <code class="docutils literal notranslate"><span class="pre">(RitzRes/gap)**2</span> <span class="pre">&lt;</span> <span class="pre">P_tol</span></code></td>
+</tr>
+<tr class="row-even"><td>min_gap</td>
+<td>float</td>
+<td>Lower cutoff for the gap estimate used in the P_tol criterion.</td>
+</tr>
+<tr class="row-odd"><td>N_cache</td>
+<td>int</td>
+<td>The maximum number of <cite>psi</cite> to keep in memory.</td>
+</tr>
+</tbody>
+</table>
+</dd>
+<dt><strong>orthogonal_to</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Vectors (same tensor structure as psi) Lanczos will orthogonalize against,
+ensuring that the result is perpendicular to them.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>I have computed the Ritz residual <cite>RitzRes</cite> according to
+<a class="reference external" href="http://web.eecs.utk.edu/~dongarra/etemplates/node103.html#estimate_residual">http://web.eecs.utk.edu/~dongarra/etemplates/node103.html#estimate_residual</a>.
+Given the gap, the Ritz residual gives a bound on the error in the wavefunction,
+<code class="docutils literal notranslate"><span class="pre">err</span> <span class="pre">&lt;</span> <span class="pre">(RitzRes/gap)**2</span></code>. The gap is estimated from the full Lanczos spectrum.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.linalg.lanczos.LanczosGroundState.run" title="tenpy.linalg.lanczos.LanczosGroundState.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>()</td>
+<td>Find the ground state of H.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="tenpy.linalg.lanczos.LanczosGroundState.run">
+<code class="descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/lanczos.html#LanczosGroundState.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.lanczos.LanczosGroundState.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the ground state of H.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>E0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Ground state energy (estimate).</p>
+</dd>
+<dt><strong>psi0</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Ground state vector (estimate).</p>
+</dd>
+<dt><strong>N</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Used dimension of the Krylov space, i.e., how many iterations where performed.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="tenpy.linalg.lanczos.gram_schmidt">
+<code class="descclassname">tenpy.linalg.lanczos.</code><code class="descname">gram_schmidt</code><span class="sig-paren">(</span><em>vecs</em>, <em>rcond=1e-14</em>, <em>verbose=0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/lanczos.html#gram_schmidt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.lanczos.gram_schmidt" title="Permalink to this definition">¶</a></dt>
+<dd><p>In place Gram-Schmidt Orthogonalization and normalization for npc Arrays.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>vecs</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">The vectors which should be orthogonalized. Entries are modified <em>in place</em>.
+if a norm &lt; rcond, they entry is set to <cite>None</cite></p>
+</dd>
+<dt><strong>rcond</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Vectors of <code class="docutils literal notranslate"><span class="pre">norm</span> <span class="pre">&lt;</span> <span class="pre">rcond</span></code> (after projecting out previous vectors) are discarded.</p>
+</dd>
+<dt><strong>verbose</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Print additional output if verbose &gt;= 1.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>vecs</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of Array</span></dt>
+<dd><p class="first last">The ortho-normalized vectors (without any <code class="docutils literal notranslate"><span class="pre">None</span></code>).</p>
+</dd>
+<dt><strong>ov</strong> <span class="classifier-delimiter">:</span> <span class="classifier">2D Array</span></dt>
+<dd><p class="first last">For <code class="docutils literal notranslate"><span class="pre">j</span> <span class="pre">&gt;=</span> <span class="pre">i</span></code>, <code class="docutils literal notranslate"><span class="pre">ov[j,</span> <span class="pre">i]</span> <span class="pre">=</span> <span class="pre">npc.inner(vecs[j],</span> <span class="pre">vecs[i],</span> <span class="pre">do_conj=True)</span></code>
+(where vecs[j] was orthogonalized to all <code class="docutils literal notranslate"><span class="pre">vecs[k],</span> <span class="pre">k</span> <span class="pre">&lt;</span> <span class="pre">i</span></code>).</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tenpy.linalg.lanczos.lanczos">
+<code class="descclassname">tenpy.linalg.lanczos.</code><code class="descname">lanczos</code><span class="sig-paren">(</span><em>H</em>, <em>psi</em>, <em>lanczos_params={}</em>, <em>orthogonal_to=[]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/lanczos.html#lanczos"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.lanczos.lanczos" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simple wrapper calling <code class="docutils literal notranslate"><span class="pre">LanczosGroundState(H,</span> <span class="pre">psi,</span> <span class="pre">params,</span> <span class="pre">orthogonal_to).run()</span></code></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tenpy.linalg.lanczos.plot_stats">
+<code class="descclassname">tenpy.linalg.lanczos.</code><code class="descname">plot_stats</code><span class="sig-paren">(</span><em>Es</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/lanczos.html#plot_stats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.lanczos.plot_stats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the convergence of the energies.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>Es</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of ndarray.</span></dt>
+<dd><p class="first last">The energies <code class="xref py py-attr docutils literal notranslate"><span class="pre">Lanczos.Es</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/logo.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="tenpy.linalg.charges.html"
+                        title="previous chapter">tenpy.linalg.charges module</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="tenpy.linalg.np_conserved.html"
+                        title="next chapter">tenpy.linalg.np_conserved module</a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../index.html">Table Of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../userguide.html">User Guide</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tenpy.html">tenpy package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tenpy.html#subpackages">Subpackages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.html#module-tenpy">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tenpy.linalg.np_conserved.html" title="tenpy.linalg.np_conserved module"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="tenpy.linalg.charges.html" title="tenpy.linalg.charges module"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="tenpy.html" >tenpy package</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.linalg.html" >tenpy.linalg package</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2018, TeNPy Developers.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

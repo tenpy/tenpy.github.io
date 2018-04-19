@@ -1,0 +1,395 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>tenpy.linalg.random_matrix module &#8212; TeNPy 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="tenpy.linalg.sparse module" href="tenpy.linalg.sparse.html" />
+    <link rel="prev" title="tenpy.linalg.np_conserved module" href="tenpy.linalg.np_conserved.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tenpy.linalg.sparse.html" title="tenpy.linalg.sparse module"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="tenpy.linalg.np_conserved.html" title="tenpy.linalg.np_conserved module"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="tenpy.html" >tenpy package</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.linalg.html" accesskey="U">tenpy.linalg package</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-tenpy.linalg.random_matrix">
+<span id="tenpy-linalg-random-matrix-module"></span><h1>tenpy.linalg.random_matrix module<a class="headerlink" href="#module-tenpy.linalg.random_matrix" title="Permalink to this headline">¶</a></h1>
+<p>Provide some random matrix ensembles for numpy.</p>
+<p>The implemented ensembles are:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="13%" />
+<col width="28%" />
+<col width="26%" />
+<col width="21%" />
+<col width="13%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">ensemble</th>
+<th class="head">matrix class drawn from</th>
+<th class="head">measure</th>
+<th class="head">invariant under</th>
+<th class="head">beta</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>GOE</td>
+<td>real, symmetric</td>
+<td><code class="docutils literal notranslate"><span class="pre">~</span> <span class="pre">exp(-n/4</span> <span class="pre">tr(H^2))</span></code></td>
+<td>orthogonal O</td>
+<td>1</td>
+</tr>
+<tr class="row-odd"><td>GUE</td>
+<td>hermitian</td>
+<td><code class="docutils literal notranslate"><span class="pre">~</span> <span class="pre">exp(-n/2</span> <span class="pre">tr(H^2))</span></code></td>
+<td>unitary U</td>
+<td>2</td>
+</tr>
+<tr class="row-even"><td>CRE</td>
+<td>O(n)</td>
+<td>Haar</td>
+<td>orthogonal O</td>
+<td>/</td>
+</tr>
+<tr class="row-odd"><td>COE</td>
+<td>U in U(n) with U = U^T</td>
+<td>Haar</td>
+<td>orthogonal O</td>
+<td>1</td>
+</tr>
+<tr class="row-even"><td>CUE</td>
+<td>U(n)</td>
+<td>Haar</td>
+<td>unitary U</td>
+<td>2</td>
+</tr>
+<tr class="row-odd"><td>O_close_1</td>
+<td>O(n)</td>
+<td>?</td>
+<td>/</td>
+<td>/</td>
+</tr>
+<tr class="row-even"><td>U_close_1</td>
+<td>U(n)</td>
+<td>?</td>
+<td>/</td>
+<td>/</td>
+</tr>
+</tbody>
+</table>
+<p>All functions in this module take a tuple <code class="docutils literal notranslate"><span class="pre">(n,</span> <span class="pre">n)</span></code> as first argument, such that
+we can use the function <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array.from_func" title="tenpy.linalg.np_conserved.Array.from_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_func()</span></code></a>
+to generate a block diagonal <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a> with the block from the
+corresponding ensemble, for example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">npc</span><span class="o">.</span><span class="n">Array</span><span class="o">.</span><span class="n">from_func_square</span><span class="p">(</span><span class="n">GOE</span><span class="p">,</span> <span class="p">[</span><span class="n">leg</span><span class="p">,</span> <span class="n">leg</span><span class="o">.</span><span class="n">conj</span><span class="p">()])</span>
+</pre></div>
+</div>
+<dl class="function">
+<dt id="tenpy.linalg.random_matrix.box">
+<code class="descclassname">tenpy.linalg.random_matrix.</code><code class="descname">box</code><span class="sig-paren">(</span><em>size</em>, <em>W=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/random_matrix.html#box"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.random_matrix.box" title="Permalink to this definition">¶</a></dt>
+<dd><p>return random number uniform in (-W, W].</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tenpy.linalg.random_matrix.standard_normal_complex">
+<code class="descclassname">tenpy.linalg.random_matrix.</code><code class="descname">standard_normal_complex</code><span class="sig-paren">(</span><em>size</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/random_matrix.html#standard_normal_complex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.random_matrix.standard_normal_complex" title="Permalink to this definition">¶</a></dt>
+<dd><p>return <code class="docutils literal notranslate"><span class="pre">(R</span> <span class="pre">+</span> <span class="pre">1.j*I)</span></code> for independent <cite>R</cite> and <cite>I</cite> from np.random.standard_normal.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tenpy.linalg.random_matrix.GOE">
+<code class="descclassname">tenpy.linalg.random_matrix.</code><code class="descname">GOE</code><span class="sig-paren">(</span><em>size</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/random_matrix.html#GOE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.random_matrix.GOE" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gaussian orthogonal ensemble (GOE).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>size</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple</span></dt>
+<dd><p class="first last"><code class="docutils literal notranslate"><span class="pre">(n,</span> <span class="pre">n)</span></code>, where <cite>n</cite> is the dimension of the output matrix.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>H</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Real, symmetric numpy matrix drawn from the GOE, i.e.
+<span class="math notranslate">\(p(H) = 1/Z exp(-n/4 tr(H^2))\)</span></p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tenpy.linalg.random_matrix.GUE">
+<code class="descclassname">tenpy.linalg.random_matrix.</code><code class="descname">GUE</code><span class="sig-paren">(</span><em>size</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/random_matrix.html#GUE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.random_matrix.GUE" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gaussian unitary ensemble (GUE).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>size</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple</span></dt>
+<dd><p class="first last"><code class="docutils literal notranslate"><span class="pre">(n,</span> <span class="pre">n)</span></code>, where <cite>n</cite> is the dimension of the output matrix.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>H</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Hermitian (complex) numpy matrix drawn from the GUE, i.e.
+<span class="math notranslate">\(p(H) = 1/Z exp(-n/4 tr(H^2))\)</span>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tenpy.linalg.random_matrix.CRE">
+<code class="descclassname">tenpy.linalg.random_matrix.</code><code class="descname">CRE</code><span class="sig-paren">(</span><em>size</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/random_matrix.html#CRE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.random_matrix.CRE" title="Permalink to this definition">¶</a></dt>
+<dd><p>Circular real ensemble (CRE).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>size</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple</span></dt>
+<dd><p class="first last"><code class="docutils literal notranslate"><span class="pre">(n,</span> <span class="pre">n)</span></code>, where <cite>n</cite> is the dimension of the output matrix.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>U</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Orthogonal matrix drawn from the CRE (=Haar measure on O(n)).</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tenpy.linalg.random_matrix.COE">
+<code class="descclassname">tenpy.linalg.random_matrix.</code><code class="descname">COE</code><span class="sig-paren">(</span><em>size</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/random_matrix.html#COE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.random_matrix.COE" title="Permalink to this definition">¶</a></dt>
+<dd><p>Circular orthogonal ensemble (COE).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>size</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple</span></dt>
+<dd><p class="first last"><code class="docutils literal notranslate"><span class="pre">(n,</span> <span class="pre">n)</span></code>, where <cite>n</cite> is the dimension of the output matrix.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>U</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Unitary, symmetric (complex) matrix drawn from the COE (=Haar measure on this space).</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tenpy.linalg.random_matrix.CUE">
+<code class="descclassname">tenpy.linalg.random_matrix.</code><code class="descname">CUE</code><span class="sig-paren">(</span><em>size</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/random_matrix.html#CUE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.random_matrix.CUE" title="Permalink to this definition">¶</a></dt>
+<dd><p>Circular unitary ensemble (CUE).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>size</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple</span></dt>
+<dd><p class="first last"><code class="docutils literal notranslate"><span class="pre">(n,</span> <span class="pre">n)</span></code>, where <cite>n</cite> is the dimension of the output matrix.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>U</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Unitary matrix drawn from the CUE (=Haar measure on U(n)).</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tenpy.linalg.random_matrix.O_close_1">
+<code class="descclassname">tenpy.linalg.random_matrix.</code><code class="descname">O_close_1</code><span class="sig-paren">(</span><em>size</em>, <em>a=0.01</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/random_matrix.html#O_close_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.random_matrix.O_close_1" title="Permalink to this definition">¶</a></dt>
+<dd><p>return an random orthogonal matrix ‘close’ to the Identity.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>size</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple</span></dt>
+<dd><p class="first last"><code class="docutils literal notranslate"><span class="pre">(n,</span> <span class="pre">n)</span></code>, where <cite>n</cite> is the dimension of the output matrix.</p>
+</dd>
+<dt><strong>a</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Parameter determining how close the result is on <cite>O</cite>;
+<span class="math notranslate">\(\lim_{a \rightarrow 0} &lt;|O-E|&gt;_a = 0`\)</span> (where <cite>E</cite> is the identity).</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>O</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Orthogonal matrix close to the identiy (for small <cite>a</cite>).</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tenpy.linalg.random_matrix.U_close_1">
+<code class="descclassname">tenpy.linalg.random_matrix.</code><code class="descname">U_close_1</code><span class="sig-paren">(</span><em>size</em>, <em>a=0.01</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/random_matrix.html#U_close_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.random_matrix.U_close_1" title="Permalink to this definition">¶</a></dt>
+<dd><p>return an random orthogonal matrix ‘close’ to the identity.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>size</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple</span></dt>
+<dd><p class="first last"><code class="docutils literal notranslate"><span class="pre">(n,</span> <span class="pre">n)</span></code>, where <cite>n</cite> is the dimension of the output matrix.</p>
+</dd>
+<dt><strong>a</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Parameter determining how close the result is to the identity.
+<span class="math notranslate">\(\lim_{a \rightarrow 0} &lt;|O-E|&gt;_a = 0`\)</span> (where <cite>E</cite> is the identity).</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>U</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Unitary matrix close to the identiy (for small <cite>a</cite>).
+Eigenvalues are chosen i.i.d. as <code class="docutils literal notranslate"><span class="pre">exp(1.j*a*x)</span></code> with <cite>x</cite> uniform in [-1, 1].</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/logo.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="tenpy.linalg.np_conserved.html"
+                        title="previous chapter">tenpy.linalg.np_conserved module</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="tenpy.linalg.sparse.html"
+                        title="next chapter">tenpy.linalg.sparse module</a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../index.html">Table Of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../userguide.html">User Guide</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tenpy.html">tenpy package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tenpy.html#subpackages">Subpackages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.html#module-tenpy">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tenpy.linalg.sparse.html" title="tenpy.linalg.sparse module"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="tenpy.linalg.np_conserved.html" title="tenpy.linalg.np_conserved module"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="tenpy.html" >tenpy package</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.linalg.html" >tenpy.linalg package</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2018, TeNPy Developers.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

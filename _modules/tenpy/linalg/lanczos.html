@@ -1,0 +1,478 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>tenpy.linalg.lanczos &#8212; TeNPy 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tenpy.linalg.lanczos</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Lanczos algorithm for np_conserved arrays.&quot;&quot;&quot;</span>
+<span class="c1"># Copyright 2018 TeNPy Developers</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">np_conserved</span> <span class="k">as</span> <span class="n">npc</span>
+<span class="kn">from</span> <span class="nn">..tools.params</span> <span class="k">import</span> <span class="n">get_parameter</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.linalg</span> <span class="k">import</span> <span class="n">expm</span>
+
+
+<div class="viewcode-block" id="LanczosGroundState"><a class="viewcode-back" href="../../../reference/tenpy.linalg.lanczos.html#tenpy.linalg.lanczos.LanczosGroundState">[docs]</a><span class="k">class</span> <span class="nc">LanczosGroundState</span><span class="p">:</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Lanczos algorithm working on npc arrays.</span>
+
+<span class="sd">    The Lanczos algorithm can finds extremal eigenvalues (in terms of magnitude) along with</span>
+<span class="sd">    the corresponding eigenvectors. It assumes that the linear operator `H` is hermitian.</span>
+<span class="sd">    Given a start vector `psi0`, it generates an orthonormal basis of the Krylov space,</span>
+<span class="sd">    in which `H` is a small tridiagonal matrix, and solves the eigenvalue problem there.</span>
+<span class="sd">    Finally, it transform the resulting ground state back into the original space.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    H : :class:`~tenpy.linalg.sparse.LinearOperator`-like</span>
+<span class="sd">        A hermitian linear operator. Must implement the method `matvec` acting on a</span>
+<span class="sd">        :class:`~tenpy.linalg.np_conserved.Array`; nothing else required.</span>
+<span class="sd">        The result has to have the same legs as the argument.</span>
+<span class="sd">    psi0 : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">        The starting vector defining the Krylov basis.</span>
+<span class="sd">        For finding the ground state, this should be the best guess available.</span>
+<span class="sd">    params : dict</span>
+<span class="sd">        Further optional parameters as described in the following table.</span>
+<span class="sd">        Add a parameter ``verbose &gt;=1`` to print the used parameters during runtime.</span>
+<span class="sd">        The algorithm stops if *both* criteria for `e_tol` and `p_tol` are met</span>
+<span class="sd">        or if the maximum number of steps was reached.</span>
+
+<span class="sd">        ======= ====== ===============================================================</span>
+<span class="sd">        key     type   description</span>
+<span class="sd">        ======= ====== ===============================================================</span>
+<span class="sd">        N_min   int    Minimum number of steps to perform.</span>
+<span class="sd">        ------- ------ ---------------------------------------------------------------</span>
+<span class="sd">        N_max   int    Maximum number of steps to perform.</span>
+<span class="sd">        ------- ------ ---------------------------------------------------------------</span>
+<span class="sd">        E_tol   float  Stop if energy difference per step &lt; `E_tol`</span>
+<span class="sd">        ------- ------ ---------------------------------------------------------------</span>
+<span class="sd">        P_tol   float  Tolerance for the error estimate from the</span>
+<span class="sd">                       Ritz Residual, stop if ``(RitzRes/gap)**2 &lt; P_tol``</span>
+<span class="sd">        ------- ------ ---------------------------------------------------------------</span>
+<span class="sd">        min_gap float  Lower cutoff for the gap estimate used in the P_tol criterion.</span>
+<span class="sd">        ------- ------ ---------------------------------------------------------------</span>
+<span class="sd">        N_cache int    The maximum number of `psi` to keep in memory.</span>
+<span class="sd">        ======= ====== ===============================================================</span>
+
+<span class="sd">    orthogonal_to : list of :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">        Vectors (same tensor structure as psi) Lanczos will orthogonalize against,</span>
+<span class="sd">        ensuring that the result is perpendicular to them.</span>
+
+<span class="sd">    Attribues</span>
+<span class="sd">    ---------</span>
+<span class="sd">    H : :class:`~tenpy.linalg.sparse.LinearOperator`-like</span>
+<span class="sd">        The hermitian linear operator.</span>
+<span class="sd">    psi0 : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">        The starting vector.</span>
+<span class="sd">    orthogonal_to : list of :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">        Vectors to orthogonalize against.</span>
+<span class="sd">    N_min, N_max, E_tol, P_tol, N_cache :</span>
+<span class="sd">        Parameters as described above.</span>
+<span class="sd">    Es : ndarray, shape(N_max, N_max)</span>
+<span class="sd">        ``Es[n, :]`` contains the energies of ``_T[:n+1, :n+1]`` in step `n`.</span>
+<span class="sd">    _T : ndarray, shape (N_max + 1, N_max +1)</span>
+<span class="sd">        The tridiagonal matrix representing `H` in the orthonormalized Krylov basis.</span>
+<span class="sd">    _cutoff : float</span>
+<span class="sd">        cutoff to abort if `beta` (= norm of next vector in Krylov basis before normalizing)</span>
+<span class="sd">        is too small.</span>
+<span class="sd">        This is necessary if the rank of A is smaller than N_max - then we get a complete</span>
+<span class="sd">        basis of the Krylov space, and beta will be zero.</span>
+<span class="sd">    _cache : list of psi0-like vectors</span>
+<span class="sd">        The ONB of the Krylov space generated during the iteration.</span>
+<span class="sd">        FIFO (first in first out) cache of at most N_cache vectors.</span>
+<span class="sd">    _result_krylov : ndarray</span>
+<span class="sd">        Result in the ONB of the Krylov space: ground state of `_T`.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    I have computed the Ritz residual `RitzRes` according to</span>
+<span class="sd">    http://web.eecs.utk.edu/~dongarra/etemplates/node103.html#estimate_residual.</span>
+<span class="sd">    Given the gap, the Ritz residual gives a bound on the error in the wavefunction,</span>
+<span class="sd">    ``err &lt; (RitzRes/gap)**2``. The gap is estimated from the full Lanczos spectrum.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">psi0</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">orthogonal_to</span><span class="o">=</span><span class="p">[]):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">H</span> <span class="o">=</span> <span class="n">H</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi0</span> <span class="o">=</span> <span class="n">psi0</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="n">params</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_min</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;N_min&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;Lanczos&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_max</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;N_max&#39;</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="s2">&quot;Lanczos&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">E_tol</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;E_tol&#39;</span><span class="p">,</span> <span class="mf">5.e-15</span><span class="p">,</span> <span class="s2">&quot;Lanczos&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">P_tol</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;P_tol&#39;</span><span class="p">,</span> <span class="mf">1.e-14</span><span class="p">,</span> <span class="s2">&quot;Lanczos&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_cache</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;N_cache&#39;</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="s2">&quot;Lanczos&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_gap</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;min_gap&#39;</span><span class="p">,</span> <span class="mf">1.e-12</span><span class="p">,</span> <span class="s2">&quot;Lanczos&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_cache</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Need to cache at least two vectors.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_min</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Should perform at least 2 steps.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cutoff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">psi0</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span> <span class="o">*</span> <span class="mi">100</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">orthogonal_to</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">orthogonal_to</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">gram_schmidt</span><span class="p">(</span><span class="n">orthogonal_to</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">/</span> <span class="mi">10</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">orthogonal_to</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Es</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">N_max</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_max</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
+        <span class="c1"># First Lanczos iteration: Form tridiagonal form of A in the Krylov subspace, stored in T</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_T</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">N_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LanczosGroundState.run"><a class="viewcode-back" href="../../../reference/tenpy.linalg.lanczos.html#tenpy.linalg.lanczos.LanczosGroundState.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Find the ground state of H.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        E0 : float</span>
+<span class="sd">            Ground state energy (estimate).</span>
+<span class="sd">        psi0 : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Ground state vector (estimate).</span>
+<span class="sd">        N : int</span>
+<span class="sd">            Used dimension of the Krylov space, i.e., how many iterations where performed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_T</span><span class="p">()</span>
+        <span class="n">E0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Es</span><span class="p">[</span><span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">N</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Lanczos N=</span><span class="si">{0:d}</span><span class="s2">, gap=</span><span class="si">{1:.3e}</span><span class="s2">, DeltaE0=</span><span class="si">{2:.3e}</span><span class="s2">, _result_krylov[-1]=</span><span class="si">{3:.3e}</span><span class="s2">&quot;</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Es</span><span class="p">[</span><span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">E0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Es</span><span class="p">[</span><span class="n">N</span> <span class="o">-</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">E0</span><span class="p">,</span>
+                               <span class="bp">self</span><span class="o">.</span><span class="n">_result_krylov</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Lanczos N=</span><span class="si">{0:d}</span><span class="s2">, first alpha=</span><span class="si">{1:.3e}</span><span class="s2">, beta=</span><span class="si">{2:.3e}</span><span class="s2">&quot;</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_T</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_T</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">N</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">E0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi0</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">N</span>  <span class="c1"># no better estimate available</span>
+        <span class="k">return</span> <span class="n">E0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_result_full</span><span class="p">(</span><span class="n">N</span><span class="p">),</span> <span class="n">N</span></div>
+
+    <span class="k">def</span> <span class="nf">_calc_T</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Build the tridiagonal matrix `_T`. Returns the number of steps performed.&quot;&quot;&quot;</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_T</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi0</span>  <span class="c1"># initialize</span>
+        <span class="n">beta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N_max</span><span class="p">):</span>
+            <span class="n">w</span> <span class="o">/=</span> <span class="n">beta</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_to_cache</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
+            <span class="c1"># project out the orthogonal parts:</span>
+            <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_H</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
+            <span class="n">alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">npc</span><span class="o">.</span><span class="n">inner</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">do_conj</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+            <span class="n">T</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">alpha</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_calc_result_krylov</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">w</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">beta</span>
+            <span class="n">w</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">alpha</span>
+            <span class="n">beta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
+            <span class="n">T</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span><span class="p">[</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">beta</span>  <span class="c1"># needed for the next step and convergence criteria</span>
+            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">beta</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cutoff</span> <span class="ow">or</span> <span class="p">(</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_min</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_converged</span><span class="p">(</span><span class="n">k</span><span class="p">)):</span>
+                <span class="k">break</span>
+        <span class="k">return</span> <span class="n">k</span> <span class="o">+</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">_calc_result_full</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Transform self._result_krylov from the Krylov ONB to the original (npc) basis.</span>
+
+<span class="sd">        Construct the result ``psi_f = sum_k  _result_krylov[k] psi[k]``, where ``psi[k]``</span>
+<span class="sd">        is the k-th vector of the ONB of the Krylov space generated during the iteration.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">vf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_result_krylov</span>
+        <span class="k">assert</span> <span class="n">N</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">vf</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
+        <span class="n">psif</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi0</span> <span class="o">*</span> <span class="n">vf</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># the start vector is still known</span>
+        <span class="n">len_cache</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">)</span>
+        <span class="c1"># and the last len_cache vectors have been cached</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">len_cache</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">N</span><span class="p">)):</span>
+            <span class="n">psif</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="o">-</span><span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">vf</span><span class="p">[</span><span class="n">N</span> <span class="o">-</span> <span class="n">k</span><span class="p">]</span>
+        <span class="c1"># other vectors are not cached, so we need to restart the Lanczos iteration.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># free memory: we need at least two more vectors</span>
+        <span class="c1"># keep q0 and q1 as cache</span>
+        <span class="n">q0</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">q1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi0</span>
+        <span class="n">beta</span> <span class="o">=</span> <span class="mf">1.</span>  <span class="c1"># start vector is already normalized</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_T</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">N</span> <span class="o">-</span> <span class="n">len_cache</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_H</span><span class="p">(</span><span class="n">q1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">w</span> <span class="o">-=</span> <span class="n">q0</span> <span class="o">*</span> <span class="n">beta</span>
+            <span class="n">alpha</span> <span class="o">=</span> <span class="n">T</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span>
+            <span class="n">w</span> <span class="o">-=</span> <span class="n">q1</span> <span class="o">*</span> <span class="n">alpha</span>
+            <span class="n">beta</span> <span class="o">=</span> <span class="n">T</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">w</span> <span class="o">/=</span> <span class="n">beta</span>
+            <span class="n">q0</span> <span class="o">=</span> <span class="n">q1</span>
+            <span class="n">q1</span> <span class="o">=</span> <span class="n">w</span>
+            <span class="n">psif</span> <span class="o">+=</span> <span class="n">q1</span> <span class="o">*</span> <span class="n">vf</span><span class="p">[</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">psif_norm</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">psif</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">psif_norm</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1.e-5</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;poorly conditioned Lanczos: |psi_0| = </span><span class="si">{0:f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">psif_norm</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">psif</span> <span class="o">/</span> <span class="n">psif_norm</span>
+
+    <span class="k">def</span> <span class="nf">_to_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">psi</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;add psi to cache, keep at most N_cache.&quot;&quot;&quot;</span>
+        <span class="n">cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span>
+        <span class="n">cache</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">psi</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cache</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_cache</span><span class="p">:</span>
+            <span class="n">cache</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># remove *first* entry</span>
+
+    <span class="k">def</span> <span class="nf">_apply_H</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;apply H to w, but orthogonalize agains self.orthogonal_to.&quot;&quot;&quot;</span>
+        <span class="c1"># equivalent to using H&#39; = P H P where P is the projector (1-sum_o |o&gt;&lt;o|)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">orthogonal_to</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">w</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">orthogonal_to</span><span class="p">:</span>  <span class="c1"># Project out</span>
+                <span class="n">w</span> <span class="o">-=</span> <span class="n">o</span> <span class="o">*</span> <span class="n">npc</span><span class="o">.</span><span class="n">inner</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">do_conj</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="o">.</span><span class="n">matvec</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">orthogonal_to</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>  <span class="c1"># reverse: more obviously Hermitian.</span>
+            <span class="n">w</span> <span class="o">-=</span> <span class="n">o</span> <span class="o">*</span> <span class="n">npc</span><span class="o">.</span><span class="n">inner</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">do_conj</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">w</span>
+
+    <span class="k">def</span> <span class="nf">_calc_result_krylov</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;calculate ground state of _T[:k+1, :k+1]&quot;&quot;&quot;</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_T</span>
+        <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Es</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_result_krylov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Diagonalize T</span>
+            <span class="n">E_T</span><span class="p">,</span> <span class="n">v_T</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">T</span><span class="p">[:</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Es</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="p">:</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">E_T</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_result_krylov</span> <span class="o">=</span> <span class="n">v_T</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>  <span class="c1"># ground state of _T</span>
+
+    <span class="k">def</span> <span class="nf">_converged</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+        <span class="n">v0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_result_krylov</span>
+        <span class="n">E</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Es</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="p">:]</span>  <span class="c1"># current energies</span>
+        <span class="n">RitzRes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">v0</span><span class="p">[</span><span class="n">k</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_T</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="n">gap</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">E</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">E</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_gap</span><span class="p">)</span>
+        <span class="n">P_err</span> <span class="o">=</span> <span class="p">(</span><span class="n">RitzRes</span> <span class="o">/</span> <span class="n">gap</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+        <span class="n">Delta_E0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Es</span><span class="p">[</span><span class="n">k</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">E</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">P_err</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">P_tol</span> <span class="ow">and</span> <span class="n">Delta_E0</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_tol</span></div>
+
+
+<div class="viewcode-block" id="LanczosEvolution"><a class="viewcode-back" href="../../../reference/tenpy.linalg.lanczos.html#tenpy.linalg.lanczos.LanczosEvolution">[docs]</a><span class="k">class</span> <span class="nc">LanczosEvolution</span><span class="p">(</span><span class="n">LanczosGroundState</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Calculate :math:`exp(delta H) |psi0&gt;` using Lanczos.</span>
+
+<span class="sd">    It turns out that the Lanczos algorithm is also good for calculating the matrix exponential</span>
+<span class="sd">    applied to the starting vector. Instead of diagonalizing the tri-diagonal `T` and taking the</span>
+<span class="sd">    ground state, we now calculate ``exp(delta T) e_0 in the Krylov ONB, where</span>
+<span class="sd">    ``e_0 = (1, 0, 0, ...)`` corresponds to ``psi0`` in the original basis.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    H, psi0, params :</span>
+<span class="sd">        Hamiltonian, starting vector and parameters as defined in :class:`LanczosGroundState`.</span>
+<span class="sd">        The parameters `E_tol` and `min_gap` are ignored,</span>
+<span class="sd">        the parameters `P_tol` defines when convergence is reached, see :meth:`_converged` for</span>
+<span class="sd">        details.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    delta : float/complex</span>
+<span class="sd">        Prefactor of H in the exponential.</span>
+<span class="sd">    _result_norm : float</span>
+<span class="sd">        Norm of the resulting vector.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">psi0</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">LanczosEvolution</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">psi0</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delta</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_result_norm</span> <span class="o">=</span> <span class="mf">1.</span>
+
+<div class="viewcode-block" id="LanczosEvolution.run"><a class="viewcode-back" href="../../../reference/tenpy.linalg.lanczos.html#tenpy.linalg.lanczos.LanczosEvolution.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delta</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate ``expm(delta H).dot(psi0)`` using Lanczos.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        delta : float/complex</span>
+<span class="sd">            Time step by which we should evolve psi0: prefactor of H in the exponential.</span>
+<span class="sd">            Note that the complex `i` is *not* included!</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        psi_f : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Best approximation for ``expm(delta H).dot(psi0)``</span>
+<span class="sd">        N : int</span>
+<span class="sd">            Krylov space dimension used.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delta</span> <span class="o">=</span> <span class="n">delta</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_T</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">N</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Lanczos N=</span><span class="si">{0:d}</span><span class="s2">, |result_krylov[-1]|=</span><span class="si">{1:.3e}</span><span class="s2">&quot;</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_result_krylov</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Lanczos N=</span><span class="si">{0:d}</span><span class="s2">, first alpha=</span><span class="si">{1:.3e}</span><span class="s2">, beta=</span><span class="si">{2:.3e}</span><span class="s2">&quot;</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_T</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_T</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">N</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">result_full</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_result_krylov</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">result_full</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_result_full</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">delta</span><span class="o">.</span><span class="n">real</span> <span class="o">!=</span> <span class="mf">0.</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">result_full</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_result_norm</span><span class="p">,</span> <span class="n">N</span>
+        <span class="c1"># else:</span>
+        <span class="k">return</span> <span class="n">result_full</span><span class="p">,</span> <span class="n">N</span></div>
+
+    <span class="k">def</span> <span class="nf">_calc_result_krylov</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;calculate expm(delta T) e0 for T= _T[:k+1, :k+1]&quot;&quot;&quot;</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_T</span>
+        <span class="n">delta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">delta</span>
+        <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">E</span> <span class="o">=</span> <span class="n">T</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">exp_dE</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">delta</span> <span class="o">*</span> <span class="n">E</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_result_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">exp_dE</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_result_krylov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">exp_dE</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_result_norm</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">e0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
+            <span class="n">e0</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>
+            <span class="n">exp_dT_e0</span> <span class="o">=</span> <span class="n">expm</span><span class="p">(</span><span class="n">T</span><span class="p">[:</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">delta</span><span class="p">)</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">e0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_result_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">exp_dT_e0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_result_krylov</span> <span class="o">=</span> <span class="n">exp_dT_e0</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_result_norm</span>
+
+    <span class="k">def</span> <span class="nf">_converged</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_result_krylov</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">P_tol</span></div>
+
+
+<div class="viewcode-block" id="lanczos"><a class="viewcode-back" href="../../../reference/tenpy.linalg.lanczos.html#tenpy.linalg.lanczos.lanczos">[docs]</a><span class="k">def</span> <span class="nf">lanczos</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">lanczos_params</span><span class="o">=</span><span class="p">{},</span> <span class="n">orthogonal_to</span><span class="o">=</span><span class="p">[]):</span>
+    <span class="sd">&quot;&quot;&quot;Simple wrapper calling ``LanczosGroundState(H, psi, params, orthogonal_to).run()``&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">LanczosGroundState</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">lanczos_params</span><span class="p">,</span> <span class="n">orthogonal_to</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="gram_schmidt"><a class="viewcode-back" href="../../../reference/tenpy.linalg.lanczos.html#tenpy.linalg.lanczos.gram_schmidt">[docs]</a><span class="k">def</span> <span class="nf">gram_schmidt</span><span class="p">(</span><span class="n">vecs</span><span class="p">,</span> <span class="n">rcond</span><span class="o">=</span><span class="mf">1.e-14</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;In place Gram-Schmidt Orthogonalization and normalization for npc Arrays.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    vecs : list of :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">        The vectors which should be orthogonalized. Entries are modified *in place*.</span>
+<span class="sd">        if a norm &lt; rcond, they entry is set to `None`</span>
+<span class="sd">    rcond : float</span>
+<span class="sd">        Vectors of ``norm &lt; rcond`` (after projecting out previous vectors) are discarded.</span>
+<span class="sd">    verbose : int</span>
+<span class="sd">        Print additional output if verbose &gt;= 1.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    vecs : list of Array</span>
+<span class="sd">        The ortho-normalized vectors (without any ``None``).</span>
+<span class="sd">    ov : 2D Array</span>
+<span class="sd">        For ``j &gt;= i``, ``ov[j, i] = npc.inner(vecs[j], vecs[i], do_conj=True)``</span>
+<span class="sd">        (where vecs[j] was orthogonalized to all ``vecs[k], k &lt; i``).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">vecs</span><span class="p">)</span>
+    <span class="n">ov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">k</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">vecs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">k</span><span class="p">):</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">ov</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">vecs</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="n">rcond</span><span class="p">:</span>
+            <span class="n">vecs</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">*=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">n</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+                <span class="n">ov</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">ov_ji</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">inner</span><span class="p">(</span><span class="n">vecs</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">vecs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">do_conj</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">vecs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="n">ov_ji</span> <span class="o">*</span> <span class="n">vecs</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;GramSchmidt: Rank defficient&quot;</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+            <span class="n">vecs</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">vecs</span> <span class="o">=</span> <span class="p">[</span><span class="n">q</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">vecs</span> <span class="k">if</span> <span class="n">q</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">vecs</span><span class="p">)</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">k</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">vecs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">vecs</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">w</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">vecs</span><span class="p">):</span>
+                <span class="n">G</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">inner</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">do_conj</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;GramSchmidt:&quot;</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">ov</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">G</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">k</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="n">vecs</span><span class="p">,</span> <span class="n">ov</span></div>
+
+
+<div class="viewcode-block" id="plot_stats"><a class="viewcode-back" href="../../../reference/tenpy.linalg.lanczos.html#tenpy.linalg.lanczos.plot_stats">[docs]</a><span class="k">def</span> <span class="nf">plot_stats</span><span class="p">(</span><span class="n">Es</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Plot the convergence of the energies.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Es : list of ndarray.</span>
+<span class="sd">        The energies :attr:`Lanczos.Es`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+    <span class="n">ks</span> <span class="o">=</span> <span class="p">[[</span><span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">E</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">E</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">Es</span><span class="p">)]</span>
+    <span class="n">ks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">ks</span><span class="p">,</span> <span class="p">[]))</span>
+    <span class="n">Es</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">sum</span><span class="p">([</span><span class="nb">list</span><span class="p">(</span><span class="n">E</span><span class="p">)</span> <span class="k">for</span> <span class="n">E</span> <span class="ow">in</span> <span class="n">Es</span><span class="p">],</span> <span class="p">[]))</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">ks</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">Es</span><span class="p">))</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Lanczos step&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Ritz Values (= energy estimates)&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/logo.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../userguide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.html">tenpy package</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2018, TeNPy Developers.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

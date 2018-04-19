@@ -1,0 +1,174 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>tenpy.models.bose_hubbard_chain &#8212; TeNPy 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tenpy.models.bose_hubbard_chain</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Simple Bose-Hubbard chain model.</span>
+
+<span class="sd">.. todo::</span>
+<span class="sd">    Work in checks for common errors and raise some exceptions?</span>
+<span class="sd">    Run some tests, and perhaps benchmarks comparing to old TenPy?</span>
+<span class="sd">    Write example simulation code?</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># Copyright 2018 TeNPy Developers</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">.lattice</span> <span class="k">import</span> <span class="n">Chain</span>
+<span class="kn">from</span> <span class="nn">..networks.site</span> <span class="k">import</span> <span class="n">BosonSite</span>
+<span class="kn">from</span> <span class="nn">.model</span> <span class="k">import</span> <span class="n">CouplingModel</span><span class="p">,</span> <span class="n">NearestNeighborModel</span><span class="p">,</span> <span class="n">MPOModel</span>
+<span class="kn">from</span> <span class="nn">..tools.params</span> <span class="k">import</span> <span class="n">get_parameter</span><span class="p">,</span> <span class="n">unused_parameters</span>
+<span class="kn">from</span> <span class="nn">..tools.misc</span> <span class="k">import</span> <span class="n">any_nonzero</span>
+
+
+<div class="viewcode-block" id="BoseHubbardChain"><a class="viewcode-back" href="../../../reference/tenpy.models.bose_hubbard_chain.html#tenpy.models.bose_hubbard_chain.BoseHubbardChain">[docs]</a><span class="k">class</span> <span class="nc">BoseHubbardChain</span><span class="p">(</span><span class="n">CouplingModel</span><span class="p">,</span> <span class="n">MPOModel</span><span class="p">,</span> <span class="n">NearestNeighborModel</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Spinless Bose-Hubbard model on a chain.</span>
+
+<span class="sd">    The Hamiltonian is:</span>
+
+<span class="sd">    .. math ::</span>
+<span class="sd">        H = t \sum_i (b_i^{\dagger} b_{i+1} + b_{i+1}^{\dagger} b_i)</span>
+<span class="sd">            + \frac{U}{2} \sum_i n_i (n_i - 1) + \mu \sum_i n_i</span>
+
+<span class="sd">    Note that the signs of all parameters as defined in the Hamiltonian are positive.</span>
+
+<span class="sd">    All parameters are collected in a single dictionary `model_param` and read out with</span>
+<span class="sd">    :func:`~tenpy.tools.params.get_parameter`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    L : int</span>
+<span class="sd">        Length of the chain</span>
+<span class="sd">    n_max : int</span>
+<span class="sd">        Maximum number of bosons per site.</span>
+<span class="sd">    filling : float</span>
+<span class="sd">        Average filling.</span>
+<span class="sd">    conserve: {&#39;N&#39; | &#39;parity&#39; | None}</span>
+<span class="sd">        What should be conserved. See :class:`~tenpy.networks.Site.BosonSite`.</span>
+<span class="sd">    t, U, Mu : float | array</span>
+<span class="sd">        Couplings as defined in the Hamiltonian above.</span>
+<span class="sd">    bc_MPS : {&#39;finite&#39; | &#39;infinte&#39;}</span>
+<span class="sd">        MPS boundary conditions. Coupling boundary conditions are chosen appropriately.</span>
+<span class="sd">    verbose : int</span>
+<span class="sd">        Level of verbosity</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">):</span>
+        <span class="c1"># 0) Read and set parameters.</span>
+        <span class="n">verbose</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;L&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__class_</span><span class="p">)</span>
+        <span class="n">n_max</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;n_max&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">filling</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;filling&#39;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">bc_MPS</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;bc_MPS&#39;</span><span class="p">,</span> <span class="s1">&#39;finite&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">U</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;U&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">mu</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;mu&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">conserve</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;conserve&#39;</span><span class="p">,</span> <span class="s1">&#39;N&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">unused_parameters</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+
+        <span class="c1"># 1) Sites and lattice.</span>
+        <span class="n">site</span> <span class="o">=</span> <span class="n">BosonSite</span><span class="p">(</span><span class="n">Nmax</span><span class="o">=</span><span class="n">n_max</span><span class="p">,</span> <span class="n">conserve</span><span class="o">=</span><span class="n">conserve</span><span class="p">,</span> <span class="n">filling</span><span class="o">=</span><span class="n">filling</span><span class="p">)</span>
+        <span class="n">lat</span> <span class="o">=</span> <span class="n">Chain</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="n">bc_MPS</span><span class="p">)</span>
+        <span class="c1"># 2) Initialize CouplingModel</span>
+        <span class="n">bc_coupling</span> <span class="o">=</span> <span class="s1">&#39;periodic&#39;</span> <span class="k">if</span> <span class="n">bc_MPS</span> <span class="o">==</span> <span class="s1">&#39;infinite&#39;</span> <span class="k">else</span> <span class="s1">&#39;open&#39;</span>
+        <span class="n">CouplingModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">bc_coupling</span><span class="p">)</span>
+
+        <span class="c1"># 3) Build the Hamiltonian.</span>
+        <span class="c1"># 3a) on-site terms.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_onsite</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;N&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_onsite</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;NN&#39;</span><span class="p">)</span>
+
+        <span class="c1"># 3b) coupling terms.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Bd&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Bd&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># 4) Initialize MPO</span>
+        <span class="n">MPOModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_H_MPO</span><span class="p">())</span>
+        <span class="c1"># 5) Initialize H bond  # LS: what does this mean?</span>
+        <span class="n">NearestNeighborModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_H_bond</span><span class="p">())</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/logo.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../userguide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.html">tenpy package</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2018, TeNPy Developers.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

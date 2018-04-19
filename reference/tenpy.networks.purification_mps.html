@@ -1,0 +1,543 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>tenpy.networks.purification_mps module &#8212; TeNPy 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="tenpy.networks.site module" href="tenpy.networks.site.html" />
+    <link rel="prev" title="tenpy.networks.mps module" href="tenpy.networks.mps.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tenpy.networks.site.html" title="tenpy.networks.site module"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="tenpy.networks.mps.html" title="tenpy.networks.mps module"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="tenpy.html" >tenpy package</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.networks.html" accesskey="U">tenpy.networks package</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-tenpy.networks.purification_mps">
+<span id="tenpy-networks-purification-mps-module"></span><h1>tenpy.networks.purification_mps module<a class="headerlink" href="#module-tenpy.networks.purification_mps" title="Permalink to this headline">¶</a></h1>
+<p>This module contains an MPS class representing an density matrix by purification.</p>
+<p>Usually, an MPS represents a pure state, i.e. the density matrix is <span class="math notranslate">\(\rho = |\psi&gt;&lt;\psi|\)</span>,
+describing observables as <span class="math notranslate">\(&lt;O&gt; = Tr(O|\psi&gt;&lt;\psi|) = &lt;\psi|O|\psi&gt;\)</span>.
+Clearly, if <span class="math notranslate">\(|\psi&gt;\)</span> is the ground state of a Hamiltonian, this is the density matrix at
+<cite>T=0</cite>.</p>
+<p>At finite temperatures <span class="math notranslate">\(T &gt; 0\)</span>, we want to describe a non-pure density matrix
+<span class="math notranslate">\(\rho = \exp(-H/T)\)</span>. This can be accieved by the so-called purification: in addition to
+the physical space <cite>P</cite>, we introduce a second ‘auxiliar’ space <cite>Q</cite> and define the density matrix
+of the physical system as <span class="math notranslate">\(\rho = Tr_Q(|\phi&gt;&lt;\phi|)\)</span>, where <span class="math notranslate">\(|\phi&gt;\)</span> is a pure state
+in the combined phyisical and auxiliar system.</p>
+<p>For <span class="math notranslate">\(T=\infty\)</span>, the density matrix <span class="math notranslate">\(\rho_\infty\)</span> is the identity matrix.
+In other words, expectation values are sums over all possible states
+<span class="math notranslate">\(&lt;O&gt; = Tr_P(\rho_\infty O) = Tr_P(O)\)</span>.
+Saying that each <code class="docutils literal notranslate"><span class="pre">:</span></code> on top is to be connected with the corresponding <code class="docutils literal notranslate"><span class="pre">:</span></code> on the bottom,
+the trace is simply a contraction:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>         <span class="p">:</span>   <span class="p">:</span>   <span class="p">:</span>   <span class="p">:</span>   <span class="p">:</span>   <span class="p">:</span>
+<span class="o">|</span>         <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
+<span class="o">|</span>         <span class="o">|-------------------|</span>
+<span class="o">|</span>         <span class="o">|</span>        <span class="n">O</span>          <span class="o">|</span>
+<span class="o">|</span>         <span class="o">|-------------------|</span>
+<span class="o">|</span>         <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
+<span class="o">|</span>         <span class="p">:</span>   <span class="p">:</span>   <span class="p">:</span>   <span class="p">:</span>   <span class="p">:</span>   <span class="p">:</span>
+</pre></div>
+</div>
+<p>Clearly, we get the same result, if we insert an identity operator, written as MPO, on the top
+and bottom:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>         <span class="p">:</span>   <span class="p">:</span>   <span class="p">:</span>   <span class="p">:</span>   <span class="p">:</span>   <span class="p">:</span>
+<span class="o">|</span>         <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
+<span class="o">|</span>         <span class="n">B</span><span class="o">---</span><span class="n">B</span><span class="o">---</span><span class="n">B</span><span class="o">---</span><span class="n">B</span><span class="o">---</span><span class="n">B</span><span class="o">---</span><span class="n">B</span>
+<span class="o">|</span>         <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
+<span class="o">|</span>         <span class="o">|-------------------|</span>
+<span class="o">|</span>         <span class="o">|</span>        <span class="n">O</span>          <span class="o">|</span>
+<span class="o">|</span>         <span class="o">|-------------------|</span>
+<span class="o">|</span>         <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
+<span class="o">|</span>         <span class="n">B</span><span class="o">*--</span><span class="n">B</span><span class="o">*--</span><span class="n">B</span><span class="o">*--</span><span class="n">B</span><span class="o">*--</span><span class="n">B</span><span class="o">*--</span><span class="n">B</span><span class="o">*</span>
+<span class="o">|</span>         <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
+<span class="o">|</span>         <span class="p">:</span>   <span class="p">:</span>   <span class="p">:</span>   <span class="p">:</span>   <span class="p">:</span>   <span class="p">:</span>
+</pre></div>
+</div>
+<p>We  use the following label convention:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>         <span class="n">q</span>
+<span class="o">|</span>         <span class="o">^</span>
+<span class="o">|</span>         <span class="o">|</span>
+<span class="o">|</span>  <span class="n">vL</span> <span class="o">-&gt;-</span> <span class="n">B</span> <span class="o">-&gt;-</span> <span class="n">vR</span>
+<span class="o">|</span>         <span class="o">|</span>
+<span class="o">|</span>         <span class="o">^</span>
+<span class="o">|</span>         <span class="n">p</span>
+</pre></div>
+</div>
+<p>You can view the <cite>MPO</cite> as an MPS by combining the <cite>p</cite> and <cite>q</cite> leg and defining every physical
+operator to act trivial on the <cite>q</cite> leg. In expecation values, you would then sum over
+over the <cite>q</cite> legs, which is exactly what we need.
+In other words, the choice <span class="math notranslate">\(B = \delta_{p,q}\)</span> with trivial (length-1) virtual bonds yields
+infinite temperature expectation values for operators action only on the <cite>p</cite> legs!</p>
+<p>Now, you go a step further and also apply imaginary time evolution (acting only on <cite>p</cite> legs)
+to the initial infinite temperature state.
+For example, the normalized state <span class="math notranslate">\(|\psi&gt; \propto \exp(-\beta/2 H)|\phi&gt;\)</span>
+yields expecation values</p>
+<div class="math notranslate">
+\[&lt;O&gt;  = Tr(\exp(-\beta H) O) / Tr(\exp(-\beta H))
+\propto &lt;\phi|\exp(-\beta/2 H) O \exp(-\beta/2 H)|\phi&gt;.\]</div>
+<p>An additional real-time evolution allows to calculate time correlation functions:</p>
+<div class="math notranslate">
+\[&lt;A(t)B(0)&gt; \propto &lt;\phi|\exp(-\beta H/2) \exp(+i H t) A \exp(-i H t) B \exp(-\beta H/2) |\phi&gt;\]</div>
+<p>See also <a class="reference internal" href="../literature.html#karrasch2013" id="id1">[Karrasch2013]</a> for additional tricks! On of their crucial observations is, that
+one can apply arbitrary unitaries on the auxiliar space (i.e. the <cite>q</cite>) without changing the result.
+This can actually be used to reduce the necessary virtual bond dimensions:
+From the definition, it is easy to see that if we apply <span class="math notranslate">\(exp(-i H t)\)</span> to the <cite>p</cite> legs of
+<span class="math notranslate">\(|\phi&gt;\)</span>, and <span class="math notranslate">\(\exp(+iHt)\)</span> to the <cite>q</cite> legs, they just cancel out!
+(They commute with <span class="math notranslate">\(\exp(-\beta H/2)\)</span>…)
+If the state is modified (e.g. by applying <cite>A</cite> or <cite>B</cite> to calculate correlation functions),
+this is not true any more. However, we still can find unitaries, which are ‘optimal’ in the sense
+of reducing the entanglement of the MPS/MPO to the minimal value.
+For a discussion of <cite>Disentanglers</cite> (implemented in <a class="reference internal" href="tenpy.algorithms.purification_tebd.html#module-tenpy.algorithms.purification_tebd" title="tenpy.algorithms.purification_tebd"><code class="xref py py-mod docutils literal notranslate"><span class="pre">purification_tebd</span></code></a>),
+see <a class="reference internal" href="../literature.html#hauschild2017" id="id2">[Hauschild2017]</a>.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The classes <code class="xref py py-class docutils literal notranslate"><span class="pre">MPSEnvironment</span></code> and
+<code class="xref py py-class docutils literal notranslate"><span class="pre">TransferMatrix</span></code> should also work for the
+<a class="reference internal" href="#tenpy.networks.purification_mps.PurificationMPS" title="tenpy.networks.purification_mps.PurificationMPS"><code class="xref py py-class docutils literal notranslate"><span class="pre">PurificationMPS</span></code></a> defined here.
+For example, you can use <a class="reference internal" href="tenpy.networks.mps.html#tenpy.networks.mps.MPSEnvironment.expectation_value" title="tenpy.networks.mps.MPSEnvironment.expectation_value"><code class="xref py py-meth docutils literal notranslate"><span class="pre">expectation_value()</span></code></a>
+for the expectation value of operators between different PurificationMPS.
+However, this makes only sense if the <em>same</em> disentangler was applied
+to the <cite>bra</cite> and <cite>ket</cite> PurificationMPS.</p>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The literature (e.g. section 7.2 of <a class="reference internal" href="../literature.html#schollwoeck2011" id="id3">[Schollwoeck2011]</a> or <a class="reference internal" href="../literature.html#karrasch2013" id="id4">[Karrasch2013]</a>) suggests to use
+a <cite>singlet</cite> as a maximally entangled state.
+Here, we use instead the identity <span class="math notranslate">\(\delta_{p,q}\)</span>, since it is easier to
+generalize for <cite>p</cite> running over more than two indices, and allows a simple use of charge
+conservation with the above <cite>qconj</cite> convention.
+Moreover, we don’t split the physical and auxiliar space into separate sites, which makes
+TEBD as costly as <span class="math notranslate">\(O(d^6 \chi^3)\)</span>.</p>
+</div>
+<div class="admonition-todo admonition" id="index-0">
+<p class="first admonition-title">Todo</p>
+<p class="last">One can also look at the canonical ensembles by defining the conserved quantities
+differently, see Barthel (2016), arXiv:1607.01696 for details.
+Idea: usual charges on <cite>p</cite>, trivial charges on <cite>q</cite>; fix total charge to desired value.
+I think it should suffice to implement another <cite>from_infiniteT</cite>.</p>
+</div>
+<dl class="class">
+<dt id="tenpy.networks.purification_mps.PurificationMPS">
+<em class="property">class </em><code class="descclassname">tenpy.networks.purification_mps.</code><code class="descname">PurificationMPS</code><span class="sig-paren">(</span><em>sites</em>, <em>Bs</em>, <em>SVs</em>, <em>bc='finite'</em>, <em>form='B'</em>, <em>norm=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/purification_mps.html#PurificationMPS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.purification_mps.PurificationMPS" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tenpy.networks.mps.html#tenpy.networks.mps.MPS" title="tenpy.networks.mps.MPS"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.networks.mps.MPS</span></code></a></p>
+<p>An MPS representing a finite-temperature ensemble using purification.</p>
+<p>Similar as an MPS, but each <cite>B</cite> has now the four legs <code class="docutils literal notranslate"><span class="pre">'vL',</span> <span class="pre">'vR',</span> <span class="pre">'p',</span> <span class="pre">'q'</span></code>.
+From the point of algorithms, it is to be considered as a ususal MPS by combining the legs
+<cite>p</cite> and <cite>q</cite>, but all physical operators act only on the <cite>p</cite> part.
+For example, the right-canonical form is defined as if the legs ‘p’ and ‘q’ would be combined,
+e.g. a right-canonical <cite>B</cite> full-fills:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">B</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span><span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;q&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">,</span> <span class="s1">&#39;q*&#39;</span><span class="p">]])</span> <span class="o">==</span> \
+    <span class="n">npc</span><span class="o">.</span><span class="n">eye_like</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="s1">&#39;vL&#39;</span><span class="p">)</span>  <span class="c1"># up to round-off errors</span>
+</pre></div>
+</div>
+<p>For expectation values / correlation functions, all operators are to understood to act on
+<cite>p</cite> only, i.e. they act trivial on <cite>q</cite>, so we just trace over <code class="docutils literal notranslate"><span class="pre">'q',</span> <span class="pre">'q*'</span></code>.</p>
+<p>See also the docstring of the module for details.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">L</span></code></dt>
+<dd><p class="first last">Number of physical sites.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">chi</span></code></dt>
+<dd><p class="first last">Dimensions of the (nontrivial) virtual bonds.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">dim</span></code></dt>
+<dd><p class="first last">List of local physical dimensions.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">finite</span></code></dt>
+<dd><p class="first last">Distinguish MPS (<code class="docutils literal notranslate"><span class="pre">True;</span> <span class="pre">bc='finite',</span> <span class="pre">'segment'</span></code> ) vs.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">nontrivial_bonds</span></code></dt>
+<dd><p class="first last">Slice of the non-trivial bond indices, depending on <code class="docutils literal notranslate"><span class="pre">self.bc</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add</span></code>(other,&nbsp;alpha,&nbsp;beta)</td>
+<td>Return an MPS which represents <code class="docutils literal notranslate"><span class="pre">alpha|self&gt;</span> <span class="pre">+</span> <span class="pre">beta</span> <span class="pre">|others&gt;</span></code>.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_local_op</span></code>(i,&nbsp;op[,&nbsp;unitary,&nbsp;renormalize])</td>
+<td>Apply a local operator to <cite>self</cite>.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">canonical_form</span></code>([renormalize])</td>
+<td>Bring self into canonical ‘B’ form, (re-)calculate singular values.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">canonical_form_finite</span></code>([renormalize])</td>
+<td>Bring a finite (or segment) MPS into canonical form (in place).</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">canonical_form_infinite</span></code>([renormalize,&nbsp;tol_xi])</td>
+<td>Bring an infinite MPS into canonical form (in place).</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_K</span></code>(perm[,&nbsp;swap_op,&nbsp;trunc_par,&nbsp;…])</td>
+<td>Compute the momentum quantum numbers of the entanglement spectrum for 2D states.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">convert_form</span></code>([new_form])</td>
+<td>Tranform self into different canonical form (by scaling the legs with singular values).</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.networks.purification_mps.PurificationMPS.copy" title="tenpy.networks.purification_mps.PurificationMPS.copy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy</span></code></a>()</td>
+<td>Returns a copy of <cite>self</cite>.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">correlation_function</span></code>(ops1,&nbsp;ops2[,&nbsp;sites1,&nbsp;…])</td>
+<td>Correlation function  <code class="docutils literal notranslate"><span class="pre">&lt;psi|op1_i</span> <span class="pre">op2_j|psi&gt;/&lt;psi|psi&gt;</span></code> of single site operators.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">correlation_length</span></code>([target,&nbsp;tol_ev0])</td>
+<td>Calculate the correlation length by diagonalizing the transfer matrix.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">entanglement_entropy</span></code>([n,&nbsp;bonds,&nbsp;for_matrix_S])</td>
+<td>Calculate the (half-chain) entanglement entropy for all nontrivial bonds.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.networks.purification_mps.PurificationMPS.entanglement_entropy_segment" title="tenpy.networks.purification_mps.PurificationMPS.entanglement_entropy_segment"><code class="xref py py-obj docutils literal notranslate"><span class="pre">entanglement_entropy_segment</span></code></a>([segment,&nbsp;…])</td>
+<td>Calculate entanglement entropy for general geometry of the bipartition.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">entanglement_spectrum</span></code>([by_charge])</td>
+<td>return entanglement energy spectrum.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">expectation_value</span></code>(ops[,&nbsp;sites,&nbsp;axes])</td>
+<td>Expectation value <code class="docutils literal notranslate"><span class="pre">&lt;psi|ops|psi&gt;/&lt;psi|psi&gt;</span></code> of (n-site) operator(s).</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_Bflat</span></code>(sites,&nbsp;Bflat[,&nbsp;SVs,&nbsp;bc,&nbsp;dtype,&nbsp;…])</td>
+<td>Construct a matrix product state from a given product state.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_full</span></code>(sites,&nbsp;psi[,&nbsp;form,&nbsp;cutoff,&nbsp;normalize])</td>
+<td>Construct an MPS from a single tensor <cite>psi</cite> with one leg per physical site.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.networks.purification_mps.PurificationMPS.from_infiniteT" title="tenpy.networks.purification_mps.PurificationMPS.from_infiniteT"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_infiniteT</span></code></a>(sites[,&nbsp;bc,&nbsp;form])</td>
+<td>Initial state corresponding to infinite-Temperature ensemble.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_product_state</span></code>(sites,&nbsp;p_state[,&nbsp;bc,&nbsp;…])</td>
+<td>Construct a matrix product state from a given product state.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_singlets</span></code>(site,&nbsp;L,&nbsp;pairs[,&nbsp;up,&nbsp;down,&nbsp;…])</td>
+<td>Create an MPS of entangled singlets.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_B</span></code>(i[,&nbsp;form,&nbsp;copy,&nbsp;cutoff])</td>
+<td>Return (view of) <cite>B</cite> at site <cite>i</cite> in canonical form.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_SL</span></code>(i)</td>
+<td>Return singular values on the left of site <cite>i</cite></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_SR</span></code>(i)</td>
+<td>Return singular values on the right of site <cite>i</cite></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_op</span></code>(op_list,&nbsp;i)</td>
+<td>Given a list of operators, select the one corresponding to site <cite>i</cite>.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_rho_segment</span></code>(segment)</td>
+<td>Return reduced density matrix for a segment.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_theta</span></code>(i[,&nbsp;n,&nbsp;cutoff,&nbsp;formL,&nbsp;formR])</td>
+<td>Calculates the <cite>n</cite>-site wavefunction on <code class="docutils literal notranslate"><span class="pre">sites[i:i+n]</span></code>.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.networks.purification_mps.PurificationMPS.mutinf_two_site" title="tenpy.networks.purification_mps.PurificationMPS.mutinf_two_site"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mutinf_two_site</span></code></a>([max_range,&nbsp;n,&nbsp;legs])</td>
+<td>Calculate the two-site mutual information <span class="math notranslate">\(I(i:j)\)</span>.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">norm_test</span></code>()</td>
+<td>Check that self is in canonical form.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">overlap</span></code>(other[,&nbsp;ignore_form])</td>
+<td>Compute overlap <span class="math notranslate">\(&lt;self|other&gt;\)</span>.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">permute_sites</span></code>(perm[,&nbsp;swap_op,&nbsp;trunc_par,&nbsp;…])</td>
+<td>Applies the permutation perm to the state (inplace).</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_B</span></code>(i,&nbsp;B[,&nbsp;form])</td>
+<td>Set <cite>B</cite> at site <cite>i</cite>.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_SL</span></code>(i,&nbsp;S)</td>
+<td>Set singular values on the left of site <cite>i</cite></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_SR</span></code>(i,&nbsp;S)</td>
+<td>Set singular values on the right of site <cite>i</cite></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.networks.purification_mps.PurificationMPS.test_sanity" title="tenpy.networks.purification_mps.PurificationMPS.test_sanity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code></a>()</td>
+<td>Sanity check.</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="58%" />
+<col width="42%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>swap_sites</strong></td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="tenpy.networks.purification_mps.PurificationMPS.copy">
+<code class="descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/purification_mps.html#PurificationMPS.copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.purification_mps.PurificationMPS.copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a copy of <cite>self</cite>.</p>
+<p>The copy still shares the sites, chinfo, and LegCharges of the _B,
+but the values of B and S are deeply copied.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.purification_mps.PurificationMPS.entanglement_entropy_segment">
+<code class="descname">entanglement_entropy_segment</code><span class="sig-paren">(</span><em>segment=[0], first_site=None, n=1, legs='p'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/purification_mps.html#PurificationMPS.entanglement_entropy_segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.purification_mps.PurificationMPS.entanglement_entropy_segment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate entanglement entropy for general geometry of the bipartition.</p>
+<p>This function is similar as <code class="xref py py-meth docutils literal notranslate"><span class="pre">entanglement_entropy()</span></code>,
+but for more general geometry of the region <cite>A</cite> to be a segment of a <em>few</em> sites.</p>
+<p>This is acchieved by explicitly calculating the reduced density matrix of <cite>A</cite>
+and thus works only for small segments.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>segment</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of int</span></dt>
+<dd><p class="first last">Given a first site <cite>i</cite>, the region <code class="docutils literal notranslate"><span class="pre">A_i</span></code> is defined to be <code class="docutils literal notranslate"><span class="pre">[i+j</span> <span class="pre">for</span> <span class="pre">j</span> <span class="pre">in</span> <span class="pre">segment]</span></code>.</p>
+</dd>
+<dt><strong>first_site</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">None</span></code> | (iterable of) int</span></dt>
+<dd><p class="first last">Calculate the entropy for segments starting at these sites.
+<code class="docutils literal notranslate"><span class="pre">None</span></code> defaults to <code class="docutils literal notranslate"><span class="pre">range(L-segment[-1])</span></code> for finite
+or <cite>range(L)</cite> for infinite boundary conditions.</p>
+</dd>
+<dt><strong>n</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int | float</span></dt>
+<dd><p class="first last">Selects which entropy to calculate;
+<cite>n=1</cite> (default) is the ususal von-Neumann entanglement entropy,
+otherwise the <cite>n</cite>-th Renyi entropy.</p>
+</dd>
+<dt><strong>leg</strong> <span class="classifier-delimiter">:</span> <span class="classifier">‘p’, ‘q’, ‘pq’</span></dt>
+<dd><p class="first last">Whether we look at the entanglement entropy in both (<cite>pq</cite>) or
+only one of auxiliar (<cite>q</cite>) and physical (<cite>p</cite>) space.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>entropies</strong> <span class="classifier-delimiter">:</span> <span class="classifier">1D ndarray</span></dt>
+<dd><p class="first last"><code class="docutils literal notranslate"><span class="pre">entropies[i]</span></code> contains the entropy for the the region <code class="docutils literal notranslate"><span class="pre">A_i</span></code> defined above.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="tenpy.networks.purification_mps.PurificationMPS.from_infiniteT">
+<em class="property">classmethod </em><code class="descname">from_infiniteT</code><span class="sig-paren">(</span><em>sites</em>, <em>bc='finite'</em>, <em>form='B'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/purification_mps.html#PurificationMPS.from_infiniteT"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.purification_mps.PurificationMPS.from_infiniteT" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initial state corresponding to infinite-Temperature ensemble.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>infiniteT_MPS</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="#tenpy.networks.purification_mps.PurificationMPS" title="tenpy.networks.purification_mps.PurificationMPS"><code class="xref py py-class docutils literal notranslate"><span class="pre">PurificationMPS</span></code></a></span></dt>
+<dd><p class="first last">Describes the infinite-temperature (grand canonical) ensemble,
+i.e. expectation values give a trace over all basis states.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.purification_mps.PurificationMPS.mutinf_two_site">
+<code class="descname">mutinf_two_site</code><span class="sig-paren">(</span><em>max_range=None</em>, <em>n=1</em>, <em>legs='p'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/purification_mps.html#PurificationMPS.mutinf_two_site"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.purification_mps.PurificationMPS.mutinf_two_site" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the two-site mutual information <span class="math notranslate">\(I(i:j)\)</span>.</p>
+<p>Calculates <span class="math notranslate">\(I(i:j) = S(i) + S(j) - S(i,j)\)</span>,
+where <span class="math notranslate">\(S(i)\)</span> is the single site entropy on site <span class="math notranslate">\(i\)</span>
+and <span class="math notranslate">\(S(i,j)\)</span> the two-site entropy on sites <span class="math notranslate">\(i,j\)</span>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>max_range</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Maximal distance <code class="docutils literal notranslate"><span class="pre">|i-j|</span></code> for which the mutual information should be calculated.
+<code class="docutils literal notranslate"><span class="pre">None</span></code> defaults to <cite>L-1</cite>.</p>
+</dd>
+<dt><strong>n</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Selects the entropy to use, see <a class="reference internal" href="tenpy.tools.math.html#tenpy.tools.math.entropy" title="tenpy.tools.math.entropy"><code class="xref py py-func docutils literal notranslate"><span class="pre">entropy()</span></code></a>.</p>
+</dd>
+<dt><strong>leg</strong> <span class="classifier-delimiter">:</span> <span class="classifier">‘p’, ‘q’, ‘pq’</span></dt>
+<dd><p class="first last">Whether we look at the entanglement entropy in both (<cite>pq</cite>) or
+only one of auxiliar (<cite>q</cite>) and physical (<cite>p</cite>) space.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>coords</strong> <span class="classifier-delimiter">:</span> <span class="classifier">2D array</span></dt>
+<dd><p class="first last">Coordinates for the mutinf array.</p>
+</dd>
+<dt><strong>mutinf</strong> <span class="classifier-delimiter">:</span> <span class="classifier">1D array</span></dt>
+<dd><p class="first last"><code class="docutils literal notranslate"><span class="pre">mutinf[k]</span></code> is the mutual information <span class="math notranslate">\(I(i:j)\)</span> between the
+sites <code class="docutils literal notranslate"><span class="pre">i,</span> <span class="pre">j</span> <span class="pre">=</span> <span class="pre">coords[k]</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.purification_mps.PurificationMPS.swap_sites">
+<code class="descname">swap_sites</code><span class="sig-paren">(</span><em>i</em>, <em>swapOP='auto'</em>, <em>trunc_par={}</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/purification_mps.html#PurificationMPS.swap_sites"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.purification_mps.PurificationMPS.swap_sites" title="Permalink to this definition">¶</a></dt>
+<dd><p>Swap the two neighboring sites <cite>i</cite> and <cite>i+1</cite> (inplace).</p>
+<p>Exchange two neighboring sites: form theta, ‘swap’ the physical legs and split
+with an svd. While the ‘swap’ is just a transposition/relabeling for bosons, one needs to
+be careful about the sign for fermions.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>i</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Swap the two sites at positions <cite>i</cite> and <cite>i+1</cite>.</p>
+</dd>
+<dt><strong>swap_op</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">None</span></code> | <code class="docutils literal notranslate"><span class="pre">'auto'</span></code> | <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">The operator used to swap the phyiscal legs of the two-site wave function <cite>theta</cite>.
+For <code class="docutils literal notranslate"><span class="pre">None</span></code>, just transpose/relabel the legs, for <code class="docutils literal notranslate"><span class="pre">'auto'</span></code> also take care of
+fermionic signs. Alternative give an npc <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a>
+which represents the full operator used for the swap.
+Should have legs <code class="docutils literal notranslate"><span class="pre">['p0',</span> <span class="pre">'p1',</span> <span class="pre">'p0*',</span> <span class="pre">'p1*']</span></code> whith <code class="docutils literal notranslate"><span class="pre">'p0',</span> <span class="pre">'p1*'</span></code> contractible.</p>
+</dd>
+<dt><strong>trunc_par</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
+<dd><p class="first last">Parameters for truncation, see <a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.truncate" title="tenpy.algorithms.truncation.truncate"><code class="xref py py-func docutils literal notranslate"><span class="pre">truncate()</span></code></a>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>trunc_err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
+<dd><p class="first last">The error of the represented state introduced by the truncation after the swap.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.purification_mps.PurificationMPS.test_sanity">
+<code class="descname">test_sanity</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/purification_mps.html#PurificationMPS.test_sanity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.purification_mps.PurificationMPS.test_sanity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sanity check. Raises Errors if something is wrong.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/logo.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="tenpy.networks.mps.html"
+                        title="previous chapter">tenpy.networks.mps module</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="tenpy.networks.site.html"
+                        title="next chapter">tenpy.networks.site module</a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../index.html">Table Of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../userguide.html">User Guide</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tenpy.html">tenpy package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tenpy.html#subpackages">Subpackages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.html#module-tenpy">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tenpy.networks.site.html" title="tenpy.networks.site module"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="tenpy.networks.mps.html" title="tenpy.networks.mps module"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="tenpy.html" >tenpy package</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.networks.html" >tenpy.networks package</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2018, TeNPy Developers.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

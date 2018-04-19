@@ -1,0 +1,1202 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>tenpy.algorithms.purification_tebd &#8212; TeNPy 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tenpy.algorithms.purification_tebd</h1><div class="highlight"><pre>
+<span></span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Time evolving block decimation (TEBD) for MPS of purification.</span>
+
+<span class="sd">See introduction in :mod:`~tenpy.networks.purification_mps`.</span>
+<span class="sd">Time evolution for finite-temperature ensembles.</span>
+<span class="sd">This can be used to obtain correlation functions in time.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># Copyright 2018 TeNPy Developers</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">tebd</span>
+<span class="kn">from</span> <span class="nn">..linalg</span> <span class="k">import</span> <span class="n">np_conserved</span> <span class="k">as</span> <span class="n">npc</span>
+<span class="kn">from</span> <span class="nn">.truncation</span> <span class="k">import</span> <span class="n">svd_theta</span><span class="p">,</span> <span class="n">TruncationError</span>
+<span class="kn">from</span> <span class="nn">..tools.params</span> <span class="k">import</span> <span class="n">get_parameter</span>
+<span class="kn">from</span> <span class="nn">..tools.math</span> <span class="k">import</span> <span class="n">entropy</span>
+<span class="kn">from</span> <span class="nn">..linalg</span> <span class="k">import</span> <span class="n">random_matrix</span> <span class="k">as</span> <span class="n">rand_mat</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">&#39;PurificationTEBD&#39;</span><span class="p">,</span> <span class="s1">&#39;PurificationTEBD2&#39;</span><span class="p">,</span> <span class="s1">&#39;Disentangler&#39;</span><span class="p">,</span> <span class="s1">&#39;BackwardDisentangler&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;RenyiDisentangler&#39;</span><span class="p">,</span> <span class="s1">&#39;NormDisentangler&#39;</span><span class="p">,</span> <span class="s1">&#39;DiagonalizeDisentangler&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;GradientDescentDisentangler&#39;</span><span class="p">,</span> <span class="s1">&#39;NoiseDisentangler&#39;</span><span class="p">,</span> <span class="s1">&#39;LastDisentangler&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;CompositeDisentangler&#39;</span><span class="p">,</span> <span class="s1">&#39;MinDisentangler&#39;</span><span class="p">,</span> <span class="s1">&#39;disentanglers_atom_parse_dict&#39;</span><span class="p">,</span> <span class="s1">&#39;get_disentangler&#39;</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="PurificationTEBD"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.purification_tebd.html#tenpy.algorithms.purification_tebd.PurificationTEBD">[docs]</a><span class="k">class</span> <span class="nc">PurificationTEBD</span><span class="p">(</span><span class="n">tebd</span><span class="o">.</span><span class="n">Engine</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Time evolving block decimation (TEBD) for purification MPS.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    psi : :class:`~tenpy.networs.purification_mps.PurificationMPS`</span>
+<span class="sd">        Initial state to be time evolved. Modified in place.</span>
+<span class="sd">    model : :class:`~tenpy.models.NearestNeighborModel`</span>
+<span class="sd">        The model representing the Hamiltonian for which we want to find the ground state.</span>
+<span class="sd">    TEBD_params : dict</span>
+<span class="sd">        Further optional parameters as described in the following table.</span>
+<span class="sd">        Use ``verbose=1`` to print the used parameters during runtime.</span>
+<span class="sd">        See :func:`run` and :func:`run_GS` for more details.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    disent_iterations</span>
+<span class="sd">    used_disentangler : :class:`Disentangler`</span>
+<span class="sd">        The disentangler to be used on the auxiliar indices.</span>
+<span class="sd">        Chosen by :func:`get_disentangler`, called with the TEBD parameter ``&#39;disentangle&#39;``.</span>
+<span class="sd">        Defaults to the trivial disentangler for ``TEBD_params[&#39;disentangle&#39;]=None``.</span>
+<span class="sd">    _disent_iterations : 1D ndarray</span>
+<span class="sd">        Number of iterations performed on all bonds, including trivial bonds; lenght `L`.</span>
+<span class="sd">    _guess_U_disent : list of list of npc.Array</span>
+<span class="sd">        Same index strucuture as `self._U`: for each two-site U of the physical time evolution</span>
+<span class="sd">        the disentangler from the last application. Initialized to identities.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">TEBD_params</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PurificationTEBD</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">psi</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">TEBD_params</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_disent_iterations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">L</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_guess_U_disent</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># will be set in calc_U</span>
+        <span class="n">method</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s1">&#39;disentangle&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;PurificationTEBD&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">used_disentangler</span> <span class="o">=</span> <span class="n">get_disentangler</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">method</span><span class="p">),</span> <span class="bp">self</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PurificationTEBD.run_imaginary"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.purification_tebd.html#tenpy.algorithms.purification_tebd.PurificationTEBD.run_imaginary">[docs]</a>    <span class="k">def</span> <span class="nf">run_imaginary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beta</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Run imaginary time evolution to cool down to the given `beta`.</span>
+
+<span class="sd">        Note that we don&#39;t change the `norm` attribute of the MPS, i.e. normalization is preserved.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        beta : float</span>
+<span class="sd">            The inverse temperature `beta` = 1/T, by which we should cool down.</span>
+<span class="sd">            We evolve to the closest multiple of ``TEBD_params[&#39;dt&#39;]``,</span>
+<span class="sd">            see also :attr:`evolved_time`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">delta_t</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s1">&#39;dt&#39;</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="s1">&#39;PurificationTEBD&#39;</span><span class="p">)</span>
+        <span class="n">TrotterOrder</span> <span class="o">=</span> <span class="mi">2</span>  <span class="c1"># currently, imaginary time evolution works only for second order.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calc_U</span><span class="p">(</span><span class="n">TrotterOrder</span><span class="p">,</span> <span class="n">delta_t</span><span class="p">,</span> <span class="n">type_evo</span><span class="o">=</span><span class="s1">&#39;imag&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_imag</span><span class="p">(</span><span class="n">N_steps</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">beta</span> <span class="o">/</span> <span class="n">delta_t</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">bond_energies</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="p">))</span>
+            <span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">entanglement_entropy</span><span class="p">())</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;--&gt; time=</span><span class="si">{t:.6f}</span><span class="s2">, E_bond=</span><span class="si">{E:.10f}</span><span class="s2">, S=</span><span class="si">{S:.10f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">t</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">evolved_time</span><span class="p">,</span> <span class="n">E</span><span class="o">=</span><span class="n">E</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">S</span><span class="o">=</span><span class="n">S</span><span class="o">.</span><span class="n">real</span><span class="p">))</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">disent_iterations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;For each bond the total number of iterations performed in any :class:`Disentangler`.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_disent_iterations</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">nontrivial_bonds</span><span class="p">]</span>
+
+<div class="viewcode-block" id="PurificationTEBD.calc_U"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.purification_tebd.html#tenpy.algorithms.purification_tebd.PurificationTEBD.calc_U">[docs]</a>    <span class="k">def</span> <span class="nf">calc_U</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">delta_t</span><span class="p">,</span> <span class="n">type_evo</span><span class="o">=</span><span class="s1">&#39;real&#39;</span><span class="p">,</span> <span class="n">E_offset</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;see :meth:`~tenpy.algorithms.tebd.eng.calc_U`&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PurificationTEBD</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">calc_U</span><span class="p">(</span><span class="n">order</span><span class="p">,</span> <span class="n">delta_t</span><span class="p">,</span> <span class="n">type_evo</span><span class="p">,</span> <span class="n">E_offset</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_guess_U_disent</span> <span class="o">=</span> <span class="p">[[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">Us</span><span class="p">)</span> <span class="k">for</span> <span class="n">Us</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_U</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="PurificationTEBD.update_bond"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.purification_tebd.html#tenpy.algorithms.purification_tebd.PurificationTEBD.update_bond">[docs]</a>    <span class="k">def</span> <span class="nf">update_bond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">U_bond</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Updates the B matrices on a given bond.</span>
+
+<span class="sd">        Function that updates the B matrices, the bond matrix s between and the</span>
+<span class="sd">        bond dimension chi for bond i. This would look something like::</span>
+
+<span class="sd">        |           |             |</span>
+<span class="sd">        |     ... - B1  -  s  -  B2 - ...</span>
+<span class="sd">        |           |             |</span>
+<span class="sd">        |           |-------------|</span>
+<span class="sd">        |           |      U      |</span>
+<span class="sd">        |           |-------------|</span>
+<span class="sd">        |           |             |</span>
+
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        i : int</span>
+<span class="sd">            Bond index; we update the matrices at sites ``i-1, i``.</span>
+<span class="sd">        U_bond : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            The bond operator which we apply to the wave function.</span>
+<span class="sd">            We expect labels ``&#39;p0&#39;, &#39;p1&#39;, &#39;p0*&#39;, &#39;p1*&#39;`` for `U_bond`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        trunc_err : :class:`~tenpy.algorithms.truncation.TruncationError`</span>
+<span class="sd">            The error of the represented state which is introduced by the truncation</span>
+<span class="sd">            during this update step.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">i0</span><span class="p">,</span> <span class="n">i1</span> <span class="o">=</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">30</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Update sites (</span><span class="si">{0:d}</span><span class="s2">, </span><span class="si">{1:d}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">i1</span><span class="p">))</span>
+        <span class="c1"># Construct the theta matrix</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_theta</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># &#39;vL&#39;, &#39;vR&#39;, &#39;p0&#39;, &#39;p1&#39;, &#39;q0&#39;, &#39;q1&#39;</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U_bond</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">]))</span>
+        <span class="c1"># ##### new hook compared to tebd.Engine.calc_U</span>
+        <span class="n">theta</span><span class="p">,</span> <span class="n">U_disent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">disentangle</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+        <span class="c1"># ####</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([(</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;q0&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">)],</span> <span class="n">qconj</span><span class="o">=</span><span class="p">[</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="c1"># Perform the SVD and truncate the wavefunction</span>
+        <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">trunc_err</span><span class="p">,</span> <span class="n">renormalize</span> <span class="o">=</span> <span class="n">svd_theta</span><span class="p">(</span>
+            <span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">,</span> <span class="n">inner_labels</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">])</span>
+
+        <span class="c1"># bring back to right-canonical &#39;B&#39; form and update matrices</span>
+        <span class="n">B_R</span> <span class="o">=</span> <span class="n">V</span><span class="o">.</span><span class="n">split_legs</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;q&#39;</span><span class="p">])</span>
+        <span class="c1">#  In general, we want to do the following:</span>
+        <span class="c1">#      B_L = U.iscale_axis(S, &#39;vR&#39;)</span>
+        <span class="c1">#      B_L = B_L.split_legs(0).iscale_axis(self.psi.get_SL(i0)**(-1), &#39;vL&#39;)</span>
+        <span class="c1">#      B_L = B_L.ireplace_labels([&#39;p0&#39;, &#39;q0&#39;], [&#39;p&#39;, &#39;q&#39;])</span>
+        <span class="c1"># i.e. with SL = self.psi.get_SL(i0), we have ``B_L = SL**(-1) U S``</span>
+        <span class="c1"># However, the inverse of SL is problematic, as it might contain very small singular</span>
+        <span class="c1"># values.  Instead, we calculate ``C == SL**-1 theta == SL**-1 U S V``,</span>
+        <span class="c1"># such that we obtain ``B_L = SL**-1 U S = SL**-1 U S V V^dagger = C V^dagger``</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_theta</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">formL</span><span class="o">=</span><span class="mf">0.</span><span class="p">)</span>
+        <span class="c1"># here, C is the same as theta, but without the `S` on the very left</span>
+        <span class="c1"># (Note: this requires no inverse if the MPS is initially in &#39;B&#39; canonical form)</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U_bond</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">]))</span>  <span class="c1"># apply U as for theta</span>
+        <span class="k">if</span> <span class="n">U_disent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">C</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U_disent</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;q0*&#39;</span><span class="p">,</span> <span class="s1">&#39;q1*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">]])</span>
+        <span class="n">B_L</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span>
+            <span class="n">C</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">((</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">),</span> <span class="n">pipes</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+            <span class="n">V</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span>
+            <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(vR.p1.q1)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vR*.p1*.q1*)&#39;</span><span class="p">])</span>
+        <span class="n">B_L</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;vL*&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;q0&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;q&#39;</span><span class="p">])</span>
+        <span class="n">B_L</span> <span class="o">/=</span> <span class="n">renormalize</span>  <span class="c1"># re-normalize to &lt;psi|psi&gt; = 1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_SR</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_B</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">B_L</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_B</span><span class="p">(</span><span class="n">i1</span><span class="p">,</span> <span class="n">B_R</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trunc_err_bonds</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trunc_err_bonds</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">trunc_err</span>
+        <span class="k">return</span> <span class="n">trunc_err</span></div>
+
+<div class="viewcode-block" id="PurificationTEBD.update_bond_imag"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.purification_tebd.html#tenpy.algorithms.purification_tebd.PurificationTEBD.update_bond_imag">[docs]</a>    <span class="k">def</span> <span class="nf">update_bond_imag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">U_bond</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Update a bond with a (possibly non-unitary) `U_bond`.</span>
+
+<span class="sd">        Similar as :meth:`update_bond`; but after the SVD just keep the `A, S, B` canonical form.</span>
+<span class="sd">        In that way, one can sweep left or right without using old singular values,</span>
+<span class="sd">        thus preserving the canonical form during imaginary time evolution.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        i : int</span>
+<span class="sd">            Bond index; we update the matrices at sites ``i-1, i``.</span>
+<span class="sd">        U_bond : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            The bond operator which we apply to the wave function.</span>
+<span class="sd">            We expect labels ``&#39;p0&#39;, &#39;p1&#39;, &#39;p0*&#39;, &#39;p1*&#39;``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        trunc_err : :class:`~tenpy.algorithms.truncation.TruncationError`</span>
+<span class="sd">            The error of the represented state which is introduced by the truncation</span>
+<span class="sd">            during this update step.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">i0</span><span class="p">,</span> <span class="n">i1</span> <span class="o">=</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">100</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Update sites (</span><span class="si">{0:d}</span><span class="s2">, </span><span class="si">{1:d}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">i1</span><span class="p">))</span>
+        <span class="c1"># Construct the theta matrix</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_theta</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># &#39;vL&#39;, &#39;vR&#39;, &#39;p0&#39;, &#39;q0&#39;, &#39;p1&#39;, &#39;q1&#39;</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U_bond</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">]))</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([(</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;q0&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">)],</span> <span class="n">qconj</span><span class="o">=</span><span class="p">[</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="c1"># Perform the SVD and truncate the wavefunction</span>
+        <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">trunc_err</span><span class="p">,</span> <span class="n">renormalize</span> <span class="o">=</span> <span class="n">svd_theta</span><span class="p">(</span>
+            <span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">,</span> <span class="n">inner_labels</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">])</span>
+        <span class="c1"># Split legs and update matrices</span>
+        <span class="n">B_R</span> <span class="o">=</span> <span class="n">V</span><span class="o">.</span><span class="n">split_legs</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;q&#39;</span><span class="p">])</span>
+        <span class="n">A_L</span> <span class="o">=</span> <span class="n">U</span><span class="o">.</span><span class="n">split_legs</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;q0&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;q&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_SR</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_B</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">A_L</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;A&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_B</span><span class="p">(</span><span class="n">i1</span><span class="p">,</span> <span class="n">B_R</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trunc_err_bonds</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trunc_err_bonds</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">trunc_err</span>
+        <span class="k">return</span> <span class="n">trunc_err</span></div>
+
+<div class="viewcode-block" id="PurificationTEBD.disentangle"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.purification_tebd.html#tenpy.algorithms.purification_tebd.PurificationTEBD.disentangle">[docs]</a>    <span class="k">def</span> <span class="nf">disentangle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Disentangle `theta` before splitting with svd.</span>
+
+<span class="sd">        For the purification we write :math:`\rho_P = Tr_Q{|\psi_{P,Q}&gt;&lt;\psi_{P,Q}|}`. Thus, we</span>
+<span class="sd">        can actually apply any unitary to the auxiliar `Q` space of :math:`|\psi&gt;` without</span>
+<span class="sd">        changing the result.</span>
+
+<span class="sd">        .. note ::</span>
+<span class="sd">            We have to apply the *same* unitary to the &#39;bra&#39; and &#39;ket&#39; used for expectation values</span>
+<span class="sd">            / correlation functions!</span>
+
+<span class="sd">        The behaviour of this function is set by :attr:`used_disentangler`,</span>
+<span class="sd">        which in turn is obtained from ``get_disentangler(TEBD_params[&#39;disentangle&#39;])``,</span>
+<span class="sd">        see :func:`get_disentangler` for details on the syntax.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        theta : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Wave function to disentangle, with legs ``&#39;vL&#39;, &#39;vR&#39;, &#39;p0&#39;, &#39;p1&#39;, &#39;q0&#39;, &#39;q1&#39;``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        theta_disentangled : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Disentangled `theta`; ``npc.tensordot(U, theta, axes=[[&#39;q0*&#39;, &#39;q1*&#39;], [&#39;q0&#39;, &#39;q1&#39;]])``.</span>
+<span class="sd">        U : :class:`~tenpy.linalg.conserved.Array`</span>
+<span class="sd">            The unitary used to disentangle `theta`, with labels ``&#39;q0&#39;, &#39;q1&#39;, &#39;q0*&#39;, &#39;q1*&#39;``.</span>
+<span class="sd">            If no unitary was found/applied, it might also be ``None``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">theta</span><span class="p">,</span> <span class="n">U</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">used_disentangler</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+        <span class="n">U_idx_dt</span><span class="p">,</span> <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_index</span>
+        <span class="k">if</span> <span class="n">U_idx_dt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_guess_U_disent</span><span class="p">[</span><span class="n">U_idx_dt</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">U</span>  <span class="c1"># save result as guess for `LastDisentangler`</span>
+        <span class="k">return</span> <span class="n">theta</span><span class="p">,</span> <span class="n">U</span></div>
+
+<div class="viewcode-block" id="PurificationTEBD.disentangle_global"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.purification_tebd.html#tenpy.algorithms.purification_tebd.PurificationTEBD.disentangle_global">[docs]</a>    <span class="k">def</span> <span class="nf">disentangle_global</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pair</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Try global disentangling by determining the maximally entangled pairs of sites.</span>
+
+<span class="sd">        Caclulate the mutual information (in the auxiliar space) between two sites</span>
+<span class="sd">        and determine where it is maximal. Disentangle these two sites with :meth:`disentangle`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">max_range</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s1">&#39;disent_gl_maxrange&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;PurificationTEBD&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">pair</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">coords</span><span class="p">,</span> <span class="n">mutinf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">mutinf_two_site</span><span class="p">(</span><span class="n">max_range</span><span class="p">,</span> <span class="n">legs</span><span class="o">=</span><span class="s1">&#39;q&#39;</span><span class="p">)</span>
+            <span class="c1"># TODO: recalculate mutinf only as necessary and do multiple steps at once...</span>
+            <span class="nb">sorted</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">mutinf</span><span class="p">)</span>
+            <span class="n">pair</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="nb">sorted</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">pair</span>
+        <span class="c1">#  for i, j in coords[sorted[-1:]]:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;</span> <span class="mi">10</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;disentangle global pair &#39;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">((</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_disentangle_two_site</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span>  <span class="c1"># TODO</span></div>
+        <span class="c1"># done</span>
+
+<div class="viewcode-block" id="PurificationTEBD.disentangle_global_nsite"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.purification_tebd.html#tenpy.algorithms.purification_tebd.PurificationTEBD.disentangle_global_nsite">[docs]</a>    <span class="k">def</span> <span class="nf">disentangle_global_nsite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Perform a sweep through the system and disentangle with :meth:`disentangle_n_site`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        n: int</span>
+<span class="sd">            maximal number of sites to disentangle at once.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>  <span class="c1"># sweep left to right</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_index</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">i</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_theta</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">disentangle_n_site</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>  <span class="c1"># works recursively</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="n">n</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>  <span class="c1"># sweep right to left</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_index</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">i</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_theta</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">disentangle_n_site</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>  <span class="c1"># works recursively</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_index</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="PurificationTEBD.disentangle_n_site"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.purification_tebd.html#tenpy.algorithms.purification_tebd.PurificationTEBD.disentangle_n_site">[docs]</a>    <span class="k">def</span> <span class="nf">disentangle_n_site</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Generalization of :meth:`disentangle` to `n` sites.</span>
+
+<span class="sd">        Simply group left and right `n`/2 physical legs, adjust labels, and</span>
+<span class="sd">        apply :meth:`disentangle` to disentangle the central bond.</span>
+<span class="sd">        Recursively proceed to disentangle left and right parts afterwards.</span>
+<span class="sd">        Scales (for even `n`) as :math:`O(\chi^3 d^n d^{n/2})`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="n">n</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">n1</span> <span class="o">=</span> <span class="n">n</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">n2</span> <span class="o">=</span> <span class="n">n</span> <span class="o">-</span> <span class="n">n1</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;p&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">j</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)]</span>  <span class="c1"># labels of theta to be separated</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;q&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">j</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)]</span>
+        <span class="n">pL</span><span class="p">,</span> <span class="n">pR</span> <span class="o">=</span> <span class="n">p</span><span class="p">[:</span><span class="n">n1</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="n">n1</span><span class="p">:]</span>
+        <span class="n">qL</span><span class="p">,</span> <span class="n">qR</span> <span class="o">=</span> <span class="n">q</span><span class="p">[:</span><span class="n">n1</span><span class="p">],</span> <span class="n">q</span><span class="p">[</span><span class="n">n1</span><span class="p">:]</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([</span><span class="n">pL</span><span class="p">,</span> <span class="n">qL</span><span class="p">,</span> <span class="n">pR</span><span class="p">,</span> <span class="n">qR</span><span class="p">],</span> <span class="n">qconj</span><span class="o">=</span><span class="p">[</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">new_axes</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">p0</span><span class="p">,</span> <span class="n">q0</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">q1</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">get_leg_labels</span><span class="p">()</span>  <span class="c1"># keep the labels for later</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="n">p0</span><span class="p">,</span> <span class="n">q0</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">q1</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">])</span>
+        <span class="n">theta</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">disentangle</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>  <span class="c1"># apply two-site disentangling</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([(</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;q0&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">)],</span> <span class="n">qconj</span><span class="o">=</span><span class="p">[</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="c1"># Perform the SVD and truncate the wavefunction</span>
+        <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">trunc_err</span><span class="p">,</span> <span class="n">renormalize</span> <span class="o">=</span> <span class="n">svd_theta</span><span class="p">(</span>
+            <span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">,</span> <span class="n">inner_labels</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_SL</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="n">n1</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span>  <span class="c1"># update S</span>
+        <span class="k">if</span> <span class="n">n1</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># save U as left B in psi</span>
+            <span class="n">U</span> <span class="o">=</span> <span class="n">U</span><span class="o">.</span><span class="n">split_legs</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;q0&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;(p)&#39;</span><span class="p">,</span> <span class="s1">&#39;(q)&#39;</span><span class="p">])</span>
+            <span class="n">U</span> <span class="o">=</span> <span class="n">U</span><span class="o">.</span><span class="n">split_legs</span><span class="p">([</span><span class="s1">&#39;(p)&#39;</span><span class="p">,</span> <span class="s1">&#39;(q)&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_B</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">U</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;A&#39;</span><span class="p">)</span>  <span class="c1"># TODO: might want to do this inversion-free?</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># disentangle left n1-site wave function recursively</span>
+            <span class="n">theta_L</span> <span class="o">=</span> <span class="n">U</span><span class="o">.</span><span class="n">iscale_axis</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">split_legs</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">theta_L</span> <span class="o">=</span> <span class="n">theta_L</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;q0&#39;</span><span class="p">],</span> <span class="p">[</span><span class="n">p0</span><span class="p">,</span> <span class="n">q0</span><span class="p">])</span><span class="o">.</span><span class="n">split_legs</span><span class="p">([</span><span class="n">p0</span><span class="p">,</span> <span class="n">q0</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">disentangle_n_site</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">n1</span><span class="p">,</span> <span class="n">theta_L</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">n2</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># save V as right B in psi</span>
+            <span class="n">V</span> <span class="o">=</span> <span class="n">V</span><span class="o">.</span><span class="n">split_legs</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;(p)&#39;</span><span class="p">,</span> <span class="s1">&#39;(q)&#39;</span><span class="p">])</span>
+            <span class="n">V</span> <span class="o">=</span> <span class="n">V</span><span class="o">.</span><span class="n">split_legs</span><span class="p">([</span><span class="s1">&#39;(p)&#39;</span><span class="p">,</span> <span class="s1">&#39;(q)&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_B</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="n">n1</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># disentangle right n2-site wave function recursively</span>
+            <span class="n">theta_R</span> <span class="o">=</span> <span class="n">V</span><span class="o">.</span><span class="n">iscale_axis</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">split_legs</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">theta_R</span> <span class="o">=</span> <span class="n">theta_R</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="n">p1</span><span class="p">,</span> <span class="n">q1</span><span class="p">])</span><span class="o">.</span><span class="n">split_legs</span><span class="p">([</span><span class="n">p1</span><span class="p">,</span> <span class="n">q1</span><span class="p">])</span>
+            <span class="n">theta_R</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">(</span><span class="n">pR</span><span class="p">,</span> <span class="n">p</span><span class="p">[:</span><span class="n">n2</span><span class="p">])</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">(</span><span class="n">qR</span><span class="p">,</span> <span class="n">q</span><span class="p">[:</span><span class="n">n2</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">disentangle_n_site</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="n">n1</span><span class="p">,</span> <span class="n">n2</span><span class="p">,</span> <span class="n">theta_R</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_disentangle_two_site</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;swap until i and j are next to each other and use :meth:`disentangle`; swap back.&quot;&quot;&quot;</span>
+        <span class="n">on_way</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s1">&#39;disent_gl_on_swap&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;PurificationTEBD&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span>  <span class="c1"># adjust: what&#39;s the shortest path?</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="n">j</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">j0</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>  <span class="c1"># j0 = current site of `j`</span>
+            <span class="c1"># originial leg `j` is at j0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_index</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">j0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_swap_disentangle_bond</span><span class="p">(</span><span class="n">j0</span><span class="p">,</span> <span class="n">swap</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">disentangle</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># swap j0-1, j0</span>
+            <span class="c1"># originial leg is at `j0-1`</span>
+        <span class="c1"># disentangle i, i+1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_index</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_swap_disentangle_bond</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">swap</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">disentangle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">j0</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span>  <span class="c1"># j0 = current site of `j`</span>
+            <span class="c1"># originial leg `j` is at j0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_index</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">j0</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_swap_disentangle_bond</span><span class="p">(</span><span class="n">j0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">disentangle</span><span class="o">=</span><span class="n">on_way</span><span class="p">)</span>  <span class="c1"># swap j0, j0+1</span>
+            <span class="c1"># originial leg is at `j0+1`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_index</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># done</span>
+
+    <span class="k">def</span> <span class="nf">_swap_disentangle_bond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">swap</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">disentangle</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;swap sites (i-1, i) (if swap = True) &quot;&quot;&quot;</span>
+        <span class="c1"># very similar to update_bond</span>
+        <span class="n">i0</span><span class="p">,</span> <span class="n">i1</span> <span class="o">=</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">30</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Update sites (</span><span class="si">{0:d}</span><span class="s2">, </span><span class="si">{1:d}</span><span class="s2">), swap=</span><span class="si">{2!s}</span><span class="s2">, disentangle=</span><span class="si">{3!s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">i0</span><span class="p">,</span> <span class="n">i1</span><span class="p">,</span> <span class="n">swap</span><span class="p">,</span> <span class="n">disentangle</span><span class="p">))</span>
+        <span class="c1"># Construct the theta matrix</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_theta</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># &#39;vL&#39;, &#39;vR&#39;, &#39;p0&#39;, &#39;p1&#39;, &#39;q0&#39;, &#39;q1&#39;</span>
+        <span class="k">if</span> <span class="n">swap</span><span class="p">:</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;q0&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">disentangle</span><span class="p">:</span>
+            <span class="n">theta</span><span class="p">,</span> <span class="n">U_disent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">disentangle</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([(</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;q0&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">)],</span> <span class="n">qconj</span><span class="o">=</span><span class="p">[</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="c1"># Perform the SVD and truncate the wavefunction</span>
+        <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">trunc_err</span><span class="p">,</span> <span class="n">renormalize</span> <span class="o">=</span> <span class="n">svd_theta</span><span class="p">(</span>
+            <span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">,</span> <span class="n">inner_labels</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">])</span>
+
+        <span class="c1"># bring back to right-canonical &#39;B&#39; form and update matrices</span>
+        <span class="n">B_R</span> <span class="o">=</span> <span class="n">V</span><span class="o">.</span><span class="n">split_legs</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;q&#39;</span><span class="p">])</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_theta</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">formL</span><span class="o">=</span><span class="mf">0.</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">swap</span><span class="p">:</span>
+            <span class="n">C</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;q0&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">disentangle</span> <span class="ow">and</span> <span class="n">U_disent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">C</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U_disent</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;q0*&#39;</span><span class="p">,</span> <span class="s1">&#39;q1*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">]])</span>
+        <span class="n">B_L</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span>
+            <span class="n">C</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">((</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">),</span> <span class="n">pipes</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+            <span class="n">V</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span>
+            <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(vR.p1.q1)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vR*.p1*.q1*)&#39;</span><span class="p">])</span>
+        <span class="n">B_L</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;vL*&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;q0&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;q&#39;</span><span class="p">])</span>
+        <span class="n">B_L</span> <span class="o">/=</span> <span class="n">renormalize</span>  <span class="c1"># re-normalize to &lt;psi|psi&gt; = 1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_SR</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_B</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">B_L</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_B</span><span class="p">(</span><span class="n">i1</span><span class="p">,</span> <span class="n">B_R</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trunc_err_bonds</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trunc_err_bonds</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">trunc_err</span>
+        <span class="k">return</span> <span class="n">trunc_err</span></div>
+
+
+<div class="viewcode-block" id="PurificationTEBD2"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.purification_tebd.html#tenpy.algorithms.purification_tebd.PurificationTEBD2">[docs]</a><span class="k">class</span> <span class="nc">PurificationTEBD2</span><span class="p">(</span><span class="n">PurificationTEBD</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Similar as PurificationTEBD, but perform sweeps instead of brickwall.</span>
+
+<span class="sd">    Instead of the A-B pattern of even/odd bonds used in TEBD, perform sweeps similar as in DMRG</span>
+<span class="sd">    for real-time evolution (similar as :meth:`~tenpy.algorithms.tebd.Engine.update_imag`</span>
+<span class="sd">    does for imaginary time evolution).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="PurificationTEBD2.update"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.purification_tebd.html#tenpy.algorithms.purification_tebd.PurificationTEBD2.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N_steps</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Evolve by ``N_steps * U_param[&#39;dt&#39;]``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        N_steps : int</span>
+<span class="sd">            The number of steps for which the whole lattice should be updated.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        trunc_err : :class:`~tenpy.algorithms.truncation.TruncationError`</span>
+<span class="sd">            The error of the represented state which is introduced due to the truncation during</span>
+<span class="sd">            this sequence of update steps.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">trunc_err</span> <span class="o">=</span> <span class="n">TruncationError</span><span class="p">()</span>
+        <span class="n">order</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_U_param</span><span class="p">[</span><span class="s1">&#39;order&#39;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="n">order</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">finite</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N_steps</span><span class="p">):</span>
+            <span class="n">trunc_err</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_step</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+            <span class="n">trunc_err</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_step</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">evolved_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">evolved_time</span> <span class="o">+</span> <span class="n">N_steps</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_U_param</span><span class="p">[</span><span class="s1">&#39;tau&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trunc_err</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_err</span> <span class="o">+</span> <span class="n">trunc_err</span>  <span class="c1"># not += : make a copy!</span>
+        <span class="c1"># (this is done to avoid problems of users storing self.trunc_err after each `update`)</span>
+        <span class="k">return</span> <span class="n">trunc_err</span></div>
+
+<div class="viewcode-block" id="PurificationTEBD2.update_step"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.purification_tebd.html#tenpy.algorithms.purification_tebd.PurificationTEBD2.update_step">[docs]</a>    <span class="k">def</span> <span class="nf">update_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">U_idx_dt</span><span class="p">,</span> <span class="n">odd</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Updates bonds in unit cell.</span>
+
+<span class="sd">        Depending on the choice of `odd`, perform a sweep to the left or right,</span>
+<span class="sd">        updating once per site with a time step given by U_idx_dt.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        U_idx_dt : int</span>
+<span class="sd">            Time step index in ``self._U``,</span>
+<span class="sd">            evolve with ``Us[i] = self.U[U_idx_dt][i]`` at bond ``(i-1,i)``.</span>
+<span class="sd">        odd : bool/int</span>
+<span class="sd">            Indication of whether to update even (``odd=False,0``) or even (``odd=True,1``) sites</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        trunc_err : :class:`~tenpy.algorithms.truncation.TruncationError`</span>
+<span class="sd">            The error of the represented state which is introduced due to the truncation</span>
+<span class="sd">            during this sequence of update steps.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Us</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_U</span><span class="p">[</span><span class="n">U_idx_dt</span><span class="p">]</span>
+        <span class="n">trunc_err</span> <span class="o">=</span> <span class="n">TruncationError</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">odd</span><span class="p">:</span>
+            <span class="n">sweep</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">L</span><span class="p">)</span>  <span class="c1"># start with 1: only finite!</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sweep</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i_bond</span> <span class="ow">in</span> <span class="n">sweep</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">Us</span><span class="p">[</span><span class="n">i_bond</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Skip U_bond element:&quot;</span><span class="p">,</span> <span class="n">i_bond</span><span class="p">)</span>
+                <span class="k">continue</span>  <span class="c1"># handles finite vs. infinite boundary conditions</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Apply U_bond element&quot;</span><span class="p">,</span> <span class="n">i_bond</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_index</span> <span class="o">=</span> <span class="p">(</span><span class="n">U_idx_dt</span><span class="p">,</span> <span class="n">i_bond</span><span class="p">)</span>
+            <span class="n">trunc_err</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_bond</span><span class="p">(</span><span class="n">i_bond</span><span class="p">,</span> <span class="n">Us</span><span class="p">[</span><span class="n">i_bond</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_index</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">trunc_err</span></div></div>
+
+
+<div class="viewcode-block" id="Disentangler"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.purification_tebd.html#tenpy.algorithms.purification_tebd.Disentangler">[docs]</a><span class="k">class</span> <span class="nc">Disentangler</span><span class="p">:</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Prototype for a disentangler. Trivial, does nothing.</span>
+
+<span class="sd">    In purification, we write :math:`\rho_P = Tr_Q{|\psi_{P,Q}&gt;&lt;\psi_{P,Q}|}`. Thus, we</span>
+<span class="sd">    can actually apply any unitary to the auxiliar `Q` space of :math:`|\psi&gt;` without</span>
+<span class="sd">    changing the physical expectation values.</span>
+
+<span class="sd">    .. note ::</span>
+<span class="sd">        We have to apply the *same* unitary to the &#39;bra&#39; and &#39;ket&#39; used for expectation values</span>
+<span class="sd">        / correlation functions!</span>
+
+<span class="sd">    However, the unitary can strongly influence the entanglement structure of :math:`|\psi&gt;`.</span>
+<span class="sd">    Therefore, the :class:`PurificationTEBD` includes a hook in</span>
+<span class="sd">    :meth:`PurificationTEBD.update_bond` (and similar methods) to find and apply a disentangling</span>
+<span class="sd">    unitary to the auxiliar indices of a two-site wave function by calling (``__call__`` method)</span>
+<span class="sd">    a `Disentangler`.</span>
+
+<span class="sd">    This class is a &#39;trivial&#39; disentangler which does *nothing* to the two-site wave function;</span>
+<span class="sd">    derived classes use different strategies to find various disentanglers.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    parent : :class:`~tenpy.algorithms.tebd.Engine`</span>
+<span class="sd">        The parent class calling the disentangler.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    parent : :class:`~tenpy.algorithms.tebd.Engine`</span>
+<span class="sd">        The parent class calling the disentangler.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">parent</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Find and apply a unitary to disentangle `theta`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        theta : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Wave function to disentangle, with legs ``&#39;vL&#39;, &#39;vR&#39;, &#39;p0&#39;, &#39;p1&#39;, &#39;q0&#39;, &#39;q1&#39;``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        theta_disentangled : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Disentangled `theta`; ``npc.tensordot(U, theta, axes=[[&#39;q0*&#39;, &#39;q1*&#39;], [&#39;q0&#39;, &#39;q1&#39;]])``.</span>
+<span class="sd">        U : :class:`~tenpy.linalg.conserved.Array` | None</span>
+<span class="sd">            The unitary used to disentangle `theta`, with labels ``&#39;q0&#39;, &#39;q1&#39;, &#39;q0*&#39;, &#39;q1*&#39;``.</span>
+<span class="sd">            If no unitary was found/applied, it might also be ``None``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># do nothing</span>
+        <span class="k">return</span> <span class="n">theta</span><span class="p">,</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="BackwardDisentangler"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.purification_tebd.html#tenpy.algorithms.purification_tebd.BackwardDisentangler">[docs]</a><span class="k">class</span> <span class="nc">BackwardDisentangler</span><span class="p">(</span><span class="n">Disentangler</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Disentangle with backward time evolution.</span>
+
+<span class="sd">    See [Karrasch2013]_ for details; only useful during real-time evolution.</span>
+
+<span class="sd">    For the infinite temperature state, ``theta = delta_{p0, q0}*delta_{p1, q1}``.</span>
+<span class="sd">    Thus, an application of `U_bond` to ``p0, p1`` can be reverted completely by applying</span>
+<span class="sd">    ``U_bond^{dagger}`` to ``q0, q1``, resulting in the same state.</span>
+<span class="sd">    This works also for finite temperatures, since `exp(-beta H)` and `exp(-i H t)` commute.</span>
+<span class="sd">    Once we apply an operator to measure correlation function, the disentangling</span>
+<span class="sd">    breaks down, yet for a local operator only in it&#39;s light-cone.</span>
+
+<span class="sd">    Arguments and return values are the same as for :class:`Disentangler`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+        <span class="n">eng</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span>
+        <span class="k">if</span> <span class="n">eng</span><span class="o">.</span><span class="n">_U_param</span><span class="p">[</span><span class="s1">&#39;type_evo&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;imag&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">theta</span><span class="p">,</span> <span class="kc">None</span>  <span class="c1"># doesn&#39;t work for this...</span>
+        <span class="n">U_idx_dt</span><span class="p">,</span> <span class="n">i</span> <span class="o">=</span> <span class="n">eng</span><span class="o">.</span><span class="n">_update_index</span>
+        <span class="n">U</span> <span class="o">=</span> <span class="n">eng</span><span class="o">.</span><span class="n">_U</span><span class="p">[</span><span class="n">U_idx_dt</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>
+        <span class="n">U</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">,</span> <span class="s1">&#39;q0*&#39;</span><span class="p">,</span> <span class="s1">&#39;q1*&#39;</span><span class="p">])</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;q0*&#39;</span><span class="p">,</span> <span class="s1">&#39;q1*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">]])</span>
+        <span class="k">return</span> <span class="n">theta</span><span class="p">,</span> <span class="n">U</span></div>
+
+
+<div class="viewcode-block" id="RenyiDisentangler"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.purification_tebd.html#tenpy.algorithms.purification_tebd.RenyiDisentangler">[docs]</a><span class="k">class</span> <span class="nc">RenyiDisentangler</span><span class="p">(</span><span class="n">Disentangler</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Iterative find `U` which minimized the second Renyi entropy.</span>
+
+<span class="sd">    See [Hauschild2017]_</span>
+
+<span class="sd">    Reads of the following `TEBD_params` as break criteria for the iteration:</span>
+
+<span class="sd">    ================ ====== ======================================================</span>
+<span class="sd">    key              type   description</span>
+<span class="sd">    ================ ====== ======================================================</span>
+<span class="sd">    disent_eps       float  Break, if the change in the Renyi entropy ``S(n=2)``</span>
+<span class="sd">                            per iteration is smaller than this value.</span>
+<span class="sd">    ---------------- ------ ------------------------------------------------------</span>
+<span class="sd">    disent_max_iter  float  Maximum number of iterations to perform.</span>
+<span class="sd">    ================ ====== ======================================================</span>
+
+<span class="sd">    Arguments and return values are the same as for :meth:`disentangle`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">parent</span><span class="o">.</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s1">&#39;disent_max_iter&#39;</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span>
+                                      <span class="s1">&#39;PurificationTEBD&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">parent</span><span class="o">.</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s1">&#39;disent_eps&#39;</span><span class="p">,</span> <span class="mf">1.e-10</span><span class="p">,</span> <span class="s1">&#39;PurificationTEBD&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">parent</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Find optimal `U` which minimizes the second Renyi entropy.&quot;&quot;&quot;</span>
+        <span class="n">U_idx_dt</span><span class="p">,</span> <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">_update_index</span>
+        <span class="n">U</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span>
+            <span class="n">npc</span><span class="o">.</span><span class="n">eye_like</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;q0&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;q0*&#39;</span><span class="p">]),</span>
+            <span class="n">npc</span><span class="o">.</span><span class="n">eye_like</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;q1&#39;</span><span class="p">,</span> <span class="s1">&#39;q1*&#39;</span><span class="p">]))</span>
+        <span class="n">Sold</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="n">S0</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">):</span>
+            <span class="n">S</span><span class="p">,</span> <span class="n">U</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">U</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">S0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">S0</span> <span class="o">=</span> <span class="n">S</span>
+            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">Sold</span> <span class="o">-</span> <span class="n">S</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="n">Sold</span><span class="p">,</span> <span class="n">S</span> <span class="o">=</span> <span class="n">S</span><span class="p">,</span> <span class="n">Sold</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;q0*&#39;</span><span class="p">,</span> <span class="s1">&#39;q1*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">]])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">_disent_iterations</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">j</span>  <span class="c1"># save the number of iterations performed</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;disentangle renyi: </span><span class="si">{j:d}</span><span class="s2"> iterations, Sold-S = </span><span class="si">{DS:.3e}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">j</span><span class="o">=</span><span class="n">j</span><span class="p">,</span> <span class="n">DS</span><span class="o">=</span><span class="n">S0</span> <span class="o">-</span> <span class="n">Sold</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">theta</span><span class="p">,</span> <span class="n">U</span>
+
+<div class="viewcode-block" id="RenyiDisentangler.iter"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.purification_tebd.html#tenpy.algorithms.purification_tebd.RenyiDisentangler.iter">[docs]</a>    <span class="k">def</span> <span class="nf">iter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">U</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Given `theta` and `U`, find another `U` which reduces the 2nd Renyi entropy.</span>
+
+<span class="sd">        Temporarily view the different `U` as independt and mimizied one of them -</span>
+<span class="sd">        this corresponds to a linearization of the cost function.</span>
+<span class="sd">        Defining `Utheta` as the application of `U` to `theata`, and combining the `p` legs of</span>
+<span class="sd">        `theta` with ``&#39;vL&#39;, &#39;vR&#39;``, this function contracts::</span>
+
+<span class="sd">            |     .----theta----.</span>
+<span class="sd">            |     |    |   |    |</span>
+<span class="sd">            |     |    q0  q1   |</span>
+<span class="sd">            |     |             |</span>
+<span class="sd">            |     |        q1*  |</span>
+<span class="sd">            |     |        |    |</span>
+<span class="sd">            |     |  .-Utheta*-.</span>
+<span class="sd">            |     |  | |</span>
+<span class="sd">            |     |  .-Utheta--.</span>
+<span class="sd">            |     |        |    |</span>
+<span class="sd">            |     |    q0* |    |</span>
+<span class="sd">            |     |    |   |    |</span>
+<span class="sd">            |     .----Utheta*-.</span>
+
+<span class="sd">        The trace yields the second Renyi entropy `S2`. Further, we calculate the unitary `U`</span>
+<span class="sd">        with maximum overlap with this network.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        theta : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Two-site wave function to be disentangled.</span>
+<span class="sd">        U : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            The previous guess for `U`; with legs ``&#39;q0&#39;, &#39;q1&#39;, &#39;q0*&#39;, &#39;q1*&#39;``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        S2 : float</span>
+<span class="sd">            Renyi entopy (n=2), :math:`S2 = \frac{1}{1-2} \log tr(\rho_L^2)` of `U theta`.</span>
+<span class="sd">        new_U : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Unitary with legs ``&#39;q0&#39;, &#39;q1&#39;, &#39;q0*&#39;, &#39;q1*&#39;``, which should disentangle `theta`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">U_theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;q0*&#39;</span><span class="p">,</span> <span class="s1">&#39;q1*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">]])</span>
+        <span class="c1"># same legs as theta: &#39;vL&#39;, &#39;p0&#39;, &#39;q0&#39;, &#39;p1&#39;, &#39;q1&#39;, &#39;vR&#39;</span>
+        <span class="c1"># contract diagram from bottom to top</span>
+        <span class="n">dS</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span>
+            <span class="n">U_theta</span><span class="p">,</span> <span class="n">U_theta</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p1*&#39;</span><span class="p">,</span> <span class="s1">&#39;q1*&#39;</span><span class="p">,</span> <span class="s1">&#39;vR*&#39;</span><span class="p">]])</span>
+        <span class="c1"># dS has legs &#39;vL&#39;, &#39;p0&#39;, &#39;q0&#39;, &#39;vL*&#39;, &#39;p0*&#39;, &#39;q0*&#39;</span>
+        <span class="n">dS</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U_theta</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">dS</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;vL*&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;q0*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;q0&#39;</span><span class="p">]])</span>
+        <span class="c1"># dS has legs &#39;vL&#39;, &#39;p0&#39;, &#39;q0&#39;, &#39;vR&#39;, &#39;p1&#39;, &#39;q1&#39;</span>
+        <span class="n">dS</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span>
+            <span class="n">theta</span><span class="p">,</span> <span class="n">dS</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vL*&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">]])</span>
+        <span class="n">S2</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">inner</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="n">dS</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">,</span> <span class="s1">&#39;q0*&#39;</span><span class="p">,</span> <span class="s1">&#39;q1*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;q0*&#39;</span><span class="p">,</span> <span class="s1">&#39;q1*&#39;</span><span class="p">,</span> <span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">]])</span>
+        <span class="c1"># dS has legs &#39;q0&#39;, &#39;q1&#39;, &#39;q0*&#39;, &#39;q1*&#39;</span>
+        <span class="n">dS</span> <span class="o">=</span> <span class="n">dS</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([[</span><span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;q0*&#39;</span><span class="p">,</span> <span class="s1">&#39;q1*&#39;</span><span class="p">]],</span> <span class="n">qconj</span><span class="o">=</span><span class="p">[</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="c1"># Find unitary which maximizes `trace(U dS)`.</span>
+        <span class="n">W</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">VH</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">dS</span><span class="p">)</span>
+        <span class="n">new_U</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">W</span><span class="p">,</span> <span class="n">VH</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>  <span class="c1"># == V W^dagger.</span>
+        <span class="c1"># this yields trace(U dS) = trace(Y), which is maximal.</span>
+        <span class="k">return</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">S2</span><span class="o">.</span><span class="n">real</span><span class="p">),</span> <span class="n">new_U</span><span class="o">.</span><span class="n">split_legs</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span></div></div>
+
+
+<div class="viewcode-block" id="NormDisentangler"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.purification_tebd.html#tenpy.algorithms.purification_tebd.NormDisentangler">[docs]</a><span class="k">class</span> <span class="nc">NormDisentangler</span><span class="p">(</span><span class="n">Disentangler</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Find optimal `U` for which the truncation of U|theta&gt; has maximal overlap with U|theta&gt;.</span>
+
+<span class="sd">    Reads of the following `TEBD_params` as break criteria for the iteration:</span>
+
+<span class="sd">    ================ ========= ======================================================</span>
+<span class="sd">    key              type      description</span>
+<span class="sd">    ================ ========= ======================================================</span>
+<span class="sd">    disent_eps       float     Break, if the change in the Renyi entropy ``S(n=2)``</span>
+<span class="sd">                               per iteration is smaller than this value.</span>
+<span class="sd">    ---------------- --------- ------------------------------------------------------</span>
+<span class="sd">    disent_max_iter  float     Maximum number of iterations to perform.</span>
+<span class="sd">    ---------------- --------- ------------------------------------------------------</span>
+<span class="sd">    disent_trunc_par dict      Truncation parameters; defaults to `trunc_params`.</span>
+<span class="sd">    ---------------- --------- ------------------------------------------------------</span>
+<span class="sd">    disent_norm_chi  iterable  To find the optimal U it can help to increase `chi_max`</span>
+<span class="sd">                               of `disent_trunc_par` slowly, the default is</span>
+<span class="sd">                               ``range(1, disent_trunc_par[&#39;chi_max&#39;]+1)``.</span>
+<span class="sd">                               However, that&#39;s **very** slow for large `chi_max`,</span>
+<span class="sd">                               so we allow to change it. (In fact, it makes the</span>
+<span class="sd">                               disentangler *scale* worse than the rest of TEBD.)</span>
+<span class="sd">    ================ ========= ======================================================</span>
+
+<span class="sd">    Arguments and return values are the same as for :meth:`disentangle`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">parent</span><span class="o">.</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s1">&#39;disent_max_iter&#39;</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span>
+                                      <span class="s1">&#39;PurificationTEBD&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">parent</span><span class="o">.</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s1">&#39;disent_eps&#39;</span><span class="p">,</span> <span class="mf">1.e-10</span><span class="p">,</span> <span class="s1">&#39;PurificationTEBD&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trunc_par</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">parent</span><span class="o">.</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s1">&#39;disent_trunc_par&#39;</span><span class="p">,</span> <span class="n">parent</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">,</span>
+                                       <span class="s1">&#39;PurificationTEBD&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chi_max</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trunc_par</span><span class="p">,</span> <span class="s1">&#39;chi_max&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="s1">&#39;PurificationTEBD&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trunc_cut</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trunc_par</span><span class="p">,</span> <span class="s1">&#39;trunc_cut&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;PurificationTEBD&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chi_range</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trunc_par</span><span class="p">,</span> <span class="s1">&#39;disent_norm_chi&#39;</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi_max</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span>
+                                       <span class="s1">&#39;PurificationTEBD&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">parent</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">_update_index</span>
+        <span class="n">U</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span>
+            <span class="n">npc</span><span class="o">.</span><span class="n">eye_like</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;q0&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;q0*&#39;</span><span class="p">]),</span>
+            <span class="n">npc</span><span class="o">.</span><span class="n">eye_like</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;q1&#39;</span><span class="p">,</span> <span class="s1">&#39;q1*&#39;</span><span class="p">]))</span>
+        <span class="n">err</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">trunc_par</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_par</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">chi_opt</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi_range</span><span class="p">:</span>
+            <span class="n">trunc_par</span><span class="p">[</span><span class="s1">&#39;chi_max&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">chi_opt</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">):</span>
+                <span class="n">err2</span><span class="p">,</span> <span class="n">U</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">U</span><span class="p">,</span> <span class="n">trunc_par</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">err</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="n">err</span><span class="o">.</span><span class="n">eps</span> <span class="o">-</span> <span class="n">err2</span><span class="o">.</span><span class="n">eps</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">err</span><span class="o">.</span><span class="n">eps</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps</span><span class="p">:</span>
+                    <span class="k">break</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="n">err2</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_cut</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">err2</span><span class="o">.</span><span class="n">eps</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_cut</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">trunc_cut</span><span class="p">:</span>
+                    <span class="k">break</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;q0*&#39;</span><span class="p">,</span> <span class="s1">&#39;q1*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">]])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">_disent_iterations</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">j</span>  <span class="c1"># save the number of iterations performed</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;disentangle norm: </span><span class="si">{j:d}</span><span class="s2"> iterations, err=</span><span class="si">{err!s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">j</span><span class="o">=</span><span class="n">j</span><span class="p">,</span> <span class="n">err</span><span class="o">=</span><span class="n">err</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">theta</span><span class="p">,</span> <span class="n">U</span>
+
+<div class="viewcode-block" id="NormDisentangler.iter"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.purification_tebd.html#tenpy.algorithms.purification_tebd.NormDisentangler.iter">[docs]</a>    <span class="k">def</span> <span class="nf">iter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">U</span><span class="p">,</span> <span class="n">trunc_params</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Given `theta` and `U`, find `U2` maximizing ``&lt;theta|U2 truncate(U |theta&gt;)``.</span>
+
+<span class="sd">        Finds unitary `U2` which maximizes Tr(U</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        theta : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Two-site wave function to be disentangled.</span>
+<span class="sd">        U : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            The previous guess for `U`; with legs ``&#39;q0&#39;, &#39;q1&#39;, &#39;q0*&#39;, &#39;q1*&#39;``.</span>
+<span class="sd">        trunc_params : dict</span>
+<span class="sd">            The truncation parameters (similar as `self.trunc_params`) used to truncate `U|theta&gt;`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        trunc_err : TruncationError</span>
+<span class="sd">            Norm error discarded during the truncation of ``U|theta&gt;``.</span>
+<span class="sd">        new_U : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Unitary with legs ``&#39;q0&#39;, &#39;q1&#39;, &#39;q0*&#39;, &#39;q1*&#39;``.</span>
+<span class="sd">            Chosen such that ``new_U|theta&gt;`` has maximal overlap with the truncated ``U|theta&gt;``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">U_theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;q0*&#39;</span><span class="p">,</span> <span class="s1">&#39;q1*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">]])</span>
+        <span class="n">lambda_</span> <span class="o">=</span> <span class="n">U_theta</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([[</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;q0&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">]])</span>
+        <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span> <span class="n">err</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">svd_theta</span><span class="p">(</span><span class="n">lambda_</span><span class="p">,</span> <span class="n">trunc_params</span><span class="p">)</span>
+        <span class="n">lambda_</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">scale_axis</span><span class="p">(</span><span class="n">Y</span><span class="p">),</span> <span class="n">Z</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">split_legs</span><span class="p">()</span>
+        <span class="n">dS</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span>
+            <span class="n">theta</span><span class="p">,</span> <span class="n">lambda_</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vL*&#39;</span><span class="p">,</span> <span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">]])</span>
+        <span class="c1"># dS has legs &#39;q0&#39;, &#39;q1&#39;, &#39;q0*&#39;, &#39;q1*&#39;</span>
+        <span class="n">dS</span> <span class="o">=</span> <span class="n">dS</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([[</span><span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;q0*&#39;</span><span class="p">,</span> <span class="s1">&#39;q1*&#39;</span><span class="p">]],</span> <span class="n">qconj</span><span class="o">=</span><span class="p">[</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="c1"># Find unitary U2 which maximizes `trace(U dS)`.</span>
+        <span class="n">W</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">VH</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">dS</span><span class="p">)</span>
+        <span class="n">new_U</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">W</span><span class="p">,</span> <span class="n">VH</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>  <span class="c1"># == V W^dagger.</span>
+        <span class="c1"># this yields trace(U dS) = trace(Y), which is maximal.</span>
+        <span class="k">return</span> <span class="n">err</span><span class="p">,</span> <span class="n">new_U</span><span class="o">.</span><span class="n">split_legs</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span></div></div>
+
+
+<div class="viewcode-block" id="GradientDescentDisentangler"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.purification_tebd.html#tenpy.algorithms.purification_tebd.GradientDescentDisentangler">[docs]</a><span class="k">class</span> <span class="nc">GradientDescentDisentangler</span><span class="p">(</span><span class="n">Disentangler</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Gradient-descent optimization, similar to :class:`RenyiDisentangler`.</span>
+
+<span class="sd">    Reads of the following `TEBD_params`:</span>
+
+<span class="sd">    ================ ====== ======================================================</span>
+<span class="sd">    key              type   description</span>
+<span class="sd">    ================ ====== ======================================================</span>
+<span class="sd">    disent_eps       float  Break, if the change in the Renyi entropy ``S(n=2)``</span>
+<span class="sd">                            per iteration is smaller than this value.</span>
+<span class="sd">    ---------------- ------ ------------------------------------------------------</span>
+<span class="sd">    disent_max_iter  float  Maximum number of iterations to perform.</span>
+<span class="sd">    ---------------- ------ ------------------------------------------------------</span>
+<span class="sd">    disent_n         float  Renyi index of the entropy to be used.</span>
+<span class="sd">                            ``n=1`` for von-Neumann entropy.</span>
+<span class="sd">    ================ ====== ======================================================</span>
+
+<span class="sd">    Arguments and return values are the same as for :class:`Disentangler`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">parent</span><span class="o">.</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s1">&#39;disent_max_iter&#39;</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span>
+                                      <span class="s1">&#39;PurificationTEBD&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">parent</span><span class="o">.</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s1">&#39;disent_eps&#39;</span><span class="p">,</span> <span class="mf">1.e-10</span><span class="p">,</span> <span class="s1">&#39;PurificationTEBD&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">parent</span><span class="o">.</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s1">&#39;disent_n&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="s1">&#39;PurificationTEBD&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stepsizes</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">parent</span><span class="o">.</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s1">&#39;disent_stepsizes&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">2.</span><span class="p">],</span>
+                                       <span class="s1">&#39;PurificationTEBD&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">parent</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+        <span class="n">U_idx_dt</span><span class="p">,</span> <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">_update_index</span>
+        <span class="n">Utot</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">Sold</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="n">S0</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">):</span>
+            <span class="n">S</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">U</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">Utot</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">Utot</span> <span class="o">=</span> <span class="n">U</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">Utot</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="n">Utot</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;q0*&#39;</span><span class="p">,</span> <span class="s1">&#39;q1*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">]])</span>
+            <span class="k">if</span> <span class="n">S0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">S0</span> <span class="o">=</span> <span class="n">S</span>
+            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">Sold</span> <span class="o">-</span> <span class="n">S</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="n">Sold</span><span class="p">,</span> <span class="n">S</span> <span class="o">=</span> <span class="n">S</span><span class="p">,</span> <span class="n">Sold</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;q0*&#39;</span><span class="p">,</span> <span class="s1">&#39;q1*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">]])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">_disent_iterations</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">j</span>  <span class="c1"># save the number of iterations performed</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;disentangle renyi: </span><span class="si">{j:d}</span><span class="s2"> iterations, Sold-S = </span><span class="si">{DS:.3e}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">j</span><span class="o">=</span><span class="n">j</span><span class="p">,</span> <span class="n">DS</span><span class="o">=</span><span class="n">S0</span> <span class="o">-</span> <span class="n">Sold</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">theta</span><span class="p">,</span> <span class="n">U</span>
+
+<div class="viewcode-block" id="GradientDescentDisentangler.iter"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.purification_tebd.html#tenpy.algorithms.purification_tebd.GradientDescentDisentangler.iter">[docs]</a>    <span class="k">def</span> <span class="nf">iter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Given `theta`, find a unitary `U` towards minimizing the n-th Renyi entropy.</span>
+
+<span class="sd">        This function calulates the gradiant :math:`dS = \partial S(U theta, n) /\partial U`.</span>
+<span class="sd">        and then ``U(t) = exp(-t*dS)``, where we choose the `t` from stepsizes which</span>
+<span class="sd">        minimizes the entropy of ``U(t) theta``.</span>
+
+<span class="sd">        When ``R[i]`` is the derivative :math:`\partial S(Y, n) \partial Y_i` of the (n-th Renyi)</span>
+<span class="sd">        entropy, ``dS`` is given by::</span>
+
+<span class="sd">            |     .----X--R--Z----.</span>
+<span class="sd">            |     |    |     |    |</span>
+<span class="sd">            |     |    q0    q1   |</span>
+<span class="sd">            |     |               |</span>
+<span class="sd">            |     |    q0*   q1*  |</span>
+<span class="sd">            |     |    |     |    |</span>
+<span class="sd">            |     .----X*-Y--Z*---.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        theta : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Two-site wave function to be disentangled</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        S : float</span>
+<span class="sd">            n-th Renyi entopy of new_theta</span>
+<span class="sd">        theta : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            The *disentangled* wave function ``new_U theta``.</span>
+<span class="sd">        new_U : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Unitary with legs ``&#39;q0&#39;, &#39;q1&#39;, &#39;q0*&#39;, &#39;q1*&#39;``, which was used to disentangle `theta`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">theta2</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([(</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;q0&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">)],</span> <span class="n">qconj</span><span class="o">=</span><span class="p">[</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Z</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">theta2</span><span class="p">,</span> <span class="n">inner_labels</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">])</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">Y</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">Y</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span>
+            <span class="n">r</span><span class="p">[</span><span class="n">Y</span> <span class="o">&lt;</span> <span class="mf">1.e-14</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+            <span class="c1">#  S = -np.inner(Y**2, np.log(Y**2))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">Y</span><span class="p">[</span><span class="n">Y</span> <span class="o">&lt;</span> <span class="mf">1.e-20</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.e-20</span>
+            <span class="n">tr_pn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Y</span><span class="o">**</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">n</span><span class="p">))</span>
+            <span class="n">ss</span> <span class="o">=</span> <span class="n">Y</span><span class="o">**</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">Y</span> <span class="o">*</span> <span class="n">ss</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span> <span class="o">/</span> <span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mf">1.</span><span class="p">)</span> <span class="o">/</span> <span class="n">tr_pn</span><span class="p">)</span>  <span class="c1"># TODO: why?</span>
+            <span class="c1">#  r = Y*ss *(1 - n.)  # TODO: why not?</span>
+            <span class="c1">#  S = np.log(tr_pn)/(1 - n)</span>
+        <span class="n">XrZ</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">scale_axis</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">),</span> <span class="n">Z</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">split_legs</span><span class="p">()</span>
+        <span class="n">dS</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span>
+            <span class="n">theta</span><span class="p">,</span> <span class="n">XrZ</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vL*&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">,</span> <span class="s1">&#39;vR*&#39;</span><span class="p">]])</span>
+        <span class="n">dS</span> <span class="o">=</span> <span class="n">dS</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([[</span><span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;q0*&#39;</span><span class="p">,</span> <span class="s1">&#39;q1*&#39;</span><span class="p">]],</span> <span class="n">qconj</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">dS</span> <span class="o">=</span> <span class="n">dS</span> <span class="o">-</span> <span class="n">dS</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">transpose</span><span class="p">([</span><span class="s1">&#39;(q0.q1)&#39;</span><span class="p">,</span> <span class="s1">&#39;(q0*.q1*)&#39;</span><span class="p">])</span>  <span class="c1"># project: anti-hermitian part</span>
+        <span class="n">new_Ss</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">new_thetas</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">new_Us</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stepsizes</span><span class="p">:</span>
+            <span class="n">U</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">expm</span><span class="p">((</span><span class="o">-</span><span class="n">t</span><span class="p">)</span> <span class="o">*</span> <span class="n">dS</span><span class="p">)</span><span class="o">.</span><span class="n">split_legs</span><span class="p">()</span>  <span class="c1"># dS anti-hermitian =&gt; exp(-tdS) unitary</span>
+            <span class="n">new_theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;q0*&#39;</span><span class="p">,</span> <span class="s1">&#39;q1*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">]])</span>
+            <span class="n">new_Ss</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entropy_theta</span><span class="p">(</span><span class="n">new_theta</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+            <span class="n">new_thetas</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_theta</span><span class="p">)</span>
+            <span class="n">new_Us</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">U</span><span class="p">)</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">new_Ss</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">new_Ss</span><span class="p">[</span><span class="n">a</span><span class="p">],</span> <span class="n">new_thetas</span><span class="p">[</span><span class="n">a</span><span class="p">],</span> <span class="n">new_Us</span><span class="p">[</span><span class="n">a</span><span class="p">]</span></div>
+
+    <span class="k">def</span> <span class="nf">_entropy_theta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate entropy of theta via SVD.&quot;&quot;&quot;</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([(</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;q0&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">)],</span> <span class="n">qconj</span><span class="o">=</span><span class="p">[</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">entropy</span><span class="p">(</span><span class="n">S</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NoiseDisentangler"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.purification_tebd.html#tenpy.algorithms.purification_tebd.NoiseDisentangler">[docs]</a><span class="k">class</span> <span class="nc">NoiseDisentangler</span><span class="p">(</span><span class="n">Disentangler</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Apply a little bit of random noise. Useful as pre-step to :class:`RenyiDisentangler`.</span>
+
+<span class="sd">    Arguments and return values are the same as for :class:`Disentangler`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">parent</span><span class="o">.</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s1">&#39;disent_noiselevel&#39;</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="s1">&#39;PurificationTEBD&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">a</span>
+        <span class="n">leg</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">make_pipe</span><span class="p">([</span><span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">U</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">Array</span><span class="o">.</span><span class="n">from_func_square</span><span class="p">(</span><span class="n">rand_mat</span><span class="o">.</span><span class="n">CUE</span><span class="p">,</span> <span class="n">leg</span><span class="p">)</span><span class="o">.</span><span class="n">split_legs</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">U</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">Array</span><span class="o">.</span><span class="n">from_func_square</span><span class="p">(</span><span class="n">rand_mat</span><span class="o">.</span><span class="n">U_close_1</span><span class="p">,</span> <span class="n">leg</span><span class="p">,</span> <span class="n">func_args</span><span class="o">=</span><span class="p">[</span><span class="n">a</span><span class="p">])</span><span class="o">.</span><span class="n">split_legs</span><span class="p">()</span>
+        <span class="n">U</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">,</span> <span class="s1">&#39;q0*&#39;</span><span class="p">,</span> <span class="s1">&#39;q1*&#39;</span><span class="p">])</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;q0*&#39;</span><span class="p">,</span> <span class="s1">&#39;q1*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">]])</span>
+        <span class="k">return</span> <span class="n">theta</span><span class="p">,</span> <span class="n">U</span></div>
+
+
+<div class="viewcode-block" id="LastDisentangler"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.purification_tebd.html#tenpy.algorithms.purification_tebd.LastDisentangler">[docs]</a><span class="k">class</span> <span class="nc">LastDisentangler</span><span class="p">(</span><span class="n">Disentangler</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Use the last total &#39;U&#39; used in :meth:`disentangle` for the same _update_index as guess.</span>
+
+<span class="sd">    Useful as a starting point in a :class:`CompositeDisentangler` to reduce the number of</span>
+<span class="sd">    iterations for a following disentangler.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+        <span class="c1"># result was saved in :meth:`PurificationTEBD.disentangle`</span>
+        <span class="n">U</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">U_idx_dt</span><span class="p">,</span> <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">_update_index</span>
+        <span class="k">if</span> <span class="n">U_idx_dt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">U</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">_guess_U_disent</span><span class="p">[</span><span class="n">U_idx_dt</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">U</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;q0*&#39;</span><span class="p">,</span> <span class="s1">&#39;q1*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">]])</span>
+        <span class="k">return</span> <span class="n">theta</span><span class="p">,</span> <span class="n">U</span></div>
+
+
+<div class="viewcode-block" id="DiagonalizeDisentangler"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.purification_tebd.html#tenpy.algorithms.purification_tebd.DiagonalizeDisentangler">[docs]</a><span class="k">class</span> <span class="nc">DiagonalizeDisentangler</span><span class="p">(</span><span class="n">Disentangler</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Disentangle by diagonalizing the two-site density matrix in the auxiliar space.</span>
+
+<span class="sd">    See Appendix B in arXiv:1704.01974.</span>
+<span class="sd">    Problem: Sorting by eigenvalues breaks the charge conservation!</span>
+<span class="sd">    Instead we just sort within the charge blocks.</span>
+<span class="sd">    For non-trivial charges, this might increase the entropy!</span>
+
+<span class="sd">    Arguments and return values are the same as for :class:`Disentangler`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span>
+            <span class="n">theta</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vL*&#39;</span><span class="p">,</span> <span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">]))</span>
+        <span class="c1"># eigh sorts only within the charge blocks...</span>
+        <span class="n">E</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">rho</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">(([</span><span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;q0*&#39;</span><span class="p">,</span> <span class="s1">&#39;q1*&#39;</span><span class="p">]),</span> <span class="n">qconj</span><span class="o">=</span><span class="p">[</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="c1"># the phase of the eigenvectors is not well defined. Thus, even if V is the identity,</span>
+        <span class="c1"># we might actually increase the entanglement due to the random phases!</span>
+        <span class="c1"># Try to get rid of them by choosing the phase of the maximal element.</span>
+        <span class="n">V_flat</span> <span class="o">=</span> <span class="n">V</span><span class="o">.</span><span class="n">to_ndarray</span><span class="p">()</span>
+        <span class="n">phases</span> <span class="o">=</span> <span class="n">V_flat</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">V_flat</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">V_flat</span><span class="p">))]</span>  <span class="c1"># max values</span>
+        <span class="n">phases</span> <span class="o">=</span> <span class="n">phases</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">phases</span><span class="p">)</span>  <span class="c1"># divided by absolute value</span>
+        <span class="n">V</span><span class="o">.</span><span class="n">iscale_axis</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">phases</span><span class="p">),</span> <span class="s1">&#39;eig&#39;</span><span class="p">)</span>
+        <span class="n">V</span><span class="o">.</span><span class="n">ireplace_label</span><span class="p">(</span><span class="s1">&#39;eig&#39;</span><span class="p">,</span> <span class="s1">&#39;(q0*.q1*)&#39;</span><span class="p">)</span>
+        <span class="n">V</span> <span class="o">=</span> <span class="n">V</span><span class="o">.</span><span class="n">split_legs</span><span class="p">()</span>
+        <span class="n">Vd</span> <span class="o">=</span> <span class="n">V</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>
+        <span class="n">theta1</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">Vd</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;q0*&#39;</span><span class="p">,</span> <span class="s1">&#39;q1*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">]))</span>
+        <span class="k">return</span> <span class="n">theta1</span><span class="p">,</span> <span class="n">Vd</span></div>
+
+
+<div class="viewcode-block" id="CompositeDisentangler"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.purification_tebd.html#tenpy.algorithms.purification_tebd.CompositeDisentangler">[docs]</a><span class="k">class</span> <span class="nc">CompositeDisentangler</span><span class="p">(</span><span class="n">Disentangler</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Concatenate multiple disentanglers.</span>
+
+<span class="sd">    Applies multiple disentanglers, one after another (in iteration order).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    disentanglers : list of :class:`Disentangler`</span>
+<span class="sd">        The disentanglers to be used.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    disentanglers : list of :class:`Disentangler`</span>
+<span class="sd">        The disentanglers to be used.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">disentanglers</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">disentanglers</span> <span class="o">=</span> <span class="n">disentanglers</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+        <span class="n">Utot</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">disent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">disentanglers</span><span class="p">:</span>
+            <span class="n">theta</span><span class="p">,</span> <span class="n">U</span> <span class="o">=</span> <span class="n">disent</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">Utot</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">Utot</span> <span class="o">=</span> <span class="n">U</span>
+            <span class="k">elif</span> <span class="n">U</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># neither Utot nor U are None: multiply together</span>
+                <span class="n">Utot</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="n">Utot</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;q0*&#39;</span><span class="p">,</span> <span class="s1">&#39;q1*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;q0&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">]])</span>
+        <span class="k">return</span> <span class="n">theta</span><span class="p">,</span> <span class="n">Utot</span></div>
+
+
+<div class="viewcode-block" id="MinDisentangler"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.purification_tebd.html#tenpy.algorithms.purification_tebd.MinDisentangler">[docs]</a><span class="k">class</span> <span class="nc">MinDisentangler</span><span class="p">(</span><span class="n">Disentangler</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Chose the disentangler giving the smallest entropy.</span>
+
+<span class="sd">    Apply each of the disentanglers to the given `theta`, use the result with smallest entropy.</span>
+<span class="sd">    Reads the TEBD_param ``&#39;disent_min_n&#39;`` which selects the :func:`~tenpy.tools.math.entropy`</span>
+<span class="sd">    to be used for comparison.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    disentanglers : list of :class:`Disentangler`</span>
+<span class="sd">        The disentanglers to be used.</span>
+<span class="sd">    parent : :class:`~tenpy.algorithms.tebd.Engine`</span>
+<span class="sd">        The parent class calling the disentangler.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    n : float</span>
+<span class="sd">        Selects the entropy to be used for comparison.</span>
+<span class="sd">    disentanglers : list of :class:`Disentangler`</span>
+<span class="sd">        The disentanglers to be used.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">disentanglers</span><span class="p">,</span> <span class="n">parent</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">disentanglers</span> <span class="o">=</span> <span class="n">disentanglers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">parent</span><span class="o">.</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s1">&#39;disent_min_n&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="s1">&#39;PurificationTEBD&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+        <span class="n">theta_min</span><span class="p">,</span> <span class="n">U_min</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">disentanglers</span><span class="p">[</span><span class="mi">0</span><span class="p">](</span><span class="n">theta</span><span class="p">)</span>
+        <span class="n">S_min</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entropy_theta</span><span class="p">(</span><span class="n">theta_min</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">disent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">disentanglers</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+            <span class="n">theta2</span><span class="p">,</span> <span class="n">U2</span> <span class="o">=</span> <span class="n">disent</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+            <span class="n">S2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entropy_theta</span><span class="p">(</span><span class="n">theta2</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">S2</span> <span class="o">&lt;</span> <span class="n">S_min</span><span class="p">:</span>
+                <span class="n">S_min</span> <span class="o">=</span> <span class="n">S2</span>
+                <span class="n">theta_min</span> <span class="o">=</span> <span class="n">theta2</span>
+                <span class="n">U_min</span> <span class="o">=</span> <span class="n">U2</span>
+        <span class="k">return</span> <span class="n">theta_min</span><span class="p">,</span> <span class="n">U_min</span>
+
+    <span class="k">def</span> <span class="nf">_entropy_theta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate entropy of theta via SVD.&quot;&quot;&quot;</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([(</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;q0&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;q1&#39;</span><span class="p">)],</span> <span class="n">qconj</span><span class="o">=</span><span class="p">[</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">entropy</span><span class="p">(</span><span class="n">S</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">)</span></div>
+
+
+<span class="sd">&quot;&quot;&quot;Dictionary to translate the &#39;disentangle&#39; TEBD parameter into a :class:`Disentangler`.</span>
+
+<span class="sd">If you define your own disentanglers, you can dynamically append them to this dictionary.</span>
+<span class="sd">CompositeDisentangler and MinDisentangler separate: they have non-default constructor and</span>
+<span class="sd">special syntax.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="n">disentanglers_atom_parse_dict</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;None&#39;</span><span class="p">:</span> <span class="n">Disentangler</span><span class="p">,</span>
+    <span class="s1">&#39;backwards&#39;</span><span class="p">:</span> <span class="n">BackwardDisentangler</span><span class="p">,</span>
+    <span class="s1">&#39;renyi&#39;</span><span class="p">:</span> <span class="n">RenyiDisentangler</span><span class="p">,</span>
+    <span class="s1">&#39;norm&#39;</span><span class="p">:</span> <span class="n">NormDisentangler</span><span class="p">,</span>
+    <span class="s1">&#39;graddesc&#39;</span><span class="p">:</span> <span class="n">GradientDescentDisentangler</span><span class="p">,</span>
+    <span class="s1">&#39;noise&#39;</span><span class="p">:</span> <span class="n">NoiseDisentangler</span><span class="p">,</span>
+    <span class="s1">&#39;last&#39;</span><span class="p">:</span> <span class="n">LastDisentangler</span><span class="p">,</span>
+    <span class="s1">&#39;diag&#39;</span><span class="p">:</span> <span class="n">DiagonalizeDisentangler</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="get_disentangler"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.purification_tebd.html#tenpy.algorithms.purification_tebd.get_disentangler">[docs]</a><span class="k">def</span> <span class="nf">get_disentangler</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">parent</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Parse the parameter `method` and construct a :class:`Disentangler` instance.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    method : str | ``None``</span>
+<span class="sd">        The method to be used, of the form &#39;method1-method2-min(method3,method4-method5)&#39;.</span>
+<span class="sd">        The usage should be clear from the examples, the precise rule follows:</span>
+<span class="sd">        We parse the full `method` string as a `composite`, and define</span>
+<span class="sd">        ``composite := min_atom [&#39;-&#39; min_atom ...]``,</span>
+<span class="sd">        ``min_atom := { &#39;min(&#39; composite [&#39;,&#39; composite ...] &#39;)&#39; } | atom``, and</span>
+<span class="sd">        ``atom := {any key of `disentanglers_atom_parse_dict`}``.</span>
+<span class="sd">    parent : :class:`~tenpy.algorithms.tebd.Engine`</span>
+<span class="sd">        The parent class calling the disentangler.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    disentangler : :class:`Disentangler`</span>
+<span class="sd">        Disentangler instance, which can be called to disentangle a 2-site `theta`</span>
+<span class="sd">        with the specified `method`.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; get_disentangler(None, p)</span>
+<span class="sd">    Disentangler(p)</span>
+<span class="sd">    &gt;&gt;&gt; get_disentangler(&#39;last-renyi&#39;, p)</span>
+<span class="sd">    Disentangler([LastDisentangler(p), RenyiDisentangler(p)], p)</span>
+<span class="sd">    &gt;&gt;&gt; get_disentangler(&#39;min(None,noise-renyi,min(backwards,last)-graddesc)&#39;)</span>
+<span class="sd">    MinDisentangler([Disentangler,</span>
+<span class="sd">                     CompositeDisentangler([NoiseDisentangler(p), RenyiDisentangler(p)], p),</span>
+<span class="sd">                     CompositeDisentangler([MinDisentangler([BackwardDisentangler(p),</span>
+<span class="sd">                                                             LastDisentangler(p)]),</span>
+<span class="sd">                                            GradientDescentDisentangler(p)], p), p)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">disent</span><span class="p">,</span> <span class="n">unparsed</span> <span class="o">=</span> <span class="n">_parse_composite</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">method</span><span class="p">),</span> <span class="n">parent</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">unparsed</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">_ParseError</span>
+    <span class="k">except</span> <span class="n">_ParseError</span><span class="p">:</span>
+        <span class="k">raise</span>
+        <span class="c1">#  raise ValueError(&quot;Error while parsing disentangle method: &quot; + repr(method))</span>
+    <span class="k">return</span> <span class="n">disent</span></div>
+
+
+<span class="k">def</span> <span class="nf">_parse_composite</span><span class="p">(</span><span class="n">unparsed</span><span class="p">,</span> <span class="n">parent</span><span class="p">):</span>
+    <span class="n">disentanglers</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">disent</span><span class="p">,</span> <span class="n">unparsed</span> <span class="o">=</span> <span class="n">_parse_min_atom</span><span class="p">(</span><span class="n">unparsed</span><span class="p">,</span> <span class="n">parent</span><span class="p">)</span>
+        <span class="n">disentanglers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">disent</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">unparsed</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">unparsed</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;-&#39;</span><span class="p">:</span>
+            <span class="k">break</span>  <span class="c1"># end of composite</span>
+        <span class="c1"># else: unparsed[0] == &#39;-&#39;</span>
+        <span class="n">unparsed</span> <span class="o">=</span> <span class="n">unparsed</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="c1"># -&gt; continue with while loop</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">disentanglers</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="c1"># just a min_atom</span>
+        <span class="k">return</span> <span class="n">disentanglers</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">unparsed</span>
+    <span class="k">return</span> <span class="n">CompositeDisentangler</span><span class="p">(</span><span class="n">disentanglers</span><span class="p">),</span> <span class="n">unparsed</span>
+
+
+<span class="k">def</span> <span class="nf">_parse_min_atom</span><span class="p">(</span><span class="n">unparsed</span><span class="p">,</span> <span class="n">parent</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">unparsed</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;min(&#39;</span><span class="p">):</span>
+        <span class="n">disentanglers</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">unparsed</span> <span class="o">=</span> <span class="n">unparsed</span><span class="p">[</span><span class="mi">4</span><span class="p">:]</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">disent</span><span class="p">,</span> <span class="n">unparsed</span> <span class="o">=</span> <span class="n">_parse_composite</span><span class="p">(</span><span class="n">unparsed</span><span class="p">,</span> <span class="n">parent</span><span class="p">)</span>
+            <span class="n">disentanglers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">disent</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">unparsed</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">unparsed</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;,&#39;</span><span class="p">:</span>
+                <span class="k">break</span>  <span class="c1"># parsed the expected part</span>
+            <span class="c1"># else: unparsed[0] == &#39;,&#39;</span>
+            <span class="n">unparsed</span> <span class="o">=</span> <span class="n">unparsed</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="c1"># -&gt; continue with while loop</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">unparsed</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">unparsed</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;)&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">_ParseError</span>
+        <span class="c1"># else: unparsed[0] == &#39;)&#39;</span>
+        <span class="k">return</span> <span class="n">MinDisentangler</span><span class="p">(</span><span class="n">disentanglers</span><span class="p">,</span> <span class="n">parent</span><span class="p">),</span> <span class="n">unparsed</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># expect atom</span>
+        <span class="k">return</span> <span class="n">_parse_atom</span><span class="p">(</span><span class="n">unparsed</span><span class="p">,</span> <span class="n">parent</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_parse_atom</span><span class="p">(</span><span class="n">unparsed</span><span class="p">,</span> <span class="n">parent</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">disent</span> <span class="ow">in</span> <span class="n">disentanglers_atom_parse_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">unparsed</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">disent</span><span class="p">(</span><span class="n">parent</span><span class="p">),</span> <span class="n">unparsed</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">key</span><span class="p">):]</span>
+    <span class="k">raise</span> <span class="n">_ParseError</span>
+
+
+<span class="k">class</span> <span class="nc">_ParseError</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+    <span class="k">pass</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/logo.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../userguide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.html">tenpy package</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2018, TeNPy Developers.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

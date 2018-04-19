@@ -1,0 +1,324 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>tenpy.algorithms.exact_diag &#8212; TeNPy 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tenpy.algorithms.exact_diag</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Full diagonalization (ED) of the Hamiltonian.</span>
+
+<span class="sd">The full diagonalization of a small system is a simple approach to test other algorithms.</span>
+<span class="sd">In case you need the full spectrum, a full diagonalization is often the only way.</span>
+<span class="sd">This module provides functionality to quickly diagonalize the Hamiltonian of a given model.</span>
+<span class="sd">This might be used to obtain the spectrum, the ground state or highly excited states.</span>
+
+<span class="sd">.. note ::</span>
+<span class="sd">    Good use of symmetries is crucial to increase the treatable system size.</span>
+<span class="sd">    While we can simply use the defined `LegCharge` of a model, we don&#39;t make use of any other</span>
+<span class="sd">    symmetries like translation symmetry, SU(2) symmetry or inversion symmetries.</span>
+<span class="sd">    In other words, this code does not aim to provide state-of-the-art exact diagonalization,</span>
+<span class="sd">    but just the ability to diagonalize the defined models for small system sizes</span>
+<span class="sd">    without addional extra work.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># Copyright 2018 TeNPy Developers</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">from</span> <span class="nn">..linalg</span> <span class="k">import</span> <span class="n">np_conserved</span> <span class="k">as</span> <span class="n">npc</span>
+<span class="kn">from</span> <span class="nn">..networks.mps</span> <span class="k">import</span> <span class="n">MPS</span>
+
+
+<div class="viewcode-block" id="ExactDiag"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.exact_diag.html#tenpy.algorithms.exact_diag.ExactDiag">[docs]</a><span class="k">class</span> <span class="nc">ExactDiag</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;(Full) exact diagonalization of the Hamiltonian.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : :class:`~tenpy.models.MPOmodel` | :class:`~tenpy.models.CouplingModel`</span>
+<span class="sd">        The model which is to be diagonalized.</span>
+<span class="sd">    charge_sector : ``None`` | charges</span>
+<span class="sd">        If not ``None``, project onto the given charge sector.</span>
+<span class="sd">    sparse : bool</span>
+<span class="sd">        If ``True``, don&#39;t sort/bunch the LegPipe used to combine the physical legs.</span>
+<span class="sd">        This results in array `blocks` with just one entry, requires much more charge data,</span>
+<span class="sd">        and is not what `np_conserved` was designed for, so it&#39;s not recommended.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : :class:`~tenpy.models.MPOmodel` | :class:`~tenpy.models.CouplingModel`</span>
+<span class="sd">        The model which is to be diagonalized.</span>
+<span class="sd">    chinfo : :class:`~tenpy.linalg.charges.ChargeInfo`</span>
+<span class="sd">        The nature of the charge (which is the same for all sites).</span>
+<span class="sd">    charge_sector : ``None`` | charges</span>
+<span class="sd">        If not ``None``, we project onto the given charge sector.</span>
+<span class="sd">    full_H : :class:`~tenpy.linalg.np_conserved.Array` | ``None``</span>
+<span class="sd">        The full Hamiltonian to be diagonalized</span>
+<span class="sd">        with legs ``&#39;(p0.p1....)&#39;, &#39;(p0*,p1*...)&#39;`` (in that order)</span>
+<span class="sd">    E : ndarray | ``None``</span>
+<span class="sd">        1D array of eigenvalues.</span>
+<span class="sd">    V : :class:`~tenpy.linalg.np_conserved.Array` | ``None``</span>
+<span class="sd">        Eigenvectors. First leg &#39;ps&#39; are physical legs,</span>
+<span class="sd">        the second leg ``&#39;ps*&#39;`` corresponds to the eigenvalues.</span>
+<span class="sd">    _sites : list of :class:`~tenpy.networks.site.Site`</span>
+<span class="sd">        The sites in the given order.</span>
+<span class="sd">    _labels_p : list or str</span>
+<span class="sd">        The labels use for the physical legs; just ``[&#39;p0&#39;, &#39;p1&#39;, ...., &#39;p{L-1}&#39;]``.</span>
+<span class="sd">    _labels_pconj : list or str</span>
+<span class="sd">        Just each of `_labels_p` with an ``*``.</span>
+<span class="sd">    _pipe : :class:`~tenpy.linalg.charges.LegPipe`</span>
+<span class="sd">        The pipe from the single physical legs to the full combined leg.</span>
+<span class="sd">    _pipe_conj : :class:`~tenpy.linalg.charges.LegPipe`</span>
+<span class="sd">        Just ``_pipe.conj()``.</span>
+<span class="sd">    _mask : 1D bool ndarray | ``None``</span>
+<span class="sd">        Bool mask, which of the indices of the pipe are in the desired `charge_sector`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">charge_sector</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sparse</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">bc_MPS</span> <span class="o">!=</span> <span class="s1">&#39;finite&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Full diagonalization works only on finite systems&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">chinfo</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">full_H</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">E</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">V</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_labels_p</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;p&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">N_sites</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_labels_pconj</span> <span class="o">=</span> <span class="p">[</span><span class="n">l</span> <span class="o">+</span> <span class="s1">&#39;*&#39;</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labels_p</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sites</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">mps_sites</span><span class="p">()</span>
+        <span class="n">legs</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">leg</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sites</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pipe</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegPipe</span><span class="p">(</span><span class="n">legs</span><span class="p">,</span> <span class="n">qconj</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="n">sparse</span><span class="p">),</span> <span class="n">bunch</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="n">sparse</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pipe_conj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pipe</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">charge_sector</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">charge_sector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="o">.</span><span class="n">make_valid</span><span class="p">(</span><span class="n">charge_sector</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pipe</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">charge_sector</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mask</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The chosen charge sector is empty.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">charge_sector</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="ExactDiag.build_full_H_from_mpo"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.exact_diag.html#tenpy.algorithms.exact_diag.ExactDiag.build_full_H_from_mpo">[docs]</a>    <span class="k">def</span> <span class="nf">build_full_H_from_mpo</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;calculate self.full_H from self.mpo&quot;&quot;&quot;</span>
+        <span class="n">mpo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">H_MPO</span>
+        <span class="n">full_H</span> <span class="o">=</span> <span class="n">mpo</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">take_slice</span><span class="p">(</span><span class="n">mpo</span><span class="o">.</span><span class="n">get_IdL</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="s1">&#39;wL&#39;</span><span class="p">)</span>
+        <span class="n">full_H</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_labels_p</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labels_pconj</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mpo</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
+            <span class="n">W</span> <span class="o">=</span> <span class="n">mpo</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">W</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_labels_p</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labels_pconj</span><span class="p">[</span><span class="n">i</span><span class="p">]])</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">mpo</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">W</span> <span class="o">=</span> <span class="n">W</span><span class="o">.</span><span class="n">take_slice</span><span class="p">(</span><span class="n">mpo</span><span class="o">.</span><span class="n">get_IdR</span><span class="p">(</span><span class="n">mpo</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="s1">&#39;wR&#39;</span><span class="p">)</span>
+            <span class="n">full_H</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">full_H</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">])</span>
+        <span class="n">full_H</span> <span class="o">=</span> <span class="n">full_H</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">(</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_labels_p</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labels_pconj</span><span class="p">],</span>
+            <span class="n">new_axes</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+            <span class="n">pipes</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_pipe</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pipe_conj</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_full_H</span><span class="p">(</span><span class="n">full_H</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ExactDiag.build_full_H_from_bonds"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.exact_diag.html#tenpy.algorithms.exact_diag.ExactDiag.build_full_H_from_bonds">[docs]</a>    <span class="k">def</span> <span class="nf">build_full_H_from_bonds</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;calculate self.full_H from self.mpo&quot;&quot;&quot;</span>
+        <span class="n">sites</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">mps_sites</span><span class="p">()</span>
+        <span class="n">H_bond</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">H_bond</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sites</span><span class="p">)</span>
+        <span class="n">Ids</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">s</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">replace_labels</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_labels_p</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labels_pconj</span><span class="p">[</span><span class="n">i</span><span class="p">]])</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sites</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">Ids_L</span> <span class="o">=</span> <span class="p">[</span><span class="n">Ids</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>  <span class="c1"># Ids_L[j] has identity up to (including) site j</span>
+        <span class="n">Ids_R</span> <span class="o">=</span> <span class="p">[</span><span class="n">Ids</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>  <span class="c1"># Ids_R[j] is identity starting from (including) site L-1-j</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">L</span> <span class="o">-</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="n">Ids_L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">npc</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">Ids_L</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">Ids</span><span class="p">[</span><span class="n">j</span><span class="p">]))</span>
+            <span class="n">Ids_R</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">npc</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">Ids</span><span class="p">[</span><span class="n">L</span> <span class="o">-</span> <span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">Ids_R</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">full_H</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">L</span><span class="p">):</span>
+            <span class="c1"># H_bond[i] lifes on sites (i-1, i)</span>
+            <span class="n">lL</span><span class="p">,</span> <span class="n">lLc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labels_p</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labels_pconj</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">lR</span><span class="p">,</span> <span class="n">lRc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labels_p</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labels_pconj</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">Hb</span> <span class="o">=</span> <span class="n">H_bond</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">replace_labels</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="n">lL</span><span class="p">,</span> <span class="n">lLc</span><span class="p">,</span> <span class="n">lR</span><span class="p">,</span> <span class="n">lRc</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">Hb</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">Ids_L</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">],</span> <span class="n">Hb</span><span class="p">)</span>  <span class="c1"># need i-2 == j</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">Hb</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">Hb</span><span class="p">,</span> <span class="n">Ids_R</span><span class="p">[</span><span class="n">L</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">-</span> <span class="n">i</span><span class="p">])</span>  <span class="c1"># need i+1 == L-1-j   =&gt;   j = L-2-i</span>
+            <span class="n">Hb</span> <span class="o">=</span> <span class="n">Hb</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">(</span>
+                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_labels_p</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labels_pconj</span><span class="p">],</span>
+                <span class="n">new_axes</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                <span class="n">pipes</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_pipe</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pipe_conj</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">full_H</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">full_H</span> <span class="o">=</span> <span class="n">Hb</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">full_H</span> <span class="o">+=</span> <span class="n">Hb</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_full_H</span><span class="p">(</span><span class="n">full_H</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ExactDiag.full_diagonalization"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.exact_diag.html#tenpy.algorithms.exact_diag.ExactDiag.full_diagonalization">[docs]</a>    <span class="k">def</span> <span class="nf">full_diagonalization</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Full diagonalization to obtain all eigenvalues and eigenvectors.</span>
+
+<span class="sd">        Arguments are given to :class:`~tenpy.linalg.np_conserved.eigh`.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_H</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;You need to call one of `build_full_H_*` first!&quot;</span><span class="p">)</span>
+        <span class="n">E</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">full_H</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">V</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;ps&#39;</span><span class="p">,</span> <span class="s1">&#39;ps*&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">E</span> <span class="o">=</span> <span class="n">E</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">V</span> <span class="o">=</span> <span class="n">V</span></div>
+
+<div class="viewcode-block" id="ExactDiag.groundstate"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.exact_diag.html#tenpy.algorithms.exact_diag.ExactDiag.groundstate">[docs]</a>    <span class="k">def</span> <span class="nf">groundstate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Pick the ground state from self.V&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">E</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;You need to call `full_diagonalization` first!&quot;</span><span class="p">)</span>
+        <span class="n">i0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">E</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span><span class="o">.</span><span class="n">take_slice</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="s1">&#39;ps*&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ExactDiag.exp_H"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.exact_diag.html#tenpy.algorithms.exact_diag.ExactDiag.exp_H">[docs]</a>    <span class="k">def</span> <span class="nf">exp_H</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return ``U(dt) := exp(-i H dt)``.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">E</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;You need to call `full_diagonalization` first!&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">V</span><span class="o">.</span><span class="n">scale_axis</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mf">1.</span><span class="n">j</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">E</span><span class="p">),</span> <span class="s1">&#39;ps*&#39;</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">V</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span>
+            <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;ps*&#39;</span><span class="p">,</span> <span class="s1">&#39;ps&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="ExactDiag.mps_to_full"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.exact_diag.html#tenpy.algorithms.exact_diag.ExactDiag.mps_to_full">[docs]</a>    <span class="k">def</span> <span class="nf">mps_to_full</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mps</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Contract an MPS along the virtual bonds and combine its legs.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        mps : :class:`~tenpy.networks.mps.MPS`</span>
+<span class="sd">            The MPS to be contracted.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        psi : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            The MPO contracted along the virtual bonds.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">mps</span><span class="o">.</span><span class="n">bc</span> <span class="o">!=</span> <span class="s1">&#39;finite&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Full diagonalization works only on finite systems&quot;</span><span class="p">)</span>
+        <span class="n">psi</span> <span class="o">=</span> <span class="n">mps</span><span class="o">.</span><span class="n">get_theta</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">mps</span><span class="o">.</span><span class="n">L</span><span class="p">)</span>  <span class="c1"># does exactly what we need</span>
+        <span class="n">psi</span> <span class="o">=</span> <span class="n">psi</span><span class="o">.</span><span class="n">take_slice</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">])</span>
+        <span class="n">psi</span> <span class="o">=</span> <span class="n">psi</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">mps</span><span class="o">.</span><span class="n">L</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">charge_sector</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">psi</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">psi</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">to_LegCharge</span><span class="p">()</span>
+            <span class="n">psi</span> <span class="o">=</span> <span class="n">psi</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_mask</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">psi</span></div>
+
+<div class="viewcode-block" id="ExactDiag.full_to_mps"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.exact_diag.html#tenpy.algorithms.exact_diag.ExactDiag.full_to_mps">[docs]</a>    <span class="k">def</span> <span class="nf">full_to_mps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">canonical_form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convert a full state (with a single leg) to an MPS.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        psi : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            The state (with a single leg) which should be splitted into an MPS.</span>
+<span class="sd">        canonical_from : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            The form in which the MPS will be afterwards.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        mps : :class:`~tenpy.networks.mps.MPS`</span>
+<span class="sd">            An normalized MPS representation in canonical form.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegPipe</span><span class="p">):</span>
+            <span class="c1"># projected onto charge_sector: need to restore the LegPipe.</span>
+            <span class="n">full_psi</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_pipe</span><span class="p">],</span> <span class="n">psi</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">psi</span><span class="o">.</span><span class="n">qtotal</span><span class="p">)</span>
+            <span class="n">full_psi</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">psi</span>
+            <span class="n">psi</span> <span class="o">=</span> <span class="n">full_psi</span>
+        <span class="n">psi</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;(&#39;</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_labels_p</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span><span class="p">])</span>
+        <span class="n">psi</span> <span class="o">=</span> <span class="n">psi</span><span class="o">.</span><span class="n">split_legs</span><span class="p">([</span><span class="mi">0</span><span class="p">])</span>  <span class="c1"># split the combined leg into the physical legs of the sites</span>
+        <span class="k">return</span> <span class="n">MPS</span><span class="o">.</span><span class="n">from_full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sites</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="n">canonical_form</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ExactDiag.matvec"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.exact_diag.html#tenpy.algorithms.exact_diag.ExactDiag.matvec">[docs]</a>    <span class="k">def</span> <span class="nf">matvec</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">psi</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Allow to use `self` as LinearOperator for lanczos.</span>
+
+<span class="sd">        Just applies `full_H` to (the first axis of) the given `psi`.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">full_H</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ExactDiag.sparse_diag"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.exact_diag.html#tenpy.algorithms.exact_diag.ExactDiag.sparse_diag">[docs]</a>    <span class="k">def</span> <span class="nf">sparse_diag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Call :func:`~tenpy.linalg.np_conserved.speigs`.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">npc</span><span class="o">.</span><span class="n">speigs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">full_H</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">charge_sector</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_set_full_H</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">full_H</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_H</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;full_H calculated multiple times?&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">charge_sector</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">full_H</span><span class="o">.</span><span class="n">legs</span> <span class="o">=</span> <span class="p">[</span><span class="n">l</span><span class="o">.</span><span class="n">to_LegCharge</span><span class="p">()</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">full_H</span><span class="o">.</span><span class="n">legs</span><span class="p">]</span>  <span class="c1"># avoids warnings of project</span>
+            <span class="n">full_H</span> <span class="o">=</span> <span class="n">full_H</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">full_H</span> <span class="o">=</span> <span class="n">full_H</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/logo.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../userguide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.html">tenpy package</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2018, TeNPy Developers.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

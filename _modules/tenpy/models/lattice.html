@@ -1,0 +1,598 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>tenpy.models.lattice &#8212; TeNPy 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tenpy.models.lattice</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Classes to define the lattice structure of a model.</span>
+
+<span class="sd">The base class :class:`lattice` defines the general structure of a lattice,</span>
+<span class="sd">you can subclass this to define you own lattice.</span>
+<span class="sd">Further, we have the predefined lattices, namely :class:`Chain` and :class:`SquareLattice`.</span>
+
+<span class="sd">.. todo ::</span>
+<span class="sd">    documentation, how to generate new lattices, examples, ...</span>
+<span class="sd">    implement some __repr__ and/or __str__...</span>
+<span class="sd">    equality tests?</span>
+
+<span class="sd">.. todo ::</span>
+<span class="sd">    add further lattices: honeycomb, ...</span>
+<span class="sd">    Above, make table with pictures of them (-&gt; use Lattice.plot_ordering)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># Copyright 2018 TeNPy Developers</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..networks.site</span> <span class="k">import</span> <span class="n">Site</span>
+<span class="kn">from</span> <span class="nn">..tools.misc</span> <span class="k">import</span> <span class="n">to_iterable</span>
+<span class="kn">from</span> <span class="nn">..networks.mps</span> <span class="k">import</span> <span class="n">MPS</span>  <span class="c1"># only to check boundary conditions</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Lattice&#39;</span><span class="p">,</span> <span class="s1">&#39;SimpleLattice&#39;</span><span class="p">,</span> <span class="s1">&#39;Chain&#39;</span><span class="p">,</span> <span class="s1">&#39;SquareLattice&#39;</span><span class="p">]</span>
+
+<span class="c1"># (update module doc string if you add further lattices)</span>
+
+
+<div class="viewcode-block" id="Lattice"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Lattice">[docs]</a><span class="k">class</span> <span class="nc">Lattice</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;A general lattice.</span>
+
+<span class="sd">    The lattice consists of a **unit cell** which is repeated in `dim` different directions.</span>
+<span class="sd">    A site of the lattice is thus identified by **lattice indices** ``(x_0, ..., x_{dim-1}, u)``,</span>
+<span class="sd">    where ``0 &lt;= x_l &lt; Ls[l]`` pick the position of the unit cell in the lattice and</span>
+<span class="sd">    ``0 &lt;= u &lt; len(unit_cell)`` picks the site within the unit cell. The site is located</span>
+<span class="sd">    in &#39;space&#39; at ``sum_l x_l*basis[l] + unit_cell_positions[u]`` (see :meth:`position`).</span>
+
+<span class="sd">    In addition to the pure geometry, this class also defines an &#39;order&#39; of all sites.</span>
+<span class="sd">    This order maps the lattice to a finite 1D chain and defines the geometry of MPSs and MPOs.</span>
+<span class="sd">    The **MPS index** `i` corresponds thus to the lattice sites given by</span>
+<span class="sd">    ``(a_0, ..., a_{D-1}, u) = tuple(self.order[i])``.</span>
+<span class="sd">    Use :meth:`mps2lat_idx` and :meth:`lat2mps_idx` for conversion of indices.</span>
+<span class="sd">    :meth:`mps2lat_values` perform the necessary reshaping and re-ordering from arrays indexed in</span>
+<span class="sd">    MPS form to arrays indexed in lattice form.</span>
+
+<span class="sd">    .. todo ::</span>
+<span class="sd">        some way to define what are the &#39;nearest neighbours&#39;/&#39;next nearest neighbours&#39;?</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Ls : list of int</span>
+<span class="sd">        the length in each direction</span>
+<span class="sd">    unit_cell : list of :class:`~tenpy.networks.Site`</span>
+<span class="sd">        the lattice sites making up a unit cell of the lattice.</span>
+<span class="sd">    order : str</span>
+<span class="sd">        a string specifying the order, given to :meth:`ordering`.</span>
+<span class="sd">        Defaults ``&#39;default&#39;``: First direction changing slowest, within the unit cell fastest.</span>
+<span class="sd">    bc_MPS : {&#39;finite&#39; | &#39;segment&#39; | &#39;infinite&#39;}</span>
+<span class="sd">        boundary conditions for an MPS/MPO living on the ordered lattice. Default &#39;finite&#39;.</span>
+<span class="sd">    basis : iterable of 1D arrays</span>
+<span class="sd">        for each direction one translation vectors shifting the unit cell.</span>
+<span class="sd">        Defaults to the standard ONB ``np.eye(dim)``.</span>
+<span class="sd">    positions : iterable of 1D arrays</span>
+<span class="sd">        for each site of the unit cell the position within the unit cell.</span>
+<span class="sd">        Defaults to ``np.zeros((len(unit_cell), dim))``.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dim</span>
+<span class="sd">    N_cells</span>
+<span class="sd">    N_sites</span>
+<span class="sd">    Ls : tuple of int</span>
+<span class="sd">        the length in each direction.</span>
+<span class="sd">    shape : tuple of int</span>
+<span class="sd">        the &#39;shape&#39; of the lattice, same as ``Ls + (len(unit_cell), )``</span>
+<span class="sd">    chinfo : :class:`~tenpy.linalg.charges.ChargeInfo`</span>
+<span class="sd">        The nature of the charge (which is the same for all sites).</span>
+<span class="sd">    unit_cell : list of :class:`~tenpy.networks.Site`</span>
+<span class="sd">        the lattice sites making up a unit cell of the lattice.</span>
+<span class="sd">    order : ndarray (N_sites, dim+1)</span>
+<span class="sd">        Defines an ordering of the lattice sites, thus mapping the lattice to a 1D chain.</span>
+<span class="sd">        This order defines how an MPS/MPO winds through the lattice.</span>
+<span class="sd">    bc_MPS : {&#39;finite&#39; | &#39;segment&#39; | &#39;infinite&#39;}</span>
+<span class="sd">        boundary conditions for an MPS/MPO living on the ordered lattice.</span>
+<span class="sd">    basis: ndarray (dim, dim)</span>
+<span class="sd">        translation vectors shifting the unit cell. The row `i` gives the vector shifting in</span>
+<span class="sd">        direction `i`.</span>
+<span class="sd">    unit_cell_positions : ndarray, shape (len(unit_cell), dim)</span>
+<span class="sd">        for each site in the unit cell a vector giving its position within the unit cell.</span>
+<span class="sd">    _strides : ndarray (dim, )</span>
+<span class="sd">        necessary for :meth:`mps2lat_idx`</span>
+<span class="sd">    _perm : ndarray (N, )</span>
+<span class="sd">        permutation needed to make `order` lexsorted.</span>
+<span class="sd">    _mps2lat_vals_idx : ndarray `shape`</span>
+<span class="sd">        index array for reshape/reordering in :meth:`mps2lat_vals`</span>
+<span class="sd">    _mps_fix_u : tuple of ndarray (N_cells, ) np.intp</span>
+<span class="sd">        for each site of the unit cell an index array selecting the mps indices of that site.</span>
+<span class="sd">    _mps_fix_u_None : ndarray (N_sites, )</span>
+<span class="sd">        just np.arange(N_sites, np.intp)</span>
+<span class="sd">    _mps2lat_vals_idx_fix_u : tuple of ndarray of shape `Ls`</span>
+<span class="sd">        similar as `_mps2lat_vals_idx`, but for a fixed `u` picking a site from the unit cell.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Ls</span><span class="p">,</span> <span class="n">unit_cell</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="s1">&#39;finite&#39;</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">positions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Ls</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">L</span><span class="p">)</span> <span class="k">for</span> <span class="n">L</span> <span class="ow">in</span> <span class="n">Ls</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">unit_cell</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_cells</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Ls</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Ls</span> <span class="o">+</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">unit_cell</span><span class="p">),</span> <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_sites</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">positions</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">basis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">basis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unit_cell_positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">basis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">basis</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bc_MPS</span> <span class="o">=</span> <span class="n">bc_MPS</span>
+        <span class="c1"># calculate order for MPS</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">order</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ordering</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
+        <span class="c1"># from order, calc necessary stuff for mps2lat and lat2mps</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_perm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">lexsort</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="c1"># use advanced numpy indexing...</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mps2lat_vals_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mps2lat_vals_idx</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="o">.</span><span class="n">T</span><span class="p">)]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N_sites</span><span class="p">)</span>
+        <span class="c1"># versions for fixed u</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mps_fix_u</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mps2lat_vals_idx_fix_u</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">)):</span>
+            <span class="n">mps_fix_u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">u</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mps_fix_u</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mps_fix_u</span><span class="p">)</span>
+            <span class="n">mps2lat_vals_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Ls</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
+            <span class="n">mps2lat_vals_idx</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">[</span><span class="n">mps_fix_u</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">)]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N_cells</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mps2lat_vals_idx_fix_u</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mps2lat_vals_idx</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mps_fix_u</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mps_fix_u</span><span class="p">)</span>
+        <span class="c1"># calculate _strides</span>
+        <span class="n">strides</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">L</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">Ls</span><span class="p">:</span>
+            <span class="n">strides</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">strides</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">L</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_strides</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">strides</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">()</span>  <span class="c1"># check consistency</span>
+
+<div class="viewcode-block" id="Lattice.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Lattice.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sanity check. Raises ValueErrors, if something is wrong.&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">Ls</span> <span class="o">+</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">),</span> <span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_cells</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Ls</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_sites</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">site</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">site</span><span class="p">,</span> <span class="n">Site</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;element of Unit cell is not Site.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">site</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;All sites must have the same ChargeInfo!&quot;</span><span class="p">)</span>
+            <span class="n">site</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">basis</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Need one basis vector for each direction!&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit_cell_positions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Need one position for each site in the unit cell.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">basis</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit_cell_positions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Different space dimensions of `basis` and `unit_cell_positions`&quot;</span><span class="p">)</span>
+        <span class="c1"># if one of the following assert fails, the `ordering` function returned an invalid array</span>
+        <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">order</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">order</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>  <span class="c1"># entries of `order`</span>
+        <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">order</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_strides</span><span class="p">,</span>
+                   <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">_perm</span><span class="p">]</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N_sites</span><span class="p">))</span>  <span class="c1"># rows of `order` unique?</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc_MPS</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">MPS</span><span class="o">.</span><span class="n">_valid_bc</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;invalid MPS boundary conditions&quot;</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;the dimension of the lattice.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Ls</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Lattice.ordering"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Lattice.ordering">[docs]</a>    <span class="k">def</span> <span class="nf">ordering</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Provide possible orderings of the `N` lattice sites.</span>
+
+<span class="sd">        This function can be overwritten by derived lattices to define additional orderings.</span>
+<span class="sd">        The following orders are devined in this function:</span>
+
+<span class="sd">        =========== =============================================================================</span>
+<span class="sd">        name        ordering</span>
+<span class="sd">        =========== =============================================================================</span>
+<span class="sd">        Cstyle      First ascending within the unit cell, then through the lattice in</span>
+<span class="sd">                    C-style array order, i.e., the first direction changes slowest.</span>
+<span class="sd">        Fstyle      Similar as default, but use Fortran-style array order for the lattice sites,</span>
+<span class="sd">                    i.e., the last dimension changes slowest, unit cell fastest.</span>
+<span class="sd">        snakeCstyle like Cstyle but always alternate ascending/descending.</span>
+<span class="sd">        snakeFstyle like Fstyle but always alternate ascending/descending.</span>
+<span class="sd">        default     same as Cstyle</span>
+<span class="sd">        snake       same as snakeCstyle</span>
+<span class="sd">        =========== =============================================================================</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            specifies the desired ordering, see table above.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        order : array, shape (N, D+1), dtype np.intp</span>
+<span class="sd">            the order to be used for ``self.order``.</span>
+
+<span class="sd">        See also</span>
+<span class="sd">        --------</span>
+<span class="sd">        plot_ordering : visualizes the ordering</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">N_sites</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;default&quot;</span><span class="p">,</span> <span class="s2">&quot;Cstyle&quot;</span><span class="p">]:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mgrid</span><span class="p">[</span><span class="nb">tuple</span><span class="p">([</span><span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span> <span class="k">for</span> <span class="n">L</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">])]</span>
+            <span class="k">return</span> <span class="n">res</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_sites</span><span class="p">))</span><span class="o">.</span><span class="n">T</span>
+        <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;Fstyle&quot;</span><span class="p">:</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Ls</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">),</span> <span class="p">)</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mgrid</span><span class="p">[</span><span class="nb">tuple</span><span class="p">([</span><span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span> <span class="k">for</span> <span class="n">L</span> <span class="ow">in</span> <span class="n">shape</span><span class="p">])]</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_sites</span><span class="p">))</span><span class="o">.</span><span class="n">T</span>
+            <span class="n">perm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">res</span><span class="p">[:,</span> <span class="n">perm</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;snake&quot;</span><span class="p">,</span> <span class="s2">&quot;snakeCstyle&quot;</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="n">_ordering_snake</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;snakeFstyle&quot;</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">_ordering_snake</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Ls</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">),</span> <span class="p">))</span>
+            <span class="n">perm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">res</span><span class="p">[:,</span> <span class="n">perm</span><span class="p">]</span>
+        <span class="c1"># in a derived lattice ``class DerivedLattice(Lattice)``, use:</span>
+        <span class="c1"># return super(DerivedLattice, self).ordering(name)</span>
+        <span class="c1"># such that the derived lattece also has the orderings defined in this function.</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;unknown ordering name&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Lattice.plot_ordering"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Lattice.plot_ordering">[docs]</a>    <span class="k">def</span> <span class="nf">plot_ordering</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Vizualize the ordering by plotting the lattice.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        order : None | 2D array (self.N_sites, self.dim+1)</span>
+<span class="sd">            An order array as returned by :meth:`ordering`. ``None`` defaults to ``self.order``.</span>
+<span class="sd">        ax : matplotlib.pyplot.Axes</span>
+<span class="sd">            The axes on which the ordering should be plotted. Defaults to ``pylab.gca()``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">order</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">order</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">order</span>
+        <span class="kn">import</span> <span class="nn">pylab</span> <span class="k">as</span> <span class="nn">pl</span>
+        <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
+        <span class="n">D</span> <span class="o">=</span> <span class="n">pos</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">styles</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="s1">&#39;^&#39;</span><span class="p">,</span> <span class="s1">&#39;s&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;h&#39;</span><span class="p">,</span> <span class="s1">&#39;D&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;&#39;</span><span class="p">,</span> <span class="s1">&#39;&gt;&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">D</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pos</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pos</span><span class="p">)),</span> <span class="s1">&#39;r-&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">)):</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mps_idx_fix_u</span><span class="p">(</span><span class="n">u</span><span class="p">),</span> <span class="mi">0</span><span class="p">]</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)),</span> <span class="n">styles</span><span class="p">[</span><span class="n">u</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">styles</span><span class="p">)])</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pos</span><span class="p">):</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mf">0.1</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">D</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pos</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">pos</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;r-&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">)):</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mps_idx_fix_u</span><span class="p">(</span><span class="n">u</span><span class="p">),</span> <span class="p">:]</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">p</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">p</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">styles</span><span class="p">[</span><span class="n">u</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">styles</span><span class="p">)])</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pos</span><span class="p">):</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>  <span class="c1"># D &gt;= 3</span></div>
+
+<div class="viewcode-block" id="Lattice.position"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Lattice.position">[docs]</a>    <span class="k">def</span> <span class="nf">position</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat_idx</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;return &#39;space&#39; position of one or multiple sites.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        lat_idx : ndarray, ``(... , dim+1)``</span>
+<span class="sd">            lattice indices</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pos : ndarray, ``(..., dim)``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asvalid_latidx</span><span class="p">(</span><span class="n">lat_idx</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_cell_positions</span><span class="p">,</span> <span class="n">idx</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">):</span>
+            <span class="n">res</span> <span class="o">+=</span> <span class="n">idx</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">basis</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="Lattice.site"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Lattice.site">[docs]</a>    <span class="k">def</span> <span class="nf">site</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;return :class:`~tenpy.networks.Site` instance corresponding to an MPS index `i`&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]]</span></div>
+
+<div class="viewcode-block" id="Lattice.mps_sites"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Lattice.mps_sites">[docs]</a>    <span class="k">def</span> <span class="nf">mps_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a list [self.site(i) for i in range(self.N_sites)].</span>
+
+<span class="sd">        This should be used for `sites` of 1D tensor networks (MPS, MPO,...).&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">[</span><span class="n">u</span><span class="p">]</span> <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]]</span></div>
+
+<div class="viewcode-block" id="Lattice.mps2lat_idx"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Lattice.mps2lat_idx">[docs]</a>    <span class="k">def</span> <span class="nf">mps2lat_idx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;translate MPS index `i` to lattice indices ``(x_0, ..., x_{D_1}, u)``&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">[</span><span class="n">i</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="Lattice.lat2mps_idx"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Lattice.lat2mps_idx">[docs]</a>    <span class="k">def</span> <span class="nf">lat2mps_idx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat_idx</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;translate lattice indices ``(x_0, ..., x_{D-1}, u)`` to MPS index `i`.&quot;&quot;&quot;</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_asvalid_latidx</span><span class="p">(</span><span class="n">lat_idx</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_strides</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_perm</span><span class="p">[</span><span class="n">i</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Lattice.mps_idx_fix_u"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Lattice.mps_idx_fix_u">[docs]</a>    <span class="k">def</span> <span class="nf">mps_idx_fix_u</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;return an index array of MPS indices for which the site within the unit cell is `u`.</span>
+
+<span class="sd">        If you have multiple sites in your unit-cell, an onsite operator is in general not defined</span>
+<span class="sd">        for all sites. This functions returns an index array of the mps indices which belong to</span>
+<span class="sd">        sites given by ``self.unit_cell[u]``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        u : None | int</span>
+<span class="sd">            Selects a site of the unit cell. ``None`` (default) means all sites.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        mps_idx : array</span>
+<span class="sd">            MPS indices for which ``self.site(i) is self.unit_cell[u]``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">u</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mps_fix_u</span><span class="p">[</span><span class="n">u</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N_sites</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Lattice.mps_lat_idx_fix_u"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Lattice.mps_lat_idx_fix_u">[docs]</a>    <span class="k">def</span> <span class="nf">mps_lat_idx_fix_u</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Similar as :meth:`mps_idx_fix_u`, but return also the corresponding lattice indices.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        u : None | int</span>
+<span class="sd">            Selects a site of the unit cell. ``None`` (default) means all sites.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        mps_idx : array</span>
+<span class="sd">            MPS indices `i` for which ``self.site(i) is self.unit_cell[u]``.</span>
+<span class="sd">        lat_idx : 2D array</span>
+<span class="sd">            The row `j` contains the lattice index (without `u`) corresponding to ``mps_idx[j]``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">mps_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mps_idx_fix_u</span><span class="p">(</span><span class="n">u</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">mps_idx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">[</span><span class="n">mps_idx</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Lattice.mps2lat_values"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Lattice.mps2lat_values">[docs]</a>    <span class="k">def</span> <span class="nf">mps2lat_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">u</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;reshape/reorder A to replace an MPS index by lattice indices.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        A : ndarray</span>
+<span class="sd">            some values. Must have ``A.shape[axes] = self.N_sites`` if `u` is ``None``, or</span>
+<span class="sd">            ``A.shape[axes] = self.N_cells`` if `u` is an int.</span>
+<span class="sd">        axes : (iterable of) int</span>
+<span class="sd">            chooses the axis which should be replaced.</span>
+<span class="sd">        u : ``None`` | int</span>
+<span class="sd">            Optionally choose a subset of MPS indices present in the axes of `A`, namely the</span>
+<span class="sd">            indices corresponding to ``self.unit_cell[u]``, as returned by :meth:`mps_idx_fix_u`.</span>
+<span class="sd">            The resulting array will not have the additional dimension(s) of `u`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        res_A : ndarray</span>
+<span class="sd">            reshaped and reordered verions of A. Such that an MPS index `j` is replaced by</span>
+<span class="sd">            ``res_A[..., self.order, ...] = A[..., np.arange(self.N_sites), ...]``</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        Say you measure expection values of an onsite term for an MPS, which gives you an 1D array</span>
+<span class="sd">        `A`, where `A[i]` is the expectation value of the site given by ``self.mps2lat_idx(i)``.</span>
+<span class="sd">        Then this function gives you the expectation values ordered by the lattice:</span>
+
+<span class="sd">        &gt;&gt;&gt; print lat.shape, A.shape</span>
+<span class="sd">        (10, 3, 2) (60,)</span>
+<span class="sd">        &gt;&gt;&gt; A_res = lat.mps2lat_values(A)</span>
+<span class="sd">        &gt;&gt;&gt; A_res.shape</span>
+<span class="sd">        (10, 3, 2)</span>
+<span class="sd">        &gt;&gt;&gt; A_res[lat.mps2lat_idx(5)] == A[5]</span>
+<span class="sd">        True</span>
+
+<span class="sd">        If you have a correlation function ``C[i, j]``, it gets just slightly more complicated:</span>
+
+<span class="sd">        &gt;&gt;&gt; print lat.shape, C.shape</span>
+<span class="sd">        (10, 3, 2) (60, 60)</span>
+<span class="sd">        &gt;&gt;&gt; lat.mps2lat_values(C, axes=[0, 1]).shape</span>
+<span class="sd">        (10, 3, 2, 10, 3, 2)</span>
+
+<span class="sd">        If the unit cell consists of different physical sites, an onsite operator might be defined</span>
+<span class="sd">        only on one of the sites in the unit cell. Then you can use :meth:`mps_idx_fix_u` to get</span>
+<span class="sd">        the indices of sites it is defined on, measure the operator on these sites, and use</span>
+<span class="sd">        the argument `u` of this function. say y</span>
+
+<span class="sd">        &gt;&gt;&gt; u = 0</span>
+<span class="sd">        &gt;&gt;&gt; idx_subset = lat.mps_idx_fix_u(u)</span>
+<span class="sd">        &gt;&gt;&gt; A_u = A[idx_subset]</span>
+<span class="sd">        &gt;&gt;&gt; A_u_res = lat.mps2lat_values(A_u, u=u)</span>
+<span class="sd">        &gt;&gt;&gt; A_u_res.shape</span>
+<span class="sd">        (10, 3)</span>
+<span class="sd">        &gt;&gt;&gt; np.all(A_res[:, :, u] == A_u_res[:, :])</span>
+<span class="sd">        True</span>
+
+<span class="sd">        .. todo ::</span>
+<span class="sd">            make sure this function is used for expectation values...</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">axes</span> <span class="o">=</span> <span class="n">to_iterable</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">axes</span> <span class="o">=</span> <span class="p">[(</span><span class="n">ax</span> <span class="o">+</span> <span class="n">A</span><span class="o">.</span><span class="n">ndim</span> <span class="k">if</span> <span class="n">ax</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">ax</span><span class="p">)</span> <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">axes</span><span class="p">)):</span>  <span class="c1"># need to start with largest axis!</span>
+                <span class="n">A</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mps2lat_values</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span>  <span class="c1"># recursion with single axis</span>
+            <span class="k">return</span> <span class="n">A</span>
+        <span class="c1"># choose the appropriate index arrays calcuated in __init__</span>
+        <span class="k">if</span> <span class="n">u</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mps2lat_vals_idx</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mps2lat_vals_idx_fix_u</span><span class="p">[</span><span class="n">u</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div>
+
+    <span class="k">def</span> <span class="nf">_asvalid_latidx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat_idx</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;convert lat_idx to ndarray with valid entries &gt;=0.&quot;&quot;&quot;</span>
+        <span class="n">lat_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lat_idx</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">lat_idx</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;wrong len of last dimension of lat_idx: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">lat_idx</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+        <span class="n">lat_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">choose</span><span class="p">(</span><span class="n">lat_idx</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="p">[</span><span class="n">lat_idx</span><span class="p">,</span> <span class="n">lat_idx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">lat_idx</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">lat_idx</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s2">&quot;lattice index out of bonds&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">lat_idx</span></div>
+
+
+<div class="viewcode-block" id="SimpleLattice"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.SimpleLattice">[docs]</a><span class="k">class</span> <span class="nc">SimpleLattice</span><span class="p">(</span><span class="n">Lattice</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A lattice with a unit cell consiting of just a single site.</span>
+
+<span class="sd">    In many cases, the unit cell consists just of a single site, such that the the last entry of</span>
+<span class="sd">    `u` of an &#39;lattice index&#39; can only be ``0``.</span>
+<span class="sd">    From the point of internal algorithms, we handle this class like a :class:`Lattice` --</span>
+<span class="sd">    in that way we don&#39;t need to distinguish special cases in the algorithms.</span>
+
+<span class="sd">    Yet, from the point of a tenpy user, for example if you measure and expectation value</span>
+<span class="sd">    on each site in a `SimpleLattice`, you expect to get an ndarray of dimensions ``self.Ls``,</span>
+<span class="sd">    not ``self.shape``. To avoid that problem, `SimpleLattice` overwrites just the meaning of</span>
+<span class="sd">    ``u=None`` in :meth:`mps2lat_values` to be the same as ``u=0``.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Ls : list of int</span>
+<span class="sd">        the length in each direction</span>
+<span class="sd">    site : :class:`~tenpy.networks.Site`</span>
+<span class="sd">        the lattice site. The `unit_cell` of the :class:`Lattice` is just ``[site]``.</span>
+<span class="sd">    order : str</span>
+<span class="sd">        A string specifying the order, given to :meth:`ordering`.</span>
+<span class="sd">        Defaults ``&#39;default&#39;``: First direction changing slowest.</span>
+<span class="sd">    bc_MPS : {&#39;finite&#39;, &#39;segment&#39;, &#39;infinite&#39;}</span>
+<span class="sd">        boundary conditions for an MPS/MPO living on the ordered lattice. Default &#39;finite&#39;.</span>
+<span class="sd">    basis : iterable of 1D arrays</span>
+<span class="sd">        for each direction one translation vectors shifting the unit cell.</span>
+<span class="sd">        Defaults to the standard ONB ``np.eye(dim)``.</span>
+<span class="sd">    position : 1D array</span>
+<span class="sd">        The position of the site within the unit cell. Defaults to ``np.zeros(dim))``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Ls</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="s1">&#39;finite&#39;</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">position</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">position</span> <span class="o">=</span> <span class="p">[</span><span class="n">position</span><span class="p">]</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SimpleLattice</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">Ls</span><span class="p">,</span> <span class="p">[</span><span class="n">site</span><span class="p">],</span> <span class="n">order</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="p">,</span> <span class="n">basis</span><span class="p">,</span> <span class="n">position</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SimpleLattice.mps2lat_values"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.SimpleLattice.mps2lat_values">[docs]</a>    <span class="k">def</span> <span class="nf">mps2lat_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">u</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;same as :meth:`Lattice.mps2lat_values`, but ignore ``u``, setting it to ``0``.&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SimpleLattice</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">mps2lat_values</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="Chain"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Chain">[docs]</a><span class="k">class</span> <span class="nc">Chain</span><span class="p">(</span><span class="n">SimpleLattice</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A simple uniform chain of L equal sites.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    L : int</span>
+<span class="sd">        The lenght of the chain.</span>
+<span class="sd">    site : :class:`~tenpy.networks.Site`</span>
+<span class="sd">        Definition of local Hilbert space.</span>
+<span class="sd">    bc_MPS : {&#39;finite&#39;, &#39;segment&#39;, &#39;infinite&#39;}</span>
+<span class="sd">        MPS boundary conditions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="s1">&#39;finite&#39;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Chain</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">([</span><span class="n">L</span><span class="p">],</span> <span class="n">site</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="n">bc_MPS</span><span class="p">)</span>  <span class="c1"># and otherwise default values.</span></div>
+
+
+<div class="viewcode-block" id="SquareLattice"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.SquareLattice">[docs]</a><span class="k">class</span> <span class="nc">SquareLattice</span><span class="p">(</span><span class="n">SimpleLattice</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A simple uniform square lattice of `Lx` by `Ly` sites.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Lx</span><span class="p">,</span> <span class="n">Ly</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="s1">&#39;finite&#39;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SquareLattice</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">([</span><span class="n">Lx</span><span class="p">,</span> <span class="n">Ly</span><span class="p">],</span> <span class="n">site</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">_ordering_snake</span><span class="p">(</span><span class="n">Ls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;built the order of a snake winding through a (hyper-)cubic lattice in Cstyle order.&quot;&quot;&quot;</span>
+    <span class="n">Ls</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">Ls</span><span class="p">)</span>
+    <span class="n">order</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
+    <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">Ls</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="n">Ls</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+        <span class="n">L0</span><span class="p">,</span> <span class="n">D</span> <span class="o">=</span> <span class="n">order</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">new_order</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">L</span> <span class="o">*</span> <span class="n">L0</span><span class="p">,</span> <span class="n">D</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="s2">&quot;- L =&quot;</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="s2">&quot;--&gt;&quot;</span><span class="p">,</span> <span class="n">new_order</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">new_order</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">L</span><span class="p">),</span> <span class="n">L0</span><span class="p">)</span>
+        <span class="n">new_order</span><span class="p">[:</span><span class="n">L0</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">order</span>
+        <span class="k">if</span> <span class="n">L</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># reverse order to go back for second index</span>
+            <span class="n">new_order</span><span class="p">[</span><span class="n">L0</span><span class="p">:</span><span class="mi">2</span> <span class="o">*</span> <span class="n">L0</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">order</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">L</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="c1"># repeat (ascending, descending) up to length L</span>
+            <span class="n">rep</span> <span class="o">=</span> <span class="n">L</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="n">new_order</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">L0</span><span class="p">:(</span><span class="n">rep</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">L0</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">new_order</span><span class="p">[:</span><span class="mi">2</span> <span class="o">*</span> <span class="n">L0</span><span class="p">,</span> <span class="mi">1</span><span class="p">:],</span> <span class="p">[</span><span class="n">rep</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">L</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">new_order</span><span class="p">[</span><span class="o">-</span><span class="n">L0</span><span class="p">:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">order</span>
+        <span class="n">order</span> <span class="o">=</span> <span class="n">new_order</span>
+    <span class="k">return</span> <span class="n">order</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/logo.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../userguide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.html">tenpy package</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2018, TeNPy Developers.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

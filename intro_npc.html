@@ -1,0 +1,841 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Introduction to np_conserved &#8212; TeNPy 0.3.0 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="_static/logo.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Introduction to models" href="intro_model.html" />
+    <link rel="prev" title="Literature" href="literature.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="intro_model.html" title="Introduction to models"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="literature.html" title="Literature"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="userguide.html" accesskey="U">User Guide</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="introduction-to-np-conserved">
+<h1>Introduction to np_conserved<a class="headerlink" href="#introduction-to-np-conserved" title="Permalink to this headline">¶</a></h1>
+<p>The basic idea is quickly summarized:
+By inspecting the Hamiltonian, you can identify symmetries, which correspond to conserved quantities, called <strong>charges</strong>.
+These charges divide the tensors into different sectors. This can be used to infer for example a block-diagonal structure
+of certain matrices, which in turn speeds up SVD or diagonalization a lot.
+Even for more general (non-square-matrix) tensors, charge conservation imposes restrictions which blocks of a tensor can
+be non-zero. Only those blocks need to be saved, and e.g. tensordot can be speeded up.</p>
+<p>This introduction covers our implementation of charges; explaining mathematical details of the underlying symmetry is beyond its scope.
+We refer you to Ref. <a class="reference internal" href="literature.html#singh2009" id="id1">[Singh2009]</a> for the general idea, which is more nicely explained for the example of a <span class="math notranslate">\(U(1)\)</span> symmetry in <a class="reference internal" href="literature.html#singh2010" id="id2">[Singh2010]</a>.</p>
+<div class="section" id="notations">
+<h2>Notations<a class="headerlink" href="#notations" title="Permalink to this headline">¶</a></h2>
+<p>Lets fix the notation for this introduction and the doc-strings in <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#module-tenpy.linalg.np_conserved" title="tenpy.linalg.np_conserved"><code class="xref py py-mod docutils literal notranslate"><span class="pre">np_conserved</span></code></a>.</p>
+<p>A <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a> is a multi-dimensional array representing a <strong>tensor</strong> with the entries:</p>
+<div class="math notranslate">
+\[T_{a_0, a_1, ... a_{rank-1}} \quad \text{ with } \quad a_i \in \lbrace 0, ..., n_i-1 \rbrace\]</div>
+<p>Each <strong>leg</strong> <span class="math notranslate">\(a_i\)</span> corresponds the a vector space of dimension <cite>n_i</cite>.</p>
+<p>An <strong>index</strong> of a leg is a particular value <span class="math notranslate">\(a_i \in \lbrace 0, ... ,n_i-1\rbrace\)</span>.</p>
+<p>The <strong>rank</strong> is the number of legs, the <strong>shape</strong> is <span class="math notranslate">\((n_0, ..., n_{rank-1})\)</span>.</p>
+<p>We restrict ourselfes to abelian charges with entries in <span class="math notranslate">\(\mathbb{Z}\)</span> or in <span class="math notranslate">\(\mathbb{Z}_m\)</span>.
+The nature of a charge is specified by <span class="math notranslate">\(m\)</span>; we set <span class="math notranslate">\(m=1\)</span> for charges corresponding to <span class="math notranslate">\(\mathbb{Z}\)</span>.
+The number of charges is refered to as <strong>qnumber</strong> as a short hand, and the collection of <span class="math notranslate">\(m\)</span> for each charge is called <strong>qmod</strong>.
+The qnumber, qmod and possibly descriptive names of the charges are saved in an instance of <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.ChargeInfo" title="tenpy.linalg.charges.ChargeInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChargeInfo</span></code></a>.</p>
+<p>To each index of each leg, a value of the charge(s) is associated.
+A <strong>charge block</strong> is a contiguous slice corresponding to the same charge(s) of the leg.
+A <strong>qindex</strong> is an index in the list of charge blocks for a certain leg.
+A <strong>charge sector</strong> is for given charge(s) is the set of all qindices of that charge(s).
+A leg is <strong>blocked</strong> if all charge sectors map one-to-one to qindices.
+Finally, a leg is <strong>sorted</strong>, if the charges are sorted lexiographically.
+Note that a <cite>sorted</cite> leg is always <cite>blocked</cite>.
+We can also speak of the complete array to be <strong>blocked by charges</strong> or <strong>legcharge-sorted</strong>,  which means that all of its legs are blocked or sorted, respectively.
+The charge data for a single leg is collected in the class <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge" title="tenpy.linalg.charges.LegCharge"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegCharge</span></code></a>.
+A <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge" title="tenpy.linalg.charges.LegCharge"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegCharge</span></code></a> has also a flag <strong>qconj</strong>, which tells whether the charges
+point <em>inward</em> (+1) or <em>outward</em> (-1). What that means, is explained later in <a class="reference internal" href="#nonzero-entries"><span class="std std-ref">Which entries of the npc Array can be non-zero?</span></a>.</p>
+<p>For completeness, let us also summarize also the internal structure of an <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a> here:
+The array saves only non-zero <strong>blocks</strong>, collected as a list of <cite>np.array</cite> in <code class="docutils literal notranslate"><span class="pre">self._data</span></code>.
+The qindices necessary to map these blocks to the original leg indices are collected in <code class="docutils literal notranslate"><span class="pre">self._qdata</span></code>
+An array is said to be <strong>qdata-sorted</strong> if its <code class="docutils literal notranslate"><span class="pre">self._qdata</span></code> is lexiographically sorted.
+More details on this follow <a class="reference internal" href="#array-storage-schema"><span class="std std-ref">later</span></a>.
+However, note that you usually shouldn’t access <cite>_qdata</cite> and <cite>_data</cite> directly - this
+is only necessary from within <cite>tensordot</cite>, <cite>svd</cite>, etc.
+Also, an array has a <strong>total charge</strong>, defining which entries can be non-zero - details in <a class="reference internal" href="#nonzero-entries"><span class="std std-ref">Which entries of the npc Array can be non-zero?</span></a>.</p>
+<p>Finally, a <strong>leg pipe</strong> (implemented in <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegPipe" title="tenpy.linalg.charges.LegPipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegPipe</span></code></a>)
+is used to formally combine multiple legs into one leg. Again, more details follow <a class="reference internal" href="#leg-pipes"><span class="std std-ref">later</span></a>.</p>
+</div>
+<div class="section" id="physical-example">
+<h2>Physical Example<a class="headerlink" href="#physical-example" title="Permalink to this headline">¶</a></h2>
+<p>For concreteness, you can think of the Hamiltonian <span class="math notranslate">\(H = -t \sum_{&lt;i,j&gt;} (c^\dagger_i c_j + H.c.) + U n_i n_j\)</span>
+with <span class="math notranslate">\(n_i = c^\dagger_i c_i\)</span>.
+This Hamiltonian has the global <span class="math notranslate">\(U(1)\)</span> gauge symmetry <span class="math notranslate">\(c_i \rightarrow c_i e^{i\phi}\)</span>.
+The corresponding charge is the total number of particles <span class="math notranslate">\(N = \sum_i n_i\)</span>.
+You would then introduce one charge with <span class="math notranslate">\(m=1\)</span>.</p>
+<p>Note that the total charge is a sum of local terms, living on single sites.
+Thus, you can infer the charge of a single physical site: it’s just the value <span class="math notranslate">\(q_i = n_i \in \mathbb{N}\)</span> for each of the states.</p>
+<p>Note that you can only assign integer charges. Consider for example the spin 1/2 Heisenberg chain.
+Here, you can naturally identify the magnetization <span class="math notranslate">\(S^z = \sum_i S^z_i\)</span> as the conserved quantity,
+with values <span class="math notranslate">\(S^z_i = \pm \frac{1}{2}\)</span>.
+Obviously, if <span class="math notranslate">\(S^z\)</span> is conserved, then so is <span class="math notranslate">\(2 S^z\)</span>, so you can use the charges
+<span class="math notranslate">\(q_i = 2 S^z_i \in \lbrace-1, +1 \rbrace\)</span> for the <cite>down</cite> and <cite>up</cite> states, respectively.
+Alternatively, you can also use a shift and define <span class="math notranslate">\(q_i = S^z_i + \frac{1}{2} \in \lbrace 0, 1 \rbrace\)</span>.</p>
+<p>As another example, consider BCS like terms <span class="math notranslate">\(\sum_k (c^\dagger_k c^\dagger_{-k} + H.c.)\)</span>.
+These terms break the total particle conservation,
+but they preserve the total parity, i.e., <span class="math notranslate">\(N % 2\)</span> is conserved. Thus, you would introduce a charge with <span class="math notranslate">\(m = 2\)</span> in this case.</p>
+<p>In the above examples, we had only a single charge conserved at a time, but you might be lucky and have multiple
+conserved quantities, e.g. if you have two chains coupled only by interactions.
+TeNPy is designed to handle the general case of multiple charges.
+When giving examples, we will restrict to one charge, but everything generalizes to multiple charges.</p>
+</div>
+<div class="section" id="the-different-formats-for-legcharge">
+<h2>The different formats for LegCharge<a class="headerlink" href="#the-different-formats-for-legcharge" title="Permalink to this headline">¶</a></h2>
+<p>As mentioned above, we assign charges to each index of each leg of a tensor.
+This can be done in three formats: <strong>qflat</strong>, as <strong>qind</strong> and as <strong>qdict</strong>.
+Let me explain them with examples, for simplicity considereing only a single charge (the most inner array has one entry
+for each charge).</p>
+<dl class="docutils">
+<dt><strong>qflat</strong> form: simply a list of charges for each index.</dt>
+<dd><p class="first">An example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">qflat</span> <span class="o">=</span> <span class="p">[[</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">]]</span>
+</pre></div>
+</div>
+<p class="last">This tells you that the leg has size 9, the charges for are <code class="docutils literal notranslate"><span class="pre">[-2],</span> <span class="pre">[-1],</span> <span class="pre">[-1],</span> <span class="pre">...,</span> <span class="pre">[3]</span></code> for the indices <code class="docutils literal notranslate"><span class="pre">0,</span> <span class="pre">1,</span> <span class="pre">2,</span> <span class="pre">3,...,</span> <span class="pre">8</span></code>.
+You can identify four <cite>charge blocks</cite> <code class="docutils literal notranslate"><span class="pre">slice(0,</span> <span class="pre">1),</span> <span class="pre">slice(1,</span> <span class="pre">3),</span> <span class="pre">slice(3,</span> <span class="pre">7),</span> <span class="pre">slice(7,</span> <span class="pre">9)</span></code> in this example, which have charges <code class="docutils literal notranslate"><span class="pre">[-2],</span> <span class="pre">[-1],</span> <span class="pre">[0],</span> <span class="pre">[3]</span></code>.
+In other words, the indices <code class="docutils literal notranslate"><span class="pre">1,</span> <span class="pre">2</span></code> (which are in <code class="docutils literal notranslate"><span class="pre">slice(1,</span> <span class="pre">3)</span></code>) have the same charge value <code class="docutils literal notranslate"><span class="pre">[-1]</span></code>.
+A <cite>qindex</cite> would just enumerate these blocks as <code class="docutils literal notranslate"><span class="pre">0,</span> <span class="pre">1,</span> <span class="pre">2,</span> <span class="pre">3</span></code>.</p>
+</dd>
+<dt><strong>qind</strong> form: a 1D array <cite>slices</cite> and a 2D array <cite>charges</cite>.</dt>
+<dd><p class="first">This is a more compact version than the <cite>qflat</cite> form:
+the <cite>slices</cite> give a partition of the indices and the <cite>charges</cite> give the charge values. The same example as above
+would simply be:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">slices</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">9</span><span class="p">]</span>
+<span class="n">charges</span> <span class="o">=</span> <span class="p">[[</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">]]</span>
+</pre></div>
+</div>
+<p>Note that  <cite>slices</cite> includes <code class="docutils literal notranslate"><span class="pre">0</span></code> as first entry and the number of indices (here <code class="docutils literal notranslate"><span class="pre">9</span></code>) as last entries.
+Thus it has len <code class="docutils literal notranslate"><span class="pre">block_number</span> <span class="pre">+</span> <span class="pre">1</span></code>, where <code class="docutils literal notranslate"><span class="pre">block_number</span></code> (given by <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge.block_number" title="tenpy.linalg.charges.LegCharge.block_number"><code class="xref py py-attr docutils literal notranslate"><span class="pre">block_number</span></code></a>)
+is the number of charge blocks in the leg, i.e. a <cite>qindex</cite> runs from 0 to <code class="docutils literal notranslate"><span class="pre">block_number-1</span></code>.
+On the other hand, the 2D array <cite>charges</cite> has shape <code class="docutils literal notranslate"><span class="pre">(block_number,</span> <span class="pre">qnumber)</span></code>, where <code class="docutils literal notranslate"><span class="pre">qnumber</span></code> is the
+number of charges (given by <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.ChargeInfo.qnumber" title="tenpy.linalg.charges.ChargeInfo.qnumber"><code class="xref py py-attr docutils literal notranslate"><span class="pre">qnumber</span></code></a>).</p>
+<p class="last">In that way, the <cite>qind</cite> form maps an <cite>qindex</cite>, say <code class="docutils literal notranslate"><span class="pre">qi</span></code>, to the indices <code class="docutils literal notranslate"><span class="pre">slice(slices[qi],</span> <span class="pre">slices[qi+1])</span></code> and
+the charge(s) <code class="docutils literal notranslate"><span class="pre">charges[qi]</span></code>.</p>
+</dd>
+<dt><strong>qdict</strong> form: a dictionary in the other direction than qind, taking charge tuples to slices.</dt>
+<dd><p class="first">Again for the same example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{(</span><span class="o">-</span><span class="mi">2</span><span class="p">,):</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+ <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,):</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+ <span class="p">(</span><span class="mi">0</span><span class="p">,)</span> <span class="p">:</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">7</span><span class="p">),</span>
+ <span class="p">(</span><span class="mi">3</span><span class="p">,)</span> <span class="p">:</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">9</span><span class="p">)}</span>
+</pre></div>
+</div>
+<p class="last">Since the keys of a dictionary are unique, this form is only possible if the leg is <cite>completely blocked</cite>.</p>
+</dd>
+</dl>
+<p>The <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge" title="tenpy.linalg.charges.LegCharge"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegCharge</span></code></a> saves the charge data of a leg internally in <cite>qind</cite> form,
+directly in the attribute <cite>slices</cite> and <cite>charges</cite>.
+However, it also provides convenient functions for conversion between from and to the <cite>qflat</cite> and <cite>qdict</cite> form.</p>
+<p>The above example was nice since all charges were sorted and the charge blocks were ‘as large as possible’.
+This is however not required.</p>
+<p>The following example is also a valid <cite>qind</cite> form:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">slices</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">9</span><span class="p">]</span>
+<span class="n">charges</span> <span class="o">=</span> <span class="p">[[</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">]]</span>
+</pre></div>
+</div>
+<p>This leads to the <em>same</em> <cite>qflat</cite> form as the above examples, thus representing the same charges on the leg indices.
+However, regarding our Arrays, this is quite different, since it diveds the leg into 5 (instead of previously 4)
+charge blocks. We say the latter example is <cite>not bunched</cite>, while the former one is <cite>bunched</cite>.</p>
+<p>To make the different notions of <cite>sorted</cite> and <cite>bunched</cite> clearer, consider the following (valid) examples:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="53%" />
+<col width="15%" />
+<col width="15%" />
+<col width="17%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">charges</th>
+<th class="head">bunched</th>
+<th class="head">sorted</th>
+<th class="head">blocked</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">[[-2],</span> <span class="pre">[-1],</span> <span class="pre">[0],</span> <span class="pre">[1],</span> <span class="pre">[3]]</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">True</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">True</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">True</span></code></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">[[-2],</span> <span class="pre">[-1],</span> <span class="pre">[0],</span> <span class="pre">[0],</span> <span class="pre">[3]]</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">False</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">True</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">False</span></code></td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">[[-2],</span> <span class="pre">[0],</span> <span class="pre">[-1],</span> <span class="pre">[1],</span> <span class="pre">[3]]</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">True</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">False</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">True</span></code></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">[[-2],</span> <span class="pre">[0],</span> <span class="pre">[-1],</span> <span class="pre">[0],</span> <span class="pre">[3]]</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">True</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">False</span></code></td>
+<td><code class="docutils literal notranslate"><span class="pre">False</span></code></td>
+</tr>
+</tbody>
+</table>
+<p>If a leg is <cite>bunched</cite> and <cite>sorted</cite>, it is automatically <cite>blocked</cite> (but not vice versa).
+See also <a class="reference internal" href="#blocking"><span class="std std-ref">below</span></a> for further comments on that.</p>
+</div>
+<div class="section" id="which-entries-of-the-npc-array-can-be-non-zero">
+<span id="nonzero-entries"></span><h2>Which entries of the npc Array can be non-zero?<a class="headerlink" href="#which-entries-of-the-npc-array-can-be-non-zero" title="Permalink to this headline">¶</a></h2>
+<p>The reason for the speedup with np_conserved lies in the fact that it saves only the blocks ‘compatible’ with the charges.
+But how is this ‘compatible’ defined?</p>
+<p>Assume you have a tensor, call it <span class="math notranslate">\(T\)</span>, and the <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge" title="tenpy.linalg.charges.LegCharge"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegCharge</span></code></a> for all of its legs, say <span class="math notranslate">\(a, b, c, ...\)</span>.</p>
+<p>Remeber that the LegCharge associates to each index of the leg a charge value (for each of the charges, if <cite>qnumber</cite> &gt; 1).
+Let <code class="docutils literal notranslate"><span class="pre">a.to_qflat()[ia]</span></code> denote the charge(s) of index <code class="docutils literal notranslate"><span class="pre">ia</span></code> for leg <code class="docutils literal notranslate"><span class="pre">a</span></code>, and similar for other legs.</p>
+<p>In addition, the LegCharge has a flag <code class="xref py py-attr docutils literal notranslate"><span class="pre">qconj</span></code>. This flag <strong>qconj</strong> is only a sign,
+saved as +1 or -1, specifying whether the charges point ‘inward’ (+1, default) or ‘outward’ (-1) of the tensor.</p>
+<p>Then, the <strong>total charge of an entry</strong> <code class="docutils literal notranslate"><span class="pre">T[ia,</span> <span class="pre">ib,</span> <span class="pre">ic,</span> <span class="pre">...]</span></code> of the tensor is defined as:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">qtotal</span><span class="p">[</span><span class="n">ia</span><span class="p">,</span> <span class="n">ib</span><span class="p">,</span> <span class="n">ic</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="n">ia</span><span class="p">]</span> <span class="o">*</span> <span class="n">a</span><span class="o">.</span><span class="n">qconj</span> <span class="o">+</span> <span class="n">b</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="n">ib</span><span class="p">]</span> <span class="o">*</span> <span class="n">b</span><span class="o">.</span><span class="n">qconj</span> <span class="o">+</span> <span class="n">c</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="n">ic</span><span class="p">]</span> <span class="o">*</span> <span class="n">c</span><span class="o">.</span><span class="n">qconj</span> <span class="o">+</span> <span class="o">...</span>  <span class="n">modulo</span> <span class="n">qmod</span>
+</pre></div>
+</div>
+<p>The rule which entries of the a <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a> can be non-zero
+(i.e., are ‘compatible’ with the charges), is then very simple:</p>
+<div class="topic">
+<p class="topic-title first">Rule for non-zero entries</p>
+<p>An entry <code class="docutils literal notranslate"><span class="pre">ia,</span> <span class="pre">ib,</span> <span class="pre">ic,</span> <span class="pre">...</span></code> of a <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a> can only be non-zero,
+if <code class="docutils literal notranslate"><span class="pre">qtotal[ia,</span> <span class="pre">ib,</span> <span class="pre">ic,</span> <span class="pre">...]</span></code> matches the <em>unique</em> <code class="xref py py-attr docutils literal notranslate"><span class="pre">qtotal</span></code> attribute of the class.</p>
+</div>
+<p>In other words, there is a <em>single</em> <strong>total charge</strong> <code class="docutils literal notranslate"><span class="pre">.qtotal</span></code> attribute of a <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a>.
+All indices <code class="docutils literal notranslate"><span class="pre">ia,</span> <span class="pre">ib,</span> <span class="pre">ic,</span> <span class="pre">...</span></code> for which the above defined <code class="docutils literal notranslate"><span class="pre">qtotal[ia,</span> <span class="pre">ib,</span> <span class="pre">ic,</span> <span class="pre">...]</span></code> matches this <cite>total charge</cite>,
+are said to be <strong>compatible with the charges</strong> and can be non-zero.
+All other indices are <strong>incompatible with the charges</strong> and must be zero.</p>
+<p>In case of multiple charges, <cite>qnumber</cite> &gt; 1, is a straigth-forward generalization:
+an entry can only be non-zero if it is <cite>compatible</cite> with each of the defined charges.</p>
+</div>
+<div class="section" id="the-pesky-qconj-contraction-as-an-example">
+<h2>The pesky qconj - contraction as an example<a class="headerlink" href="#the-pesky-qconj-contraction-as-an-example" title="Permalink to this headline">¶</a></h2>
+<p>Why did we introduce the <code class="docutils literal notranslate"><span class="pre">qconj</span></code> flag? Remember it’s just a sign telling whether the charge points inward or outward.
+So whats the reasoning?</p>
+<p>The short answer is, that LegCharges actually live on bonds (i.e., legs which are to be contracted)
+rather than individual tensors. Thus, it is convenient to share the LegCharges between different legs and even tensors,
+and just adjust the sign of the charges with <cite>qconj</cite>.</p>
+<p>As an example, consider the contraction of two tensors, <span class="math notranslate">\(C_{ia,ic} = \sum_{ib} A_{ia,ib} B_{ib,ic}\)</span>.
+For simplicity, say that the total charge of all three tensors is zero.
+What are the implications of the above rule for non-zero entries?
+Or rather, how can we ensure that <code class="docutils literal notranslate"><span class="pre">C</span></code> complies with the above rule?
+An entry <code class="docutils literal notranslate"><span class="pre">C[ia,ic]</span></code> will only be non-zero,
+if there is an <code class="docutils literal notranslate"><span class="pre">ib</span></code> such that both <code class="docutils literal notranslate"><span class="pre">A[ia,ib]</span></code> and <code class="docutils literal notranslate"><span class="pre">B[ib,ic]</span></code> are non-zero, i.e., both of the following equations are
+fullfilled:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">A</span><span class="o">.</span><span class="n">qtotal</span> <span class="o">==</span> <span class="n">A</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="n">ia</span><span class="p">]</span> <span class="o">*</span> <span class="n">A</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">qconj</span> <span class="o">+</span> <span class="n">A</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="n">ib</span><span class="p">]</span> <span class="o">*</span> <span class="n">A</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">qconj</span>  <span class="n">modulo</span> <span class="n">qmod</span>
+<span class="n">B</span><span class="o">.</span><span class="n">qtotal</span> <span class="o">==</span> <span class="n">B</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="n">ib</span><span class="p">]</span> <span class="o">*</span> <span class="n">B</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">qconj</span> <span class="o">+</span> <span class="n">B</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="n">ic</span><span class="p">]</span> <span class="o">*</span> <span class="n">B</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">qconj</span>  <span class="n">modulo</span> <span class="n">qmod</span>
+</pre></div>
+</div>
+<p>(<code class="docutils literal notranslate"><span class="pre">A.legs[0]</span></code> is the <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge" title="tenpy.linalg.charges.LegCharge"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegCharge</span></code></a> saving the charges of the first leg (with index <code class="docutils literal notranslate"><span class="pre">ia</span></code>) of <cite>A</cite>.)</p>
+<p>For the uncontracted legs, we just keep the charges as they are:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">C</span><span class="o">.</span><span class="n">legs</span> <span class="o">=</span> <span class="p">[</span><span class="n">A</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">B</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+</pre></div>
+</div>
+<p>It is then straight-forward to check, that the rule is fullfilled for <span class="math notranslate">\(C\)</span>, if the following condition is met:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">A</span><span class="o">.</span><span class="n">qtotal</span> <span class="o">+</span> <span class="n">B</span><span class="o">.</span><span class="n">qtotal</span> <span class="o">-</span> <span class="n">C</span><span class="o">.</span><span class="n">qtotal</span> <span class="o">==</span> <span class="n">A</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="n">ib</span><span class="p">]</span> <span class="n">A</span><span class="o">.</span><span class="n">b</span><span class="o">.</span><span class="n">qconj</span> <span class="o">+</span> <span class="n">B</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="n">ib</span><span class="p">]</span> <span class="n">B</span><span class="o">.</span><span class="n">b</span><span class="o">.</span><span class="n">qconj</span>  <span class="n">modulo</span> <span class="n">qmod</span>
+</pre></div>
+</div>
+<p>The easiest way to meet this condition is (1) to require that <code class="docutils literal notranslate"><span class="pre">A.b</span></code> and <code class="docutils literal notranslate"><span class="pre">B.b</span></code> share the <em>same</em> charges <code class="docutils literal notranslate"><span class="pre">b.to_qflat()</span></code>, but have
+opposite <cite>qconj</cite>, and (2) to define <code class="docutils literal notranslate"><span class="pre">C.qtotal</span> <span class="pre">=</span> <span class="pre">A.qtotal</span> <span class="pre">+</span> <span class="pre">B.qtotal</span></code>.
+This justifies the introduction of <cite>qconj</cite>:
+when you define the tensors, you have to define the <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge" title="tenpy.linalg.charges.LegCharge"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegCharge</span></code></a> for the <cite>b</cite> only once, say for <code class="docutils literal notranslate"><span class="pre">A.legs[1]</span></code>.
+For <code class="docutils literal notranslate"><span class="pre">B.legs[0]</span></code> you simply use <code class="docutils literal notranslate"><span class="pre">A.legs[1].conj()</span></code> which creates a copy of the LegCharge with shared <cite>slices</cite> and <cite>charges</cite>, but opposite <cite>qconj</cite>.
+As a more impressive example, all ‘physical’ legs of an MPS can usually share the same
+<a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge" title="tenpy.linalg.charges.LegCharge"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegCharge</span></code></a> (up to different <code class="docutils literal notranslate"><span class="pre">qconj</span></code> if the local Hilbert space is the same).
+This leads to the following convention:</p>
+<div class="topic">
+<p class="topic-title first">Convention</p>
+<p>When an npc algorithm makes tensors which share a bond (either with the input tensors, as for tensordot, or amongst the output tensors, as for SVD),
+the algorithm is free, but not required, to use the <strong>same</strong> <code class="xref py py-class docutils literal notranslate"><span class="pre">LegCharge</span></code> for the tensors sharing the bond, <em>without</em> making a copy.
+Thus, if you want to modify a LegCharge, you <strong>must</strong> make a copy first (e.g. by using methods of LegCharge for what you want to acchive).</p>
+</div>
+</div>
+<div class="section" id="assigning-charges-to-non-physical-legs">
+<h2>Assigning charges to non-physical legs<a class="headerlink" href="#assigning-charges-to-non-physical-legs" title="Permalink to this headline">¶</a></h2>
+<p>From the above physical examples, it should be clear how you assign charges to physical legs.
+But what about other legs, e.g, the virtual bond of an MPS (or an MPO)?</p>
+<p>The charge of these bonds must be derived by using the ‘rule for non-zero entries’, as far as they are not arbitrary.
+As a concrete example, consider an MPS on just two spin 1/2 sites:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>        <span class="n">_____</span>         <span class="n">_____</span>
+<span class="o">|</span>   <span class="n">x</span><span class="o">-&gt;-</span> <span class="o">|</span> <span class="n">A</span> <span class="o">|</span> <span class="o">-&gt;-</span><span class="n">y</span><span class="o">-&gt;-</span> <span class="o">|</span> <span class="n">B</span> <span class="o">|</span> <span class="o">-&gt;-</span><span class="n">z</span>
+<span class="o">|</span>        <span class="o">-----</span>         <span class="o">-----</span>
+<span class="o">|</span>          <span class="o">^</span>             <span class="o">^</span>
+<span class="o">|</span>          <span class="o">|</span><span class="n">p</span>            <span class="o">|</span><span class="n">p</span>
+</pre></div>
+</div>
+<p>The two legs <code class="docutils literal notranslate"><span class="pre">p</span></code> are the physical legs and share the same charge, as they both describe the same local Hilbert space.
+For better distincition, let me label the indices of them by <span class="math notranslate">\(\uparrow=0\)</span> and <span class="math notranslate">\(\downarrow=1\)</span>.
+As noted above, we can associate the charges 1 (<span class="math notranslate">\(p=\uparrow\)</span>) and -1 (<span class="math notranslate">\(p=\downarrow\)</span>), respectively, so we define:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">chinfo</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">ChargeInfo</span><span class="p">([</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;2*Sz&#39;</span><span class="p">])</span>
+<span class="n">p</span>  <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">qconj</span><span class="o">=+</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For the <code class="docutils literal notranslate"><span class="pre">qconj</span></code> signs, we stick to the convention used in our MPS code and indicated by the
+arrows in above ‘picture’: physical legs are incoming (<code class="docutils literal notranslate"><span class="pre">qconj=+1</span></code>), and from left to right on the virtual bonds.
+This is acchieved by using <code class="docutils literal notranslate"><span class="pre">[p,</span> <span class="pre">x,</span> <span class="pre">y.conj()]</span></code> as <cite>legs</cite> for <code class="docutils literal notranslate"><span class="pre">A</span></code>, and <code class="docutils literal notranslate"><span class="pre">[p,</span> <span class="pre">y,</span> <span class="pre">z.conj()]</span></code> for <code class="docutils literal notranslate"><span class="pre">B</span></code>, with the
+default <code class="docutils literal notranslate"><span class="pre">qconj=+1</span></code> for all <code class="docutils literal notranslate"><span class="pre">p,</span> <span class="pre">x,</span> <span class="pre">y,</span> <span class="pre">z</span></code>: <code class="docutils literal notranslate"><span class="pre">y.conj()</span></code> has the same charges as <code class="docutils literal notranslate"><span class="pre">y</span></code>, but opposite <code class="docutils literal notranslate"><span class="pre">qconj=-1</span></code>.</p>
+<p>The legs <code class="docutils literal notranslate"><span class="pre">x</span></code> and <code class="docutils literal notranslate"><span class="pre">z</span></code> of an <code class="docutils literal notranslate"><span class="pre">L=2</span></code> MPS, are ‘dummy’ legs with just one index <code class="docutils literal notranslate"><span class="pre">0</span></code>.
+The charge on one of them, as well as the total charge of both <code class="docutils literal notranslate"><span class="pre">A</span></code> and <code class="docutils literal notranslate"><span class="pre">B</span></code> is arbitrary (i.e., a gauge freedom),
+so we make a simple choice: total charge 0 on both arrays, as well as for <span class="math notranslate">\(x=0\)</span>,
+<code class="docutils literal notranslate"><span class="pre">x</span> <span class="pre">=</span> <span class="pre">npc.LegCharge.from_qflat(chinfo,</span> <span class="pre">[0],</span> <span class="pre">qconj=+1)</span></code>.</p>
+<p>The charges on the bonds <cite>y</cite> and <cite>z</cite> then depend on the state the MPS represents.
+Here, we consider a singlet <span class="math notranslate">\(\psi = (|\uparrow \downarrow\rangle  - |\downarrow \uparrow\rangle)/\sqrt{2}\)</span>
+as a simple example. A possible MPS representation is given by:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">A</span><span class="p">[</span><span class="n">up</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>   <span class="o">=</span> <span class="p">[[</span><span class="mi">1</span><span class="o">/</span><span class="mf">2.</span><span class="o">**</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span>     <span class="n">B</span><span class="p">[</span><span class="n">up</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>   <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+<span class="n">A</span><span class="p">[</span><span class="n">down</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="o">/</span><span class="mf">2.</span><span class="o">**</span><span class="mf">0.5</span><span class="p">]]</span>     <span class="n">B</span><span class="p">[</span><span class="n">down</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+</pre></div>
+</div>
+<p>There are two non-zero entries in <code class="docutils literal notranslate"><span class="pre">A</span></code>, for the indices <span class="math notranslate">\((a, x, y) = (\uparrow, 0, 0)\)</span> and <span class="math notranslate">\((\downarrow, 0, 1)\)</span>.
+For <span class="math notranslate">\((a, x, y) = (\uparrow, 0, 0)\)</span>, we want:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">A</span><span class="o">.</span><span class="n">qtotal</span> <span class="o">=</span> <span class="mi">0</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="n">up</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">qconj</span> <span class="o">+</span> <span class="n">x</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">x</span><span class="o">.</span><span class="n">qconj</span> <span class="o">+</span> <span class="n">y</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">y</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">qconj</span>
+             <span class="o">=</span> <span class="mi">1</span>                <span class="o">*</span> <span class="p">(</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>    <span class="o">+</span> <span class="mi">0</span>               <span class="o">*</span> <span class="p">(</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>    <span class="o">+</span> <span class="n">y</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This fixes the charge of <code class="docutils literal notranslate"><span class="pre">y=0</span></code> to 1.
+A similar calculation for <span class="math notranslate">\((a, x, y) = (\downarrow, 0, 1)\)</span> yields the charge <code class="docutils literal notranslate"><span class="pre">-1</span></code> for <code class="docutils literal notranslate"><span class="pre">y=1</span></code>.
+We have thus all the charges of the leg <code class="docutils literal notranslate"><span class="pre">y</span></code> and can define <code class="docutils literal notranslate"><span class="pre">y</span> <span class="pre">=</span> <span class="pre">npc.LegCharge.from_qflat(chinfo,</span> <span class="pre">[1,</span> <span class="pre">-1],</span> <span class="pre">qconj=+1)</span></code>.</p>
+<p>Now take a look at the entries of <code class="docutils literal notranslate"><span class="pre">B</span></code>.
+For the non-zero entry <span class="math notranslate">\((b, y, z) = (\uparrow, 1, 0)\)</span>, we want:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">B</span><span class="o">.</span><span class="n">qtotal</span> <span class="o">=</span> <span class="mi">0</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="n">up</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">qconj</span> <span class="o">+</span> <span class="n">y</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">y</span><span class="o">.</span><span class="n">qconj</span> <span class="o">+</span> <span class="n">z</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">z</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">qconj</span>
+             <span class="o">=</span> <span class="mi">1</span>                <span class="o">*</span> <span class="p">(</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>    <span class="o">+</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>            <span class="o">*</span> <span class="p">(</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>    <span class="o">+</span> <span class="n">z</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This implies the charge 0 for <cite>z</cite> = 0, thus <code class="docutils literal notranslate"><span class="pre">z</span> <span class="pre">=</span> <span class="pre">npc.LegCharge.form_qflat(chinfo,</span> <span class="pre">[0],</span> <span class="pre">qconj=+1)</span></code>.
+Finally, note that the rule for <span class="math notranslate">\((b, y, z) = (\downarrow, 0, 0)\)</span> is automatically fullfilled!
+This is an implication of the fact that the singlet has a well defined value for <span class="math notranslate">\(S^z_a + S^z_b\)</span>.
+For other states without fixed magnetization (e.g., <span class="math notranslate">\(|\uparrow \uparrow\rangle + |\downarrow \downarrow\rangle\)</span>)
+this would not be the case, and we could not use charge conservation.</p>
+<p>As an exercise, you can calculate the charge of <cite>z</cite> in the case that <code class="docutils literal notranslate"><span class="pre">A.qtotal=5</span></code>, <code class="docutils literal notranslate"><span class="pre">B.qtotal</span> <span class="pre">=</span> <span class="pre">-1</span></code> and
+charge <code class="docutils literal notranslate"><span class="pre">2</span></code> for <code class="docutils literal notranslate"><span class="pre">x=0</span></code>. The result is -2.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This section is meant be an pedagogical introduction. In you program, you can use the functions
+<a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.detect_legcharge" title="tenpy.linalg.np_conserved.detect_legcharge"><code class="xref py py-func docutils literal notranslate"><span class="pre">detect_legcharge()</span></code></a> (which does exactly what’s described above) or
+<a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.detect_qtotal" title="tenpy.linalg.np_conserved.detect_qtotal"><code class="xref py py-func docutils literal notranslate"><span class="pre">detect_qtotal()</span></code></a> (if you know all <cite>LegCharges</cite>, but not <cite>qtotal</cite>).</p>
+</div>
+</div>
+<div class="section" id="array-creation">
+<h2>Array creation<a class="headerlink" href="#array-creation" title="Permalink to this headline">¶</a></h2>
+<p>Making an new <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a> requires both the tensor entries (data) and charge data.</p>
+<p>The default initialization <code class="docutils literal notranslate"><span class="pre">a</span> <span class="pre">=</span> <span class="pre">Array(...)</span></code> creates an empty Array, where all entries are zero
+(equivalent to <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.zeros" title="tenpy.linalg.np_conserved.zeros"><code class="xref py py-func docutils literal notranslate"><span class="pre">zeros()</span></code></a>).
+(Non-zero) data can be provided either as a dense <cite>np.array</cite> to <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array.from_ndarray" title="tenpy.linalg.np_conserved.Array.from_ndarray"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_ndarray()</span></code></a>,
+or by providing a numpy function such as <cite>np.random</cite>, <cite>np.ones</cite> etc. to <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array.from_func" title="tenpy.linalg.np_conserved.Array.from_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_func()</span></code></a>.</p>
+<p>In both cases, the charge data is provided by one <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.ChargeInfo" title="tenpy.linalg.charges.ChargeInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChargeInfo</span></code></a>,
+and a <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge" title="tenpy.linalg.charges.LegCharge"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegCharge</span></code></a> instance for each of the legs.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The charge data instances are not copied, in order to allow it to be shared between different Arrays.
+Consequently, you <em>must</em> make copies of the charge data, if you manipulate it directly.
+(However, methods like <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge.sort" title="tenpy.linalg.charges.LegCharge.sort"><code class="xref py py-meth docutils literal notranslate"><span class="pre">sort()</span></code></a> do that for you.)</p>
+</div>
+<p>Of course, a new <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a> can also created using the charge data from exisiting Arrays,
+for examples with <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array.zeros_like" title="tenpy.linalg.np_conserved.Array.zeros_like"><code class="xref py py-meth docutils literal notranslate"><span class="pre">zeros_like()</span></code></a> or creating a (deep or shallow) <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array.copy" title="tenpy.linalg.np_conserved.Array.copy"><code class="xref py py-meth docutils literal notranslate"><span class="pre">copy()</span></code></a>.
+Further, there are the higher level functions like <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.tensordot" title="tenpy.linalg.np_conserved.tensordot"><code class="xref py py-func docutils literal notranslate"><span class="pre">tensordot()</span></code></a> or <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.svd" title="tenpy.linalg.np_conserved.svd"><code class="xref py py-func docutils literal notranslate"><span class="pre">svd()</span></code></a>,
+which also return new Arrays.</p>
+<p>Further, new Arrays are created by the various functions like <cite>tensordot</cite> or <cite>svd</cite> in <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#module-tenpy.linalg.np_conserved" title="tenpy.linalg.np_conserved"><code class="xref py py-mod docutils literal notranslate"><span class="pre">np_conserved</span></code></a>.</p>
+</div>
+<div class="section" id="complete-blocking-of-charges">
+<span id="blocking"></span><h2>Complete blocking of Charges<a class="headerlink" href="#complete-blocking-of-charges" title="Permalink to this headline">¶</a></h2>
+<p>While the code was designed in such a way that each charge sector has a different charge, the code
+should still run correctly if multiple charge sectors (for different qindex) correspond to the same charge.
+In this sense <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a> can act like a sparse array class to selectively store subblocks.
+Algorithms which need a full blocking should state that explicitly in their doc-strings.
+(Some functions (like <cite>svd</cite> and <cite>eigh</cite>) require complete blocking internally, but if necessary they just work on
+a temporary copy returned by <code class="xref py py-meth docutils literal notranslate"><span class="pre">as_completely_blocked()</span></code>).</p>
+<p>If you expect the tensor to be dense subject to charge constraints (as for MPS),
+it will be most efficient to fully block by charge, so that work is done on large chunks.</p>
+<p>However, if you expect the tensor to be sparser than required by charge (as for an MPO),
+it may be convenient not to completely block, which forces smaller matrices to be stored, and hence many zeroes to be dropped.
+Nevertheless, the algorithms were not designed with this in mind, so it is not recommended in general.
+(If you want to use it, run a benchmark to check whether it is really faster!)</p>
+<p>If you haven’t created the array yet, you can call <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge.sort" title="tenpy.linalg.charges.LegCharge.sort"><code class="xref py py-meth docutils literal notranslate"><span class="pre">sort()</span></code></a> (with <code class="docutils literal notranslate"><span class="pre">bunch=True</span></code>)
+on each <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge" title="tenpy.linalg.charges.LegCharge"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegCharge</span></code></a> which you want to block.
+This sorts by charges and thus induces a permution of the indices, which is also returned as an 1D array <code class="docutils literal notranslate"><span class="pre">perm</span></code>.
+For consistency, you have to apply this permutation to your flat data as well.</p>
+<p>Alternatively, you can simply call <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array.sort_legcharge" title="tenpy.linalg.np_conserved.Array.sort_legcharge"><code class="xref py py-meth docutils literal notranslate"><span class="pre">sort_legcharge()</span></code></a> on an existing <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a>.
+It calls <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge.sort" title="tenpy.linalg.charges.LegCharge.sort"><code class="xref py py-meth docutils literal notranslate"><span class="pre">sort()</span></code></a> internally on the specified legs and performs the necessary
+permutations directly to (a copy of) <cite>self</cite>. Yet, you should keep in mind, that the axes are permuted afterwards.</p>
+</div>
+<div class="section" id="internal-storage-schema-of-npc-arrays">
+<span id="array-storage-schema"></span><h2>Internal Storage schema of npc Arrays<a class="headerlink" href="#internal-storage-schema-of-npc-arrays" title="Permalink to this headline">¶</a></h2>
+<p>The actual data of the tensor is stored in <code class="docutils literal notranslate"><span class="pre">_data</span></code>. Rather than keeping a single np.array (which would have many zeros in it),
+we store only the non-zero sub blocks. So <code class="docutils literal notranslate"><span class="pre">_data</span></code> is a python list of <cite>np.array</cite>’s.
+The order in which they are stored in the list is not physically meaningful, and so not guaranteed (more on this later).
+So to figure out where the sub block sits in the tensor, we need the <code class="docutils literal notranslate"><span class="pre">_qdata</span></code> structure (on top of the LegCharges in <code class="docutils literal notranslate"><span class="pre">legs</span></code>).</p>
+<p>Consider a rank 3 tensor <code class="docutils literal notranslate"><span class="pre">T</span></code>, with the first leg like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">slices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+<span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">charges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">...</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>Each row of <cite>charges</cite> gives the charges for a <cite>charge block</cite> of the leg, with the actual indices of the
+total tensor determined by the <cite>slices</cite>.
+The <em>qindex</em> simply enumerates the charge blocks of a lex.
+Picking a qindex (and thus a <cite>charge block</cite>) from each leg, we have a subblock of the tensor.</p>
+<p>For each (non-zero) subblock of the tensor, we put a (numpy) ndarray entry in the <code class="docutils literal notranslate"><span class="pre">_data</span></code> list.
+Since each subblock of the tensor is specified by <cite>rank</cite> qindices,
+we put a corresponding entry in <code class="docutils literal notranslate"><span class="pre">_qdata</span></code>, which is a 2D array of shape <code class="docutils literal notranslate"><span class="pre">(#stored_blocks,</span> <span class="pre">rank)</span></code>.
+Each row corresponds to a non-zero subblock, and there are rank columns giving the corresponding qindex for each leg.</p>
+<p>Example: for a rank 3 tensor we might have:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">T</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">t1</span><span class="p">,</span> <span class="n">t2</span><span class="p">,</span> <span class="n">t3</span><span class="p">,</span> <span class="n">t4</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+<span class="n">T</span><span class="o">.</span> <span class="n">_qdata</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                      <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                      <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+                      <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+                      <span class="o">...</span>       <span class="p">])</span>
+</pre></div>
+</div>
+<p>The third subblock has an ndarray <code class="docutils literal notranslate"><span class="pre">t3</span></code>, and qindices <code class="docutils literal notranslate"><span class="pre">[4</span> <span class="pre">2</span> <span class="pre">2]</span></code> for the three legs.</p>
+<ul>
+<li><p class="first">To find the position of <code class="docutils literal notranslate"><span class="pre">t3</span></code> in the actual tensor you can use <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge.get_slice" title="tenpy.linalg.charges.LegCharge.get_slice"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_slice()</span></code></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">T</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_slice</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span> <span class="n">T</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get_slice</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">T</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">get_slice</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The function <code class="docutils literal notranslate"><span class="pre">leg.get_charges(qi)</span></code> simply returns <code class="docutils literal notranslate"><span class="pre">slice(leg.slices[qi],</span> <span class="pre">leg.slices[qi+1])</span></code></p>
+</li>
+<li><p class="first">To find the charges of t3, we an use <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge.get_charge" title="tenpy.linalg.charges.LegCharge.get_charge"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_charge()</span></code></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">T</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_charge</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">T</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get_charge</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">T</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">get_charge</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The function <code class="docutils literal notranslate"><span class="pre">leg.get_charge(qi)</span></code> simply returns <code class="docutils literal notranslate"><span class="pre">leg.charges[qi]*leg.qconj</span></code>.</p>
+</li>
+</ul>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Outside of <cite>np_conserved</cite>, you should use the API to access the entries.
+If you really need to iterate over all blocks of an Array <code class="docutils literal notranslate"><span class="pre">T</span></code>, try <code class="docutils literal notranslate"><span class="pre">for</span> <span class="pre">(block,</span> <span class="pre">blockslices,</span> <span class="pre">charges,</span> <span class="pre">qindices)</span> <span class="pre">in</span> <span class="pre">T:</span> <span class="pre">do_something()</span></code>.</p>
+</div>
+<p>The order in which the blocks stored in <code class="docutils literal notranslate"><span class="pre">_data</span></code>/<code class="docutils literal notranslate"><span class="pre">_qdata</span></code> is arbitrary (although of course <code class="docutils literal notranslate"><span class="pre">_data</span></code> and <code class="docutils literal notranslate"><span class="pre">_qdata</span></code> must be in correspondence).
+However, for many purposes it is useful to sort them according to some convention.  So we include a flag <code class="docutils literal notranslate"><span class="pre">._qdata_sorted</span></code> to the array.
+So, if sorted (with <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array.isort_qdata" title="tenpy.linalg.np_conserved.Array.isort_qdata"><code class="xref py py-meth docutils literal notranslate"><span class="pre">isort_qdata()</span></code></a>, the <code class="docutils literal notranslate"><span class="pre">_qdata</span></code> example above goes to</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">_qdata</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                   <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                   <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+                   <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+                   <span class="o">...</span>       <span class="p">])</span>
+</pre></div>
+</div>
+<p>Note that <cite>np.lexsort</cite> chooses the right-most column to be the dominant key, a convention we follow throughout.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">_qdata_sorted</span> <span class="pre">==</span> <span class="pre">True</span></code>, <code class="docutils literal notranslate"><span class="pre">_qdata</span></code> and <code class="docutils literal notranslate"><span class="pre">_data</span></code> are guaranteed to be lexsorted. If <code class="docutils literal notranslate"><span class="pre">_qdata_sorted</span> <span class="pre">==</span> <span class="pre">False</span></code>, there is no gaurantee.
+If an algorithm modifies <code class="docutils literal notranslate"><span class="pre">_qdata</span></code>, it <strong>must</strong> set <code class="docutils literal notranslate"><span class="pre">_qdata_sorted</span> <span class="pre">=</span> <span class="pre">False</span></code> (unless it gaurantees it is still sorted).
+The routine <code class="xref py py-meth docutils literal notranslate"><span class="pre">sort_qdata()</span></code> brings the data to sorted form.</p>
+</div>
+<div class="section" id="indexing-of-an-array">
+<span id="array-element-access"></span><h2>Indexing of an Array<a class="headerlink" href="#indexing-of-an-array" title="Permalink to this headline">¶</a></h2>
+<p>Although it is usually not necessary to access single entries of an <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a>, you can of course do that.
+In the simplest case, this is something like <code class="docutils literal notranslate"><span class="pre">A[0,</span> <span class="pre">2,</span> <span class="pre">1]</span></code> for a rank-3 Array <code class="docutils literal notranslate"><span class="pre">A</span></code>.
+However, accessing single entries is quite slow and usually not recommended. For small Arrays, it may be convenient to convert them
+back to flat numpy arrays with <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array.to_ndarray" title="tenpy.linalg.np_conserved.Array.to_ndarray"><code class="xref py py-meth docutils literal notranslate"><span class="pre">to_ndarray()</span></code></a>.</p>
+<p>On top of that very basic indexing, <cite>Array</cite> supports slicing and some kind of advanced indexing, which is however
+different from the one of numpy arrarys (described <a class="reference external" href="http://docs.scipy.org/doc/numpy/reference/arrays.indexing.html">here</a>).
+Unlike numpy arrays, our Array class does not broadcast existing index arrays – this would be terribly slow.
+Also, <cite>np.newaxis</cite> is not supported, since inserting new axes requires additional information for the charges.</p>
+<p>Instead, we allow just indexing of the legs independent of each other, of the form <code class="docutils literal notranslate"><span class="pre">A[i0,</span> <span class="pre">i1,</span> <span class="pre">...]</span></code>.
+If all indices <code class="docutils literal notranslate"><span class="pre">i0,</span> <span class="pre">i1,</span> <span class="pre">...</span></code> are integers, the single corresponding entry (of type <cite>dtype</cite>) is returned.</p>
+<p>However, the individual ‘indices’ <code class="docutils literal notranslate"><span class="pre">i0</span></code> for the individual legs can also be one of what is described in the following list.
+In that case, a new <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a> with less data (specified by the indices) is returned.</p>
+<p>The ‘indices’ can be:</p>
+<ul class="simple">
+<li>an <cite>int</cite>: fix the index of that axis, return array with one less dimension. See also <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array.take_slice" title="tenpy.linalg.np_conserved.Array.take_slice"><code class="xref py py-meth docutils literal notranslate"><span class="pre">take_slice()</span></code></a>.</li>
+<li>a <code class="docutils literal notranslate"><span class="pre">slice(None)</span></code> or <code class="docutils literal notranslate"><span class="pre">:</span></code>: keep the complete axis</li>
+<li>an <code class="docutils literal notranslate"><span class="pre">Ellipsis</span></code> or <code class="docutils literal notranslate"><span class="pre">...</span></code>: shorthand for <code class="docutils literal notranslate"><span class="pre">slice(None)</span></code> for missing axes to fix the len</li>
+<li>an 1D bool <cite>ndarray</cite> <code class="docutils literal notranslate"><span class="pre">mask</span></code>: apply a mask to that axis, see <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array.iproject" title="tenpy.linalg.np_conserved.Array.iproject"><code class="xref py py-meth docutils literal notranslate"><span class="pre">iproject()</span></code></a>.</li>
+<li>a <code class="docutils literal notranslate"><span class="pre">slice(start,</span> <span class="pre">stop,</span> <span class="pre">step)</span></code> or <code class="docutils literal notranslate"><span class="pre">start:stop:step</span></code>: keep only the indices specified by the slice. This is also implemented with <cite>iproject</cite>.</li>
+<li>an 1D int <cite>ndarray</cite> <code class="docutils literal notranslate"><span class="pre">mask</span></code>: keep only the indices specified by the array. This is also implemented with <cite>iproject</cite>.</li>
+</ul>
+<p>For slices and 1D arrays, additional permuations may be perfomed with the help of <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array.permute" title="tenpy.linalg.np_conserved.Array.permute"><code class="xref py py-meth docutils literal notranslate"><span class="pre">permute()</span></code></a>.</p>
+<p>If the number of indices is less than <cite>rank</cite>, the remaining axes remain free, so for a rank 4 Array <code class="docutils literal notranslate"><span class="pre">A</span></code>, <code class="docutils literal notranslate"><span class="pre">A[i0,</span> <span class="pre">i1]</span> <span class="pre">==</span> <span class="pre">A[i0,</span> <span class="pre">i1,</span> <span class="pre">...]</span> <span class="pre">==</span> <span class="pre">A[i0,</span> <span class="pre">i1,</span> <span class="pre">:,</span> <span class="pre">:]</span></code>.</p>
+<p>Note that indexing always <strong>copies</strong> the data – even if <cite>int</cite> contains just slices, in which case numpy would return a view.
+However, assigning with <code class="docutils literal notranslate"><span class="pre">A[:,</span> <span class="pre">[3,</span> <span class="pre">5],</span> <span class="pre">3]</span> <span class="pre">=</span> <span class="pre">B</span></code> should work as you would expect.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p>Due to numpy’s advanced indexing, for 1D integer arrays <code class="docutils literal notranslate"><span class="pre">a0</span></code> and <code class="docutils literal notranslate"><span class="pre">a1</span></code> the following holds</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">A</span><span class="p">[</span><span class="n">a0</span><span class="p">,</span> <span class="n">a1</span><span class="p">]</span><span class="o">.</span><span class="n">to_ndarray</span><span class="p">()</span> <span class="o">==</span> <span class="n">A</span><span class="o">.</span><span class="n">to_ndarray</span><span class="p">()[</span><span class="n">np</span><span class="o">.</span><span class="n">ix_</span><span class="p">(</span><span class="n">a0</span><span class="p">,</span> <span class="n">a1</span><span class="p">)]</span> <span class="o">!=</span> <span class="n">A</span><span class="o">.</span><span class="n">to_ndarray</span><span class="p">()[</span><span class="n">a0</span><span class="p">,</span> <span class="n">a1</span><span class="p">]</span>
+</pre></div>
+</div>
+<p class="last">For a combination of slices and arrays, things get more complicated with numpys advanced indexing.
+In that case, a simple <code class="docutils literal notranslate"><span class="pre">np.ix_(...)</span></code> doesn’t help any more to emulate our version of indexing.</p>
+</div>
+</div>
+<div class="section" id="introduction-to-combine-legs-split-legs-and-legpipes">
+<span id="leg-pipes"></span><h2>Introduction to combine_legs, split_legs and LegPipes<a class="headerlink" href="#introduction-to-combine-legs-split-legs-and-legpipes" title="Permalink to this headline">¶</a></h2>
+<p>Often, it is necessary to “combine” multiple legs into one: for example to perfom a SVD, a tensor needs to be viewed as a matrix.
+For a flat array, this can be done with <code class="docutils literal notranslate"><span class="pre">np.reshape</span></code>, e.g., if <code class="docutils literal notranslate"><span class="pre">A</span></code> has shape <code class="docutils literal notranslate"><span class="pre">(10,</span> <span class="pre">3,</span> <span class="pre">7)</span></code> then <code class="docutils literal notranslate"><span class="pre">B</span> <span class="pre">=</span> <span class="pre">np.reshape(A,</span> <span class="pre">(30,</span> <span class="pre">7))</span></code> will
+result in a (view of the) array with one less dimension, but a “larger” first leg. By default (<code class="docutils literal notranslate"><span class="pre">order='C'</span></code>), this
+results in</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">B</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="mi">3</span> <span class="o">+</span> <span class="n">j</span> <span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">==</span> <span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>While for a np.array, also a reshaping <code class="docutils literal notranslate"><span class="pre">(10,</span> <span class="pre">3,</span> <span class="pre">7)</span> <span class="pre">-&gt;</span> <span class="pre">(2,</span> <span class="pre">21,</span> <span class="pre">5)</span></code> would be allowed, it does not make sense
+physically. The only sensible “reshape” operation on an <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a> are</p>
+<ol class="arabic simple">
+<li>to <strong>combine</strong> multiple legs into one <strong>leg pipe</strong> (<a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegPipe" title="tenpy.linalg.charges.LegPipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegPipe</span></code></a>) with  <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array.combine_legs" title="tenpy.linalg.np_conserved.Array.combine_legs"><code class="xref py py-meth docutils literal notranslate"><span class="pre">combine_legs()</span></code></a>, or</li>
+<li>to <strong>split</strong> a pipe of previously combined legs with <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array.split_legs" title="tenpy.linalg.np_conserved.Array.split_legs"><code class="xref py py-meth docutils literal notranslate"><span class="pre">split_legs()</span></code></a>.</li>
+</ol>
+<p>Each leg has a Hilbert space, and a representation of the symmetry on that Hilbert space.
+Combining legs corresponds to the tensor product operation, and for abelian groups,
+the corresponding “fusion” of the representation is the simple addition of charge.</p>
+<p>Fusion is not a lossless process, so if we ever want to split the combined leg,
+we need some additional data to tell us how to reverse the tensor product.
+This data is saved in the class <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegPipe" title="tenpy.linalg.charges.LegPipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegPipe</span></code></a>, derived from the <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge" title="tenpy.linalg.charges.LegCharge"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegCharge</span></code></a> and used as new <cite>leg</cite>.
+Details of the information contained in a LegPipe are given in the class doc string.</p>
+<p>The rough usage idea is as follows:</p>
+<ol class="arabic">
+<li><p class="first">You can call <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array.combine_legs" title="tenpy.linalg.np_conserved.Array.combine_legs"><code class="xref py py-meth docutils literal notranslate"><span class="pre">combine_legs()</span></code></a> without supplying any LegPipes, <cite>combine_legs</cite> will then make them for you.</p>
+<p>Nevertheless, if you plan to perform the combination over and over again on sets of legs you know to be identical
+[with same charges etc, up to an overall -1 in <cite>qconj</cite> on all incoming and outgoing Legs]
+you might make a LegPipe anyway to save on the overhead of computing it each time.</p>
+</li>
+<li><p class="first">In any way, the resulting Array will have a <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegPipe" title="tenpy.linalg.charges.LegPipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegPipe</span></code></a> as a LegCharge on the combined leg.
+Thus, it – and all tensors inheriting the leg (e.g. the results of <cite>svd</cite>, <cite>tensordot</cite> etc.) – will have the information
+how to split the <cite>LegPipe</cite> back to the original legs.</p>
+</li>
+<li><p class="first">Once you performed the necessary operations, you can call <code class="xref py py-meth docutils literal notranslate"><span class="pre">split_legs()</span></code>.
+This uses the information saved in the <cite>LegPipe</cite> to split the legs, recovering the original legs.</p>
+</li>
+</ol>
+<p>For a LegPipe, <code class="xref py py-meth docutils literal notranslate"><span class="pre">conj`()</span></code> changes <code class="docutils literal notranslate"><span class="pre">qconj</span></code> for the outgoing pipe <em>and</em> the incoming legs.
+If you need a <cite>LegPipe</cite> with the same incoming <code class="docutils literal notranslate"><span class="pre">qconj</span></code>, use <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegPipe.outer_conj" title="tenpy.linalg.charges.LegPipe.outer_conj"><code class="xref py py-meth docutils literal notranslate"><span class="pre">outer_conj()</span></code></a>.</p>
+</div>
+<div class="section" id="leg-labeling">
+<h2>Leg labeling<a class="headerlink" href="#leg-labeling" title="Permalink to this headline">¶</a></h2>
+<p>It’s convenient to name the legs of a tensor: for instance, we can name legs 0, 1, 2 to be <code class="docutils literal notranslate"><span class="pre">'a',</span> <span class="pre">'b',</span> <span class="pre">'c'</span></code>: <span class="math notranslate">\(T_{i_a,i_b,i_c}\)</span>.
+That way we don’t have to remember the ordering! Under tensordot, we can then call</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">U</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="p">[</span> <span class="p">[</span><span class="o">...</span><span class="p">],</span>  <span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">]</span> <span class="p">]</span> <span class="p">)</span>
+</pre></div>
+</div>
+<p>without having to remember where exactly <code class="docutils literal notranslate"><span class="pre">'b'</span></code> is.
+Obviously <code class="docutils literal notranslate"><span class="pre">U</span></code> should then inherit the name of its legs from the uncontracted legs of <cite>S</cite> and <cite>T</cite>.
+So here is how it works:</p>
+<ul>
+<li><p class="first">Labels can <em>only</em> be strings. The labels should not include the characters <code class="docutils literal notranslate"><span class="pre">.</span></code> or <code class="docutils literal notranslate"><span class="pre">?</span></code>.
+Internally, the labels are stored as dict <code class="docutils literal notranslate"><span class="pre">a.labels</span> <span class="pre">=</span> <span class="pre">{label:</span> <span class="pre">leg_position,</span> <span class="pre">...}</span></code>. Not all legs need a label.</p>
+</li>
+<li><p class="first">To set the labels, call</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">A</span><span class="o">.</span><span class="n">set_labels</span><span class="p">([</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="o">...</span> <span class="p">])</span>
+</pre></div>
+</div>
+<p>which will set up the labeling <code class="docutils literal notranslate"><span class="pre">{'a':</span> <span class="pre">0,</span> <span class="pre">'b':</span> <span class="pre">1,</span> <span class="pre">'c':</span> <span class="pre">3</span> <span class="pre">...}</span></code>.</p>
+</li>
+<li><p class="first">(Where implemented) the specification of axes can use either the labels <strong>or</strong> the index positions.
+For instance, the call <code class="docutils literal notranslate"><span class="pre">tensordot(A,</span> <span class="pre">B,</span> <span class="pre">[</span> <span class="pre">['a',</span> <span class="pre">2,</span> <span class="pre">'c'],</span> <span class="pre">[...]])</span></code> will interpret <code class="docutils literal notranslate"><span class="pre">'a'</span></code> and  <code class="docutils literal notranslate"><span class="pre">'c'</span></code> as labels
+(calling <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array.get_leg_indices" title="tenpy.linalg.np_conserved.Array.get_leg_indices"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_leg_indices()</span></code></a> to find their positions using the dict)
+and 2 as ‘the 2nd leg’. That’s why we require labels to be strings!</p>
+</li>
+<li><dl class="first docutils">
+<dt>Labels will be intelligently inherited through the various operations of <cite>np_conserved</cite>.</dt>
+<dd><ul class="first last simple">
+<li>Under <cite>transpose</cite>, labels are permuted.</li>
+<li>Under <cite>tensordot</cite>, labels are inherited from uncontracted legs. If there is a collision, both labels are dropped.</li>
+<li>Under <cite>combine_legs</cite>, labels get concatenated with a <code class="docutils literal notranslate"><span class="pre">.</span></code> delimiter and sourrounded by brackets.
+Example: let <code class="docutils literal notranslate"><span class="pre">a.labels</span> <span class="pre">=</span> <span class="pre">{'a':</span> <span class="pre">1,</span> <span class="pre">'b':</span> <span class="pre">2,</span> <span class="pre">'c':</span> <span class="pre">3}</span></code>.
+Then if <code class="docutils literal notranslate"><span class="pre">b</span> <span class="pre">=</span> <span class="pre">a.combine_legs([[0,</span> <span class="pre">1],</span> <span class="pre">[2]])</span></code>, it will have <code class="docutils literal notranslate"><span class="pre">b.labels</span> <span class="pre">=</span> <span class="pre">{'(a.b)':</span> <span class="pre">0,</span> <span class="pre">'(c)':</span> <span class="pre">1}</span></code>.
+If some sub-leg of a combined leg isn’t named, then a <code class="docutils literal notranslate"><span class="pre">'?#'</span></code> label is inserted (with <code class="docutils literal notranslate"><span class="pre">#</span></code> the leg index), e.g., <code class="docutils literal notranslate"><span class="pre">'a.?0.c'</span></code>.</li>
+<li>Under <cite>split_legs</cite>, the labels are split using the delimiters (and the <code class="docutils literal notranslate"><span class="pre">'?#'</span></code> are dropped).</li>
+<li>Under <cite>conj</cite>, <cite>iconj</cite>: take  <code class="docutils literal notranslate"><span class="pre">'a'</span> <span class="pre">-&gt;</span> <span class="pre">'a*'</span></code>, <code class="docutils literal notranslate"><span class="pre">'a*'</span> <span class="pre">-&gt;</span> <span class="pre">'a'</span></code>, and <code class="docutils literal notranslate"><span class="pre">'(a.(b*.c))'</span> <span class="pre">-&gt;</span> <span class="pre">'(a*.(b.c*))'</span></code></li>
+<li>Under <cite>svd</cite>, the outer labels are inherited, and inner labels can be optionally passed.</li>
+<li>Under <cite>pinv</cite>, the labels are transposed.</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div>
+<div class="section" id="see-also">
+<h2>See also<a class="headerlink" href="#see-also" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>The module <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#module-tenpy.linalg.np_conserved" title="tenpy.linalg.np_conserved"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tenpy.linalg.np_conserved</span></code></a> should contain all the API needed from the point of view of the algorithms.
+It contians the fundamental <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a> class and functions for working with them (creating and manipulating).</li>
+<li>The module <a class="reference internal" href="reference/tenpy.linalg.charges.html#module-tenpy.linalg.charges" title="tenpy.linalg.charges"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tenpy.linalg.charges</span></code></a> contains implementations for the charge structure, for example the classes
+<a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.ChargeInfo" title="tenpy.linalg.charges.ChargeInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChargeInfo</span></code></a>, <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge" title="tenpy.linalg.charges.LegCharge"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegCharge</span></code></a>, and <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegPipe" title="tenpy.linalg.charges.LegPipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegPipe</span></code></a>.
+As noted above, the ‘public’ API is imported to (and accessible from) <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#module-tenpy.linalg.np_conserved" title="tenpy.linalg.np_conserved"><code class="xref py py-mod docutils literal notranslate"><span class="pre">np_conserved</span></code></a>.</li>
+</ul>
+</div>
+<div class="section" id="a-full-example-code-for-spin-1-2">
+<h2>A full example code for spin-1/2<a class="headerlink" href="#a-full-example-code-for-spin-1-2" title="Permalink to this headline">¶</a></h2>
+<p>Below follows a full example demonstrating the creation and contraction of Arrays.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;An example code to demonstrate the usage of :class:`~tenpy.linalg.np_conserved.Array`.</span>
+
+<span class="sd">This example includes the following steps:</span>
+<span class="sd">1) create Arrays for an Neel MPS</span>
+<span class="sd">2) create an MPO representing the nearest-neighbour AFM Heisenberg Hamiltonian</span>
+<span class="sd">3) define &#39;environments&#39; left and right</span>
+<span class="sd">4) contract MPS and MPO to calculate the energy</span>
+<span class="sd">5) extract two-site hamiltonian ``H2`` from the MPO</span>
+<span class="sd">6) calculate ``exp(-1.j*dt*H2)`` by diagonalization of H2</span>
+<span class="sd">7) apply ``exp(H2)`` to two sites of the MPS and truncate with svd</span>
+
+<span class="sd">Note that this example uses only np_conserved, but no other modules.</span>
+<span class="sd">Compare it to the example `b_intro_2_mps.py`,</span>
+<span class="sd">which does the same steps using a few predefined classes like MPS and MPO.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># Copyright 2018 TeNPy Developers</span>
+
+<span class="kn">import</span> <span class="nn">tenpy.linalg.np_conserved</span> <span class="k">as</span> <span class="nn">npc</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="c1"># model parameters</span>
+<span class="n">Jxx</span><span class="p">,</span> <span class="n">Jz</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span>
+<span class="n">L</span> <span class="o">=</span> <span class="mi">20</span>
+<span class="n">dt</span> <span class="o">=</span> <span class="mf">0.1</span>
+<span class="n">cutoff</span> <span class="o">=</span> <span class="mf">1.e-10</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Jxx=</span><span class="si">{Jxx}</span><span class="s2">, Jz=</span><span class="si">{Jz}</span><span class="s2">, L=</span><span class="si">{L:d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">Jxx</span><span class="o">=</span><span class="n">Jxx</span><span class="p">,</span> <span class="n">Jz</span><span class="o">=</span><span class="n">Jz</span><span class="p">,</span> <span class="n">L</span><span class="o">=</span><span class="n">L</span><span class="p">))</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;1) create Arrays for an Neel MPS&quot;</span><span class="p">)</span>
+
+<span class="c1">#  vL -&gt;--B--&gt;- vR</span>
+<span class="c1">#         |</span>
+<span class="c1">#         ^</span>
+<span class="c1">#         |</span>
+<span class="c1">#         p</span>
+
+<span class="c1"># create a ChargeInfo to specify the nature of the charge</span>
+<span class="n">chinfo</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">ChargeInfo</span><span class="p">([</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;2*Sz&#39;</span><span class="p">])</span>  <span class="c1"># the second argument is just a descriptive name</span>
+
+<span class="c1"># create LegCharges on physical leg and even/odd bonds</span>
+<span class="n">p_leg</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="p">[[</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>  <span class="c1"># charges for up, down</span>
+<span class="n">v_leg_even</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">]])</span>
+<span class="n">v_leg_odd</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="p">[[</span><span class="mi">1</span><span class="p">]])</span>
+
+<span class="n">B_even</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">v_leg_even</span><span class="p">,</span> <span class="n">v_leg_odd</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">p_leg</span><span class="p">])</span>
+<span class="n">B_odd</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">v_leg_odd</span><span class="p">,</span> <span class="n">v_leg_even</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">p_leg</span><span class="p">])</span>
+<span class="n">B_even</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>  <span class="c1"># up</span>
+<span class="n">B_odd</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>  <span class="c1"># down</span>
+
+<span class="k">for</span> <span class="n">B</span> <span class="ow">in</span> <span class="p">[</span><span class="n">B_even</span><span class="p">,</span> <span class="n">B_odd</span><span class="p">]:</span>
+    <span class="n">B</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">])</span>  <span class="c1"># virtual left/right, physical</span>
+
+<span class="n">Bs</span> <span class="o">=</span> <span class="p">[</span><span class="n">B_even</span><span class="p">,</span> <span class="n">B_odd</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="n">B_even</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span> <span class="o">%</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># (right-canonical)</span>
+<span class="n">Ss</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">)]</span> <span class="o">*</span> <span class="n">L</span>  <span class="c1"># Ss[i] are singular values between Bs[i-1] and Bs[i]</span>
+
+<span class="c1"># Side remark:</span>
+<span class="c1"># An MPS is expected to have non-zero entries everywhere compatible with the charges.</span>
+<span class="c1"># In general, we recommend to use `sort_legcharge` (or `as_completely_blocked`)</span>
+<span class="c1"># to ensure complete blocking. (But the code will also work, if you don&#39;t do it.)</span>
+<span class="c1"># The drawback is that this might introduce permutations in the indices of single legs,</span>
+<span class="c1"># which you have to keep in mind when converting dense numpy arrays to and from npc.Arrays.</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;2) create an MPO representing the AFM Heisenberg Hamiltonian&quot;</span><span class="p">)</span>
+
+<span class="c1">#         p*</span>
+<span class="c1">#         |</span>
+<span class="c1">#         ^</span>
+<span class="c1">#         |</span>
+<span class="c1">#  wL -&gt;--W--&gt;- wR</span>
+<span class="c1">#         |</span>
+<span class="c1">#         ^</span>
+<span class="c1">#         |</span>
+<span class="c1">#         p</span>
+
+<span class="c1"># create physical spin-1/2 operators Sz, S+, S-</span>
+<span class="n">Sz</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">Array</span><span class="o">.</span><span class="n">from_ndarray</span><span class="p">([[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">]],</span> <span class="p">[</span><span class="n">p_leg</span><span class="p">,</span> <span class="n">p_leg</span><span class="o">.</span><span class="n">conj</span><span class="p">()])</span>
+<span class="n">Sp</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">Array</span><span class="o">.</span><span class="n">from_ndarray</span><span class="p">([[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]],</span> <span class="p">[</span><span class="n">p_leg</span><span class="p">,</span> <span class="n">p_leg</span><span class="o">.</span><span class="n">conj</span><span class="p">()])</span>
+<span class="n">Sm</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">Array</span><span class="o">.</span><span class="n">from_ndarray</span><span class="p">([[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]],</span> <span class="p">[</span><span class="n">p_leg</span><span class="p">,</span> <span class="n">p_leg</span><span class="o">.</span><span class="n">conj</span><span class="p">()])</span>
+<span class="n">Id</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">eye_like</span><span class="p">(</span><span class="n">Sz</span><span class="p">)</span>  <span class="c1"># identity</span>
+<span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="p">[</span><span class="n">Sz</span><span class="p">,</span> <span class="n">Sp</span><span class="p">,</span> <span class="n">Sm</span><span class="p">,</span> <span class="n">Id</span><span class="p">]:</span>
+    <span class="n">op</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">])</span>  <span class="c1"># physical in, physical out</span>
+
+<span class="n">mpo_leg</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+
+<span class="n">W_grid</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Id</span><span class="p">,</span>   <span class="n">Sp</span><span class="p">,</span>   <span class="n">Sm</span><span class="p">,</span>   <span class="n">Sz</span><span class="p">,</span>   <span class="kc">None</span>          <span class="p">],</span>
+          <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">Jxx</span> <span class="o">*</span> <span class="n">Sm</span><span class="p">],</span>
+          <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">Jxx</span> <span class="o">*</span> <span class="n">Sp</span><span class="p">],</span>
+          <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Jz</span> <span class="o">*</span> <span class="n">Sz</span>       <span class="p">],</span>
+          <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Id</span>            <span class="p">]]</span>  <span class="c1"># yapf:disable</span>
+
+<span class="n">W</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">grid_outer</span><span class="p">(</span><span class="n">W_grid</span><span class="p">,</span> <span class="p">[</span><span class="n">mpo_leg</span><span class="p">,</span> <span class="n">mpo_leg</span><span class="o">.</span><span class="n">conj</span><span class="p">()])</span>
+<span class="n">W</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;wL&#39;</span><span class="p">,</span> <span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">])</span>  <span class="c1"># wL/wR = virtual left/right of the MPO</span>
+<span class="n">Ws</span> <span class="o">=</span> <span class="p">[</span><span class="n">W</span><span class="p">]</span> <span class="o">*</span> <span class="n">L</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;3) define &#39;environments&#39; left and right&quot;</span><span class="p">)</span>
+
+<span class="c1">#  .----&gt;- vR     vL -&gt;----.</span>
+<span class="c1">#  |                       |</span>
+<span class="c1">#  envL-&gt;- wR     wL -&gt;-envR</span>
+<span class="c1">#  |                       |</span>
+<span class="c1">#  .----&gt;- vR*    vL*-&gt;----.</span>
+
+<span class="n">envL</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">W</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;wL&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">Bs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;vL&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">Bs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;vL&#39;</span><span class="p">)])</span>
+<span class="n">envL</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vR*&#39;</span><span class="p">])</span>
+<span class="n">envL</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="n">envL</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">envR</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">W</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;wR&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">Bs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">Bs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">)])</span>
+<span class="n">envR</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;wL&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;vL*&#39;</span><span class="p">])</span>
+<span class="n">envR</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="n">envR</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;4) contract MPS and MPO to calculate the energy &lt;psi|H|psi&gt;&quot;</span><span class="p">)</span>
+<span class="n">contr</span> <span class="o">=</span> <span class="n">envL</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">):</span>
+    <span class="c1"># contr labels: wR, vR, vR*</span>
+    <span class="n">contr</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">contr</span><span class="p">,</span> <span class="n">Bs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">axes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">))</span>
+    <span class="c1"># wR, vR*, vR, p</span>
+    <span class="n">contr</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">contr</span><span class="p">,</span> <span class="n">Ws</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;wR&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p*&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">]))</span>
+    <span class="c1"># vR*, vR, wR, p</span>
+    <span class="n">contr</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">contr</span><span class="p">,</span> <span class="n">Bs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;vR*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p*&#39;</span><span class="p">,</span> <span class="s1">&#39;vL*&#39;</span><span class="p">]))</span>
+    <span class="c1"># vR, wR, vR*</span>
+    <span class="c1"># note that the order of the legs changed, but that&#39;s no problem with labels:</span>
+    <span class="c1"># the arrays are automatically transposed as necessary</span>
+<span class="n">E</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">inner</span><span class="p">(</span><span class="n">contr</span><span class="p">,</span> <span class="n">envR</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;vR*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">,</span> <span class="s1">&#39;vL*&#39;</span><span class="p">]))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;E =&quot;</span><span class="p">,</span> <span class="n">E</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;5) calculate two-site hamiltonian ``H2`` from the MPO&quot;</span><span class="p">)</span>
+<span class="c1"># label left, right physical legs with p, q</span>
+<span class="n">W0</span> <span class="o">=</span> <span class="n">W</span><span class="o">.</span><span class="n">replace_labels</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">])</span>
+<span class="n">W1</span> <span class="o">=</span> <span class="n">W</span><span class="o">.</span><span class="n">replace_labels</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">])</span>
+<span class="n">H2</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">W0</span><span class="p">,</span> <span class="n">W1</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">itranspose</span><span class="p">([</span><span class="s1">&#39;wL&#39;</span><span class="p">,</span> <span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">])</span>
+<span class="n">H2</span> <span class="o">=</span> <span class="n">H2</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># (If H has single-site terms, it&#39;s not that simple anymore)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;H2 labels:&quot;</span><span class="p">,</span> <span class="n">H2</span><span class="o">.</span><span class="n">get_leg_labels</span><span class="p">())</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;6) calculate exp(H2) by diagonalization of H2&quot;</span><span class="p">)</span>
+<span class="c1"># diagonalization requires to view H2 as a matrix</span>
+<span class="n">H2</span> <span class="o">=</span> <span class="n">H2</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([(</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">)],</span> <span class="n">qconj</span><span class="o">=</span><span class="p">[</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;labels after combine_legs:&quot;</span><span class="p">,</span> <span class="n">H2</span><span class="o">.</span><span class="n">get_leg_labels</span><span class="p">())</span>
+<span class="n">E2</span><span class="p">,</span> <span class="n">U2</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">H2</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Eigenvalues of H2:&quot;</span><span class="p">,</span> <span class="n">E2</span><span class="p">)</span>
+<span class="n">U_expE2</span> <span class="o">=</span> <span class="n">U2</span><span class="o">.</span><span class="n">scale_axis</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mf">1.</span><span class="n">j</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">E2</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># scale_axis ~= apply an diagonal matrix</span>
+<span class="n">exp_H2</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U_expE2</span><span class="p">,</span> <span class="n">U2</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">exp_H2</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">(</span><span class="n">H2</span><span class="o">.</span><span class="n">get_leg_labels</span><span class="p">())</span>
+<span class="n">exp_H2</span> <span class="o">=</span> <span class="n">exp_H2</span><span class="o">.</span><span class="n">split_legs</span><span class="p">()</span>  <span class="c1"># by default split all legs which are `LegPipe`</span>
+<span class="c1"># (this restores the originial labels [&#39;p0&#39;, &#39;p1&#39;, &#39;p0*&#39;, &#39;p1*&#39;] of `H2` in `exp_H2`)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;7) apply exp(H2) to even/odd bonds of the MPS and truncate with svd&quot;</span><span class="p">)</span>
+<span class="c1"># (this implements one time step of first order TEBD)</span>
+<span class="k">for</span> <span class="n">even_odd</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]:</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">even_odd</span><span class="p">,</span> <span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+        <span class="n">B_L</span> <span class="o">=</span> <span class="n">Bs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">scale_axis</span><span class="p">(</span><span class="n">Ss</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="s1">&#39;vL&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">ireplace_label</span><span class="p">(</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">)</span>
+        <span class="n">B_R</span> <span class="o">=</span> <span class="n">Bs</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace_label</span><span class="p">(</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">)</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">B_L</span><span class="p">,</span> <span class="n">B_R</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">))</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">exp_H2</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">]))</span>
+        <span class="c1"># view as matrix for SVD</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([(</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">)],</span> <span class="n">qconj</span><span class="o">=</span><span class="p">[</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inner_labels</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">])</span>
+        <span class="c1"># truncate</span>
+        <span class="n">keep</span> <span class="o">=</span> <span class="n">S</span> <span class="o">&gt;</span> <span class="n">cutoff</span>
+        <span class="n">S</span> <span class="o">=</span> <span class="n">S</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
+        <span class="n">invsq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+        <span class="n">Ss</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">S</span> <span class="o">/</span> <span class="n">invsq</span>
+        <span class="n">U</span> <span class="o">=</span> <span class="n">U</span><span class="o">.</span><span class="n">iscale_axis</span><span class="p">(</span><span class="n">S</span> <span class="o">/</span> <span class="n">invsq</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">)</span>
+        <span class="n">Bs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">U</span><span class="o">.</span><span class="n">split_legs</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">iscale_axis</span><span class="p">(</span><span class="n">Ss</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="s1">&#39;vL&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">ireplace_label</span><span class="p">(</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">)</span>
+        <span class="n">Bs</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">V</span><span class="o">.</span><span class="n">split_legs</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">ireplace_label</span><span class="p">(</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;finished&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/logo.png" alt="Logo"/>
+            </a></p>
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Introduction to np_conserved</a><ul>
+<li><a class="reference internal" href="#notations">Notations</a></li>
+<li><a class="reference internal" href="#physical-example">Physical Example</a></li>
+<li><a class="reference internal" href="#the-different-formats-for-legcharge">The different formats for LegCharge</a></li>
+<li><a class="reference internal" href="#which-entries-of-the-npc-array-can-be-non-zero">Which entries of the npc Array can be non-zero?</a></li>
+<li><a class="reference internal" href="#the-pesky-qconj-contraction-as-an-example">The pesky qconj - contraction as an example</a></li>
+<li><a class="reference internal" href="#assigning-charges-to-non-physical-legs">Assigning charges to non-physical legs</a></li>
+<li><a class="reference internal" href="#array-creation">Array creation</a></li>
+<li><a class="reference internal" href="#complete-blocking-of-charges">Complete blocking of Charges</a></li>
+<li><a class="reference internal" href="#internal-storage-schema-of-npc-arrays">Internal Storage schema of npc Arrays</a></li>
+<li><a class="reference internal" href="#indexing-of-an-array">Indexing of an Array</a></li>
+<li><a class="reference internal" href="#introduction-to-combine-legs-split-legs-and-legpipes">Introduction to combine_legs, split_legs and LegPipes</a></li>
+<li><a class="reference internal" href="#leg-labeling">Leg labeling</a></li>
+<li><a class="reference internal" href="#see-also">See also</a></li>
+<li><a class="reference internal" href="#a-full-example-code-for-spin-1-2">A full example code for spin-1/2</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="literature.html"
+                        title="previous chapter">Literature</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="intro_model.html"
+                        title="next chapter">Introduction to models</a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="index.html">Table Of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="userguide.html">User Guide</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="userguide.html#library-overview">Library overview</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="userguide.html#content">Content</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reference/tenpy.html">tenpy package</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="intro_model.html" title="Introduction to models"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="literature.html" title="Literature"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="userguide.html" >User Guide</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2018, TeNPy Developers.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

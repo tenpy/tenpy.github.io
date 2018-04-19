@@ -1,0 +1,1061 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>tenpy.networks.site &#8212; TeNPy 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tenpy.networks.site</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Defines a class describing the local physical Hilbert space.</span>
+
+<span class="sd">The :class:`Site` is the prototype, read it&#39;s docstring.</span>
+<span class="sd">We</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># Copyright 2018 TeNPy Developers</span>
+
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..linalg</span> <span class="k">import</span> <span class="n">np_conserved</span> <span class="k">as</span> <span class="n">npc</span>
+<span class="kn">from</span> <span class="nn">..tools.misc</span> <span class="k">import</span> <span class="n">inverse_permutation</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">&#39;Site&#39;</span><span class="p">,</span> <span class="s1">&#39;DoubleSite&#39;</span><span class="p">,</span> <span class="s1">&#39;SpinHalfSite&#39;</span><span class="p">,</span> <span class="s1">&#39;SpinSite&#39;</span><span class="p">,</span> <span class="s1">&#39;FermionSite&#39;</span><span class="p">,</span> <span class="s1">&#39;SpinHalfFermionSite&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;BosonSite&#39;</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="Site"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.Site">[docs]</a><span class="k">class</span> <span class="nc">Site</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Collects necessary information about a single local site of a lattice.</span>
+
+<span class="sd">    This class defines what the local basis states are: it provides the :attr:`leg`</span>
+<span class="sd">    defining the charges of the physical leg for this site.</span>
+<span class="sd">    Moreover, it stores (local) on-site operators, which are directly available as attribute,</span>
+<span class="sd">    e.g., ``self.Sz`` is the Sz operator for the :class:`SpinSite`.</span>
+<span class="sd">    Alternatively, operators can be obained with :meth:`get_op`.</span>
+<span class="sd">    The operator names ``Id`` and ``JW`` are reserved for the identy and Jordan-Wigner strings.</span>
+
+<span class="sd">    .. warning ::</span>
+<span class="sd">        The order of the local basis can change depending on the charge conservation!</span>
+<span class="sd">        This is a *necessary* feature since we need to sort the basis by charges for efficiency.</span>
+<span class="sd">        We use the :attr:`state_labels` (and :attr:`perm`) to keep track of these permutations.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    leg : :class:`~tenpy.linalg.charges.LegCharge`</span>
+<span class="sd">        Charges of the physical states, to be used for the physical leg of MPS &amp; co).</span>
+<span class="sd">    state_labels : None | list of str</span>
+<span class="sd">        Optionally a label for each local basis states. ``None`` entries are ignored / not set.</span>
+<span class="sd">    **site_ops :</span>
+<span class="sd">        Additional keyword arguments of the form ``name=op`` given to :meth:`add_op`.</span>
+<span class="sd">        The identity operator ``&#39;Id&#39;`` is automatically included.</span>
+<span class="sd">        If no ``&#39;JW&#39;`` for the Jordan-Wigner string is given,</span>
+<span class="sd">        ``&#39;JW&#39;`` is set as an alias to ``&#39;Id&#39;``.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dim</span>
+<span class="sd">    onsite_ops</span>
+<span class="sd">    leg : :class:`~tenpy.linalg.charges.LegCharge`</span>
+<span class="sd">        Charges of the local basis states.</span>
+<span class="sd">    state_labels : {str: int}</span>
+<span class="sd">        (Optional) labels for the local basis states.</span>
+<span class="sd">    opnames : set</span>
+<span class="sd">        Labels of all onsite operators (i.e. ``self.op`` exists if ``&#39;op&#39;`` in ``self.opnames``).</span>
+<span class="sd">        Note that :meth:`get_op` allow arbitrary concatenations of them.</span>
+<span class="sd">    need_JW_string : set</span>
+<span class="sd">        Labels of all onsite operators that need a Jordan-Wigner string.</span>
+<span class="sd">    ops : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">        Onsite operators are added directly as attributes to self.</span>
+<span class="sd">        For example after ``self.add_op(&#39;Sz&#39;, Sz)`` you can use ``self.Sz`` for the `Sz` operator.</span>
+<span class="sd">        All onsite operators have labels ``&#39;p&#39;, &#39;p*&#39;``.</span>
+<span class="sd">    perm : 1D array</span>
+<span class="sd">        Index permutation of the physical leg compared to `conserve=None`.</span>
+<span class="sd">    JW_exponent : 1D array</span>
+<span class="sd">        Exponents of the ``&#39;JW&#39;`` operator, such that</span>
+<span class="sd">        ``self.JW.to_ndarray() = np.diag(np.exp(1.j*np.pi* JW_exponent))``</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    The following generates a site for spin-1/2 with Sz conservation.</span>
+<span class="sd">    Note that ``Sx = (Sp + Sm)/2`` violates Sz conservation and is thus not a valid</span>
+<span class="sd">    on-site operator.</span>
+
+<span class="sd">    &gt;&gt;&gt; chinfo = npc.ChargeInfo([1], [&#39;Sz&#39;])</span>
+<span class="sd">    &gt;&gt;&gt; ch = npc.LegCharge.from_qflat(chinfo, [1, -1])</span>
+<span class="sd">    &gt;&gt;&gt; Sp = [[0, 1.], [0, 0]]</span>
+<span class="sd">    &gt;&gt;&gt; Sm = [[0, 0], [1., 0]]</span>
+<span class="sd">    &gt;&gt;&gt; Sz = [[0.5, 0], [0, -0.5]]</span>
+<span class="sd">    &gt;&gt;&gt; site = Site(ch, [&#39;up&#39;, &#39;down&#39;], Splus=Sp, Sminus=Sm, Sz=Sz)</span>
+<span class="sd">    &gt;&gt;&gt; print site.Splus.to_ndarray()</span>
+<span class="sd">    array([[ 0.,  1.],</span>
+<span class="sd">           [ 0.,  0.]])</span>
+<span class="sd">    &gt;&gt;&gt; print site.get_op(&#39;Sminus&#39;).to_ndarray()</span>
+<span class="sd">    array([[ 0.,  0.],</span>
+<span class="sd">           [ 1.,  0.]])</span>
+<span class="sd">    &gt;&gt;&gt; print site.get_op(&#39;Splus Sminus&#39;).to_ndarry()</span>
+<span class="sd">    array([[ 1.,  0.],</span>
+<span class="sd">           [ 0.,  0.]])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">leg</span><span class="p">,</span> <span class="n">state_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">site_ops</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">leg</span> <span class="o">=</span> <span class="n">leg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">state_labels</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">state_labels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">state_labels</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">state_labels</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)]</span> <span class="o">=</span> <span class="n">i</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">opnames</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">need_JW_string</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_op</span><span class="p">(</span><span class="s1">&#39;Id&#39;</span><span class="p">,</span> <span class="n">npc</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">leg</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">site_ops</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_op</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">op</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;perm&#39;</span><span class="p">):</span>  <span class="c1"># default permutation for the local states</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">perm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;JW&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">opnames</span><span class="p">:</span>
+            <span class="c1"># include trivial `JW` to allow combinations</span>
+            <span class="c1"># of bosonic and fermionic sites in an MPS</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_op</span><span class="p">(</span><span class="s1">&#39;JW&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Site.copy_change_charge"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.Site.copy_change_charge">[docs]</a>    <span class="k">def</span> <span class="nf">copy_change_charge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_leg_charge</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">permute</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Generate a copy of a site with different charges.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        new_leg_charge : :class:`LegCharge` | None</span>
+<span class="sd">            The new charges to be used. If ``None``, use trivial charges.</span>
+<span class="sd">        permute : ``None`` | ndarray</span>
+<span class="sd">            Ignored if ``None``; otherwise an permuation applied to the physical leg.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        cpy : :class:`Site`</span>
+<span class="sd">            A copy of `self` with a different (possibly permuted) :attr:`leg`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">new_leg_charge</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">new_leg_charge</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_trivial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span>
+        <span class="n">cpy</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">cpy</span><span class="o">.</span><span class="n">leg</span> <span class="o">=</span> <span class="n">new_leg_charge</span>
+        <span class="k">if</span> <span class="n">permute</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">permute</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">permute</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
+            <span class="n">inv_perm</span> <span class="o">=</span> <span class="n">inverse_permutation</span><span class="p">(</span><span class="n">permute</span><span class="p">)</span>
+            <span class="n">cpy</span><span class="o">.</span><span class="n">perm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">perm</span><span class="p">[</span><span class="n">permute</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">opname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">opnames</span><span class="p">:</span>
+            <span class="n">cpy</span><span class="o">.</span><span class="n">remove_op</span><span class="p">(</span><span class="n">opname</span><span class="p">)</span>
+            <span class="n">op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_op</span><span class="p">(</span><span class="n">opname</span><span class="p">)</span><span class="o">.</span><span class="n">to_ndarray</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">permute</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">op</span> <span class="o">=</span> <span class="n">op</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ix_</span><span class="p">(</span><span class="n">permute</span><span class="p">,</span> <span class="n">permute</span><span class="p">)]</span>
+            <span class="n">cpy</span><span class="o">.</span><span class="n">add_op</span><span class="p">(</span><span class="n">opname</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">opname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">need_JW_string</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">permute</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_labels</span><span class="p">:</span>
+                <span class="n">cpy</span><span class="o">.</span><span class="n">state_labels</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">inv_perm</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">state_labels</span><span class="p">[</span><span class="n">label</span><span class="p">]]</span>
+        <span class="k">return</span> <span class="n">cpy</span></div>
+
+<div class="viewcode-block" id="Site.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.Site.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sanity check. Raises ValueErrors, if something is wrong.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">lab</span><span class="p">,</span> <span class="n">ind</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_labels</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lab</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;wrong type of state label&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">ind</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;index of state label out of bounds&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">opnames</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;missing onsite operator &quot;</span> <span class="o">+</span> <span class="n">name</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">onsite_ops</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">op</span><span class="o">.</span><span class="n">rank</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;only rank-2 onsite operators allowed&quot;</span><span class="p">)</span>
+            <span class="n">op</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">test_equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">leg</span><span class="p">)</span>
+            <span class="n">op</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">test_contractible</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">leg</span><span class="p">)</span>
+            <span class="n">op</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">need_JW_string</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">op</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">opnames</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_array_almost_equal</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">1.</span><span class="n">j</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">JW_exponent</span><span class="p">)),</span> <span class="bp">self</span><span class="o">.</span><span class="n">JW</span><span class="o">.</span><span class="n">to_ndarray</span><span class="p">(),</span> <span class="mi">15</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Dimension of the local Hilbert space&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">ind_len</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">onsite_ops</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Dictionary of on-site operators for iteration.</span>
+
+<span class="sd">        (single operators are accessible as attributes.)&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">([(</span><span class="n">name</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">opnames</span><span class="p">)])</span>
+
+<div class="viewcode-block" id="Site.add_op"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.Site.add_op">[docs]</a>    <span class="k">def</span> <span class="nf">add_op</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">need_JW</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add one on-site operators</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            A valid python variable name, used to label the operator.</span>
+<span class="sd">            The name under which `op` is added as attribute to self.</span>
+<span class="sd">        op : np.ndarray | :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            A matrix acting on the local hilbert space representing the local operator.</span>
+<span class="sd">            Dense numpy arrays are automatically converted to</span>
+<span class="sd">            :class:`~tenpy.linalg.np_conserved.Array`.</span>
+<span class="sd">            LegCharges have to be ``[leg, leg.conj()]``.</span>
+<span class="sd">            We set labels ``&#39;p&#39;, &#39;p*&#39;``.</span>
+<span class="sd">        need_JW : bool</span>
+<span class="sd">            Wheter the operator needs a Jordan-Wigner string.</span>
+<span class="sd">            If ``True``, the function adds `name` to :attr:`need_JW_string`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">opnames</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;operator with that name already existent: &quot;</span> <span class="o">+</span> <span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Site already has that attribute name: &quot;</span> <span class="o">+</span> <span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">npc</span><span class="o">.</span><span class="n">Array</span><span class="p">):</span>
+            <span class="n">op</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">op</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;wrong shape of on-site operator&quot;</span><span class="p">)</span>
+            <span class="c1"># try to convert op into npc.Array</span>
+            <span class="n">op</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">Array</span><span class="o">.</span><span class="n">from_ndarray</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">leg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">conj</span><span class="p">()])</span>
+        <span class="k">if</span> <span class="n">op</span><span class="o">.</span><span class="n">rank</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;only rank-2 on-site operators allowed&quot;</span><span class="p">)</span>
+        <span class="n">op</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">test_equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">leg</span><span class="p">)</span>
+        <span class="n">op</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">test_contractible</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">leg</span><span class="p">)</span>
+        <span class="n">op</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">()</span>
+        <span class="n">op</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">])</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">op</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">opnames</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">need_JW</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">need_JW_string</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;JW&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">JW_exponent</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">real_if_close</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">to_ndarray</span><span class="p">()))</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Site.rename_op"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.Site.rename_op">[docs]</a>    <span class="k">def</span> <span class="nf">rename_op</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">old_name</span><span class="p">,</span> <span class="n">new_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Rename an added operator.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        old_name : str</span>
+<span class="sd">            The old name of the operator.</span>
+<span class="sd">        new_name : str</span>
+<span class="sd">            The new name of the operator.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">old_name</span> <span class="o">==</span> <span class="n">new_name</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="n">new_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">opnames</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;new_name already exists&quot;</span><span class="p">)</span>
+        <span class="n">op</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">old_name</span><span class="p">)</span>
+        <span class="n">need_JW</span> <span class="o">=</span> <span class="n">old_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">need_JW_string</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remove_op</span><span class="p">(</span><span class="n">old_name</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_name</span><span class="p">,</span> <span class="n">op</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">opnames</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">new_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">need_JW</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">need_JW_string</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">new_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">new_name</span> <span class="o">==</span> <span class="s1">&#39;JW&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">JW_exponent</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">real_if_close</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">to_ndarray</span><span class="p">()))</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Site.remove_op"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.Site.remove_op">[docs]</a>    <span class="k">def</span> <span class="nf">remove_op</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Remove an added operator.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the operator to be removed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">opnames</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="nb">delattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">need_JW_string</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Site.state_index"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.Site.state_index">[docs]</a>    <span class="k">def</span> <span class="nf">state_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return index of a basis state from its label.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        label : int | string</span>
+<span class="sd">            eather the index directly or a label (string) set before.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        state_index : int</span>
+<span class="sd">            the index of the basis state associated with the label.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_labels</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;label not found: &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">label</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="Site.state_indices"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.Site.state_indices">[docs]</a>    <span class="k">def</span> <span class="nf">state_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Same as :meth:`state_index`, but for multiple labels.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">state_index</span><span class="p">(</span><span class="n">lbl</span><span class="p">)</span> <span class="k">for</span> <span class="n">lbl</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Site.get_op"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.Site.get_op">[docs]</a>    <span class="k">def</span> <span class="nf">get_op</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return operator of given name.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the operator to be returned.</span>
+<span class="sd">            In case of multiple operator names separated by whitespace,</span>
+<span class="sd">            we multiply them together to a single on-site operator</span>
+<span class="sd">            (with the one on the right acting first).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        op : :class:`~tenpy.linalg.np_conserved`</span>
+<span class="sd">            The operator given by `name`, with labels ``&#39;p&#39;, &#39;p*&#39;``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">op</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">names</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">name2</span> <span class="ow">in</span> <span class="n">names</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+            <span class="n">op2</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name2</span><span class="p">)</span>
+            <span class="n">op</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">op2</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;p*&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">op</span></div>
+
+<div class="viewcode-block" id="Site.op_needs_JW"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.Site.op_needs_JW">[docs]</a>    <span class="k">def</span> <span class="nf">op_needs_JW</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Wheter an (composite) onsite operator needs a Jordan-Wigner string.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the operator, as in :meth:`get_op`.</span>
+<span class="sd">            In case of multiple operator names separated by whitespace,</span>
+<span class="sd">            we multiply them together to a single on-site operator</span>
+<span class="sd">            (with the one on the right acting first).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        needs_JW : bool</span>
+<span class="sd">            Wheter the operator needs a Jordan-Wigner string, judging from :attr:`need_JW_string`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">need_JW</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">names</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">need_JW_string</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">names</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+            <span class="k">if</span> <span class="n">op</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">need_JW_string</span><span class="p">:</span>
+                <span class="n">need_JW</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">need_JW</span>  <span class="c1"># == (need_JW xor (op in self.need_JW_string)</span>
+        <span class="k">return</span> <span class="n">need_JW</span></div>
+
+<div class="viewcode-block" id="Site.valid_opname"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.Site.valid_opname">[docs]</a>    <span class="k">def</span> <span class="nf">valid_opname</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Check wheter &#39;name&#39; labels a valid onsite-operator.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            Label for the operator. Can be multiple operator(labels) separated by whitespace,</span>
+<span class="sd">            indicating that they should  be multiplied together.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        valid : bool</span>
+<span class="sd">            ``True`` if `name` is a valid argument to :meth:`get_op`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">name2</span> <span class="ow">in</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">name2</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">opnames</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Debug representation of self&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;Site, d=</span><span class="si">{dim:d}</span><span class="s2">, ops=</span><span class="si">{ops!r}</span><span class="s2">&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="n">ops</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opnames</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DoubleSite"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.DoubleSite">[docs]</a><span class="k">class</span> <span class="nc">DoubleSite</span><span class="p">(</span><span class="n">Site</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Group two :class:`Site` into a larger one.</span>
+
+<span class="sd">    A typical use-case is that you want a NearestNeigborModel for TEBD although you have</span>
+<span class="sd">    next-nearest neighbor interactions: you just double your local Hilbertspace to consist of</span>
+<span class="sd">    two original sites.</span>
+<span class="sd">    Note that this is a &#39;hack&#39; at the cost of other things (e.g., measurements of &#39;local&#39;</span>
+<span class="sd">    operators) getting more complicated/computationally expensive.</span>
+
+<span class="sd">    If the individual sites indicate fermionic operators (with entries in `needs_JW_string`),</span>
+<span class="sd">    we construct the new on-site oerators of `site1` to include the JW string of `site0`,</span>
+<span class="sd">    i.e., we use the Kronecker product of ``[JW, op]`` instead of ``[Id, op]`` if necessary</span>
+<span class="sd">    (but always ``[op, Id]``).</span>
+<span class="sd">    In that way the onsite operators of this DoubleSite automatically fulfill the</span>
+<span class="sd">    expected commutation relations. See also :doc:`../intro_JordanWigner`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    site0 : :class:`Site`</span>
+<span class="sd">        The first site to be included.</span>
+<span class="sd">    site1 : :class:`Site`</span>
+<span class="sd">        The second site to be included.</span>
+<span class="sd">    label0 : str</span>
+<span class="sd">        Include the Kronecker product of ``[op, Id]`` as onsite operators with name</span>
+<span class="sd">        ``opname+label0`` for each of the operators `op` in `site0` (with name `opname`).</span>
+<span class="sd">    label1 : str</span>
+<span class="sd">        Include the Kronecker product of ``[Id, op]`` as onsite operators with name</span>
+<span class="sd">        ``opname+label1`` for each of the operators `op` in `site1` (with name `opname`).</span>
+<span class="sd">    charges : ``&#39;same&#39;`` | ``&#39;independent&#39; | &#39;drop&#39;``</span>
+<span class="sd">        How to handle charges, defaults to &#39;drop&#39;.</span>
+<span class="sd">        ``&#39;same&#39;`` means that `site0` and `site1` have the same `ChargeInfo`, and the total charge</span>
+<span class="sd">        is the sum of the charges on `site0` and `site1`.</span>
+<span class="sd">        ``&#39;independent&#39;`` means that `site0` and `site1` have possibly different `ChargeInfo`,</span>
+<span class="sd">        and the charges are conserved separately, i.e., we have two conserved charges.</span>
+<span class="sd">        For ``&#39;drop&#39;``, we drop any charges, such that the remaining legcharges are trivial.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    site0, site1 : :class:`Site`</span>
+<span class="sd">        The sites from which this is build.</span>
+<span class="sd">    label0, label1 : str</span>
+<span class="sd">        The labels which are added to the single-site operators during construction.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">site0</span><span class="p">,</span> <span class="n">site1</span><span class="p">,</span> <span class="n">label0</span><span class="o">=</span><span class="s1">&#39;0&#39;</span><span class="p">,</span> <span class="n">label1</span><span class="o">=</span><span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="n">charges</span><span class="o">=</span><span class="s1">&#39;drop&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">charges</span> <span class="o">==</span> <span class="s1">&#39;drop&#39;</span><span class="p">:</span>
+            <span class="n">leg0</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_drop_charge</span><span class="p">(</span><span class="n">site0</span><span class="o">.</span><span class="n">leg</span><span class="p">)</span>
+            <span class="n">leg1</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_drop_charge</span><span class="p">(</span><span class="n">site1</span><span class="o">.</span><span class="n">leg</span><span class="p">,</span> <span class="n">chargeinfo</span><span class="o">=</span><span class="n">leg0</span><span class="o">.</span><span class="n">chinfo</span><span class="p">)</span>
+            <span class="n">perm_qind0</span><span class="p">,</span> <span class="n">leg0s</span> <span class="o">=</span> <span class="n">leg0</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+            <span class="n">perm_qind1</span><span class="p">,</span> <span class="n">leg1s</span> <span class="o">=</span> <span class="n">leg1</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+            <span class="n">site0</span> <span class="o">=</span> <span class="n">site0</span><span class="o">.</span><span class="n">copy_change_charge</span><span class="p">(</span><span class="n">leg0</span><span class="p">,</span> <span class="n">leg0</span><span class="o">.</span><span class="n">perm_flat_from_perm_qind</span><span class="p">(</span><span class="n">perm_qind0</span><span class="p">))</span>
+            <span class="n">site1</span> <span class="o">=</span> <span class="n">site1</span><span class="o">.</span><span class="n">copy_change_charge</span><span class="p">(</span><span class="n">leg1</span><span class="p">,</span> <span class="n">leg1</span><span class="o">.</span><span class="n">perm_flat_from_perm_qind</span><span class="p">(</span><span class="n">perm_qind1</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">charges</span> <span class="o">==</span> <span class="s1">&#39;same&#39;</span><span class="p">:</span>
+            <span class="k">pass</span>  <span class="c1"># nothing to do</span>
+        <span class="k">elif</span> <span class="n">charges</span> <span class="o">==</span> <span class="s1">&#39;independent&#39;</span><span class="p">:</span>
+            <span class="c1"># charges are separately conserved</span>
+            <span class="n">leg0_triv1</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_trivial</span><span class="p">(</span><span class="n">site0</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="n">site1</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span><span class="p">)</span>
+            <span class="n">leg1_triv0</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_trivial</span><span class="p">(</span><span class="n">site1</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="n">site0</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span><span class="p">)</span>
+            <span class="n">leg0</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_add_charge</span><span class="p">(</span><span class="n">site0</span><span class="o">.</span><span class="n">leg</span><span class="p">,</span> <span class="n">leg0_triv1</span><span class="p">)</span>
+            <span class="n">leg1</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_add_charge</span><span class="p">(</span><span class="n">leg1_triv0</span><span class="p">,</span> <span class="n">site1</span><span class="o">.</span><span class="n">leg</span><span class="p">,</span> <span class="n">chargeinfo</span><span class="o">=</span><span class="n">leg0</span><span class="o">.</span><span class="n">chinfo</span><span class="p">)</span>
+            <span class="n">perm_qind0</span><span class="p">,</span> <span class="n">leg0s</span> <span class="o">=</span> <span class="n">leg0</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+            <span class="n">perm_qind1</span><span class="p">,</span> <span class="n">leg1s</span> <span class="o">=</span> <span class="n">leg1</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+            <span class="n">site0</span> <span class="o">=</span> <span class="n">site0</span><span class="o">.</span><span class="n">copy_change_charge</span><span class="p">(</span><span class="n">leg0</span><span class="p">,</span> <span class="n">leg0</span><span class="o">.</span><span class="n">perm_flat_from_perm_qind</span><span class="p">(</span><span class="n">perm_qind0</span><span class="p">))</span>
+            <span class="n">site1</span> <span class="o">=</span> <span class="n">site1</span><span class="o">.</span><span class="n">copy_change_charge</span><span class="p">(</span><span class="n">leg1</span><span class="p">,</span> <span class="n">leg1</span><span class="o">.</span><span class="n">perm_flat_from_perm_qind</span><span class="p">(</span><span class="n">perm_qind1</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unknown option for `charges`: &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">charges</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="n">site0</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span> <span class="o">==</span> <span class="n">site1</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span>  <span class="c1"># check for compatibility</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">site0</span> <span class="o">=</span> <span class="n">site0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">site1</span> <span class="o">=</span> <span class="n">site1</span>
+        <span class="n">pipe</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegPipe</span><span class="p">([</span><span class="n">site0</span><span class="o">.</span><span class="n">leg</span><span class="p">,</span> <span class="n">site1</span><span class="o">.</span><span class="n">leg</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">leg</span> <span class="o">=</span> <span class="n">pipe</span>  <span class="c1"># needed in kroneckerproduct</span>
+        <span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">pipe</span><span class="o">.</span><span class="n">ind_len</span>
+        <span class="k">for</span> <span class="n">st0</span> <span class="ow">in</span> <span class="n">site0</span><span class="o">.</span><span class="n">state_labels</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">st1</span> <span class="ow">in</span> <span class="n">site1</span><span class="o">.</span><span class="n">state_labels</span><span class="p">:</span>
+                <span class="n">ind_pipe</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">map_incoming_flat</span><span class="p">(</span>
+                    <span class="p">[</span><span class="n">site0</span><span class="o">.</span><span class="n">state_labels</span><span class="p">[</span><span class="n">st0</span><span class="p">],</span> <span class="n">site1</span><span class="o">.</span><span class="n">state_labels</span><span class="p">[</span><span class="n">st1</span><span class="p">]])</span>
+                <span class="n">states</span><span class="p">[</span><span class="n">ind_pipe</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">st0</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="n">label0</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">st1</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="n">label1</span><span class="p">])</span>
+        <span class="n">JW0</span> <span class="o">=</span> <span class="n">site0</span><span class="o">.</span><span class="n">JW</span>
+        <span class="n">JW1</span> <span class="o">=</span> <span class="n">site1</span><span class="o">.</span><span class="n">JW</span>
+        <span class="n">JW_both</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kroneckerproduct</span><span class="p">(</span><span class="n">JW0</span><span class="p">,</span> <span class="n">JW1</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">DoubleSite</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">pipe</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">JW</span><span class="o">=</span><span class="n">JW_both</span><span class="p">)</span>
+        <span class="c1"># add remaining operators</span>
+        <span class="n">Id1</span> <span class="o">=</span> <span class="n">site1</span><span class="o">.</span><span class="n">Id</span>
+        <span class="k">for</span> <span class="n">opname</span><span class="p">,</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">site0</span><span class="o">.</span><span class="n">onsite_ops</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">opname</span> <span class="o">!=</span> <span class="s1">&#39;Id&#39;</span><span class="p">:</span>
+                <span class="n">need_JW</span> <span class="o">=</span> <span class="n">opname</span> <span class="ow">in</span> <span class="n">site0</span><span class="o">.</span><span class="n">need_JW_string</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_op</span><span class="p">(</span><span class="n">opname</span> <span class="o">+</span> <span class="n">label0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">kroneckerproduct</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">Id1</span><span class="p">),</span> <span class="n">need_JW</span><span class="p">)</span>
+        <span class="n">Id0</span> <span class="o">=</span> <span class="n">site0</span><span class="o">.</span><span class="n">Id</span>
+        <span class="k">for</span> <span class="n">opname</span><span class="p">,</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">site1</span><span class="o">.</span><span class="n">onsite_ops</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">opname</span> <span class="o">!=</span> <span class="s1">&#39;Id&#39;</span><span class="p">:</span>
+                <span class="n">need_JW</span> <span class="o">=</span> <span class="n">opname</span> <span class="ow">in</span> <span class="n">site1</span><span class="o">.</span><span class="n">need_JW_string</span>
+                <span class="n">op0</span> <span class="o">=</span> <span class="n">JW0</span> <span class="k">if</span> <span class="n">need_JW</span> <span class="k">else</span> <span class="n">Id0</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_op</span><span class="p">(</span><span class="n">opname</span> <span class="o">+</span> <span class="n">label1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">kroneckerproduct</span><span class="p">(</span><span class="n">op0</span><span class="p">,</span> <span class="n">op</span><span class="p">),</span> <span class="n">need_JW</span><span class="p">)</span>
+        <span class="c1"># done</span>
+
+<div class="viewcode-block" id="DoubleSite.kroneckerproduct"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.DoubleSite.kroneckerproduct">[docs]</a>    <span class="k">def</span> <span class="nf">kroneckerproduct</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op0</span><span class="p">,</span> <span class="n">op1</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Return the Kronecker product :math:`op0 \otimes op1` of local operators.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        op0, op1 : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Onsite operators on `site0` and `site1`, respectively.</span>
+<span class="sd">            Should have labels ``[&#39;p&#39;, &#39;p*&#39;]``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        prod : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Kronecker product :math:`op0 \otimes op1`, with labels ``[&#39;p&#39;, &#39;p*&#39;]``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pipe</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">leg</span>
+        <span class="n">op</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">op0</span><span class="o">.</span><span class="n">transpose</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">]),</span> <span class="n">op1</span><span class="o">.</span><span class="n">transpose</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">]))</span>
+        <span class="k">return</span> <span class="n">op</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">]],</span> <span class="n">qconj</span><span class="o">=</span><span class="p">[</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">pipes</span><span class="o">=</span><span class="p">[</span><span class="n">pipe</span><span class="p">,</span> <span class="n">pipe</span><span class="o">.</span><span class="n">conj</span><span class="p">()])</span></div></div>
+
+
+<span class="c1"># ------------------------------------------------------------------------------</span>
+<span class="c1"># The most common local sites.</span>
+
+
+<div class="viewcode-block" id="SpinHalfSite"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.SpinHalfSite">[docs]</a><span class="k">class</span> <span class="nc">SpinHalfSite</span><span class="p">(</span><span class="n">Site</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Spin-1/2 site.</span>
+
+<span class="sd">    Local states are ``up`` (0) and ``down`` (1).</span>
+<span class="sd">    Local operators are the usual spin-1/2 operators, e.g. ``Sz = [[0.5, 0.], [0., -0.5]]``,</span>
+<span class="sd">    ``Sx = 0.5*sigma_x`` for the Pauli matrix `sigma_x`.</span>
+
+<span class="sd">    ==============  ================================================</span>
+<span class="sd">    operator        description</span>
+<span class="sd">    ==============  ================================================</span>
+<span class="sd">    ``Id, JW``      Identity :math:`\mathbb{1}`</span>
+<span class="sd">    ``Sx, Sy, Sz``  Spin components :math:`S^{x,y,z}`,</span>
+<span class="sd">                    equal to half the Pauli matrices.</span>
+<span class="sd">    ``Sigmax``      Pauli matrix :math:`Sigmax`</span>
+<span class="sd">    ``Sigmay``</span>
+<span class="sd">    ``Sigmaz``</span>
+<span class="sd">    ``Sp, Sm``      Spin flips :math:`S^{\pm} = S^{x} \pm i S^{y}`</span>
+<span class="sd">    ==============  ================================================</span>
+
+<span class="sd">    ============== ====  ============================</span>
+<span class="sd">    `conserve`     qmod  *excluded* onsite operators</span>
+<span class="sd">    ============== ====  ============================</span>
+<span class="sd">    ``&#39;Sz&#39;``       [1]   ``Sx, Sy, Sigmax, Sigmay``</span>
+<span class="sd">    ``&#39;parity&#39;``   [2]   --</span>
+<span class="sd">    ``None``       []    --</span>
+<span class="sd">    ============== ====  ============================</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    conserve : str</span>
+<span class="sd">        Defines what is conserved, see table above.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    conserve : str</span>
+<span class="sd">        Defines what is conserved, see table above.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conserve</span><span class="o">=</span><span class="s1">&#39;Sz&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">conserve</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;Sz&#39;</span><span class="p">,</span> <span class="s1">&#39;parity&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;invalid `conserve`: &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">conserve</span><span class="p">))</span>
+        <span class="n">Sx</span> <span class="o">=</span> <span class="p">[[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]]</span>
+        <span class="n">Sy</span> <span class="o">=</span> <span class="p">[[</span><span class="mf">0.</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="n">j</span><span class="p">],</span> <span class="p">[</span><span class="o">+</span><span class="mf">0.5</span><span class="n">j</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]]</span>
+        <span class="n">Sz</span> <span class="o">=</span> <span class="p">[[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">]]</span>
+        <span class="n">Sp</span> <span class="o">=</span> <span class="p">[[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]]</span>  <span class="c1"># == Sx + i Sy</span>
+        <span class="n">Sm</span> <span class="o">=</span> <span class="p">[[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]]</span>  <span class="c1"># == Sx - i Sy</span>
+        <span class="n">ops</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">Sp</span><span class="o">=</span><span class="n">Sp</span><span class="p">,</span> <span class="n">Sm</span><span class="o">=</span><span class="n">Sm</span><span class="p">,</span> <span class="n">Sz</span><span class="o">=</span><span class="n">Sz</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">conserve</span> <span class="o">==</span> <span class="s1">&#39;Sz&#39;</span><span class="p">:</span>
+            <span class="n">chinfo</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">ChargeInfo</span><span class="p">([</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;2*Sz&#39;</span><span class="p">])</span>
+            <span class="n">leg</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ops</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">Sx</span><span class="o">=</span><span class="n">Sx</span><span class="p">,</span> <span class="n">Sy</span><span class="o">=</span><span class="n">Sy</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">conserve</span> <span class="o">==</span> <span class="s1">&#39;parity&#39;</span><span class="p">:</span>
+                <span class="n">chinfo</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">ChargeInfo</span><span class="p">([</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;parity&#39;</span><span class="p">])</span>
+                <span class="n">leg</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>  <span class="c1"># ([1, -1] would need ``qmod=[4]``)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">leg</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_trivial</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conserve</span> <span class="o">=</span> <span class="n">conserve</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SpinHalfSite</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">leg</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;up&#39;</span><span class="p">,</span> <span class="s1">&#39;down&#39;</span><span class="p">],</span> <span class="o">**</span><span class="n">ops</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">conserve</span> <span class="o">!=</span> <span class="s1">&#39;Sz&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_op</span><span class="p">(</span><span class="s1">&#39;Sigmax&#39;</span><span class="p">,</span> <span class="mf">2.</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">Sx</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_op</span><span class="p">(</span><span class="s1">&#39;Sigmay&#39;</span><span class="p">,</span> <span class="mf">2.</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">Sy</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_op</span><span class="p">(</span><span class="s1">&#39;Sigmaz&#39;</span><span class="p">,</span> <span class="mf">2.</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">Sz</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Debug representation of self&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;SpinHalfSite(</span><span class="si">{c!r}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">conserve</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SpinSite"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.SpinSite">[docs]</a><span class="k">class</span> <span class="nc">SpinSite</span><span class="p">(</span><span class="n">Site</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;General Spin S site.</span>
+
+<span class="sd">    There are `2S+1` local states range from ``down`` (0)  to ``up`` (2S+1),</span>
+<span class="sd">    corresponding to ``Sz=-S, -S+1, ..., S-1, S``.</span>
+<span class="sd">    Local operators are the spin-S operators,</span>
+<span class="sd">    e.g. ``Sz = [[0.5, 0.], [0., -0.5]]``,</span>
+<span class="sd">    ``Sx = 0.5*sigma_x`` for the Pauli matrix `sigma_x`.</span>
+
+<span class="sd">    ==============  ================================================</span>
+<span class="sd">    operator        description</span>
+<span class="sd">    ==============  ================================================</span>
+<span class="sd">    ``Id, JW``      Identity :math:`\mathbb{1}`</span>
+<span class="sd">    ``Sx, Sy, Sz``  Spin components :math:`S^{x,y,z}`,</span>
+<span class="sd">                    equal to half the Pauli matrices.</span>
+<span class="sd">    ``Sp, Sm``      Spin flips :math:`S^{\pm} = S^{x} \pm i S^{y}`</span>
+<span class="sd">    ==============  ================================================</span>
+
+<span class="sd">    ============== ====  ============================</span>
+<span class="sd">    `conserve`     qmod  *excluded* onsite operators</span>
+<span class="sd">    ============== ====  ============================</span>
+<span class="sd">    ``&#39;Sz&#39;``       [1]   ``Sx, Sy``</span>
+<span class="sd">    ``&#39;parity&#39;``   [2]   --</span>
+<span class="sd">    ``None``       []    --</span>
+<span class="sd">    ============== ====  ============================</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    conserve : str</span>
+<span class="sd">        Defines what is conserved, see table above.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    S : {0.5, 1, 1.5, 2, ...}</span>
+<span class="sd">        The 2S+1 states range from m = -S, -S+1, ... +S.</span>
+<span class="sd">    conserve : str</span>
+<span class="sd">        Defines what is conserved, see table above.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">S</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">conserve</span><span class="o">=</span><span class="s1">&#39;Sz&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">conserve</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;Sz&#39;</span><span class="p">,</span> <span class="s1">&#39;parity&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;invalid `conserve`: &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">conserve</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">S</span> <span class="o">=</span> <span class="n">S</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">S</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">d</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;negative S?&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="o">!=</span> <span class="n">d</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;S is not half-integer or integer&quot;</span><span class="p">)</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+        <span class="n">Sz_diag</span> <span class="o">=</span> <span class="o">-</span><span class="n">S</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+        <span class="n">Sz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">Sz_diag</span><span class="p">)</span>
+        <span class="n">Sp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">d</span><span class="p">,</span> <span class="n">d</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">d</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="c1"># Sp |m&gt; =sqrt( S(S+1)-m(m+1)) |m+1&gt;</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="n">n</span> <span class="o">-</span> <span class="n">S</span>
+            <span class="n">Sp</span><span class="p">[</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">S</span> <span class="o">*</span> <span class="p">(</span><span class="n">S</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">m</span> <span class="o">*</span> <span class="p">(</span><span class="n">m</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">Sm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">Sp</span><span class="p">)</span>
+        <span class="c1"># Sp = Sx + i Sy, Sm = Sx - i Sy</span>
+        <span class="n">Sx</span> <span class="o">=</span> <span class="p">(</span><span class="n">Sp</span> <span class="o">+</span> <span class="n">Sm</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.5</span>
+        <span class="n">Sy</span> <span class="o">=</span> <span class="p">(</span><span class="n">Sm</span> <span class="o">-</span> <span class="n">Sp</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.5</span><span class="n">j</span>
+        <span class="c1"># Note: For S=1/2, Sy might look wrong compared to the Pauli matrix or SpinHalfSite.</span>
+        <span class="c1"># Don&#39;t worry, I&#39;m 99.99% sure it&#39;s correct (J. Hauschild)</span>
+        <span class="c1"># The reason it looks wrong is simply that this class orders the states as [&#39;down&#39;, &#39;up&#39;],</span>
+        <span class="c1"># while the usual spin-1/2 convention is [&#39;up&#39;, &#39;down&#39;].</span>
+        <span class="c1"># (The commutation relations are checked explicitly in `tests/test_site.py`</span>
+        <span class="n">ops</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">Sp</span><span class="o">=</span><span class="n">Sp</span><span class="p">,</span> <span class="n">Sm</span><span class="o">=</span><span class="n">Sm</span><span class="p">,</span> <span class="n">Sz</span><span class="o">=</span><span class="n">Sz</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">conserve</span> <span class="o">==</span> <span class="s1">&#39;Sz&#39;</span><span class="p">:</span>
+            <span class="n">chinfo</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">ChargeInfo</span><span class="p">([</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;2*Sz&#39;</span><span class="p">])</span>
+            <span class="n">leg</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">Sz_diag</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ops</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">Sx</span><span class="o">=</span><span class="n">Sx</span><span class="p">,</span> <span class="n">Sy</span><span class="o">=</span><span class="n">Sy</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">conserve</span> <span class="o">==</span> <span class="s1">&#39;parity&#39;</span><span class="p">:</span>
+                <span class="n">chinfo</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">ChargeInfo</span><span class="p">([</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;parity&#39;</span><span class="p">])</span>
+                <span class="n">leg</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">d</span><span class="p">),</span> <span class="mi">2</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">leg</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_trivial</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conserve</span> <span class="o">=</span> <span class="n">conserve</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">d</span>
+        <span class="n">names</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;down&#39;</span>
+        <span class="n">names</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;up&#39;</span>
+        <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">S</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">names</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">S</span><span class="p">)]</span> <span class="o">=</span> <span class="s1">&#39;0&#39;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SpinSite</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">leg</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="o">**</span><span class="n">ops</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Debug representation of self&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;SpinSite(S=</span><span class="si">{S!s}</span><span class="s2">, </span><span class="si">{c!r}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">S</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">S</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">conserve</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FermionSite"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.FermionSite">[docs]</a><span class="k">class</span> <span class="nc">FermionSite</span><span class="p">(</span><span class="n">Site</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Create a :class:`Site` for spin-less fermions.</span>
+
+<span class="sd">    Local states are ``empty`` and ``full``.</span>
+
+<span class="sd">    .. warning ::</span>
+<span class="sd">        Using the Jordan-Wigner string (``JW``) is crucial to get correct results,</span>
+<span class="sd">        otherwise you just describe hardcore bosons!</span>
+<span class="sd">        Further details in :doc:`../intro_JordanWigner`.</span>
+
+<span class="sd">    ==============  ===================================================================</span>
+<span class="sd">    operator        description</span>
+<span class="sd">    ==============  ===================================================================</span>
+<span class="sd">    ``Id``          Identity :math:`\mathbb{1}`</span>
+<span class="sd">    ``JW``          Sign for the Jordan-Wigner string.</span>
+<span class="sd">    ``C``           Annihilation operator :math:`c` (up to &#39;JW&#39;-string left of it)</span>
+<span class="sd">    ``Cd``          Creation operator :math:`c^\dagger` (up to &#39;JW&#39;-string left of it)</span>
+<span class="sd">    ``N``           Number operator :math:`n= c^\dagger c`</span>
+<span class="sd">    ``dN``          :math:`\delta n := n - filling`</span>
+<span class="sd">    ``dNdN``        :math:`(\delta n)^2`</span>
+<span class="sd">    ==============  ===================================================================</span>
+
+<span class="sd">    ============== ====  ===============================</span>
+<span class="sd">    `conserve`     qmod  *exluded* onsite operators</span>
+<span class="sd">    ============== ====  ===============================</span>
+<span class="sd">    ``&#39;N&#39;``        [1]   --</span>
+<span class="sd">    ``&#39;parity&#39;``   [2]   --</span>
+<span class="sd">    ``None``       []    --</span>
+<span class="sd">    ============== ====  ===============================</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    conserve : str</span>
+<span class="sd">        Defines what is conserved, see table above.</span>
+<span class="sd">    filling : float</span>
+<span class="sd">        Average filling. Used to define ``dN``.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    conserve : str</span>
+<span class="sd">        Defines what is conserved, see table above.</span>
+<span class="sd">    filling : float</span>
+<span class="sd">        Average filling. Used to define ``dN``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conserve</span><span class="o">=</span><span class="s1">&#39;N&#39;</span><span class="p">,</span> <span class="n">filling</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">conserve</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;N&#39;</span><span class="p">,</span> <span class="s1">&#39;parity&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;invalid `conserve`: &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">conserve</span><span class="p">))</span>
+        <span class="n">JW</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.</span><span class="p">]])</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]])</span>
+        <span class="n">Cd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]])</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">]])</span>
+        <span class="n">dN</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">-</span><span class="n">filling</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span> <span class="o">-</span> <span class="n">filling</span><span class="p">]])</span>
+        <span class="n">dNdN</span> <span class="o">=</span> <span class="n">dN</span><span class="o">**</span><span class="mi">2</span>  <span class="c1"># (element wise power is fine since dN is diagonal)</span>
+        <span class="n">ops</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">JW</span><span class="o">=</span><span class="n">JW</span><span class="p">,</span> <span class="n">C</span><span class="o">=</span><span class="n">C</span><span class="p">,</span> <span class="n">Cd</span><span class="o">=</span><span class="n">Cd</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="n">N</span><span class="p">,</span> <span class="n">dN</span><span class="o">=</span><span class="n">dN</span><span class="p">,</span> <span class="n">dNdN</span><span class="o">=</span><span class="n">dNdN</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">conserve</span> <span class="o">==</span> <span class="s1">&#39;N&#39;</span><span class="p">:</span>
+            <span class="n">chinfo</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">ChargeInfo</span><span class="p">([</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;N&#39;</span><span class="p">])</span>
+            <span class="n">leg</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="n">conserve</span> <span class="o">==</span> <span class="s1">&#39;parity&#39;</span><span class="p">:</span>
+            <span class="n">chinfo</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">ChargeInfo</span><span class="p">([</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;parity&#39;</span><span class="p">])</span>
+            <span class="n">leg</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">leg</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_trivial</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conserve</span> <span class="o">=</span> <span class="n">conserve</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filling</span> <span class="o">=</span> <span class="n">filling</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">FermionSite</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">leg</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;empty&#39;</span><span class="p">,</span> <span class="s1">&#39;full&#39;</span><span class="p">],</span> <span class="o">**</span><span class="n">ops</span><span class="p">)</span>
+        <span class="c1"># specify fermionic operators</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">need_JW_string</span> <span class="o">|=</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="s1">&#39;Cd&#39;</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Debug representation of self&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;FermionSite(</span><span class="si">{c!r}</span><span class="s2">, </span><span class="si">{f:f}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">conserve</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">filling</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SpinHalfFermionSite"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.SpinHalfFermionSite">[docs]</a><span class="k">class</span> <span class="nc">SpinHalfFermionSite</span><span class="p">(</span><span class="n">Site</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Create a :class:`Site` for spinful (spin-1/2) fermions.</span>
+
+<span class="sd">    Local states are:</span>
+<span class="sd">         ``empty``  (vacuum),</span>
+<span class="sd">         ``up``     (one spin-up electron),</span>
+<span class="sd">         ``down``   (one spin-down electron), and</span>
+<span class="sd">         ``full``   (both electrons)</span>
+
+<span class="sd">    Local operators can be built from creation operators.</span>
+
+<span class="sd">    .. warning ::</span>
+<span class="sd">        Using the Jordan-Wigner string (``JW``) in the correct way is crucial to get correct</span>
+<span class="sd">        results, otherwise you just describe hardcore bosons!</span>
+
+<span class="sd">    ==============  =============================================================================</span>
+<span class="sd">    operator        description</span>
+<span class="sd">    ==============  =============================================================================</span>
+<span class="sd">    ``Id``          Identity :math:`\mathbb{1}`</span>
+<span class="sd">    ``JW``          Sign for the Jordan-Wigner string :math:`(-1)^{n_{\uparrow}+n_{\downarrow}}`</span>
+<span class="sd">    ``JWu``         Partial sign for the Jordan-Wigner string :math:`(-1)^{n_{\uparrow}}`</span>
+<span class="sd">    ``JWd``         Partial sign for the Jordan-Wigner string :math:`(-1)^{n_{\downarrow}}`</span>
+<span class="sd">    ``Cu``          Annihilation operator spin-up :math:`c_{\uparrow}`</span>
+<span class="sd">                    (up to &#39;JW&#39;-string on sites left of it).</span>
+<span class="sd">    ``Cdu``         Creation operator spin-up :math:`c^\dagger_{\uparrow}`</span>
+<span class="sd">                    (up to &#39;JW&#39;-string on sites left of it).</span>
+<span class="sd">    ``Cd``          Annihilation operator spin-down :math:`c_{\downarrow}`</span>
+<span class="sd">                    (up to &#39;JW&#39;-string on sites left of it).</span>
+<span class="sd">                    Includes ``JWu`` such that it anti-commutes onsite with ``Cu, Cdu``.</span>
+<span class="sd">    ``Cdd``         Creation operator spin-down :math:`c^\dagger_{\downarrow}`</span>
+<span class="sd">                    (up to &#39;JW&#39;-string on sites left of it).</span>
+<span class="sd">                    Includes ``JWu`` such that it anti-commutes onsite with ``Cu, Cdu``.</span>
+<span class="sd">    ``Nu``          Number operator :math:`n_{\uparrow}= c^\dagger_{\uparrow} c_{\uparrow}`</span>
+<span class="sd">    ``Nd``          Number operator :math:`n_{\downarrow}= c^\dagger_{\downarrow} c_{\downarrow}`</span>
+<span class="sd">    ``NuNd``        Dotted number operators :math:`n_{\uparrow} n_{\downarrow}`</span>
+<span class="sd">    ``Ntot``        Total number operator :math:`n_t= n_{\uparrow} + n_{\downarrow}`</span>
+<span class="sd">    ``dN``          Total number operator compared to the filling :math:`\Delta n = n_t-filling`</span>
+<span class="sd">    ``Sx, Sy, Sz``  Spin operators :math:`S^{x,y,z}`, in particular</span>
+<span class="sd">                    :math:`S^z = \frac{1}{2}( n_\uparrow - n_\downarrow )`</span>
+<span class="sd">    ``Sp, Sm``      Spin flips :math:`S^{\pm} = S^{x} \pm i S^{y}`,</span>
+<span class="sd">                    e.g. :math:`S^{+} = c^\dagger_\uparrow c_\downarrow`</span>
+<span class="sd">    ==============  =============================================================================</span>
+
+<span class="sd">    The spin operators are defined as :math:`S^\gamma =</span>
+<span class="sd">    (c^\dagger_{\uparrow}, c^\dagger_{\downarrow}) \sigma^\gamma (c_{\uparrow}, c_{\downarrow})^T`,</span>
+<span class="sd">    where :math:`\sigma^\gamma` are spin-1/2 matrices (i.e. half the pauli matrices).</span>
+
+<span class="sd">    ============= ============= ======= =======================================</span>
+<span class="sd">    `cons_N`      `cons_Sz`     qmod    *excluded* onsite operators</span>
+<span class="sd">    ============= ============= ======= =======================================</span>
+<span class="sd">    ``&#39;N&#39;``       ``&#39;Sz&#39;``      [1, 1]  ``Sx, Sy``</span>
+<span class="sd">    ``&#39;N&#39;``       ``&#39;parity&#39;``  [1, 2]  --</span>
+<span class="sd">    ``&#39;N&#39;``       ``None``      [1]     --</span>
+<span class="sd">    ``&#39;parity&#39;``  ``&#39;Sz&#39;``      [2, 1]  ``Sx, Sy``</span>
+<span class="sd">    ``&#39;parity&#39;``  ``&#39;parity&#39;``  [2, 2]  --</span>
+<span class="sd">    ``&#39;parity&#39;``  ``None``      [2]     --</span>
+<span class="sd">    ``None``      ``&#39;Sz&#39;``      [1]     ``Sx, Sy``</span>
+<span class="sd">    ``None``      ``&#39;parity&#39;``  [2]     --</span>
+<span class="sd">    ``None``      ``None``      []      --</span>
+<span class="sd">    ============= ============= ======= =======================================</span>
+
+<span class="sd">    .. todo ::</span>
+<span class="sd">        Check if Jordan-Wigner strings for 4x4 operators are correct.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cons_N : ``&#39;N&#39; | &#39;parity&#39; | None``</span>
+<span class="sd">        Whether particle number is conserved, c.f. table above.</span>
+<span class="sd">    cons_Sz : ``&#39;Sz&#39; | &#39;parity&#39; | None``</span>
+<span class="sd">        Whether spin is conserved, c.f. table above.</span>
+<span class="sd">    filling : float</span>
+<span class="sd">        Average filling. Used to define ``dN``.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cons_N : ``&#39;N&#39; | &#39;parity&#39; | None``</span>
+<span class="sd">        Whether particle number is conserved, c.f. table above.</span>
+<span class="sd">    cons_Sz : ``&#39;Sz&#39; | &#39;parity&#39; | None``</span>
+<span class="sd">        Whether spin is conserved, c.f. table above.</span>
+<span class="sd">    filling : float</span>
+<span class="sd">        Average filling. Used to define ``dN``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cons_N</span><span class="o">=</span><span class="s1">&#39;N&#39;</span><span class="p">,</span> <span class="n">cons_Sz</span><span class="o">=</span><span class="s1">&#39;Sz&#39;</span><span class="p">,</span> <span class="n">filling</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">cons_N</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;N&#39;</span><span class="p">,</span> <span class="s1">&#39;parity&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;invalid `cons_N`: &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">cons_N</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">cons_Sz</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;Sz&#39;</span><span class="p">,</span> <span class="s1">&#39;parity&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;invalid `cons_Sz`: &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">cons_Sz</span><span class="p">))</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="mi">4</span>
+        <span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;empty&#39;</span><span class="p">,</span> <span class="s1">&#39;up&#39;</span><span class="p">,</span> <span class="s1">&#39;down&#39;</span><span class="p">,</span> <span class="s1">&#39;full&#39;</span><span class="p">]</span>
+        <span class="c1"># 0) Build the operators.</span>
+        <span class="n">Nu_diag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
+        <span class="n">Nd_diag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
+        <span class="n">Nu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">Nu_diag</span><span class="p">)</span>
+        <span class="n">Nd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">Nd_diag</span><span class="p">)</span>
+        <span class="n">Ntot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">Nu_diag</span> <span class="o">+</span> <span class="n">Nd_diag</span><span class="p">)</span>
+        <span class="n">dN</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">Nu_diag</span> <span class="o">+</span> <span class="n">Nd_diag</span> <span class="o">-</span> <span class="n">filling</span><span class="p">)</span>
+        <span class="n">NuNd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">Nu_diag</span> <span class="o">*</span> <span class="n">Nd_diag</span><span class="p">)</span>
+        <span class="n">JWu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">Nu_diag</span><span class="p">)</span>  <span class="c1"># (-1)^Nu</span>
+        <span class="n">JWd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">Nd_diag</span><span class="p">)</span>  <span class="c1"># (-1)^Nd</span>
+        <span class="n">JW</span> <span class="o">=</span> <span class="n">JWu</span> <span class="o">*</span> <span class="n">JWd</span>  <span class="c1"># (-1)^{Nu+Nd}</span>
+
+        <span class="n">Cu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">d</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span>
+        <span class="n">Cu</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">Cu</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">Cdu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">Cu</span><span class="p">)</span>
+        <span class="c1"># For spin-down annihilation operator: include a Jordan-Wigner string JWu</span>
+        <span class="c1"># this ensures that Cdu.Cd = - Cd.Cdu</span>
+        <span class="c1"># c.f. the chapter on the Jordan-Wigner trafo in the userguide</span>
+        <span class="n">Cd_noJW</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">d</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span>
+        <span class="n">Cd_noJW</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">Cd_noJW</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">Cd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">JWu</span><span class="p">,</span> <span class="n">Cd_noJW</span><span class="p">)</span>  <span class="c1"># (don&#39;t do this for spin-up...)</span>
+        <span class="n">Cdd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">Cd</span><span class="p">)</span>
+
+        <span class="c1"># spin operators are defined as  (Cdu, Cdd) S^gamma (Cu, Cd)^T,</span>
+        <span class="c1"># where S^gamma is the 2x2 matrix for spin-half</span>
+        <span class="n">Sz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">Nu_diag</span> <span class="o">-</span> <span class="n">Nd_diag</span><span class="p">))</span>
+        <span class="n">Sp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Cdu</span><span class="p">,</span> <span class="n">Cd</span><span class="p">)</span>
+        <span class="n">Sm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Cdd</span><span class="p">,</span> <span class="n">Cu</span><span class="p">)</span>
+        <span class="n">Sx</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">Sp</span> <span class="o">+</span> <span class="n">Sm</span><span class="p">)</span>
+        <span class="n">Sy</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span><span class="n">j</span> <span class="o">*</span> <span class="p">(</span><span class="n">Sp</span> <span class="o">-</span> <span class="n">Sm</span><span class="p">)</span>
+
+        <span class="n">ops</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">JW</span><span class="o">=</span><span class="n">JW</span><span class="p">,</span> <span class="n">JWu</span><span class="o">=</span><span class="n">JWu</span><span class="p">,</span> <span class="n">JWd</span><span class="o">=</span><span class="n">JWd</span><span class="p">,</span>
+                   <span class="n">Cu</span><span class="o">=</span><span class="n">Cu</span><span class="p">,</span> <span class="n">Cdu</span><span class="o">=</span><span class="n">Cdu</span><span class="p">,</span> <span class="n">Cd</span><span class="o">=</span><span class="n">Cd</span><span class="p">,</span> <span class="n">Cdd</span><span class="o">=</span><span class="n">Cdd</span><span class="p">,</span>
+                   <span class="n">Nu</span><span class="o">=</span><span class="n">Nu</span><span class="p">,</span> <span class="n">Nd</span><span class="o">=</span><span class="n">Nd</span><span class="p">,</span> <span class="n">Ntot</span><span class="o">=</span><span class="n">Ntot</span><span class="p">,</span> <span class="n">NuNd</span><span class="o">=</span><span class="n">NuNd</span><span class="p">,</span> <span class="n">dN</span><span class="o">=</span><span class="n">dN</span><span class="p">,</span>
+                   <span class="n">Sx</span><span class="o">=</span><span class="n">Sx</span><span class="p">,</span> <span class="n">Sy</span><span class="o">=</span><span class="n">Sy</span><span class="p">,</span> <span class="n">Sz</span><span class="o">=</span><span class="n">Sz</span><span class="p">,</span> <span class="n">Sp</span><span class="o">=</span><span class="n">Sp</span><span class="p">,</span> <span class="n">Sm</span><span class="o">=</span><span class="n">Sm</span><span class="p">)</span>  <span class="c1"># yapf: disable</span>
+
+        <span class="c1"># handle charges</span>
+        <span class="n">qmod</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">qnames</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">charges</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">cons_N</span> <span class="o">==</span> <span class="s1">&#39;N&#39;</span><span class="p">:</span>
+            <span class="n">qnames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;N&#39;</span><span class="p">)</span>
+            <span class="n">qmod</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">charges</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="n">cons_N</span> <span class="o">==</span> <span class="s1">&#39;parity&#39;</span><span class="p">:</span>
+            <span class="n">qnames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;N&#39;</span><span class="p">)</span>
+            <span class="n">qmod</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">charges</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">cons_Sz</span> <span class="o">==</span> <span class="s1">&#39;Sz&#39;</span><span class="p">:</span>
+            <span class="n">qnames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;Sz&#39;</span><span class="p">)</span>
+            <span class="n">qmod</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">charges</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+            <span class="k">del</span> <span class="n">ops</span><span class="p">[</span><span class="s1">&#39;Sx&#39;</span><span class="p">]</span>
+            <span class="k">del</span> <span class="n">ops</span><span class="p">[</span><span class="s1">&#39;Sy&#39;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">cons_Sz</span> <span class="o">==</span> <span class="s1">&#39;parity&#39;</span><span class="p">:</span>
+            <span class="n">qnames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;Sz&#39;</span><span class="p">)</span>
+            <span class="n">qmod</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>  <span class="c1"># difference between up and down is 2!</span>
+            <span class="n">charges</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>  <span class="c1"># == [0, 1, -1, 0] mod 4</span>
+            <span class="c1"># chosen s.t. Cu, Cd have well-defined charges!</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">qmod</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">leg</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_trivial</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">qmod</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">charges</span> <span class="o">=</span> <span class="n">charges</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># len(charges) == 2: need to transpose</span>
+                <span class="n">charges</span> <span class="o">=</span> <span class="p">[[</span><span class="n">q1</span><span class="p">,</span> <span class="n">q2</span><span class="p">]</span> <span class="k">for</span> <span class="n">q1</span><span class="p">,</span> <span class="n">q2</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">charges</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">charges</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span>
+            <span class="n">chinfo</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">ChargeInfo</span><span class="p">(</span><span class="n">qmod</span><span class="p">,</span> <span class="n">qnames</span><span class="p">)</span>
+            <span class="n">leg_unsorted</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="n">charges</span><span class="p">)</span>
+            <span class="c1"># sort by charges</span>
+            <span class="n">perm_qind</span><span class="p">,</span> <span class="n">leg</span> <span class="o">=</span> <span class="n">leg_unsorted</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+            <span class="n">perm_flat</span> <span class="o">=</span> <span class="n">leg_unsorted</span><span class="o">.</span><span class="n">perm_flat_from_perm_qind</span><span class="p">(</span><span class="n">perm_qind</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">perm</span> <span class="o">=</span> <span class="n">perm_flat</span>
+            <span class="c1"># permute operators accordingly</span>
+            <span class="k">for</span> <span class="n">opname</span> <span class="ow">in</span> <span class="n">ops</span><span class="p">:</span>
+                <span class="n">ops</span><span class="p">[</span><span class="n">opname</span><span class="p">]</span> <span class="o">=</span> <span class="n">ops</span><span class="p">[</span><span class="n">opname</span><span class="p">][</span><span class="n">np</span><span class="o">.</span><span class="n">ix_</span><span class="p">(</span><span class="n">perm_flat</span><span class="p">,</span> <span class="n">perm_flat</span><span class="p">)]</span>
+            <span class="c1"># and the states</span>
+            <span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="n">states</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">perm_flat</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cons_N</span> <span class="o">=</span> <span class="n">cons_N</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cons_Sz</span> <span class="o">=</span> <span class="n">cons_Sz</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SpinHalfFermionSite</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">leg</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="o">**</span><span class="n">ops</span><span class="p">)</span>
+        <span class="c1"># specify fermionic operators</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">need_JW_string</span> <span class="o">|=</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;Cu&#39;</span><span class="p">,</span> <span class="s1">&#39;Cdu&#39;</span><span class="p">,</span> <span class="s1">&#39;Cd&#39;</span><span class="p">,</span> <span class="s1">&#39;Cdd&#39;</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Debug representation of self&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;SpinHalfFermionSite(</span><span class="si">{c!r}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">conserve</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BosonSite"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.BosonSite">[docs]</a><span class="k">class</span> <span class="nc">BosonSite</span><span class="p">(</span><span class="n">Site</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Create a :class:`Site` for up to `Nmax` bosons.</span>
+
+<span class="sd">    Local states are ``vac, 1, 2, ... , Nc``.</span>
+<span class="sd">    (Exception: for parity conservation, we sort as ``vac, 2, 4, ..., 1, 3, 5, ...``.)</span>
+
+<span class="sd">    ==============  ========================================</span>
+<span class="sd">    operator        description</span>
+<span class="sd">    ==============  ========================================</span>
+<span class="sd">    ``Id, JW``      Identity :math:`\mathbb{1}`</span>
+<span class="sd">    ``B``           Annihilation operator :math:`b`</span>
+<span class="sd">    ``Bd``          Creation operator :math:`b^\dagger`</span>
+<span class="sd">    ``N``           Number operator :math:`n= b^\dagger b`</span>
+<span class="sd">    ``NN``          :math:`n^2`</span>
+<span class="sd">    ``dN``          :math:`\delta n := n - filling`</span>
+<span class="sd">    ``dNdN``        :math:`(\delta n)^2`</span>
+<span class="sd">    ``P``           Parity :math:`Id - 2 (n \mod 2)`.</span>
+<span class="sd">    ==============  ========================================</span>
+
+<span class="sd">    ============== ====  ==================================</span>
+<span class="sd">    `conserve`     qmod  *excluded* onsite operators</span>
+<span class="sd">    ============== ====  ==================================</span>
+<span class="sd">    ``&#39;N&#39;``        [1]   --</span>
+<span class="sd">    ``&#39;parity&#39;``   [2]   --</span>
+<span class="sd">    ``None``       []    --</span>
+<span class="sd">    ============== ====  ==================================</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Nmax : int</span>
+<span class="sd">        Cutoff defining the maximum number of bosons per site.</span>
+<span class="sd">        The default ``Nmax=1`` describes hard-core bosons.</span>
+<span class="sd">    conserve : str</span>
+<span class="sd">        Defines what is conserved, see table above.</span>
+<span class="sd">    filling : float</span>
+<span class="sd">        Average filling. Used to define ``dN``.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    conserve : str</span>
+<span class="sd">        Defines what is conserved, see table above.</span>
+<span class="sd">    filling : float</span>
+<span class="sd">        Average filling. Used to define ``dN``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Nmax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">conserve</span><span class="o">=</span><span class="s1">&#39;N&#39;</span><span class="p">,</span> <span class="n">filling</span><span class="o">=</span><span class="mf">0.</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">conserve</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;N&#39;</span><span class="p">,</span> <span class="s1">&#39;parity&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;invalid `conserve`: &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">conserve</span><span class="p">))</span>
+        <span class="n">dim</span> <span class="o">=</span> <span class="n">Nmax</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;vac&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dim</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="n">dim</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;local dimension should be larger than 1....&quot;</span><span class="p">)</span>
+        <span class="n">B</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">dim</span><span class="p">,</span> <span class="n">dim</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>  <span class="c1"># destruction/annihilation operator</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dim</span><span class="p">):</span>
+            <span class="n">B</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="n">Bd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">B</span><span class="p">)</span>  <span class="c1"># .conj() wouldn&#39;t do anything</span>
+        <span class="c1"># Note: np.dot(Bd, B) has numerical roundoff errors of eps~=4.4e-16.</span>
+        <span class="n">Ndiag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">Ndiag</span><span class="p">)</span>
+        <span class="n">NN</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">Ndiag</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">dN</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">Ndiag</span> <span class="o">-</span> <span class="n">filling</span><span class="p">)</span>
+        <span class="n">dNdN</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">((</span><span class="n">Ndiag</span> <span class="o">-</span> <span class="n">filling</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">P</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="mf">2.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">Ndiag</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">ops</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">B</span><span class="o">=</span><span class="n">B</span><span class="p">,</span> <span class="n">Bd</span><span class="o">=</span><span class="n">Bd</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="n">N</span><span class="p">,</span> <span class="n">NN</span><span class="o">=</span><span class="n">NN</span><span class="p">,</span> <span class="n">dN</span><span class="o">=</span><span class="n">dN</span><span class="p">,</span> <span class="n">dNdN</span><span class="o">=</span><span class="n">dNdN</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">conserve</span> <span class="o">==</span> <span class="s1">&#39;N&#39;</span><span class="p">:</span>
+            <span class="n">chinfo</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">ChargeInfo</span><span class="p">([</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;N&#39;</span><span class="p">])</span>
+            <span class="n">leg</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="n">dim</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">conserve</span> <span class="o">==</span> <span class="s1">&#39;parity&#39;</span><span class="p">:</span>
+            <span class="n">chinfo</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">ChargeInfo</span><span class="p">([</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;parity&#39;</span><span class="p">])</span>
+            <span class="n">leg_unsorted</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="mi">2</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dim</span><span class="p">)])</span>
+            <span class="c1"># sort by charges</span>
+            <span class="n">perm_qind</span><span class="p">,</span> <span class="n">leg</span> <span class="o">=</span> <span class="n">leg_unsorted</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+            <span class="n">perm_flat</span> <span class="o">=</span> <span class="n">leg_unsorted</span><span class="o">.</span><span class="n">perm_flat_from_perm_qind</span><span class="p">(</span><span class="n">perm_qind</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">perm</span> <span class="o">=</span> <span class="n">perm_flat</span>
+            <span class="c1"># permute operators accordingly</span>
+            <span class="k">for</span> <span class="n">opname</span> <span class="ow">in</span> <span class="n">ops</span><span class="p">:</span>
+                <span class="n">ops</span><span class="p">[</span><span class="n">opname</span><span class="p">]</span> <span class="o">=</span> <span class="n">ops</span><span class="p">[</span><span class="n">opname</span><span class="p">][</span><span class="n">np</span><span class="o">.</span><span class="n">ix_</span><span class="p">(</span><span class="n">perm_flat</span><span class="p">,</span> <span class="n">perm_flat</span><span class="p">)]</span>
+            <span class="c1"># and the states</span>
+            <span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="n">states</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">perm_flat</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">leg</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_trivial</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Nmax</span> <span class="o">=</span> <span class="n">Nmax</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conserve</span> <span class="o">=</span> <span class="n">conserve</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filling</span> <span class="o">=</span> <span class="n">filling</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BosonSite</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">leg</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="o">**</span><span class="n">ops</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Debug representation of self&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;BosonSite(</span><span class="si">{N:d}</span><span class="s2">, </span><span class="si">{c!r}</span><span class="s2">, </span><span class="si">{f:f}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">N</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Nmax</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">conserve</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">filling</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/logo.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../userguide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.html">tenpy package</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2018, TeNPy Developers.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,733 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>tenpy.algorithms.tebd &#8212; TeNPy 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tenpy.algorithms.tebd</h1><div class="highlight"><pre>
+<span></span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Time evolving block decimation (TEBD).</span>
+
+<span class="sd">The TEBD algorithm (proposed in [Vidal2004]_) uses a trotter decomposition of the</span>
+<span class="sd">Hamiltonian to perform a time evoltion of an MPS. It works only for nearest-neigbor hamiltonians</span>
+<span class="sd">(in tenpy given by a :class:`~tenpy.models.NearestNeighborModel`),</span>
+<span class="sd">which can be written as :math:`H = H^{even} + H^{odd}`,  such that :math:`H^{even}` contains the</span>
+<span class="sd">the terms on even bonds (and similar :math:`H^{odd}` the terms on odd bonds).</span>
+<span class="sd">In the simplest case, we apply first :math:`U=\exp(-i*dt*H^{even})`,</span>
+<span class="sd">then :math:`U=\exp(-i*dt*H^{odd})` for each time step :math:`dt`.</span>
+<span class="sd">This is correct up to errors of :math:`O(dt^2)`, but to evolve until a time :math:`T`, we need</span>
+<span class="sd">:math:`T/dt` steps, so in total it is only correct up to error of :math:`O(T*dt)`.</span>
+<span class="sd">Similarly, there are higher order schemata (in dt) (for more details see :meth:`Engine.update`).</span>
+
+<span class="sd">Remember, that bond `i` is between sites `(i-1, i)`, so for a finite MPS it looks like::</span>
+
+<span class="sd">    |     - B0 - B1 - B2 - B3 - B4 - B5 - B6 -</span>
+<span class="sd">    |       |    |    |    |    |    |    |</span>
+<span class="sd">    |       |----|    |----|    |----|    |</span>
+<span class="sd">    |       | U1 |    | U3 |    | U5 |    |</span>
+<span class="sd">    |       |----|    |----|    |----|    |</span>
+<span class="sd">    |       |    |----|    |----|    |----|</span>
+<span class="sd">    |       |    | U2 |    | U4 |    | U6 |</span>
+<span class="sd">    |       |    |----|    |----|    |----|</span>
+<span class="sd">    |                   .</span>
+<span class="sd">    |                   .</span>
+<span class="sd">    |                   .</span>
+
+<span class="sd">After each application of a `Ui`, the MPS needs to be truncated - otherwise the bond dimension</span>
+<span class="sd">`chi` would grow indefinitely. A bound for the error introduced by the truncation is returned.</span>
+
+<span class="sd">If one chooses imaginary :math:`dt`, the exponential projects</span>
+<span class="sd">(for sufficiently long &#39;time&#39; evolution) onto the ground state of the Hamiltonian.</span>
+
+<span class="sd">.. note ::</span>
+<span class="sd">    The application of DMRG is typically much more efficient than imaginary TEBD!</span>
+<span class="sd">    Yet, imaginary TEBD might be usefull for cross-checks and testing.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># Copyright 2018 TeNPy Developers</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="kn">from</span> <span class="nn">..linalg</span> <span class="k">import</span> <span class="n">np_conserved</span> <span class="k">as</span> <span class="n">npc</span>
+<span class="kn">from</span> <span class="nn">.truncation</span> <span class="k">import</span> <span class="n">svd_theta</span><span class="p">,</span> <span class="n">TruncationError</span>
+<span class="kn">from</span> <span class="nn">..tools.params</span> <span class="k">import</span> <span class="n">get_parameter</span><span class="p">,</span> <span class="n">unused_parameters</span>
+
+
+<div class="viewcode-block" id="Engine"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.tebd.html#tenpy.algorithms.tebd.Engine">[docs]</a><span class="k">class</span> <span class="nc">Engine</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Time Evolving Block Decimation (TEBD) &#39;engine&#39;.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    psi : :class:`~tenpy.networs.mps.MPS`</span>
+<span class="sd">        Initial state to be time evolved. Modified in place.</span>
+<span class="sd">    model : :class:`~tenpy.models.NearestNeighborModel`</span>
+<span class="sd">        The model representing the Hamiltonian for which we want to find the ground state.</span>
+<span class="sd">    TEBD_params : dict</span>
+<span class="sd">        Further optional parameters as described in the following table.</span>
+<span class="sd">        Use ``verbose=1`` to print the used parameters during runtime.</span>
+<span class="sd">        See :func:`run` and :func:`run_GS` for more details.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    verbose : int</span>
+<span class="sd">        Level of verbosity (i.e. how much status information to</span>
+<span class="sd">        print); higher=more output.</span>
+<span class="sd">    evolved_time : float | complex</span>
+<span class="sd">        Indicating how long `psi` has been evolved, ``psi = exp(-i * evolved_time * H) psi(t=0)``.</span>
+<span class="sd">    trunc_err : :class:`~tenpy.algorithms.truncation.TruncationError`</span>
+<span class="sd">        The error of the represented state which is introduced due to the truncation during</span>
+<span class="sd">        the sequence of update steps.</span>
+<span class="sd">    psi : :class:`~tenpy.networks.mps.MPS`</span>
+<span class="sd">        The MPS time evolved in-place.</span>
+<span class="sd">    model : :class:`~tenpy.models.NearestNeigborModel`</span>
+<span class="sd">        The model defining the Hamiltonian.</span>
+<span class="sd">    TEBD_params: dict</span>
+<span class="sd">        Optional parameters, see above.</span>
+<span class="sd">    _bond_eig_vals : list of 1D ndarray</span>
+<span class="sd">        Eigenvalues for each of `model.H_bond`; necessary to calculate `_U`.</span>
+<span class="sd">    _bond_eig_vecs : list of :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">        Eigenvectors for each of `model.H_bond`; necessary to calculate `_U`.</span>
+<span class="sd">    _U : list of list of :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">        Exponentiated `H_bond` (bond Hamiltonians), i.e. roughly ``exp(-i H_bond dt_i)``.</span>
+<span class="sd">        First list for different `dt_i` as necessary for the chosen `order`,</span>
+<span class="sd">        second list for the `L` different bonds.</span>
+<span class="sd">    _U_param : dict</span>
+<span class="sd">        A dictionary containing the information of the latest created `_U`.</span>
+<span class="sd">        We don&#39;t recalculate `_U` if those parameters didn&#39;t change.</span>
+<span class="sd">    _trunc_err_bonds : list of :class:`~tenpy.algorithms.truncation.TruncationError`</span>
+<span class="sd">        The *local* truncation error introduced at each bond, ignoring the errors at other bonds.</span>
+<span class="sd">        The `i`-th entry is left of site `i`.</span>
+<span class="sd">    _update_index : None | (int, int)</span>
+<span class="sd">        The indices ``i_dt,i_bond`` of ``U_bond = self._U[i_dt][i_bond]`` during update_step.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">TEBD_params</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;TEBD&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">TEBD_params</span> <span class="o">=</span> <span class="n">TEBD_params</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s1">&#39;trunc_params&#39;</span><span class="p">,</span> <span class="p">{},</span> <span class="s1">&#39;TEBD&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">/</span> <span class="mi">10</span><span class="p">)</span>  <span class="c1"># reduced verbosity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span> <span class="o">=</span> <span class="n">psi</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">evolved_time</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s1">&#39;start_time&#39;</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="s1">&#39;TEBD&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trunc_err</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s1">&#39;start_trunc_err&#39;</span><span class="p">,</span> <span class="n">TruncationError</span><span class="p">(),</span> <span class="s1">&#39;TEBD&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_calc_bond_eig</span><span class="p">()</span>  <span class="c1"># calculates `self._bond_eig_vals`, `self._bond_eig_vecs`.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_U</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_U_param</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trunc_err_bonds</span> <span class="o">=</span> <span class="p">[</span><span class="n">TruncationError</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_index</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">unused_parameters</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TEBD_params</span><span class="p">[</span><span class="s1">&#39;trunc_params&#39;</span><span class="p">],</span> <span class="s2">&quot;TEBD trunc_params&quot;</span><span class="p">)</span>
+        <span class="n">unused_parameters</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s2">&quot;TEBD&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">trunc_err_bonds</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;truncation error introduced on each non-trivial bond&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trunc_err_bonds</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">nontrivial_bonds</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Engine.run"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.tebd.html#tenpy.algorithms.tebd.Engine.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Time evolution with TEBD (time evolving block decimation).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        TEBD_params : dict</span>
+<span class="sd">            The optional parameters that are used are described in the</span>
+<span class="sd">            following table.</span>
+<span class="sd">            Use ``verbose=1`` to print the used parameters during runtime.</span>
+
+<span class="sd">            ======= ====== ======================================================</span>
+<span class="sd">            key     type   description</span>
+<span class="sd">            ======= ====== ======================================================</span>
+<span class="sd">            dt      float  time step.</span>
+<span class="sd">            ------- ------ ------------------------------------------------------</span>
+<span class="sd">            order   int    Order of the algorithm.</span>
+<span class="sd">                           The total error scales as O(t, dt^order).</span>
+<span class="sd">            ------- ------ ------------------------------------------------------</span>
+<span class="sd">            N_steps int    Number of steps before measurement can be performed,</span>
+<span class="sd">                           number of steps that are interlinked for all</span>
+<span class="sd">                           Trotter decompositions of order &gt; 1.</span>
+<span class="sd">            ------- ------ ------------------------------------------------------</span>
+<span class="sd">            ...     dict   Truncation parameters as described in</span>
+<span class="sd">                           :func:`~tenpy.algorithms.truncation.truncate`</span>
+<span class="sd">            ======= ====== ======================================================</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># initialize parameters</span>
+        <span class="n">delta_t</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s1">&#39;dt&#39;</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="s1">&#39;TEBD&#39;</span><span class="p">)</span>
+        <span class="n">N_steps</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s1">&#39;N_steps&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;TEBD&#39;</span><span class="p">)</span>
+        <span class="n">TrotterOrder</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s1">&#39;order&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;TEBD&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">calc_U</span><span class="p">(</span><span class="n">TrotterOrder</span><span class="p">,</span> <span class="n">delta_t</span><span class="p">,</span> <span class="n">type_evo</span><span class="o">=</span><span class="s1">&#39;real&#39;</span><span class="p">,</span> <span class="n">E_offset</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">Eold</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">bond_energies</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="p">))</span>
+            <span class="n">Sold</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">entanglement_entropy</span><span class="p">())</span>
+            <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">N_steps</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">bond_energies</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="p">))</span>
+            <span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">entanglement_entropy</span><span class="p">())</span>
+            <span class="n">DeltaE</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">Eold</span> <span class="o">-</span> <span class="n">E</span><span class="p">)</span>
+            <span class="n">DeltaS</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">Sold</span> <span class="o">-</span> <span class="n">S</span><span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;--&gt; time=</span><span class="si">{t:3.3f}</span><span class="s2">, max_chi=</span><span class="si">{chi:d}</span><span class="s2">, Delta_E=</span><span class="si">{dE:.2e}</span><span class="s2">, E_bond=</span><span class="si">{E:.10f}</span><span class="s2">, &quot;</span> <span class="o">+</span>
+                   <span class="s2">&quot;Delta_S=</span><span class="si">{dS:.4e}</span><span class="s2">, S=</span><span class="si">{S:.10f}</span><span class="s2">, since last update: </span><span class="si">{time:.1f}</span><span class="s2"> s&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">t</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">evolved_time</span><span class="p">,</span>
+                    <span class="n">chi</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">chi</span><span class="p">),</span>
+                    <span class="n">dE</span><span class="o">=</span><span class="n">DeltaE</span><span class="p">,</span>
+                    <span class="n">dS</span><span class="o">=</span><span class="n">DeltaS</span><span class="p">,</span>
+                    <span class="n">E</span><span class="o">=</span><span class="n">E</span><span class="o">.</span><span class="n">real</span><span class="p">,</span>
+                    <span class="n">S</span><span class="o">=</span><span class="n">S</span><span class="o">.</span><span class="n">real</span><span class="p">,</span>
+                    <span class="n">time</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">,</span>
+                <span class="p">))</span></div>
+
+<div class="viewcode-block" id="Engine.run_GS"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.tebd.html#tenpy.algorithms.tebd.Engine.run_GS">[docs]</a>    <span class="k">def</span> <span class="nf">run_GS</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;TEBD algorithm in imaginary time to find the ground state.</span>
+
+<span class="sd">        An algorithm that finds the ground state and its corresponding energy by</span>
+<span class="sd">        imaginary time TEBD.</span>
+
+<span class="sd">        Note that it is almost always more efficient (and hence advisable) to use</span>
+<span class="sd">        DMRG. It can nonetheless be used quite well as a benchmark!</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        TEBD_params : dict</span>
+<span class="sd">            The optional parameters that are used are described in the</span>
+<span class="sd">            following table.</span>
+<span class="sd">            Use ``verbose=1`` to print the used parameters during runtime.</span>
+
+<span class="sd">            ============== ====== =============================================</span>
+<span class="sd">            key            type   description</span>
+<span class="sd">            ============== ====== =============================================</span>
+<span class="sd">            delta_tau_list list   A list of floats describing</span>
+<span class="sd">            -------------- ------ ---------------------------------------------</span>
+<span class="sd">            order          int    Order of the algorithm.</span>
+<span class="sd">                                  The total error scales as O(t, dt^order).</span>
+<span class="sd">            -------------- ------ ---------------------------------------------</span>
+<span class="sd">            N_steps        int    Number of steps before measurement can be</span>
+<span class="sd">                                  performed</span>
+<span class="sd">            -------------- ------ ---------------------------------------------</span>
+<span class="sd">            ...                   Truncation parameters as described in</span>
+<span class="sd">                                  :func:`~tenpy.algorithms.truncation.truncate`</span>
+<span class="sd">            ============== ====== =============================================</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># initialize parameters</span>
+        <span class="n">delta_tau_list</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s1">&#39;delta_tau_list&#39;</span><span class="p">,</span>
+            <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">,</span> <span class="mf">1.e-4</span><span class="p">,</span> <span class="mf">1.e-5</span><span class="p">,</span> <span class="mf">1.e-6</span><span class="p">,</span> <span class="mf">1.e-7</span><span class="p">,</span> <span class="mf">1.e-8</span><span class="p">,</span> <span class="mf">1.e-9</span><span class="p">,</span> <span class="mf">1.e-10</span><span class="p">,</span> <span class="mf">1.e-11</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+            <span class="s1">&#39;run_GS&#39;</span><span class="p">)</span>
+        <span class="n">max_error_E</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s1">&#39;max_error_E&#39;</span><span class="p">,</span> <span class="mf">1.e-13</span><span class="p">,</span> <span class="s1">&#39;run_GS&#39;</span><span class="p">)</span>
+        <span class="n">N_steps</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s1">&#39;N_steps&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;run_GS&#39;</span><span class="p">)</span>
+        <span class="n">TrotterOrder</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TEBD_params</span><span class="p">,</span> <span class="s1">&#39;order&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;run_GS&#39;</span><span class="p">)</span>
+
+        <span class="n">Eold</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">bond_energies</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">Sold</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">entanglement_entropy</span><span class="p">())</span>
+            <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">delta_tau</span> <span class="ow">in</span> <span class="n">delta_tau_list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;delta_tau = </span><span class="si">{dt:e}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dt</span><span class="o">=</span><span class="n">delta_tau</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">calc_U</span><span class="p">(</span><span class="n">TrotterOrder</span><span class="p">,</span> <span class="n">delta_tau</span><span class="p">,</span> <span class="n">type_evo</span><span class="o">=</span><span class="s1">&#39;imag&#39;</span><span class="p">)</span>
+            <span class="n">DeltaE</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">max_error_E</span>
+            <span class="n">DeltaS</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">max_error_E</span>
+            <span class="n">step</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">while</span> <span class="p">(</span><span class="n">DeltaE</span> <span class="o">&gt;</span> <span class="n">max_error_E</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">N_steps</span><span class="p">)</span>
+                <span class="n">step</span> <span class="o">+=</span> <span class="n">N_steps</span>
+                <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">bond_energies</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="p">))</span>
+                <span class="n">DeltaE</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">Eold</span> <span class="o">-</span> <span class="n">E</span><span class="p">)</span>
+                <span class="n">Eold</span> <span class="o">=</span> <span class="n">E</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">entanglement_entropy</span><span class="p">())</span>
+                    <span class="n">DeltaS</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">Sold</span> <span class="o">-</span> <span class="n">S</span><span class="p">)</span>
+                    <span class="n">Sold</span> <span class="o">=</span> <span class="n">S</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;--&gt; step=</span><span class="si">{step:6d}</span><span class="s2">, time=</span><span class="si">{t:3.3f}</span><span class="s2">, max chi=</span><span class="si">{chi:d}</span><span class="s2">, &quot;</span> <span class="o">+</span>
+                           <span class="s2">&quot;Delta_E=</span><span class="si">{dE:.2e}</span><span class="s2">, E_bond=</span><span class="si">{E:.10f}</span><span class="s2">, Delta_S=</span><span class="si">{dS:.4e}</span><span class="s2">, &quot;</span> <span class="o">+</span>
+                           <span class="s2">&quot;S=</span><span class="si">{S:.10f}</span><span class="s2">, time simulated: </span><span class="si">{time:.1f}</span><span class="s2"> s&quot;</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">step</span><span class="o">=</span><span class="n">step</span><span class="p">,</span>
+                            <span class="n">t</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">evolved_time</span><span class="p">,</span>
+                            <span class="n">chi</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">chi</span><span class="p">),</span>
+                            <span class="n">dE</span><span class="o">=</span><span class="n">DeltaE</span><span class="p">,</span>
+                            <span class="n">dS</span><span class="o">=</span><span class="n">DeltaS</span><span class="p">,</span>
+                            <span class="n">E</span><span class="o">=</span><span class="n">E</span><span class="o">.</span><span class="n">real</span><span class="p">,</span>
+                            <span class="n">S</span><span class="o">=</span><span class="n">S</span><span class="o">.</span><span class="n">real</span><span class="p">,</span>
+                            <span class="n">time</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">,</span>
+                        <span class="p">))</span></div>
+        <span class="c1"># done</span>
+
+<div class="viewcode-block" id="Engine.suzuki_trotter_time_steps"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.tebd.html#tenpy.algorithms.tebd.Engine.suzuki_trotter_time_steps">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">suzuki_trotter_time_steps</span><span class="p">(</span><span class="n">order</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return time steps of U for the Suzuki Trotter decomposition of desired order.</span>
+
+<span class="sd">        See :meth:`suzuki_trotter_decomposition` for details.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        order : int</span>
+<span class="sd">            The desired order of the Suzuki-Trotter decomposition.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        time_steps : list of float</span>
+<span class="sd">            We need ``U = exp(-i H_{even/odd} delta_t * dt)`` for the `dt` returned in this list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">order</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="mf">1.</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">order</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">order</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="n">t1</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="p">(</span><span class="mf">4.</span> <span class="o">-</span> <span class="mf">4.</span><span class="o">**</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mf">3.</span><span class="p">))</span>
+            <span class="n">t3</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">-</span> <span class="mf">4.</span> <span class="o">*</span> <span class="n">t1</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">t1</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">,</span> <span class="n">t1</span><span class="p">,</span> <span class="p">(</span><span class="n">t1</span> <span class="o">+</span> <span class="n">t3</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">,</span> <span class="n">t3</span><span class="p">]</span>
+        <span class="c1"># else</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unknown order </span><span class="si">{0!r}</span><span class="s2"> for Suzuki Trotter decomposition&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">order</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Engine.suzuki_trotter_decomposition"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.tebd.html#tenpy.algorithms.tebd.Engine.suzuki_trotter_decomposition">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">suzuki_trotter_decomposition</span><span class="p">(</span><span class="n">order</span><span class="p">,</span> <span class="n">N_steps</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Returns list of necessary steps for the suzuki trotter decomposition.</span>
+
+<span class="sd">        We split the Hamiltonian as :math:`H = H_{even} + H_{odd} = H[0] + H[1]`.</span>
+<span class="sd">        The Suzuki-Trotter decomposition is an approximation</span>
+<span class="sd">        :math:`\exp(t H) \approx prod_{(j, k) \in ST} \exp(d[j] t H[k]) + O(t^{order+1 })`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        order : int</span>
+<span class="sd">            The desired order of the Suzuki-Trotter decomposition.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ST_decomposition : list of (int, int)</span>
+<span class="sd">            Indices ``j, k`` of the time-steps ``d = suzuki_trotter_time_step(order)`` and</span>
+<span class="sd">            the decomposition of `H`.</span>
+<span class="sd">            They are chosen such that a subsequent application of ``exp(d[j] t H[k])`` to a given</span>
+<span class="sd">            state ``|psi&gt;`` yields ``(exp(N_steps t H[k]) + O(N_steps t^{order+1}))|psi&gt;``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">even</span><span class="p">,</span> <span class="n">odd</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">N_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">order</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">odd</span><span class="p">)</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">even</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">]</span> <span class="o">*</span> <span class="n">N_steps</span>
+        <span class="k">elif</span> <span class="n">order</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">odd</span><span class="p">)</span>  <span class="c1"># dt/2</span>
+            <span class="n">a2</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">odd</span><span class="p">)</span>  <span class="c1"># dt</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">even</span><span class="p">)</span>  <span class="c1"># dt</span>
+            <span class="c1"># U = [a b a]*N</span>
+            <span class="c1">#   = a b [a2 b]*(N-1) a</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">a2</span><span class="p">,</span> <span class="n">b</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">N_steps</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">order</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">odd</span><span class="p">)</span>  <span class="c1"># t1/2</span>
+            <span class="n">a2</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">odd</span><span class="p">)</span>  <span class="c1"># t1</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">even</span><span class="p">)</span>  <span class="c1"># t1</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">odd</span><span class="p">)</span>  <span class="c1"># (t1 + t3) / 2 == (1 - 3 * t1)/2</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">even</span><span class="p">)</span>  <span class="c1"># t3 = 1 - 4 * t1</span>
+            <span class="c1"># From Schollwoeck 2011 (arXiv:1008:3477):</span>
+            <span class="c1"># U = U(t1) U(t2) U(t3) U(t2) U(t1)</span>
+            <span class="c1"># with U(dt) = U(dt/2, odd) U(dt, even) U(dt/2, odd) and t1 == t2</span>
+            <span class="c1"># Uusing above definitions, we arrive at:</span>
+            <span class="c1"># U = [a b a2 b c d c b a2 b a] * N</span>
+            <span class="c1">#   = [a b a2 b c d c b a2 b] + [a2 b a2 b c d c b a2 b a] * (N-1) + [a]</span>
+            <span class="n">steps</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span> <span class="n">b</span><span class="p">]</span>
+            <span class="n">steps</span> <span class="o">=</span> <span class="n">steps</span> <span class="o">+</span> <span class="p">[</span><span class="n">a2</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span> <span class="n">b</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">N_steps</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">steps</span> <span class="o">=</span> <span class="n">steps</span> <span class="o">+</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">steps</span>
+        <span class="c1"># else</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unknown order </span><span class="si">{0!r}</span><span class="s2"> for Suzuki Trotter decomposition&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">order</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Engine.calc_U"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.tebd.html#tenpy.algorithms.tebd.Engine.calc_U">[docs]</a>    <span class="k">def</span> <span class="nf">calc_U</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">delta_t</span><span class="p">,</span> <span class="n">type_evo</span><span class="o">=</span><span class="s1">&#39;real&#39;</span><span class="p">,</span> <span class="n">E_offset</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate ``self.U_bond`` from ``self.bond_eig_{vals,vecs}``.</span>
+
+<span class="sd">        This function calculates</span>
+
+<span class="sd">        * ``U_bond = exp(-i dt (H_bond-E_offset_bond))`` for ``type_evo=&#39;real&#39;``, or</span>
+<span class="sd">        * ``U_bond = exp(- dt H_bond)`` for ``type_evo=&#39;imag&#39;``.</span>
+
+<span class="sd">        For first order (in `delta_t`), we need just one ``dt=delta_t``.</span>
+<span class="sd">        Higher order requires smaller `dt` steps, as given by :meth:`suzuki_trotter_time_steps`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        order : int</span>
+<span class="sd">            Trotter order calculated U_bond. See update for more information.</span>
+<span class="sd">        delta_t : float</span>
+<span class="sd">            Size of the time-step used in calculating U_bond</span>
+<span class="sd">        type_evo : ``&#39;imag&#39; | &#39;real&#39;``</span>
+<span class="sd">            Determines whether we perform real or imaginary time-evolution.</span>
+<span class="sd">        E_offset : None | list of float</span>
+<span class="sd">            Possible offset added to `H_bond` for real-time evolution.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">U_param</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">,</span> <span class="n">delta_t</span><span class="o">=</span><span class="n">delta_t</span><span class="p">,</span> <span class="n">type_evo</span><span class="o">=</span><span class="n">type_evo</span><span class="p">,</span> <span class="n">E_offset</span><span class="o">=</span><span class="n">E_offset</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">type_evo</span> <span class="o">==</span> <span class="s1">&#39;real&#39;</span><span class="p">:</span>
+            <span class="n">U_param</span><span class="p">[</span><span class="s1">&#39;tau&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">delta_t</span>
+        <span class="k">elif</span> <span class="n">type_evo</span> <span class="o">==</span> <span class="s1">&#39;imag&#39;</span><span class="p">:</span>
+            <span class="n">U_param</span><span class="p">[</span><span class="s1">&#39;tau&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.</span><span class="n">j</span> <span class="o">*</span> <span class="n">delta_t</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid value for `type_evo`: &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">type_evo</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_U_param</span> <span class="o">==</span> <span class="n">U_param</span><span class="p">:</span>  <span class="c1"># same keys and values as cached</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Skip recalculation of U with same parameters as before: &quot;</span><span class="p">,</span> <span class="n">U_param</span><span class="p">)</span>
+            <span class="k">return</span>  <span class="c1"># nothing to do: U is cached</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_U_param</span> <span class="o">=</span> <span class="n">U_param</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Calculate U for &quot;</span><span class="p">,</span> <span class="n">U_param</span><span class="p">)</span>
+
+        <span class="n">H_bond</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">H_bond</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">H_bond</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_U</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">dt</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">suzuki_trotter_time_steps</span><span class="p">(</span><span class="n">order</span><span class="p">):</span>
+            <span class="n">U_bond</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_calc_U_bond</span><span class="p">(</span><span class="n">i_bond</span><span class="p">,</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">delta_t</span><span class="p">,</span> <span class="n">type_evo</span><span class="p">,</span> <span class="n">E_offset</span><span class="p">)</span> <span class="k">for</span> <span class="n">i_bond</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">)</span>
+            <span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_U</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">U_bond</span><span class="p">)</span></div>
+        <span class="c1"># done</span>
+
+<div class="viewcode-block" id="Engine.update"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.tebd.html#tenpy.algorithms.tebd.Engine.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N_steps</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Evolve by ``N_steps * U_param[&#39;dt&#39;]``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        N_steps : int</span>
+<span class="sd">            The number of steps for which the whole lattice should be updated.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        trunc_err : :class:`~tenpy.algorithms.truncation.TruncationError`</span>
+<span class="sd">            The error of the represented state which is introduced due to the truncation during</span>
+<span class="sd">            this sequence of update steps.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">trunc_err</span> <span class="o">=</span> <span class="n">TruncationError</span><span class="p">()</span>
+        <span class="n">order</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_U_param</span><span class="p">[</span><span class="s1">&#39;order&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">U_idx_dt</span><span class="p">,</span> <span class="n">odd</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">suzuki_trotter_decomposition</span><span class="p">(</span><span class="n">order</span><span class="p">,</span> <span class="n">N_steps</span><span class="p">):</span>
+            <span class="n">trunc_err</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_step</span><span class="p">(</span><span class="n">U_idx_dt</span><span class="p">,</span> <span class="n">odd</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">evolved_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">evolved_time</span> <span class="o">+</span> <span class="n">N_steps</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_U_param</span><span class="p">[</span><span class="s1">&#39;tau&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trunc_err</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_err</span> <span class="o">+</span> <span class="n">trunc_err</span>  <span class="c1"># not += : make a copy!</span>
+        <span class="c1"># (this is done to avoid problems of users storing self.trunc_err after each `update`)</span>
+        <span class="k">return</span> <span class="n">trunc_err</span></div>
+
+<div class="viewcode-block" id="Engine.update_step"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.tebd.html#tenpy.algorithms.tebd.Engine.update_step">[docs]</a>    <span class="k">def</span> <span class="nf">update_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">U_idx_dt</span><span class="p">,</span> <span class="n">odd</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Updates either even *or* odd bonds in unit cell.</span>
+
+<span class="sd">        Depending on the choice of p, this function updates all even (``E``, odd=False,0)</span>
+<span class="sd">        **or** odd (``O``) (odd=True,1) bonds::</span>
+
+<span class="sd">        |     - B0 - B1 - B2 - B3 - B4 - B5 - B6 -</span>
+<span class="sd">        |       |    |    |    |    |    |    |</span>
+<span class="sd">        |       |    |----|    |----|    |----|</span>
+<span class="sd">        |       |    |  E |    |  E |    |  E |</span>
+<span class="sd">        |       |    |----|    |----|    |----|</span>
+<span class="sd">        |       |----|    |----|    |----|    |</span>
+<span class="sd">        |       |  O |    |  O |    |  O |    |</span>
+<span class="sd">        |       |----|    |----|    |----|    |</span>
+
+<span class="sd">        Note that finite boundary conditions are taken care of by having ``Us[0] = None``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        U_idx_dt : int</span>
+<span class="sd">            Time step index in ``self._U``,</span>
+<span class="sd">            evolve with ``Us[i] = self.U[U_idx_dt][i]`` at bond ``(i-1,i)``.</span>
+<span class="sd">        odd : bool/int</span>
+<span class="sd">            Indication of whether to update even (``odd=False,0``) or even (``odd=True,1``) sites</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        trunc_err : :class:`~tenpy.algorithms.truncation.TruncationError`</span>
+<span class="sd">            The error of the represented state which is introduced due to the truncation</span>
+<span class="sd">            during this sequence of update steps.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Us</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_U</span><span class="p">[</span><span class="n">U_idx_dt</span><span class="p">]</span>
+        <span class="n">trunc_err</span> <span class="o">=</span> <span class="n">TruncationError</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i_bond</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">odd</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">Us</span><span class="p">[</span><span class="n">i_bond</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Skip U_bond element:&quot;</span><span class="p">,</span> <span class="n">i_bond</span><span class="p">)</span>
+                <span class="k">continue</span>  <span class="c1"># handles finite vs. infinite boundary conditions</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Apply U_bond element&quot;</span><span class="p">,</span> <span class="n">i_bond</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_index</span> <span class="o">=</span> <span class="p">(</span><span class="n">U_idx_dt</span><span class="p">,</span> <span class="n">i_bond</span><span class="p">)</span>
+            <span class="n">trunc_err</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_bond</span><span class="p">(</span><span class="n">i_bond</span><span class="p">,</span> <span class="n">Us</span><span class="p">[</span><span class="n">i_bond</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_index</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">trunc_err</span></div>
+
+<div class="viewcode-block" id="Engine.update_bond"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.tebd.html#tenpy.algorithms.tebd.Engine.update_bond">[docs]</a>    <span class="k">def</span> <span class="nf">update_bond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">U_bond</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Updates the B matrices on a given bond.</span>
+
+<span class="sd">        Function that updates the B matrices, the bond matrix s between and the</span>
+<span class="sd">        bond dimension chi for bond i. This would look something like::</span>
+
+<span class="sd">        |     ... - B1  -  s  -  B2 - ...</span>
+<span class="sd">        |           |             |</span>
+<span class="sd">        |           |-------------|</span>
+<span class="sd">        |           |      U      |</span>
+<span class="sd">        |           |-------------|</span>
+<span class="sd">        |           |             |</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        i : int</span>
+<span class="sd">            Bond index; we update the matrices at sites ``i-1, i``.</span>
+<span class="sd">        U_bond : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            The bond operator which we apply to the wave function.</span>
+<span class="sd">            We expect labels ``&#39;p0&#39;, &#39;p1&#39;, &#39;p0*&#39;, &#39;p1*&#39;``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        trunc_err : :class:`~tenpy.algorithms.truncation.TruncationError`</span>
+<span class="sd">            The error of the represented state which is introduced by the truncation</span>
+<span class="sd">            during this update step.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">i0</span><span class="p">,</span> <span class="n">i1</span> <span class="o">=</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">100</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Update sites (</span><span class="si">{0:d}</span><span class="s2">, </span><span class="si">{1:d}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">i1</span><span class="p">))</span>
+        <span class="c1"># Construct the theta matrix</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_theta</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># &#39;vL&#39;, &#39;vR&#39;, &#39;p0&#39;, &#39;p1&#39;</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U_bond</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">]))</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([(</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">)],</span> <span class="n">qconj</span><span class="o">=</span><span class="p">[</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="c1"># Perform the SVD and truncate the wavefunction</span>
+        <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">trunc_err</span><span class="p">,</span> <span class="n">renormalize</span> <span class="o">=</span> <span class="n">svd_theta</span><span class="p">(</span>
+            <span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">,</span> <span class="n">inner_labels</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">])</span>
+
+        <span class="c1"># Split tensor and update matrices</span>
+        <span class="n">B_R</span> <span class="o">=</span> <span class="n">V</span><span class="o">.</span><span class="n">split_legs</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">ireplace_label</span><span class="p">(</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">)</span>
+        <span class="c1"># In general, we want to do the following:</span>
+        <span class="c1">#     U = U.iscale_axis(S, &#39;vR&#39;)</span>
+        <span class="c1">#     B_L = U.split_legs(0).iscale_axis(self.psi.get_SL(i0)**(-1), &#39;vL&#39;)</span>
+        <span class="c1">#     B_L = B_L.ireplace_label(&#39;p0&#39;, &#39;p&#39;)</span>
+        <span class="c1"># i.e. with SL = self.psi.get_SL(i0), we have ``B_L = SL**(-1) U S``</span>
+        <span class="c1">#</span>
+        <span class="c1"># However, the inverse of SL is problematic, as it might contain very small singular</span>
+        <span class="c1"># values.  Instead, we calculate ``C == SL**-1 theta == SL**-1 U S V``,</span>
+        <span class="c1"># such that we obtain ``B_L = SL**-1 U S = SL**-1 U S V V^dagger = C V^dagger``</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_theta</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">formL</span><span class="o">=</span><span class="mf">0.</span><span class="p">)</span>
+        <span class="c1"># here, C is the same as theta, but without the `S` on the very left</span>
+        <span class="c1"># (Note: this requires no inverse if the MPS is initially in &#39;B&#39; canonical form)</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U_bond</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">]))</span>  <span class="c1"># apply U as for theta</span>
+        <span class="n">B_L</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span>
+            <span class="n">C</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">((</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">),</span> <span class="n">pipes</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+            <span class="n">V</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span>
+            <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(vR.p1)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vR*.p1*)&#39;</span><span class="p">])</span>
+        <span class="n">B_L</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;vL*&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">])</span>
+        <span class="n">B_L</span> <span class="o">/=</span> <span class="n">renormalize</span>  <span class="c1"># re-normalize to &lt;psi|psi&gt; = 1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_SR</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_B</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">B_L</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_B</span><span class="p">(</span><span class="n">i1</span><span class="p">,</span> <span class="n">B_R</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trunc_err_bonds</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trunc_err_bonds</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">trunc_err</span>
+        <span class="k">return</span> <span class="n">trunc_err</span></div>
+
+<div class="viewcode-block" id="Engine.update_imag"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.tebd.html#tenpy.algorithms.tebd.Engine.update_imag">[docs]</a>    <span class="k">def</span> <span class="nf">update_imag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N_steps</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;perform an update suitable for imaginary time evolution.</span>
+
+<span class="sd">        Instead of the even/odd brick structure used for ordinary TEBD,</span>
+<span class="sd">        we &#39;sweep&#39; from left to right and right to left, similar as DMRG.</span>
+<span class="sd">        Thanks to that, we are actually able to preserve the canonical form.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">trunc_err</span> <span class="o">=</span> <span class="n">TruncationError</span><span class="p">()</span>
+        <span class="n">order</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_U_param</span><span class="p">[</span><span class="s1">&#39;order&#39;</span><span class="p">]</span>
+        <span class="c1"># allow only second order evolution</span>
+        <span class="k">if</span> <span class="n">order</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>  <span class="c1"># Would lead to loss of canonical form. What about DMRG?</span>
+        <span class="n">U_idx_dt</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># always with dt=0.5</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">suzuki_trotter_time_steps</span><span class="p">(</span><span class="n">order</span><span class="p">)[</span><span class="n">U_idx_dt</span><span class="p">]</span> <span class="o">==</span> <span class="mf">0.5</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">finite</span><span class="p">)</span>  <span class="c1"># finite or segment bc</span>
+        <span class="n">Us</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_U</span><span class="p">[</span><span class="n">U_idx_dt</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N_steps</span><span class="p">):</span>
+            <span class="c1"># sweep right</span>
+            <span class="k">for</span> <span class="n">i_bond</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">Us</span><span class="p">[</span><span class="n">i_bond</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Skip U_bond element:&quot;</span><span class="p">,</span> <span class="n">i_bond</span><span class="p">)</span>
+                    <span class="k">continue</span>  <span class="c1"># handles finite vs. infinite boundary conditions</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Apply U_bond element&quot;</span><span class="p">,</span> <span class="n">i_bond</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_update_index</span> <span class="o">=</span> <span class="p">(</span><span class="n">U_idx_dt</span><span class="p">,</span> <span class="n">i_bond</span><span class="p">)</span>
+                <span class="n">trunc_err</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_bond_imag</span><span class="p">(</span><span class="n">i_bond</span><span class="p">,</span> <span class="n">Us</span><span class="p">[</span><span class="n">i_bond</span><span class="p">])</span>
+            <span class="c1"># sweep left</span>
+            <span class="k">for</span> <span class="n">i_bond</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">Us</span><span class="p">[</span><span class="n">i_bond</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Skip U_bond element:&quot;</span><span class="p">,</span> <span class="n">i_bond</span><span class="p">)</span>
+                    <span class="k">continue</span>  <span class="c1"># handles finite vs. infinite boundary conditions</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Apply U_bond element&quot;</span><span class="p">,</span> <span class="n">i_bond</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_update_index</span> <span class="o">=</span> <span class="p">(</span><span class="n">U_idx_dt</span><span class="p">,</span> <span class="n">i_bond</span><span class="p">)</span>
+                <span class="n">trunc_err</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_bond_imag</span><span class="p">(</span><span class="n">i_bond</span><span class="p">,</span> <span class="n">Us</span><span class="p">[</span><span class="n">i_bond</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_index</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">evolved_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">evolved_time</span> <span class="o">+</span> <span class="n">N_steps</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_U_param</span><span class="p">[</span><span class="s1">&#39;tau&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trunc_err</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_err</span> <span class="o">+</span> <span class="n">trunc_err</span>  <span class="c1"># not += : make a copy!</span>
+        <span class="c1"># (this is done to avoid problems of users storing self.trunc_err after each `update`)</span>
+        <span class="k">return</span> <span class="n">trunc_err</span></div>
+
+<div class="viewcode-block" id="Engine.update_bond_imag"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.tebd.html#tenpy.algorithms.tebd.Engine.update_bond_imag">[docs]</a>    <span class="k">def</span> <span class="nf">update_bond_imag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">U_bond</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Update a bond with a (possibly non-unitary) `U_bond`.</span>
+
+<span class="sd">        Similar as :meth:`update_bond`; but after the SVD just keep the `A, S, B` canonical form.</span>
+<span class="sd">        In that way, one can sweep left or right without using old singular values,</span>
+<span class="sd">        thus preserving the canonical form during imaginary time evolution.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        i : int</span>
+<span class="sd">            Bond index; we update the matrices at sites ``i-1, i``.</span>
+<span class="sd">        U_bond : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            The bond operator which we apply to the wave function.</span>
+<span class="sd">            We expect labels ``&#39;p0&#39;, &#39;p1&#39;, &#39;p0*&#39;, &#39;p1*&#39;``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        trunc_err : :class:`~tenpy.algorithms.truncation.TruncationError`</span>
+<span class="sd">            The error of the represented state which is introduced by the truncation</span>
+<span class="sd">            during this update step.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">i0</span><span class="p">,</span> <span class="n">i1</span> <span class="o">=</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">100</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Update sites (</span><span class="si">{0:d}</span><span class="s2">, </span><span class="si">{1:d}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">i1</span><span class="p">))</span>
+        <span class="c1"># Construct the theta matrix</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_theta</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># &#39;vL&#39;, &#39;vR&#39;, &#39;p0&#39;, &#39;p1&#39;</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U_bond</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">]))</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([(</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">)],</span> <span class="n">qconj</span><span class="o">=</span><span class="p">[</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="c1"># Perform the SVD and truncate the wavefunction</span>
+        <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">trunc_err</span><span class="p">,</span> <span class="n">renormalize</span> <span class="o">=</span> <span class="n">svd_theta</span><span class="p">(</span>
+            <span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">,</span> <span class="n">inner_labels</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">])</span>
+        <span class="c1"># Split legs and update matrices</span>
+        <span class="n">B_R</span> <span class="o">=</span> <span class="n">V</span><span class="o">.</span><span class="n">split_legs</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">ireplace_label</span><span class="p">(</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">)</span>
+        <span class="n">A_L</span> <span class="o">=</span> <span class="n">U</span><span class="o">.</span><span class="n">split_legs</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">ireplace_label</span><span class="p">(</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_SR</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_B</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">A_L</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;A&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_B</span><span class="p">(</span><span class="n">i1</span><span class="p">,</span> <span class="n">B_R</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trunc_err_bonds</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trunc_err_bonds</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">trunc_err</span>
+        <span class="k">return</span> <span class="n">trunc_err</span></div>
+
+    <span class="k">def</span> <span class="nf">_calc_bond_eig</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate ``self._bond_eig_{vals,vecs}`` from ``self.model.H_bond``.</span>
+
+<span class="sd">        Raises ValueError is 2-site Hamiltonian could not be diagonalized.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bond_eig_vals</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bond_eig_vecs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">H_bond</span><span class="p">:</span>
+            <span class="c1"># TODO: Check if hermitian?!</span>
+            <span class="k">if</span> <span class="n">h</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">w</span> <span class="o">=</span> <span class="n">v</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">H2</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([(</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">)],</span> <span class="n">qconj</span><span class="o">=</span><span class="p">[</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">w</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">H2</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bond_eig_vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bond_eig_vecs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="c1"># done</span>
+
+    <span class="k">def</span> <span class="nf">_calc_U_bond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i_bond</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">type_evo</span><span class="p">,</span> <span class="n">E_offset</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate exponential of a bond Hamitonian.</span>
+
+<span class="sd">        * ``U_bond = exp(-i dt (H_bond-E_offset_bond))`` for ``type_evo=&#39;real&#39;``, or</span>
+<span class="sd">        * ``U_bond = exp(- dt H_bond)`` for ``type_evo=&#39;imag&#39;``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">V</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bond_eig_vecs</span><span class="p">[</span><span class="n">i_bond</span><span class="p">]</span>
+        <span class="n">E</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bond_eig_vals</span><span class="p">[</span><span class="n">i_bond</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">V</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>  <span class="c1"># don&#39;t calculate exp(i H t), if `H` is None</span>
+        <span class="k">if</span> <span class="n">type_evo</span> <span class="o">==</span> <span class="s1">&#39;imag&#39;</span><span class="p">:</span>
+            <span class="n">diag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">dt</span> <span class="o">*</span> <span class="n">E</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">type_evo</span> <span class="o">==</span> <span class="s1">&#39;real&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">E_offset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">E</span> <span class="o">=</span> <span class="n">E</span> <span class="o">-</span> <span class="n">E_offset</span><span class="p">[</span><span class="n">i_bond</span><span class="p">]</span>
+            <span class="n">diag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mf">1.</span><span class="n">j</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">E</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Expect either &#39;real&#39; or &#39;imag&#39;inary time, got &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">type_evo</span><span class="p">))</span>
+        <span class="c1"># U = V s V^dag, s = e^(- tau E )</span>
+        <span class="n">U</span> <span class="o">=</span> <span class="n">V</span><span class="o">.</span><span class="n">scale_axis</span><span class="p">(</span><span class="n">diag</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">U</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="n">V</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">U</span><span class="o">.</span><span class="n">get_leg_labels</span><span class="p">())</span> <span class="o">==</span> <span class="p">(</span><span class="s1">&#39;(p0.p1)&#39;</span><span class="p">,</span> <span class="s1">&#39;(p0*.p1*)&#39;</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">U</span><span class="o">.</span><span class="n">split_legs</span><span class="p">()</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/logo.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../userguide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.html">tenpy package</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2018, TeNPy Developers.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>
