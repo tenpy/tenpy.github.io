@@ -212,6 +212,47 @@ ensuring that the result is perpendicular to them.</p>
 <a class="reference external" href="http://web.eecs.utk.edu/~dongarra/etemplates/node103.html#estimate_residual">http://web.eecs.utk.edu/~dongarra/etemplates/node103.html#estimate_residual</a>.
 Given the gap, the Ritz residual gives a bound on the error in the wavefunction,
 <code class="docutils literal notranslate"><span class="pre">err</span> <span class="pre">&lt;</span> <span class="pre">(RitzRes/gap)**2</span></code>. The gap is estimated from the full Lanczos spectrum.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>H</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">LinearOperator</span></code>-like</span></dt>
+<dd><p class="first last">The hermitian linear operator.</p>
+</dd>
+<dt><strong>psi0</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">The starting vector.</p>
+</dd>
+<dt><strong>orthogonal_to</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Vectors to orthogonalize against.</p>
+</dd>
+<dt><strong>N_min, N_max, E_tol, P_tol, N_cache :</strong></dt>
+<dd><p class="first last">Parameters as described above.</p>
+</dd>
+<dt><strong>Es</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray, shape(N_max, N_max)</span></dt>
+<dd><p class="first last"><code class="docutils literal notranslate"><span class="pre">Es[n,</span> <span class="pre">:]</span></code> contains the energies of <code class="docutils literal notranslate"><span class="pre">_T[:n+1,</span> <span class="pre">:n+1]</span></code> in step <cite>n</cite>.</p>
+</dd>
+<dt><strong>_T</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray, shape (N_max + 1, N_max +1)</span></dt>
+<dd><p class="first last">The tridiagonal matrix representing <cite>H</cite> in the orthonormalized Krylov basis.</p>
+</dd>
+<dt><strong>_cutoff</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">cutoff to abort if <cite>beta</cite> (= norm of next vector in Krylov basis before normalizing)
+is too small.
+This is necessary if the rank of A is smaller than N_max - then we get a complete
+basis of the Krylov space, and beta will be zero.</p>
+</dd>
+<dt><strong>_cache</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of psi0-like vectors</span></dt>
+<dd><p class="first last">The ONB of the Krylov space generated during the iteration.
+FIFO (first in first out) cache of at most N_cache vectors.</p>
+</dd>
+<dt><strong>_result_krylov</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Result in the ONB of the Krylov space: ground state of <cite>_T</cite>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
 <p class="rubric">Methods</p>
 <table border="1" class="longtable docutils">
 <colgroup>

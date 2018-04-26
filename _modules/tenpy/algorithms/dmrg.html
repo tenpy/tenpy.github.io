@@ -63,7 +63,6 @@
 <span class="sd">and then slowly turned off in the end.</span>
 
 <span class="sd">.. todo ::</span>
-<span class="sd">    abort on too large NormErr -&gt; need MPS.normerr()</span>
 <span class="sd">    Need function to plot the statistics in the end</span>
 <span class="sd">    Write UserGuide/Example!!!</span>
 <span class="sd">    Allow to keep MPS orthogonal to other states, for finding excited states</span>
@@ -77,6 +76,7 @@
 <span class="kn">from</span> <span class="nn">..linalg</span> <span class="k">import</span> <span class="n">np_conserved</span> <span class="k">as</span> <span class="n">npc</span>
 <span class="kn">from</span> <span class="nn">..networks.mpo</span> <span class="k">import</span> <span class="n">MPOEnvironment</span>
 <span class="kn">from</span> <span class="nn">..linalg.lanczos</span> <span class="k">import</span> <span class="n">lanczos</span>
+<span class="kn">from</span> <span class="nn">..linalg.sparse</span> <span class="k">import</span> <span class="n">NpcLinearOperator</span>
 <span class="kn">from</span> <span class="nn">.truncation</span> <span class="k">import</span> <span class="n">truncate</span><span class="p">,</span> <span class="n">svd_theta</span>
 <span class="kn">from</span> <span class="nn">..tools.params</span> <span class="k">import</span> <span class="n">get_parameter</span><span class="p">,</span> <span class="n">unused_parameters</span>
 <span class="kn">from</span> <span class="nn">..tools.process</span> <span class="k">import</span> <span class="n">memory_usage</span>
@@ -85,7 +85,7 @@
 
 
 <div class="viewcode-block" id="run"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.run">[docs]</a><span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="n">psi</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">DMRG_params</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Run the DMRG algorithm to find the ground state of `M`.</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Run the DMRG algorithm to find the ground state of the given model.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -124,6 +124,12 @@
 <span class="sd">        trunc_params   dict      Truncation parameters as described in</span>
 <span class="sd">                                 :func:`~tenpy.algorithms.truncation.truncate`</span>
 <span class="sd">        -------------- --------- ---------------------------------------------------------------</span>
+<span class="sd">        chi_list       dict      A dictionary to gradually increase the `chi_max` parameter of</span>
+<span class="sd">                                 `trunc_params`. The key defines starting from which sweep</span>
+<span class="sd">                                 `chi_max` is set to the value, e.g. ``{0: 50, 20: 100}`` uses</span>
+<span class="sd">                                 ``chi_max=50`` for the first 20 sweeps and ``chi_max=100``</span>
+<span class="sd">                                 afterwards.</span>
+<span class="sd">        -------------- --------- ---------------------------------------------------------------</span>
 <span class="sd">        lanczos_params dict      Lanczos parameters as described in</span>
 <span class="sd">                                 :func:`~tenpy.linalg.lanczos.lanczos`</span>
 <span class="sd">        -------------- --------- ---------------------------------------------------------------</span>
@@ -132,18 +138,21 @@
 <span class="sd">        -------------- --------- ---------------------------------------------------------------</span>
 <span class="sd">        sweep_0        int       The number of sweeps already performed. (Useful for re-start).</span>
 <span class="sd">        -------------- --------- ---------------------------------------------------------------</span>
-<span class="sd">        start_env      int       Number of initial sweeps without bond optimizaiton to</span>
+<span class="sd">        start_env      int       Number of initial sweeps performed without bond optimizaiton to</span>
 <span class="sd">                                 initialize the environment.</span>
 <span class="sd">        -------------- --------- ---------------------------------------------------------------</span>
 <span class="sd">        update_env     int       Number of sweeps without bond optimizaiton to update the</span>
-<span class="sd">                                 environment for infinite bc,</span>
+<span class="sd">                                 environment for infinite boundary conditions,</span>
 <span class="sd">                                 performed every `N_sweeps_check` sweeps.</span>
 <span class="sd">        -------------- --------- ---------------------------------------------------------------</span>
-<span class="sd">        norm_tol       float     After the DMRG run, update the environment by &#39;update_env&#39;</span>
-<span class="sd">                                 sweeps until ``np.linalg.norm(psi.norm_err()) &lt; norm_tol``.</span>
+<span class="sd">        norm_tol       float     After the DMRG run, update the environment with at most</span>
+<span class="sd">                                 `norm_tol_iter` sweeps until</span>
+<span class="sd">                                 ``np.linalg.norm(psi.norm_err()) &lt; norm_tol``.</span>
 <span class="sd">        -------------- --------- ---------------------------------------------------------------</span>
-<span class="sd">        norm_tol_iter  float     Perform at most `update_env` * `norm_tol_iter` iteration to</span>
+<span class="sd">        norm_tol_iter  float     Perform at most `norm_tol_iter`*`update_env` sweeps to</span>
 <span class="sd">                                 converge the norm error below `norm_tol`.</span>
+<span class="sd">                                 If the state is not converged after that, call</span>
+<span class="sd">                                 :meth:`~tenpy.networks.mps.canonical_form` instead.</span>
 <span class="sd">        -------------- --------- ---------------------------------------------------------------</span>
 <span class="sd">        max_sweeps     int       Maximum number of sweeps to be performed.</span>
 <span class="sd">        -------------- --------- ---------------------------------------------------------------</span>
@@ -186,187 +195,15 @@
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">Engine_class</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="n">Engine_class</span> <span class="o">=</span> <span class="nb">globals</span><span class="p">()[</span><span class="n">Engine_class</span><span class="p">]</span>
     <span class="n">engine</span> <span class="o">=</span> <span class="n">Engine_class</span><span class="p">(</span><span class="n">psi</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">DMRG_params</span><span class="p">)</span>
-    <span class="n">verbose</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">verbose</span>
-
-    <span class="c1"># prepare parameters</span>
-    <span class="n">chi_max_default</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">trunc_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;chi_max&#39;</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">chi</span><span class="p">)))</span>
-    <span class="n">chi_list</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;chi_list&#39;</span><span class="p">,</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="n">chi_max_default</span><span class="p">},</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-    <span class="n">chi_max</span> <span class="o">=</span> <span class="n">chi_list</span><span class="p">[</span><span class="nb">max</span><span class="p">([</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">chi_list</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="o">&lt;=</span> <span class="n">engine</span><span class="o">.</span><span class="n">sweeps</span><span class="p">])]</span>
-    <span class="n">engine</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">[</span><span class="s1">&#39;chi_max&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">chi_max</span>
-    <span class="k">if</span> <span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Setting chi_max =&quot;</span><span class="p">,</span> <span class="n">chi_max</span><span class="p">)</span>
-    <span class="n">p_tol_to_trunc</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;P_tol_to_trunc&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">p_tol_to_trunc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">p_tol_min</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;P_tol_min&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-        <span class="n">p_tol_max</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;P_tol_max&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-    <span class="n">e_tol_to_trunc</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;E_tol_to_trunc&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">e_tol_to_trunc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">e_tol_min</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;E_tol_min&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-        <span class="n">e_tol_max</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;E_tol_max&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-
-    <span class="c1"># get parameters for DMRG convergence criteria</span>
-    <span class="n">N_sweeps_check</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;N_sweeps_check&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-    <span class="n">min_sweeps</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;min_sweeps&#39;</span><span class="p">,</span> <span class="mf">1.5</span> <span class="o">*</span> <span class="n">N_sweeps_check</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-    <span class="n">max_sweeps</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;max_sweeps&#39;</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-    <span class="n">max_E_err</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;max_E_err&#39;</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-    <span class="n">max_S_err</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;max_S_err&#39;</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-    <span class="n">max_seconds</span> <span class="o">=</span> <span class="mi">3600</span> <span class="o">*</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;max_hours&#39;</span><span class="p">,</span> <span class="mi">24</span> <span class="o">*</span> <span class="mi">365</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-    <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-
-    <span class="c1"># initial sweeps of the environment</span>
-    <span class="n">start_env</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;start_env&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-    <span class="c1"># update environement sweeps</span>
-    <span class="n">default_update_env</span> <span class="o">=</span> <span class="nb">min</span><span class="p">((</span><span class="n">N_sweeps_check</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">10</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">psi</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
-        <span class="n">default_update_env</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">update_env</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;update_env&#39;</span><span class="p">,</span> <span class="n">default_update_env</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-    <span class="n">norm_tol</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;norm_tol&#39;</span><span class="p">,</span> <span class="mf">1.e-3</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-    <span class="n">norm_tol_iter</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;norm_tol_iter&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">psi</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">start_env</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">update_env</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Ignore `start_env` and `update_env` for finite MPS: nothing to do.&quot;</span><span class="p">)</span>
-        <span class="n">start_env</span> <span class="o">=</span> <span class="n">update_env</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">norm_tol</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="n">engine</span><span class="o">.</span><span class="n">environment_sweeps</span><span class="p">(</span><span class="n">start_env</span><span class="p">)</span>
-
-    <span class="c1"># initialize statistics</span>
-    <span class="n">shelve</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="n">E_old</span><span class="p">,</span> <span class="n">S_old</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>  <span class="c1"># initial dummy values</span>
-    <span class="n">E</span><span class="p">,</span> <span class="n">Delta_E</span><span class="p">,</span> <span class="n">Delta_S</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span>
-
-    <span class="n">sweep_statistics</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s1">&#39;sweep&#39;</span><span class="p">:</span> <span class="p">[],</span>
-        <span class="s1">&#39;E&#39;</span><span class="p">:</span> <span class="p">[],</span>
-        <span class="s1">&#39;S&#39;</span><span class="p">:</span> <span class="p">[],</span>
-        <span class="s1">&#39;max_trunc_err&#39;</span><span class="p">:</span> <span class="p">[],</span>
-        <span class="s1">&#39;max_E_trunc&#39;</span><span class="p">:</span> <span class="p">[],</span>
-        <span class="s1">&#39;max_chi&#39;</span><span class="p">:</span> <span class="p">[],</span>
-        <span class="s1">&#39;norm_err&#39;</span><span class="p">:</span> <span class="p">[]</span>
-    <span class="p">}</span>
-
-    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-        <span class="c1"># check abortion criteria</span>
-        <span class="k">if</span> <span class="n">engine</span><span class="o">.</span><span class="n">sweeps</span> <span class="o">&gt;=</span> <span class="n">max_sweeps</span><span class="p">:</span>
-            <span class="k">break</span>
-        <span class="k">if</span> <span class="n">engine</span><span class="o">.</span><span class="n">sweeps</span> <span class="o">&gt;</span> <span class="n">min_sweeps</span> <span class="ow">and</span> <span class="o">-</span><span class="n">Delta_E</span> <span class="o">/</span> <span class="nb">abs</span><span class="p">(</span><span class="n">E</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">max_E_err</span> <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span>
-                <span class="n">Delta_S</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">max_S_err</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">engine</span><span class="o">.</span><span class="n">mixer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">break</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Convergence criterium reached with enabled mixer.</span><span class="se">\n</span><span class="s2">&quot;</span>
-                          <span class="s2">&quot;disable mixer and continue&quot;</span><span class="p">)</span>
-                    <span class="n">engine</span><span class="o">.</span><span class="n">mixer</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span> <span class="o">&gt;</span> <span class="n">max_seconds</span><span class="p">:</span>
-            <span class="n">shelve</span> <span class="o">=</span> <span class="kc">True</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;DMRG: maximum time limit reached. Shelve simulation.&quot;</span><span class="p">)</span>
-            <span class="k">break</span>
-        <span class="c1"># the time-consuming part: the actual sweeps</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N_sweeps_check</span><span class="p">):</span>
-            <span class="c1"># --------- the main work --------------</span>
-            <span class="n">max_trunc_err</span><span class="p">,</span> <span class="n">max_E_trunc</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">sweep</span><span class="p">(</span><span class="n">meas_E_trunc</span><span class="o">=</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">==</span> <span class="n">N_sweeps_check</span><span class="p">))</span>
-            <span class="c1"># --------------------------------------</span>
-            <span class="k">if</span> <span class="n">engine</span><span class="o">.</span><span class="n">sweeps</span> <span class="ow">in</span> <span class="n">chi_list</span><span class="p">:</span>
-                <span class="n">engine</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">[</span><span class="s1">&#39;chi_max&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">chi_list</span><span class="p">[</span><span class="n">engine</span><span class="o">.</span><span class="n">sweeps</span><span class="p">]</span>
-                <span class="k">if</span> <span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Setting chi_max =&quot;</span><span class="p">,</span> <span class="n">chi_list</span><span class="p">[</span><span class="n">engine</span><span class="o">.</span><span class="n">sweeps</span><span class="p">])</span>
-        <span class="c1"># update lancos_params depending on truncation error(s)</span>
-        <span class="k">if</span> <span class="n">p_tol_to_trunc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">max_trunc_err</span> <span class="o">&gt;</span> <span class="n">p_tol_min</span><span class="p">:</span>
-            <span class="n">engine</span><span class="o">.</span><span class="n">lanczos_params</span><span class="p">[</span><span class="s1">&#39;P_tol&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">p_tol_min</span><span class="p">,</span>
-                                                 <span class="nb">min</span><span class="p">(</span><span class="n">p_tol_max</span><span class="p">,</span> <span class="n">max_trunc_err</span> <span class="o">*</span> <span class="n">p_tol_to_trunc</span><span class="p">))</span>
-        <span class="k">if</span> <span class="n">e_tol_to_trunc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">max_E_trunc</span> <span class="o">&gt;</span> <span class="n">e_tol_min</span><span class="p">:</span>
-            <span class="n">engine</span><span class="o">.</span><span class="n">lanczos_params</span><span class="p">[</span><span class="s1">&#39;E_tol&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">e_tol_min</span><span class="p">,</span>
-                                                 <span class="nb">min</span><span class="p">(</span><span class="n">e_tol_max</span><span class="p">,</span> <span class="n">max_E_trunc</span> <span class="o">*</span> <span class="n">e_tol_to_trunc</span><span class="p">))</span>
-        <span class="c1"># update environment</span>
-        <span class="n">engine</span><span class="o">.</span><span class="n">environment_sweeps</span><span class="p">(</span><span class="n">update_env</span><span class="p">)</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">entanglement_entropy</span><span class="p">())</span>
-            <span class="n">Delta_S</span> <span class="o">=</span> <span class="p">(</span><span class="n">S</span> <span class="o">-</span> <span class="n">S_old</span><span class="p">)</span> <span class="o">/</span> <span class="n">N_sweeps_check</span>
-        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-            <span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-            <span class="n">Delta_S</span> <span class="o">=</span> <span class="mf">0.</span>
-        <span class="n">S_old</span> <span class="o">=</span> <span class="n">S</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">psi</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>  <span class="c1"># iDMRG: need energy density</span>
-            <span class="n">Es</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">statistics</span><span class="p">[</span><span class="s1">&#39;E_total&#39;</span><span class="p">]</span>
-            <span class="n">age</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">statistics</span><span class="p">[</span><span class="s1">&#39;age&#39;</span><span class="p">]</span>
-            <span class="k">if</span> <span class="n">N_sweeps_check</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="n">growth</span> <span class="o">=</span> <span class="p">(</span><span class="n">age</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">age</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">engine</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">L</span><span class="p">])</span>
-                <span class="n">E</span> <span class="o">=</span> <span class="p">(</span><span class="n">Es</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">Es</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">engine</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">L</span><span class="p">])</span> <span class="o">/</span> <span class="n">growth</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">E</span> <span class="o">=</span> <span class="p">(</span><span class="n">Es</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">Es</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="n">age</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">age</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">E</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">statistics</span><span class="p">[</span><span class="s1">&#39;E_total&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">Delta_E</span> <span class="o">=</span> <span class="p">(</span><span class="n">E</span> <span class="o">-</span> <span class="n">E_old</span><span class="p">)</span> <span class="o">/</span> <span class="n">N_sweeps_check</span>
-        <span class="n">E_old</span> <span class="o">=</span> <span class="n">E</span>
-        <span class="n">norm_err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">norm_test</span><span class="p">())</span>
-        <span class="n">sweep_statistics</span><span class="p">[</span><span class="s1">&#39;sweep&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">sweeps</span><span class="p">)</span>
-        <span class="n">sweep_statistics</span><span class="p">[</span><span class="s1">&#39;E&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">E</span><span class="p">)</span>
-        <span class="n">sweep_statistics</span><span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
-        <span class="n">sweep_statistics</span><span class="p">[</span><span class="s1">&#39;max_trunc_err&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">max_trunc_err</span><span class="p">)</span>
-        <span class="n">sweep_statistics</span><span class="p">[</span><span class="s1">&#39;max_E_trunc&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">max_E_trunc</span><span class="p">)</span>
-        <span class="n">sweep_statistics</span><span class="p">[</span><span class="s1">&#39;max_chi&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">chi</span><span class="p">))</span>
-        <span class="n">sweep_statistics</span><span class="p">[</span><span class="s1">&#39;norm_err&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">norm_err</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="c1"># print a status update</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">80</span><span class="p">)</span>
-            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;sweep </span><span class="si">{sweep:d}</span><span class="s2">, age = </span><span class="si">{age:d}</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;Energy = </span><span class="si">{E:.16f}</span><span class="s2">, S = </span><span class="si">{S:.16f}</span><span class="s2">, norm_err = </span><span class="si">{norm_err:.1e}</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;Current memory usage </span><span class="si">{mem:.1f}</span><span class="s2"> MB, time elapsed: </span><span class="si">{time:.1f}</span><span class="s2"> s</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;Delta E = </span><span class="si">{DE:.4e}</span><span class="s2">, Delta S = </span><span class="si">{DS:.4e}</span><span class="s2"> (per sweep)</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;max_trunc_err = </span><span class="si">{trerr:.4e}</span><span class="s2">, max_E_trunc = </span><span class="si">{Eerr:.4e}</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;MPS bond dimensions: </span><span class="si">{chi!s}</span><span class="s2">&quot;</span>
-            <span class="nb">print</span><span class="p">(</span>
-                <span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="n">sweep</span><span class="o">=</span><span class="n">engine</span><span class="o">.</span><span class="n">sweeps</span><span class="p">,</span>
-                    <span class="n">time</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">,</span>
-                    <span class="n">mem</span><span class="o">=</span><span class="n">memory_usage</span><span class="p">(),</span>
-                    <span class="n">chi</span><span class="o">=</span><span class="n">psi</span><span class="o">.</span><span class="n">chi</span><span class="p">,</span>
-                    <span class="n">age</span><span class="o">=</span><span class="n">engine</span><span class="o">.</span><span class="n">statistics</span><span class="p">[</span><span class="s1">&#39;age&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                    <span class="n">E</span><span class="o">=</span><span class="n">E</span><span class="p">,</span>
-                    <span class="n">S</span><span class="o">=</span><span class="n">S</span><span class="p">,</span>
-                    <span class="n">DE</span><span class="o">=</span><span class="n">Delta_E</span><span class="p">,</span>
-                    <span class="n">DS</span><span class="o">=</span><span class="n">Delta_S</span><span class="p">,</span>
-                    <span class="n">trerr</span><span class="o">=</span><span class="n">max_trunc_err</span><span class="p">,</span>
-                    <span class="n">Eerr</span><span class="o">=</span><span class="n">max_E_trunc</span><span class="p">,</span>
-                    <span class="n">norm_err</span><span class="o">=</span><span class="n">norm_err</span><span class="p">))</span>
-    <span class="c1"># clean up from mixer</span>
-    <span class="n">engine</span><span class="o">.</span><span class="n">mixer_cleanup</span><span class="p">(</span><span class="n">optimize</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="c1"># update environment until norm_tol is reached</span>
-    <span class="k">if</span> <span class="n">norm_tol</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">norm_err</span> <span class="o">&gt;</span> <span class="n">norm_tol</span><span class="p">:</span>
-        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;final DMRG state not in canonical form: too much truncation!&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">psi</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
-            <span class="n">psi</span><span class="o">.</span><span class="n">canonical_form</span><span class="p">()</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">norm_tol_iter</span><span class="p">):</span>
-                <span class="n">engine</span><span class="o">.</span><span class="n">environment_sweeps</span><span class="p">(</span><span class="n">update_env</span><span class="p">)</span>
-                <span class="n">norm_err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">norm_test</span><span class="p">())</span>
-                <span class="k">if</span> <span class="n">norm_err</span> <span class="o">&lt;=</span> <span class="n">norm_tol</span><span class="p">:</span>
-                    <span class="k">break</span>
-
-    <span class="k">if</span> <span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">80</span><span class="p">)</span>
-        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;DMRG finished after </span><span class="si">{sweep:d}</span><span class="s2"> sweeps.</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;Age (=total size) = </span><span class="si">{age:d}</span><span class="s2">, maximum chi = </span><span class="si">{chimax}</span><span class="s2">&quot;</span>
-        <span class="nb">print</span><span class="p">(</span>
-            <span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                <span class="n">sweep</span><span class="o">=</span><span class="n">engine</span><span class="o">.</span><span class="n">sweeps</span><span class="p">,</span> <span class="n">age</span><span class="o">=</span><span class="n">engine</span><span class="o">.</span><span class="n">statistics</span><span class="p">[</span><span class="s1">&#39;age&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">chimax</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">chi</span><span class="p">)))</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">80</span><span class="p">)</span>
-    <span class="n">unused_parameters</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">[</span><span class="s1">&#39;lanczos_params&#39;</span><span class="p">],</span> <span class="s2">&quot;DMRG&quot;</span><span class="p">)</span>
-    <span class="n">unused_parameters</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">[</span><span class="s1">&#39;trunc_params&#39;</span><span class="p">],</span> <span class="s2">&quot;DMRG&quot;</span><span class="p">)</span>
-    <span class="n">unused_parameters</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s2">&quot;DMRG&quot;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="p">{</span>
-        <span class="s1">&#39;E&#39;</span><span class="p">:</span> <span class="n">E</span><span class="p">,</span>
-        <span class="s1">&#39;shelve&#39;</span><span class="p">:</span> <span class="n">shelve</span><span class="p">,</span>
-        <span class="s1">&#39;bond_statistics&#39;</span><span class="p">:</span> <span class="n">engine</span><span class="o">.</span><span class="n">statistics</span><span class="p">,</span>
-        <span class="s1">&#39;sweep_statistics&#39;</span><span class="p">:</span> <span class="n">sweep_statistics</span>
-    <span class="p">}</span></div>
+    <span class="n">E</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;E&#39;</span><span class="p">:</span> <span class="n">E</span><span class="p">,</span> <span class="s1">&#39;shelve&#39;</span><span class="p">:</span> <span class="n">engine</span><span class="o">.</span><span class="n">shelve</span><span class="p">,</span> <span class="s1">&#39;bond_statistics&#39;</span><span class="p">:</span> <span class="n">engine</span><span class="o">.</span><span class="n">update_stats</span><span class="p">,</span>
+            <span class="s1">&#39;sweep_statistics&#39;</span><span class="p">:</span> <span class="n">engine</span><span class="o">.</span><span class="n">sweep_stats</span><span class="p">}</span></div>
 
 
-<div class="viewcode-block" id="Engine"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine">[docs]</a><span class="k">class</span> <span class="nc">Engine</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="Engine"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine">[docs]</a><span class="k">class</span> <span class="nc">Engine</span><span class="p">(</span><span class="n">NpcLinearOperator</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Prototype for an DMRG &#39;Engine&#39;.</span>
 
-<span class="sd">    This class is the working horse of :func:`DMRG`. It implements the :meth:`sweep` and large</span>
+<span class="sd">    This class is the working horse of DMRG. It implements the :meth:`sweep` and large</span>
 <span class="sd">    parts of the (two-site) optimization.</span>
 <span class="sd">    During the diagonalization (i.e. after calling :meth:`prepare_diag`), the class represents</span>
 <span class="sd">    the effective two-site Hamiltonian, which looks like this::</span>
@@ -394,13 +231,32 @@
 <span class="sd">    ----------</span>
 <span class="sd">    verbose : int</span>
 <span class="sd">        Level of verbosity (i.e. how much status information to print); higher=more output.</span>
+<span class="sd">    psi : :class:`~tenpy.networks.mps.MPS`</span>
+<span class="sd">        The MPS to be optimized. After :meth:`run`, this should be (close to) the ground state.</span>
 <span class="sd">    sweeps : int</span>
 <span class="sd">        The number of performed sweeps (with ``optimize=True``, i.e. not counting the</span>
 <span class="sd">        environment updates).</span>
-<span class="sd">    statistics : dict</span>
+<span class="sd">    env : :class:`~tenpy.networks.mpo.MPOEnvironment`</span>
+<span class="sd">        Environment for contraction ``&lt;psi|H|psi&gt;``.</span>
+<span class="sd">    mixer : :class:`Mixer` | ``None``</span>
+<span class="sd">        If ``None``, no mixer is used (anymore), otherwise the mixer instance.</span>
+<span class="sd">    DMRG_params : dict</span>
+<span class="sd">        Parameters used for the DMRG. See :func:`run` for more details.</span>
+<span class="sd">    lanczos_params : dict</span>
+<span class="sd">        Parameters for :func:`~tenpy.linalg.lanczos.lanczos`.</span>
+<span class="sd">    trunc_params : dict</span>
+<span class="sd">        Parameters for :func:`~tenpy.algorithms.truncation.truncate`.</span>
+<span class="sd">    finite : bool</span>
+<span class="sd">        Wheter we perform DMRG for an MPS with finite/segment (True) or infinite boundary</span>
+<span class="sd">        conditions; same as `psi.finite`.</span>
+<span class="sd">    shelve : bool</span>
+<span class="sd">        True when the DMRG stopped due to the time limit set by `max_hours`, otherwise `False`.</span>
+<span class="sd">    chi_list : dict</span>
+<span class="sd">        See DMRG_params `chi_list`.</span>
+<span class="sd">    update_stats : dict</span>
 <span class="sd">        A dictionary with detailed statistics of the convergence.</span>
 <span class="sd">        For each key in the following table, the dictionary contains a list where one value is</span>
-<span class="sd">        added each :meth:`Engine.update_bond`.</span>
+<span class="sd">        added each time :meth:`Engine.update_bond` is called.</span>
 
 <span class="sd">        =========== ===================================================================</span>
 <span class="sd">        key         description</span>
@@ -414,46 +270,270 @@
 <span class="sd">        N_lanczos   Dimension of the Krylov space used in the lanczos diagonalization.</span>
 <span class="sd">        =========== ===================================================================</span>
 
-<span class="sd">    env : :class:`~tenpy.networks.mpo.MPOEnvironment`</span>
-<span class="sd">        Environment for contraction ``&lt;psi|H|psi&gt;``.</span>
-<span class="sd">    mixer : :class:`Mixer` | ``None``</span>
-<span class="sd">        If ``None``, no mixer is used, otherwise the mixer instance.</span>
-<span class="sd">    lanczos_params : dict</span>
-<span class="sd">        Parameters for :func:`~tenpy.linalg.lanczos.lanczos`.</span>
-<span class="sd">    trunc_params : dict</span>
-<span class="sd">        Parameters for :func:`~tenpy.algorithms.truncation.truncate`.</span>
+<span class="sd">    sweep_stats : dict</span>
+<span class="sd">        A dictionary with detailed statistics of the convergence.</span>
+<span class="sd">        For each key in the following table, the dictionary contains a list where one value is</span>
+<span class="sd">        added each time :meth:`Engine.sweep` is called (with ``optimize=True``).</span>
+
+<span class="sd">        ============= ===================================================================</span>
+<span class="sd">        key           description</span>
+<span class="sd">        ============= ===================================================================</span>
+<span class="sd">        sweep         Number of sweeps performed so far.</span>
+<span class="sd">        ------------- -------------------------------------------------------------------</span>
+<span class="sd">        E             The energy *before* truncation (as calculated by Lanczos).</span>
+<span class="sd">        ------------- -------------------------------------------------------------------</span>
+<span class="sd">        S             Maximum entanglement entropy.</span>
+<span class="sd">        ------------- -------------------------------------------------------------------</span>
+<span class="sd">        max_trunc_err The maximum truncation error in the last sweep</span>
+<span class="sd">        ------------- -------------------------------------------------------------------</span>
+<span class="sd">        max_E_trunc   Maximum change or Energy due to truncation in the last sweep.</span>
+<span class="sd">        ------------- -------------------------------------------------------------------</span>
+<span class="sd">        max_chi       Maximum bond dimension used.</span>
+<span class="sd">        ------------- -------------------------------------------------------------------</span>
+<span class="sd">        norm_err      Error of canonical form ``np.linalg.norm(psi.norm_test())``.</span>
+<span class="sd">        ============= ===================================================================</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">DMRG_params</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span> <span class="o">=</span> <span class="n">psi</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">DMRG_params</span> <span class="o">=</span> <span class="n">DMRG_params</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">sweeps</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;sweep_0&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">statistics</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;i0&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;age&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;E_total&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;N_lanczos&#39;</span><span class="p">:</span> <span class="p">[]}</span>
 
-        <span class="c1"># set up environment</span>
-        <span class="n">LP</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;LP&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-        <span class="n">RP</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;RP&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-        <span class="n">LP_age</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;LP_age&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-        <span class="n">RP_age</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;RP_age&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">env</span> <span class="o">=</span> <span class="n">MPOEnvironment</span><span class="p">(</span><span class="n">psi</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">H_MPO</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">LP</span><span class="p">,</span> <span class="n">RP</span><span class="p">,</span> <span class="n">LP_age</span><span class="p">,</span> <span class="n">RP_age</span><span class="p">)</span>
-        <span class="c1"># (checks compatibility of psi with model)</span>
-
-        <span class="c1"># generate mixer instance, if a mixer is to be used.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">finite</span> <span class="o">=</span> <span class="n">psi</span><span class="o">.</span><span class="n">finite</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># means &#39;ignore mixer&#39;</span>
-        <span class="n">Mixer_class</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;mixer&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">Mixer_class</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">Mixer_class</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
-                <span class="n">Mixer_class</span> <span class="o">=</span> <span class="n">Mixer</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">Mixer_class</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-                <span class="n">Mixer_class</span> <span class="o">=</span> <span class="nb">globals</span><span class="p">()[</span><span class="n">Mixer_class</span><span class="p">]</span>
-            <span class="n">mixer_params</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;mixer_params&#39;</span><span class="p">,</span> <span class="p">{},</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-            <span class="n">mixer_params</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">/</span> <span class="mi">10</span><span class="p">)</span>  <span class="c1"># reduced verbosity</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span> <span class="o">=</span> <span class="n">Mixer_class</span><span class="p">(</span><span class="n">mixer_params</span><span class="p">)</span>
+        <span class="c1"># the mixer is activated in in :meth:`run`.</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">lanczos_params</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;lanczos_params&#39;</span><span class="p">,</span> <span class="p">{},</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">lanczos_params</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">/</span> <span class="mi">10</span><span class="p">)</span>  <span class="c1"># reduced verbosity</span>
-
         <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;trunc_params&#39;</span><span class="p">,</span> <span class="p">{},</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">/</span> <span class="mi">10</span><span class="p">)</span>  <span class="c1"># reduced verbosity</span>
+        <span class="n">chi_max_default</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;chi_max&#39;</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">chi</span><span class="p">)))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chi_list</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;chi_list&#39;</span><span class="p">,</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="n">chi_max_default</span><span class="p">},</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">env</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_env</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Engine.init_env"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.init_env">[docs]</a>    <span class="k">def</span> <span class="nf">init_env</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;(Re-)initialize the environment.</span>
+
+<span class="sd">        This function is useful to re-start DMRG after with a slightly different model or</span>
+<span class="sd">        different parameters.</span>
+<span class="sd">        Calls :meth:`reset_stats`</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : :class:`~tenpy.models.MPOModel`</span>
+<span class="sd">            The model representing the Hamiltonian for which we want to find the ground state.</span>
+<span class="sd">            If ``None``, keep the model used before.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">H_MPO</span> <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">H</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
+            <span class="n">LP</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;LP&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+            <span class="n">RP</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;RP&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+            <span class="n">LP_age</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;LP_age&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+            <span class="n">RP_age</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;RP_age&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># re-initialize</span>
+            <span class="n">compatible</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">H</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;wL&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">test_equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">H</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;wL&#39;</span><span class="p">))</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="n">compatible</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="n">warings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;The leg of the new model is incompatible with the previous one.&quot;</span>
+                                 <span class="s2">&quot;Rebuild environment from scratch.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">compatible</span><span class="p">:</span>
+                <span class="n">LP</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get_LP</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+                <span class="n">LP_age</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get_LP_age</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">RP</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get_RP</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+                <span class="n">RP_age</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get_LP_age</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">chi_list</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">[</span><span class="s1">&#39;chi_max&#39;</span><span class="p">]}</span>  <span class="c1"># chi_list makes no sense</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">LP</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;LP&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+                <span class="n">RP</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;RP&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+                <span class="n">LP_age</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;LP_age&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+                <span class="n">RP_age</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;RP_age&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+                <span class="c1"># reset chi_list</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">chi_list</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;chi_list&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi_list</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+                <span class="n">chi_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi_list</span><span class="p">[</span><span class="nb">max</span><span class="p">([</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi_list</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sweeps</span><span class="p">])]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">[</span><span class="s1">&#39;chi_max&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">chi_max</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">env</span> <span class="o">=</span> <span class="n">MPOEnvironment</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="p">,</span> <span class="n">LP</span><span class="p">,</span> <span class="n">RP</span><span class="p">,</span> <span class="n">LP_age</span><span class="p">,</span> <span class="n">RP_age</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_stats</span><span class="p">()</span>
+
+        <span class="c1"># initial sweeps of the environment (without mixer)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
+            <span class="n">start_env</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;start_env&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">environment_sweeps</span><span class="p">(</span><span class="n">start_env</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Engine.reset_stats"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.reset_stats">[docs]</a>    <span class="k">def</span> <span class="nf">reset_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Reset the statistics. Useful if you want to start a new DMRG run.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sweeps</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;sweep_0&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_stats</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;i0&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;age&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;E_total&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;N_lanczos&#39;</span><span class="p">:</span> <span class="p">[]}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sweep_stats</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;sweep&#39;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s1">&#39;E&#39;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s1">&#39;S&#39;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s1">&#39;max_trunc_err&#39;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s1">&#39;max_E_trunc&#39;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s1">&#39;max_chi&#39;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s1">&#39;norm_err&#39;</span><span class="p">:</span> <span class="p">[]</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shelve</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">chi_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi_list</span><span class="p">[</span><span class="nb">max</span><span class="p">([</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi_list</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sweeps</span><span class="p">])]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">[</span><span class="s1">&#39;chi_max&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">chi_max</span></div>
+
+    <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">DMRG_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DMRG_params</span>
+        <span class="n">unused_parameters</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">[</span><span class="s1">&#39;lanczos_params&#39;</span><span class="p">],</span> <span class="s2">&quot;DMRG lanczos_params&quot;</span><span class="p">)</span>
+        <span class="n">unused_parameters</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">[</span><span class="s1">&#39;trunc_params&#39;</span><span class="p">],</span> <span class="s2">&quot;DMRG trunc_params&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;mixer_params&#39;</span> <span class="ow">in</span> <span class="n">DMRG_params</span><span class="p">:</span>
+            <span class="n">unused_parameters</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">[</span><span class="s1">&#39;mixer_params&#39;</span><span class="p">],</span> <span class="s2">&quot;DMRG mixer_params&quot;</span><span class="p">)</span>
+        <span class="n">unused_parameters</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s2">&quot;DMRG&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Engine.run"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">DMRG_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DMRG_params</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shelve</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="c1"># parameters for lanczos</span>
+        <span class="n">p_tol_to_trunc</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;P_tol_to_trunc&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p_tol_to_trunc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">p_tol_min</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;P_tol_min&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+            <span class="n">p_tol_max</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;P_tol_max&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+        <span class="n">e_tol_to_trunc</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;E_tol_to_trunc&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">e_tol_to_trunc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">e_tol_min</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;E_tol_min&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+            <span class="n">e_tol_max</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;E_tol_max&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+
+        <span class="c1"># parameters for DMRG convergence criteria</span>
+        <span class="n">N_sweeps_check</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;N_sweeps_check&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+        <span class="n">min_sweeps</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;min_sweeps&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="mf">1.5</span> <span class="o">*</span> <span class="n">N_sweeps_check</span><span class="p">),</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+        <span class="n">max_sweeps</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;max_sweeps&#39;</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+        <span class="n">max_E_err</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;max_E_err&#39;</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+        <span class="n">max_S_err</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;max_S_err&#39;</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+        <span class="n">max_seconds</span> <span class="o">=</span> <span class="mi">3600</span> <span class="o">*</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;max_hours&#39;</span><span class="p">,</span> <span class="mi">24</span> <span class="o">*</span> <span class="mi">365</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+        <span class="n">norm_tol</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;norm_tol&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
+            <span class="n">update_env</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;update_env&#39;</span><span class="p">,</span> <span class="n">N_sweeps_check</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+            <span class="n">norm_tol_iter</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;norm_tol_iter&#39;</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+        <span class="n">E_old</span><span class="p">,</span> <span class="n">S_old</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>  <span class="c1"># initial dummy values</span>
+        <span class="n">E</span><span class="p">,</span> <span class="n">Delta_E</span><span class="p">,</span> <span class="n">Delta_S</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer_activate</span><span class="p">()</span>
+        <span class="c1"># loop over sweeps</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="c1"># check convergence criteria</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sweeps</span> <span class="o">&gt;=</span> <span class="n">max_sweeps</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sweeps</span> <span class="o">&gt;</span> <span class="n">min_sweeps</span> <span class="ow">and</span> <span class="o">-</span><span class="n">Delta_E</span>  <span class="o">&lt;</span> <span class="n">max_E_err</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">E</span><span class="p">)</span> <span class="ow">and</span>
+                    <span class="nb">abs</span><span class="p">(</span><span class="n">Delta_S</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">max_S_err</span><span class="p">):</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">break</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Convergence criterium reached with enabled mixer.</span><span class="se">\n</span><span class="s2">&quot;</span>
+                              <span class="s2">&quot;disable mixer and continue&quot;</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span> <span class="o">&gt;</span> <span class="n">max_seconds</span><span class="p">:</span>
+                <span class="n">shelve</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;DMRG: maximum time limit reached. Shelve simulation.&quot;</span><span class="p">)</span>
+                <span class="k">break</span>
+            <span class="c1"># --------- the main work --------------</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N_sweeps_check</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sweep</span><span class="p">(</span><span class="n">meas_E_trunc</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">max_trunc_err</span><span class="p">,</span> <span class="n">max_E_trunc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sweep</span><span class="p">(</span><span class="n">meas_E_trunc</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="c1"># --------------------------------------</span>
+            <span class="c1"># update lancos_params depending on truncation error(s)</span>
+            <span class="k">if</span> <span class="n">p_tol_to_trunc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">max_trunc_err</span> <span class="o">&gt;</span> <span class="n">p_tol_min</span><span class="p">:</span>
+                <span class="n">engine</span><span class="o">.</span><span class="n">lanczos_params</span><span class="p">[</span><span class="s1">&#39;P_tol&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">p_tol_min</span><span class="p">,</span>
+                                                    <span class="nb">min</span><span class="p">(</span><span class="n">p_tol_max</span><span class="p">,</span> <span class="n">max_trunc_err</span> <span class="o">*</span> <span class="n">p_tol_to_trunc</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">e_tol_to_trunc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">max_E_trunc</span> <span class="o">&gt;</span> <span class="n">e_tol_min</span><span class="p">:</span>
+                <span class="n">engine</span><span class="o">.</span><span class="n">lanczos_params</span><span class="p">[</span><span class="s1">&#39;E_tol&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">e_tol_min</span><span class="p">,</span>
+                                                    <span class="nb">min</span><span class="p">(</span><span class="n">e_tol_max</span><span class="p">,</span> <span class="n">max_E_trunc</span> <span class="o">*</span> <span class="n">e_tol_to_trunc</span><span class="p">))</span>
+            <span class="c1"># update environment</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">environment_sweeps</span><span class="p">(</span><span class="n">update_env</span><span class="p">)</span>
+
+            <span class="c1"># update values for checking the convergence</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">entanglement_entropy</span><span class="p">())</span>
+                <span class="n">Delta_S</span> <span class="o">=</span> <span class="p">(</span><span class="n">S</span> <span class="o">-</span> <span class="n">S_old</span><span class="p">)</span> <span class="o">/</span> <span class="n">N_sweeps_check</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="c1"># with a mixer, psi._S can be 2D arrays s.t. entanglement_entropy() fails</span>
+                <span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+                <span class="n">Delta_S</span> <span class="o">=</span> <span class="mf">0.</span>
+            <span class="n">S_old</span> <span class="o">=</span> <span class="n">S</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>  <span class="c1"># iDMRG: need energy density</span>
+                <span class="n">Es</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_stats</span><span class="p">[</span><span class="s1">&#39;E_total&#39;</span><span class="p">]</span>
+                <span class="n">age</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_stats</span><span class="p">[</span><span class="s1">&#39;age&#39;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">N_sweeps_check</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">growth</span> <span class="o">=</span> <span class="p">(</span><span class="n">age</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">age</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">L</span><span class="p">])</span>
+                    <span class="n">E</span> <span class="o">=</span> <span class="p">(</span><span class="n">Es</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">Es</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">L</span><span class="p">])</span> <span class="o">/</span> <span class="n">growth</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">E</span> <span class="o">=</span> <span class="p">(</span><span class="n">Es</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">Es</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="n">age</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">age</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">E</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_stats</span><span class="p">[</span><span class="s1">&#39;E_total&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">Delta_E</span> <span class="o">=</span> <span class="p">(</span><span class="n">E</span> <span class="o">-</span> <span class="n">E_old</span><span class="p">)</span> <span class="o">/</span> <span class="n">N_sweeps_check</span>
+            <span class="n">E_old</span> <span class="o">=</span> <span class="n">E</span>
+            <span class="n">norm_err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">norm_test</span><span class="p">())</span>
+
+            <span class="c1"># update statistics</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sweep_stats</span><span class="p">[</span><span class="s1">&#39;sweep&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sweeps</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sweep_stats</span><span class="p">[</span><span class="s1">&#39;E&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">E</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sweep_stats</span><span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sweep_stats</span><span class="p">[</span><span class="s1">&#39;max_trunc_err&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">max_trunc_err</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sweep_stats</span><span class="p">[</span><span class="s1">&#39;max_E_trunc&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">max_E_trunc</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sweep_stats</span><span class="p">[</span><span class="s1">&#39;max_chi&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">chi</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sweep_stats</span><span class="p">[</span><span class="s1">&#39;norm_err&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">norm_err</span><span class="p">)</span>
+
+            <span class="c1"># print status update</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">80</span><span class="p">)</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;sweep </span><span class="si">{sweep:d}</span><span class="s2">, age = </span><span class="si">{age:d}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                       <span class="s2">&quot;Energy = </span><span class="si">{E:.16f}</span><span class="s2">, S = </span><span class="si">{S:.16f}</span><span class="s2">, norm_err = </span><span class="si">{norm_err:.1e}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                       <span class="s2">&quot;Current memory usage </span><span class="si">{mem:.1f}</span><span class="s2"> MB, time elapsed: </span><span class="si">{time:.1f}</span><span class="s2"> s</span><span class="se">\n</span><span class="s2">&quot;</span>
+                       <span class="s2">&quot;Delta E = </span><span class="si">{DE:.4e}</span><span class="s2">, Delta S = </span><span class="si">{DS:.4e}</span><span class="s2"> (per sweep)</span><span class="se">\n</span><span class="s2">&quot;</span>
+                       <span class="s2">&quot;max_trunc_err = </span><span class="si">{trerr:.4e}</span><span class="s2">, max_E_trunc = </span><span class="si">{Eerr:.4e}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                       <span class="s2">&quot;MPS bond dimensions: </span><span class="si">{chi!s}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">sweep</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sweeps</span><span class="p">,</span>
+                        <span class="n">mem</span><span class="o">=</span><span class="n">memory_usage</span><span class="p">(),</span>
+                        <span class="n">time</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">,</span>
+                        <span class="n">chi</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">chi</span><span class="p">,</span>
+                        <span class="n">age</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">update_stats</span><span class="p">[</span><span class="s1">&#39;age&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                        <span class="n">E</span><span class="o">=</span><span class="n">E</span><span class="p">,</span>
+                        <span class="n">S</span><span class="o">=</span><span class="n">S</span><span class="p">,</span>
+                        <span class="n">DE</span><span class="o">=</span><span class="n">Delta_E</span><span class="p">,</span>
+                        <span class="n">DS</span><span class="o">=</span><span class="n">Delta_S</span><span class="p">,</span>
+                        <span class="n">trerr</span><span class="o">=</span><span class="n">max_trunc_err</span><span class="p">,</span>
+                        <span class="n">Eerr</span><span class="o">=</span><span class="n">max_E_trunc</span><span class="p">,</span>
+                        <span class="n">norm_err</span><span class="o">=</span><span class="n">norm_err</span><span class="p">))</span>
+
+        <span class="c1"># clean up from mixer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer_cleanup</span><span class="p">()</span>
+        <span class="c1"># update environment until norm_tol is reached</span>
+        <span class="k">if</span> <span class="n">norm_tol</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">norm_err</span> <span class="o">&gt;</span> <span class="n">norm_tol</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;final DMRG state not in canonical form: too much truncation!&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">canonical_form</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">norm_tol_iter</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">environment_sweeps</span><span class="p">(</span><span class="n">update_env</span><span class="p">)</span>
+                    <span class="n">norm_err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">norm_test</span><span class="p">())</span>
+                    <span class="k">if</span> <span class="n">norm_err</span> <span class="o">&lt;=</span> <span class="n">norm_tol</span><span class="p">:</span>
+                        <span class="k">break</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;DMRG: norm_tol </span><span class="si">{nt:.1e}</span><span class="s2"> not reached by updating the environment.&quot;</span>
+                           <span class="s2">&quot;Call psi.canonical_form()&quot;</span><span class="p">)</span>
+                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nt</span><span class="o">=</span><span class="n">norm_tol</span><span class="p">))</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">canonical_form</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">80</span><span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;DMRG finished after </span><span class="si">{sweep:d}</span><span class="s2"> sweeps.</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="s2">&quot;total size = </span><span class="si">{age:d}</span><span class="s2">, maximum chi = </span><span class="si">{chimax:d}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sweep</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sweeps</span><span class="p">,</span> <span class="n">age</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">update_stats</span><span class="p">[</span><span class="s1">&#39;age&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                             <span class="n">chimax</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">chi</span><span class="p">)))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">80</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">E</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span></div>
 
 <div class="viewcode-block" id="Engine.environment_sweeps"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.environment_sweeps">[docs]</a>    <span class="k">def</span> <span class="nf">environment_sweeps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N_sweeps</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Perform `N_sweeps` sweeps without bond optimization to update the environment.&quot;&quot;&quot;</span>
@@ -464,9 +544,9 @@
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N_sweeps</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">sweep</span><span class="p">(</span><span class="n">optimize</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>  <span class="c1"># end line</span></div>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># end line</span></div>
 
 <div class="viewcode-block" id="Engine.sweep"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.sweep">[docs]</a>    <span class="k">def</span> <span class="nf">sweep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">meas_E_trunc</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;One &#39;sweep&#39; of the DMRG algorithm.</span>
@@ -496,32 +576,37 @@
         <span class="n">trunc_err_list</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="c1"># get schedule</span>
         <span class="n">L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">L</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
             <span class="n">schedule_i0</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
-            <span class="n">update_env</span> <span class="o">=</span> <span class="p">[[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="p">[[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">update_LP_RP</span> <span class="o">=</span> <span class="p">[[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="p">[[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">assert</span> <span class="p">(</span><span class="n">L</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">)</span>
             <span class="n">schedule_i0</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">L</span><span class="p">))</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
-            <span class="n">update_env</span> <span class="o">=</span> <span class="p">[[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">]]</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">[[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> \
-                         <span class="p">[[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">]]</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">[[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">update_LP_RP</span> <span class="o">=</span> <span class="p">[[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">]]</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">[[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> \
+                           <span class="p">[[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">]]</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">[[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
 
         <span class="c1"># the actual sweep</span>
-        <span class="k">for</span> <span class="n">i0</span><span class="p">,</span> <span class="n">upd_env</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">schedule_i0</span><span class="p">,</span> <span class="n">update_env</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i0</span><span class="p">,</span> <span class="n">upd_env</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">schedule_i0</span><span class="p">,</span> <span class="n">update_LP_RP</span><span class="p">):</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;in sweep: i0 =&quot;</span><span class="p">,</span> <span class="n">i0</span><span class="p">)</span>
             <span class="c1"># --------- the main work --------------</span>
             <span class="n">E_total</span><span class="p">,</span> <span class="n">E_trunc</span><span class="p">,</span> <span class="n">trunc_err</span><span class="p">,</span> <span class="n">N_lanczos</span><span class="p">,</span> <span class="n">age</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_bond</span><span class="p">(</span>
                 <span class="n">i0</span><span class="p">,</span> <span class="n">upd_env</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">upd_env</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">optimize</span><span class="o">=</span><span class="n">optimize</span><span class="p">,</span> <span class="n">meas_E_trunc</span><span class="o">=</span><span class="n">meas_E_trunc</span><span class="p">)</span>
             <span class="c1"># collect statistics</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">statistics</span><span class="p">[</span><span class="s1">&#39;i0&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">statistics</span><span class="p">[</span><span class="s1">&#39;age&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">age</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">statistics</span><span class="p">[</span><span class="s1">&#39;E_total&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">E_total</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">statistics</span><span class="p">[</span><span class="s1">&#39;N_lanczos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">N_lanczos</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_stats</span><span class="p">[</span><span class="s1">&#39;i0&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_stats</span><span class="p">[</span><span class="s1">&#39;age&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">age</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_stats</span><span class="p">[</span><span class="s1">&#39;E_total&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">E_total</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_stats</span><span class="p">[</span><span class="s1">&#39;N_lanczos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">N_lanczos</span><span class="p">)</span>
             <span class="n">E_trunc_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">E_trunc</span><span class="p">)</span>
             <span class="n">trunc_err_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">trunc_err</span><span class="o">.</span><span class="n">eps</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">optimize</span><span class="p">:</span>  <span class="c1"># count optimization sweeps</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">sweeps</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">new_chi_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi_list</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sweeps</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">new_chi_max</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">[</span><span class="s1">&#39;chi_max&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_chi_max</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Setting chi_max =&quot;</span><span class="p">,</span> <span class="n">new_chi_max</span><span class="p">)</span>
 
         <span class="c1"># update mixer</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -700,7 +785,7 @@
 <span class="sd">            The truncation error introduced.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># get qtotal_LR from i0</span>
-        <span class="n">qtotal_i0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">get_B</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">qtotal</span>
+        <span class="n">qtotal_i0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_B</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">qtotal</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="c1"># simple case: real svd, defined elsewhere.</span>
             <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">VH</span><span class="p">,</span> <span class="n">err</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">svd_theta</span><span class="p">(</span>
@@ -734,7 +819,7 @@
         <span class="n">val_R</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">val_R</span><span class="p">)</span>
         <span class="n">keep_R</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">err_R</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">val_R</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">)</span>
         <span class="n">VH</span><span class="o">.</span><span class="n">iproject</span><span class="p">(</span><span class="n">keep_R</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="s1">&#39;vL&#39;</span><span class="p">)</span>
-        <span class="n">VH</span> <span class="o">=</span> <span class="n">VH</span><span class="o">.</span><span class="n">gauge_total_charge</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">get_B</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">qtotal</span><span class="p">)</span>
+        <span class="n">VH</span> <span class="o">=</span> <span class="n">VH</span><span class="o">.</span><span class="n">gauge_total_charge</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_B</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">qtotal</span><span class="p">)</span>
 
         <span class="c1"># calculate S = U^H theta V</span>
         <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(vL*.p0*)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vL.p0)&#39;</span><span class="p">])</span>  <span class="c1"># axes 0, 0</span>
@@ -812,16 +897,28 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;This function should be implemented in derived classes&quot;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Engine.mixer_cleanup"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.mixer_cleanup">[docs]</a>    <span class="k">def</span> <span class="nf">mixer_cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="Engine.mixer_activate"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.mixer_activate">[docs]</a>    <span class="k">def</span> <span class="nf">mixer_activate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set `self.mixer` to the class specified by `DMRG_params[&#39;mixer&#39;]`.&quot;&quot;&quot;</span>
+        <span class="n">Mixer_class</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;mixer&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">Mixer_class</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">Mixer_class</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">Mixer_class</span> <span class="o">=</span> <span class="n">Mixer</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">Mixer_class</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">Mixer_class</span> <span class="o">=</span> <span class="nb">globals</span><span class="p">()[</span><span class="n">Mixer_class</span><span class="p">]</span>
+            <span class="n">mixer_params</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;mixer_params&#39;</span><span class="p">,</span> <span class="p">{},</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+            <span class="n">mixer_params</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">/</span> <span class="mi">10</span><span class="p">)</span>  <span class="c1"># reduced verbosity</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span> <span class="o">=</span> <span class="n">Mixer_class</span><span class="p">(</span><span class="n">mixer_params</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Engine.mixer_cleanup"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.mixer_cleanup">[docs]</a>    <span class="k">def</span> <span class="nf">mixer_cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Cleanup the effects of the mixer.</span>
 
 <span class="sd">        A :meth:`sweep` with an enabled :class:`Mixer` leaves the MPS `psi` with 2D arrays in `S`.</span>
-<span class="sd">        To recover the originial form, this function simply performs a sweep with disabled mixer.</span>
+<span class="sd">        To recover the originial form, this function simply performs one sweep with disabled mixer.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">mixer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># disable the mixer</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">sweep</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>  <span class="c1"># (discard return value)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sweep</span><span class="p">(</span><span class="n">optimize</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># (discard return value)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span> <span class="o">=</span> <span class="n">mixer</span>  <span class="c1"># recover the original mixer</span></div>
 
 <div class="viewcode-block" id="Engine.set_B"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.set_B">[docs]</a>    <span class="k">def</span> <span class="nf">set_B</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">VH</span><span class="p">):</span>
@@ -839,11 +936,11 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">B0</span> <span class="o">=</span> <span class="n">U</span><span class="o">.</span><span class="n">split_legs</span><span class="p">([</span><span class="s1">&#39;(vL.p0)&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">replace_label</span><span class="p">(</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">)</span>
         <span class="n">B1</span> <span class="o">=</span> <span class="n">VH</span><span class="o">.</span><span class="n">split_legs</span><span class="p">([</span><span class="s1">&#39;(vR.p1)&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">replace_label</span><span class="p">(</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">set_B</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">B0</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;A&#39;</span><span class="p">)</span>  <span class="c1"># left-canonical</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">set_B</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">B1</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">)</span>  <span class="c1"># right-canonical</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_B</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">B0</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;A&#39;</span><span class="p">)</span>  <span class="c1"># left-canonical</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_B</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">B1</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">)</span>  <span class="c1"># right-canonical</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">del_LP</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># the old stored environments are now invalid</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">del_RP</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">set_SR</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_SR</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Engine.update_LP"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.update_LP">[docs]</a>    <span class="k">def</span> <span class="nf">update_LP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">U</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Update left part of the environment.</span>
@@ -919,7 +1016,7 @@
             <span class="p">[[</span><span class="s1">&#39;vL*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">]],</span> <span class="n">pipes</span><span class="o">=</span><span class="p">[</span><span class="n">pipeR</span><span class="p">,</span> <span class="n">pipeR</span><span class="o">.</span><span class="n">conj</span><span class="p">()],</span> <span class="n">new_axes</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
         <span class="c1"># make theta</span>
         <span class="n">cutoff</span> <span class="o">=</span> <span class="mf">1.e-16</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="mf">1.e-8</span>
-        <span class="n">theta</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">get_theta</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">cutoff</span><span class="o">=</span><span class="n">cutoff</span><span class="p">)</span>  <span class="c1"># labels &#39;vL&#39;, &#39;vR&#39;, &#39;p0&#39;, &#39;p1&#39;</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_theta</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">cutoff</span><span class="o">=</span><span class="n">cutoff</span><span class="p">)</span>  <span class="c1"># labels &#39;vL&#39;, &#39;vR&#39;, &#39;p0&#39;, &#39;p1&#39;</span>
         <span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([[</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">]],</span> <span class="n">pipes</span><span class="o">=</span><span class="p">[</span><span class="n">pipeL</span><span class="p">,</span> <span class="n">pipeR</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">theta</span></div>
 
@@ -1116,7 +1213,7 @@
                                                      <span class="p">[</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">])</span>  <span class="c1"># &#39;wL&#39;, &#39;wR&#39;, &#39;p1&#39;, &#39;p1*&#39;</span>
         <span class="c1"># make theta</span>
         <span class="n">cutoff</span> <span class="o">=</span> <span class="mf">1.e-16</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="mf">1.e-8</span>
-        <span class="n">theta</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">get_theta</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">cutoff</span><span class="o">=</span><span class="n">cutoff</span><span class="p">)</span>  <span class="c1"># labels &#39;vL&#39;, &#39;vR&#39;, &#39;p0&#39;, &#39;p1&#39;</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_theta</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">cutoff</span><span class="o">=</span><span class="n">cutoff</span><span class="p">)</span>  <span class="c1"># labels &#39;vL&#39;, &#39;vR&#39;, &#39;p0&#39;, &#39;p1&#39;</span>
         <span class="k">return</span> <span class="n">theta</span><span class="o">.</span><span class="n">itranspose</span><span class="p">([</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">])</span></div>
 
 <div class="viewcode-block" id="EngineFracture.matvec"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.EngineFracture.matvec">[docs]</a>    <span class="k">def</span> <span class="nf">matvec</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
