@@ -195,6 +195,21 @@ Ritz Residual, stop if <code class="docutils literal notranslate"><span class="p
 <td>int</td>
 <td>The maximum number of <cite>psi</cite> to keep in memory.</td>
 </tr>
+<tr class="row-even"><td>reortho</td>
+<td>bool</td>
+<td>For poorly conditioned matrices, one can quickly loose
+orthogonality of the generated Krylov basis.
+If <cite>reortho</cite> is True, we re-orthogonalize against all the
+vectors kept in cache to avoid that problem.</td>
+</tr>
+<tr class="row-odd"><td>cutoff</td>
+<td>float</td>
+<td>Cutoff to abort if <cite>beta</cite> (= norm of next vector in Krylov
+basis before normalizing) is too small.
+This is necessary if the rank of A is smaller than N_max -
+then we get a complete basis of the Krylov space,
+and <cite>beta</cite> will be zero.</td>
+</tr>
 </tbody>
 </table>
 </dd>
@@ -226,6 +241,9 @@ Given the gap, the Ritz residual gives a bound on the error in the wavefunction,
 <dt><strong>orthogonal_to</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
 <dd><p class="first last">Vectors to orthogonalize against.</p>
 </dd>
+<dt><strong>reortho</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">See parameter <cite>reortho</cite>.</p>
+</dd>
 <dt><strong>N_min, N_max, E_tol, P_tol, N_cache :</strong></dt>
 <dd><p class="first last">Parameters as described above.</p>
 </dd>
@@ -236,10 +254,7 @@ Given the gap, the Ritz residual gives a bound on the error in the wavefunction,
 <dd><p class="first last">The tridiagonal matrix representing <cite>H</cite> in the orthonormalized Krylov basis.</p>
 </dd>
 <dt><strong>_cutoff</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd><p class="first last">cutoff to abort if <cite>beta</cite> (= norm of next vector in Krylov basis before normalizing)
-is too small.
-This is necessary if the rank of A is smaller than N_max - then we get a complete
-basis of the Krylov space, and beta will be zero.</p>
+<dd><p class="first last">See parameter <cite>cutoff</cite>.</p>
 </dd>
 <dt><strong>_cache</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of psi0-like vectors</span></dt>
 <dd><p class="first last">The ONB of the Krylov space generated during the iteration.

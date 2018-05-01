@@ -45,6 +45,7 @@
 <span class="kn">from</span> <span class="nn">..tools.params</span> <span class="k">import</span> <span class="n">get_parameter</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">scipy.linalg</span> <span class="k">import</span> <span class="n">expm</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
 
 
 <div class="viewcode-block" id="LanczosGroundState"><a class="viewcode-back" href="../../../reference/tenpy.linalg.lanczos.html#tenpy.linalg.lanczos.LanczosGroundState">[docs]</a><span class="k">class</span> <span class="nc">LanczosGroundState</span><span class="p">:</span>
@@ -86,6 +87,17 @@
 <span class="sd">        min_gap float  Lower cutoff for the gap estimate used in the P_tol criterion.</span>
 <span class="sd">        ------- ------ ---------------------------------------------------------------</span>
 <span class="sd">        N_cache int    The maximum number of `psi` to keep in memory.</span>
+<span class="sd">        ------- ------ ---------------------------------------------------------------</span>
+<span class="sd">        reortho bool   For poorly conditioned matrices, one can quickly loose</span>
+<span class="sd">                       orthogonality of the generated Krylov basis.</span>
+<span class="sd">                       If `reortho` is True, we re-orthogonalize against all the</span>
+<span class="sd">                       vectors kept in cache to avoid that problem.</span>
+<span class="sd">        ------- ------ ---------------------------------------------------------------</span>
+<span class="sd">        cutoff  float  Cutoff to abort if `beta` (= norm of next vector in Krylov</span>
+<span class="sd">                       basis before normalizing) is too small.</span>
+<span class="sd">                       This is necessary if the rank of A is smaller than N_max -</span>
+<span class="sd">                       then we get a complete basis of the Krylov space,</span>
+<span class="sd">                       and `beta` will be zero.</span>
 <span class="sd">        ======= ====== ===============================================================</span>
 
 <span class="sd">    orthogonal_to : list of :class:`~tenpy.linalg.np_conserved.Array`</span>
@@ -100,6 +112,8 @@
 <span class="sd">        The starting vector.</span>
 <span class="sd">    orthogonal_to : list of :class:`~tenpy.linalg.np_conserved.Array`</span>
 <span class="sd">        Vectors to orthogonalize against.</span>
+<span class="sd">    reortho : bool</span>
+<span class="sd">        See parameter `reortho`.</span>
 <span class="sd">    N_min, N_max, E_tol, P_tol, N_cache :</span>
 <span class="sd">        Parameters as described above.</span>
 <span class="sd">    Es : ndarray, shape(N_max, N_max)</span>
@@ -107,10 +121,7 @@
 <span class="sd">    _T : ndarray, shape (N_max + 1, N_max +1)</span>
 <span class="sd">        The tridiagonal matrix representing `H` in the orthonormalized Krylov basis.</span>
 <span class="sd">    _cutoff : float</span>
-<span class="sd">        cutoff to abort if `beta` (= norm of next vector in Krylov basis before normalizing)</span>
-<span class="sd">        is too small.</span>
-<span class="sd">        This is necessary if the rank of A is smaller than N_max - then we get a complete</span>
-<span class="sd">        basis of the Krylov space, and beta will be zero.</span>
+<span class="sd">        See parameter `cutoff`.</span>
 <span class="sd">    _cache : list of psi0-like vectors</span>
 <span class="sd">        The ONB of the Krylov space generated during the iteration.</span>
 <span class="sd">        FIFO (first in first out) cache of at most N_cache vectors.</span>
@@ -135,11 +146,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">P_tol</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;P_tol&#39;</span><span class="p">,</span> <span class="mf">1.e-14</span><span class="p">,</span> <span class="s2">&quot;Lanczos&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">N_cache</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;N_cache&#39;</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="s2">&quot;Lanczos&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">min_gap</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;min_gap&#39;</span><span class="p">,</span> <span class="mf">1.e-12</span><span class="p">,</span> <span class="s2">&quot;Lanczos&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reortho</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;reortho&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;Lanczos&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_cache</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Need to cache at least two vectors.&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_min</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Should perform at least 2 steps.&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_cutoff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">psi0</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span> <span class="o">*</span> <span class="mi">100</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cutoff</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;cutoff&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">psi0</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span> <span class="o">*</span> <span class="mi">100</span><span class="p">,</span> <span class="s2">&quot;Lanczos&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">orthogonal_to</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">orthogonal_to</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">gram_schmidt</span><span class="p">(</span><span class="n">orthogonal_to</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">/</span> <span class="mi">10</span><span class="p">)</span>
@@ -185,14 +197,16 @@
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N_max</span><span class="p">):</span>
             <span class="n">w</span> <span class="o">/=</span> <span class="n">beta</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_to_cache</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
-            <span class="c1"># project out the orthogonal parts:</span>
             <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_H</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
             <span class="n">alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">npc</span><span class="o">.</span><span class="n">inner</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">do_conj</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
             <span class="n">T</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">alpha</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_calc_result_krylov</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">k</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">w</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">beta</span>
             <span class="n">w</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">alpha</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reortho</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+                    <span class="n">w</span> <span class="o">-=</span> <span class="n">c</span> <span class="o">*</span> <span class="n">npc</span><span class="o">.</span><span class="n">inner</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">do_conj</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">k</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">w</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">beta</span>
             <span class="n">beta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
             <span class="n">T</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span><span class="p">[</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">beta</span>  <span class="c1"># needed for the next step and convergence criteria</span>
             <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">beta</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cutoff</span> <span class="ow">or</span> <span class="p">(</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_min</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_converged</span><span class="p">(</span><span class="n">k</span><span class="p">)):</span>
@@ -207,32 +221,38 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">vf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_result_krylov</span>
         <span class="k">assert</span> <span class="n">N</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">vf</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
-        <span class="n">psif</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi0</span> <span class="o">*</span> <span class="n">vf</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># the start vector is still known</span>
+        <span class="n">psif</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi0</span> <span class="o">*</span> <span class="n">vf</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># the start vector is still known and got normalized</span>
         <span class="n">len_cache</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">)</span>
         <span class="c1"># and the last len_cache vectors have been cached</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">len_cache</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">N</span><span class="p">)):</span>
             <span class="n">psif</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="o">-</span><span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">vf</span><span class="p">[</span><span class="n">N</span> <span class="o">-</span> <span class="n">k</span><span class="p">]</span>
         <span class="c1"># other vectors are not cached, so we need to restart the Lanczos iteration.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># free memory: we need at least two more vectors</span>
-        <span class="c1"># keep q0 and q1 as cache</span>
-        <span class="n">q0</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">q1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi0</span>
-        <span class="n">beta</span> <span class="o">=</span> <span class="mf">1.</span>  <span class="c1"># start vector is already normalized</span>
+
         <span class="n">T</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_T</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi0</span>  <span class="c1"># initialize</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">N</span> <span class="o">-</span> <span class="n">len_cache</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
-            <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_H</span><span class="p">(</span><span class="n">q1</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">k</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">w</span> <span class="o">-=</span> <span class="n">q0</span> <span class="o">*</span> <span class="n">beta</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_to_cache</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
+            <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_H</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
             <span class="n">alpha</span> <span class="o">=</span> <span class="n">T</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span>
-            <span class="n">w</span> <span class="o">-=</span> <span class="n">q1</span> <span class="o">*</span> <span class="n">alpha</span>
-            <span class="n">beta</span> <span class="o">=</span> <span class="n">T</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">w</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">alpha</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reortho</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+                    <span class="n">w</span> <span class="o">-=</span> <span class="n">c</span> <span class="o">*</span> <span class="n">npc</span><span class="o">.</span><span class="n">inner</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">do_conj</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">k</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">w</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">beta</span>
+            <span class="n">beta</span> <span class="o">=</span> <span class="n">T</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>  <span class="c1"># = norm(w)</span>
             <span class="n">w</span> <span class="o">/=</span> <span class="n">beta</span>
-            <span class="n">q0</span> <span class="o">=</span> <span class="n">q1</span>
-            <span class="n">q1</span> <span class="o">=</span> <span class="n">w</span>
-            <span class="n">psif</span> <span class="o">+=</span> <span class="n">q1</span> <span class="o">*</span> <span class="n">vf</span><span class="p">[</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">psif</span> <span class="o">+=</span> <span class="n">w</span> <span class="o">*</span> <span class="n">vf</span><span class="p">[</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
         <span class="n">psif_norm</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">psif</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">psif_norm</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1.e-5</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;poorly conditioned Lanczos: |psi_0| = </span><span class="si">{0:f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">psif_norm</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">psif_norm</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1.e-5</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Poorly conditioned Lanczos!&quot;</span><span class="p">)</span>
+            <span class="c1"># One reason can be that `H` is not Hermitian</span>
+            <span class="c1"># Otherwise, the matrix (even if small) might be ill conditioned.</span>
+            <span class="c1"># If you still get this warning, you can try to set the parameters</span>
+            <span class="c1"># `reortho`=True and `N_cache` &gt;= `N_max`</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;poorly conditioned Lanczos! |psi_0| = </span><span class="si">{0:f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">psif_norm</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">psif</span> <span class="o">/</span> <span class="n">psif_norm</span>
 
     <span class="k">def</span> <span class="nf">_to_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">psi</span><span class="p">):</span>
