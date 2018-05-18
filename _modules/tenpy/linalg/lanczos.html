@@ -86,7 +86,11 @@
 <span class="sd">        ------- ------ ---------------------------------------------------------------</span>
 <span class="sd">        min_gap float  Lower cutoff for the gap estimate used in the P_tol criterion.</span>
 <span class="sd">        ------- ------ ---------------------------------------------------------------</span>
-<span class="sd">        N_cache int    The maximum number of `psi` to keep in memory.</span>
+<span class="sd">        N_cache int    The maximum number of `psi` to keep in memory during the first</span>
+<span class="sd">                       iteration. By default, we keep all states (up to N_max).</span>
+<span class="sd">                       Set this to a number &gt;= 2 if you are short on memory.</span>
+<span class="sd">                       The penalty is that one needs another Lanczos iteration to</span>
+<span class="sd">                       determine the ground state in the end, i.e., runtime is large.</span>
 <span class="sd">        ------- ------ ---------------------------------------------------------------</span>
 <span class="sd">        reortho bool   For poorly conditioned matrices, one can quickly loose</span>
 <span class="sd">                       orthogonality of the generated Krylov basis.</span>
@@ -112,9 +116,7 @@
 <span class="sd">        The starting vector.</span>
 <span class="sd">    orthogonal_to : list of :class:`~tenpy.linalg.np_conserved.Array`</span>
 <span class="sd">        Vectors to orthogonalize against.</span>
-<span class="sd">    reortho : bool</span>
-<span class="sd">        See parameter `reortho`.</span>
-<span class="sd">    N_min, N_max, E_tol, P_tol, N_cache :</span>
+<span class="sd">    N_min, N_max, E_tol, P_tol, N_cache, reortho:</span>
 <span class="sd">        Parameters as described above.</span>
 <span class="sd">    Es : ndarray, shape(N_max, N_max)</span>
 <span class="sd">        ``Es[n, :]`` contains the energies of ``_T[:n+1, :n+1]`` in step `n`.</span>
@@ -144,7 +146,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">N_max</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;N_max&#39;</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="s2">&quot;Lanczos&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">E_tol</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;E_tol&#39;</span><span class="p">,</span> <span class="mf">5.e-15</span><span class="p">,</span> <span class="s2">&quot;Lanczos&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">P_tol</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;P_tol&#39;</span><span class="p">,</span> <span class="mf">1.e-14</span><span class="p">,</span> <span class="s2">&quot;Lanczos&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">N_cache</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;N_cache&#39;</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="s2">&quot;Lanczos&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_cache</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;N_cache&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_max</span><span class="p">,</span> <span class="s2">&quot;Lanczos&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">min_gap</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;min_gap&#39;</span><span class="p">,</span> <span class="mf">1.e-12</span><span class="p">,</span> <span class="s2">&quot;Lanczos&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">reortho</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;reortho&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;Lanczos&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_cache</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
@@ -249,7 +251,7 @@
             <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Poorly conditioned Lanczos!&quot;</span><span class="p">)</span>
             <span class="c1"># One reason can be that `H` is not Hermitian</span>
             <span class="c1"># Otherwise, the matrix (even if small) might be ill conditioned.</span>
-            <span class="c1"># If you still get this warning, you can try to set the parameters</span>
+            <span class="c1"># If you get this warning, you can try to set the parameters</span>
             <span class="c1"># `reortho`=True and `N_cache` &gt;= `N_max`</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;poorly conditioned Lanczos! |psi_0| = </span><span class="si">{0:f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">psif_norm</span><span class="p">))</span>
