@@ -927,7 +927,7 @@
 <span class="sd">    subqshape : tuple of int</span>
 <span class="sd">        `block_number` for each of the incoming legs.</span>
 <span class="sd">    q_map:  2D array</span>
-<span class="sd">        Shape (`block_number`, 3 + `nlegs`). Rows: ``[ m_j, m_{j+1}, I_s, i_1, ..., i_{nlegs}]``,</span>
+<span class="sd">        Shape (`block_number`, 3 + `nlegs`). Rows: ``[ b_j, b_{j+1}, I_s, i_1, ..., i_{nlegs}]``,</span>
 <span class="sd">        See Notes below for details.</span>
 <span class="sd">    q_map_slices : list of views onto q_map</span>
 <span class="sd">        Defined such that ``q_map_slices[I_s] == q_map[(q_map[:, 2] == I_s)]``.</span>
@@ -957,7 +957,7 @@
 <span class="sd">    Here, :math:`b_j:b_{j+1}` denotes the slice of this qindex combination *within*</span>
 <span class="sd">    the total block `I_s`, i.e., ``b_j = a_j - self.slices[I_s]``.</span>
 
-<span class="sd">    The rows of map_qind are lex-sorted first by ``I_s``, then the ``i``.</span>
+<span class="sd">    The rows of `q_map` are lex-sorted first by ``I_s``, then the ``i``.</span>
 <span class="sd">    Each ``I_s`` will have multiple rows,</span>
 <span class="sd">    and the order in which they are stored in `q_map` is the order the data is stored</span>
 <span class="sd">    in the actual tensor, i.e., it might look like ::</span>
@@ -1134,7 +1134,7 @@
 
         <span class="n">nblocks</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># number of blocks in the pipe = np.product(qshape)</span>
         <span class="c1"># determine q_map -- it&#39;s essentially the grid.</span>
-        <span class="n">q_map</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">nblocks</span><span class="p">,</span> <span class="mi">3</span> <span class="o">+</span> <span class="n">nlegs</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">QTYPE</span><span class="p">)</span>
+        <span class="n">q_map</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">nblocks</span><span class="p">,</span> <span class="mi">3</span> <span class="o">+</span> <span class="n">nlegs</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
         <span class="n">q_map</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">:]</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">T</span>  <span class="c1"># transpose -&gt; rows are possible combinations.</span>
         <span class="c1"># the block size for given (i1, i2, ...) is the product of ``legs._get_block_sizes()[il]``</span>
         <span class="n">legbs</span> <span class="o">=</span> <span class="p">[</span><span class="n">l</span><span class="o">.</span><span class="n">_get_block_sizes</span><span class="p">()</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">legs</span><span class="p">]</span>
@@ -1179,11 +1179,11 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">charges</span> <span class="o">=</span> <span class="n">bunched</span><span class="o">.</span><span class="n">charges</span>  <span class="c1"># copy information back to self</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">slices</span> <span class="o">=</span> <span class="n">bunched</span><span class="o">.</span><span class="n">slices</span>
             <span class="c1"># calculate q_map[:, 2], the qindices corresponding to the rows of q_map</span>
-            <span class="n">q_map_Qi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">q_map</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">q_map</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="n">q_map_Qi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">q_map</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
             <span class="n">q_map_Qi</span><span class="p">[</span><span class="n">idx</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># not for the first entry =&gt; np.cumsum starts with 0</span>
             <span class="n">q_map</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">q_map_Qi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">q_map_Qi</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">q_map</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">q_map_Qi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">q_map</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">q_map</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="n">q_map</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">q_map_Qi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">q_map</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
             <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">q_map</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
         <span class="c1"># calculate the slices within blocks: subtract the start of each block</span>
         <span class="n">q_map</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">-=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">[</span><span class="n">q_map_Qi</span><span class="p">])[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
