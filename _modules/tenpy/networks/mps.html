@@ -1017,18 +1017,29 @@
                     <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">B</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="n">contr_legs</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">coord</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">mutinf</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MPS.overlap"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.html#tenpy.networks.mps.MPS.overlap">[docs]</a>    <span class="k">def</span> <span class="nf">overlap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">ignore_form</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.overlap"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.html#tenpy.networks.mps.MPS.overlap">[docs]</a>    <span class="k">def</span> <span class="nf">overlap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">charge_sector</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ignore_form</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Compute overlap :math:`&lt;self|other&gt;`.</span>
+
+<span class="sd">        .. todo :</span>
+<span class="sd">            For finite MPS with form=False, different charge sectors don&#39;t work:</span>
+<span class="sd">            MPSEnvironment assumes same charge in bra and ket.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        other : :class:`MPS`</span>
 <span class="sd">            An MPS with the same physical sites.</span>
+<span class="sd">        charge_sector : None | charges | ``0``</span>
+<span class="sd">            Selects the charge sector in which the dominant eigenvector of the TransferMatrix is.</span>
+<span class="sd">            ``None`` stands for *all* sectors, ``0`` stands for the zero-charge sector.</span>
+<span class="sd">            Defaults to ``0``, i.e., *assumes* the dominant eigenvector is in charge sector 0.</span>
 <span class="sd">        ignore_form : bool</span>
 <span class="sd">            If ``False`` (default), take into account the canonical form :attr:`form` at each site.</span>
 <span class="sd">            If ``True``, we ignore the canonical form (i.e., whether the MPS is in left, right,</span>
 <span class="sd">            mixed or no canonical form) and just contract all the :attr:`_B` as they are.</span>
 <span class="sd">            (This can give different results!)</span>
+<span class="sd">        **kwargs :</span>
+<span class="sd">            Further keyword arguments given to :meth:`TransferMatrix.eigenvectors`;</span>
+<span class="sd">            only used for infinite boundary conditions.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1042,16 +1053,18 @@
             <span class="k">if</span> <span class="n">ignore_form</span><span class="p">:</span>
                 <span class="c1"># Use TransferMatrix with option to ignore the form</span>
                 <span class="c1"># (drawback: makes full copies of the states)</span>
-                <span class="n">TM</span> <span class="o">=</span> <span class="n">TransferMatrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+                <span class="n">TM</span> <span class="o">=</span> <span class="n">TransferMatrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">charge_sector</span><span class="o">=</span><span class="n">charge_sector</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
                 <span class="n">res</span> <span class="o">=</span> <span class="n">TM</span><span class="o">.</span><span class="n">matvec</span><span class="p">(</span><span class="n">TM</span><span class="o">.</span><span class="n">initial_guess</span><span class="p">(</span><span class="mf">1.</span><span class="p">))</span>  <span class="c1"># apply transfer matrix to identity</span>
                 <span class="k">return</span> <span class="n">npc</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">*</span> <span class="n">other</span><span class="o">.</span><span class="n">norm</span>
             <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">charge_sector</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;TODO: doesn&#39;t work for different charges...&quot;</span><span class="p">)</span>
                 <span class="n">env</span> <span class="o">=</span> <span class="n">MPSEnvironment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
                 <span class="k">return</span> <span class="n">env</span><span class="o">.</span><span class="n">full_contraction</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>  <span class="c1"># infinite</span>
             <span class="n">form</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">ignore_form</span> <span class="k">else</span> <span class="s1">&#39;B&#39;</span>
-            <span class="n">TM</span> <span class="o">=</span> <span class="n">TransferMatrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="n">form</span><span class="p">)</span>
-            <span class="n">ov</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">TM</span><span class="o">.</span><span class="n">eigenvectors</span><span class="p">()</span>
+            <span class="n">TM</span> <span class="o">=</span> <span class="n">TransferMatrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">charge_sector</span><span class="o">=</span><span class="n">charge_sector</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="n">form</span><span class="p">)</span>
+            <span class="n">ov</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">TM</span><span class="o">.</span><span class="n">eigenvectors</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">ov</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">*</span> <span class="n">other</span><span class="o">.</span><span class="n">norm</span></div>
 
 <div class="viewcode-block" id="MPS.expectation_value"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.html#tenpy.networks.mps.MPS.expectation_value">[docs]</a>    <span class="k">def</span> <span class="nf">expectation_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ops</span><span class="p">,</span> <span class="n">sites</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -2168,7 +2181,7 @@
 <span class="sd">    Thus, the special case ``ket=bra`` should yield identity matrices for `LP` and `RP`.</span>
 
 <span class="sd">    .. todo ::</span>
-<span class="sd">        Functionality to find the dominant LP/RP in the TD limit -&gt; requires TransferMatrix</span>
+<span class="sd">        Initial firstLP and first_RP could be calculated with the TransferMatrix. Usefull?</span>
 
 <span class="sd">    .. todo ::</span>
 <span class="sd">        Doesn&#39;t work for different qtotal in ket._B / bra._B -&gt; Need MPS.gauge_qtotal()</span>

@@ -331,7 +331,7 @@ Important if the state develops a near-degeneracy.</p>
 <tr class="row-even"><td><a class="reference internal" href="#tenpy.networks.mps.MPS.norm_test" title="tenpy.networks.mps.MPS.norm_test"><code class="xref py py-obj docutils literal notranslate"><span class="pre">norm_test</span></code></a>()</td>
 <td>Check that self is in canonical form.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.networks.mps.MPS.overlap" title="tenpy.networks.mps.MPS.overlap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">overlap</span></code></a>(other[,&nbsp;ignore_form])</td>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.networks.mps.MPS.overlap" title="tenpy.networks.mps.MPS.overlap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">overlap</span></code></a>(other[,&nbsp;charge_sector,&nbsp;ignore_form])</td>
 <td>Compute overlap <span class="math notranslate">\(&lt;self|other&gt;\)</span>.</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#tenpy.networks.mps.MPS.permute_sites" title="tenpy.networks.mps.MPS.permute_sites"><code class="xref py py-obj docutils literal notranslate"><span class="pre">permute_sites</span></code></a>(perm[,&nbsp;swap_op,&nbsp;trunc_par,&nbsp;…])</td>
@@ -1385,7 +1385,7 @@ the following networks:</p>
 
 <dl class="method">
 <dt id="tenpy.networks.mps.MPS.overlap">
-<code class="descname">overlap</code><span class="sig-paren">(</span><em>other</em>, <em>ignore_form=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mps.html#MPS.overlap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mps.MPS.overlap" title="Permalink to this definition">¶</a></dt>
+<code class="descname">overlap</code><span class="sig-paren">(</span><em>other</em>, <em>charge_sector=0</em>, <em>ignore_form=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mps.html#MPS.overlap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mps.MPS.overlap" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute overlap <span class="math notranslate">\(&lt;self|other&gt;\)</span>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1395,11 +1395,20 @@ the following networks:</p>
 <dt><strong>other</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="#tenpy.networks.mps.MPS" title="tenpy.networks.mps.MPS"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPS</span></code></a></span></dt>
 <dd><p class="first last">An MPS with the same physical sites.</p>
 </dd>
+<dt><strong>charge_sector</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None | charges | <code class="docutils literal notranslate"><span class="pre">0</span></code></span></dt>
+<dd><p class="first last">Selects the charge sector in which the dominant eigenvector of the TransferMatrix is.
+<code class="docutils literal notranslate"><span class="pre">None</span></code> stands for <em>all</em> sectors, <code class="docutils literal notranslate"><span class="pre">0</span></code> stands for the zero-charge sector.
+Defaults to <code class="docutils literal notranslate"><span class="pre">0</span></code>, i.e., <em>assumes</em> the dominant eigenvector is in charge sector 0.</p>
+</dd>
 <dt><strong>ignore_form</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
 <dd><p class="first last">If <code class="docutils literal notranslate"><span class="pre">False</span></code> (default), take into account the canonical form <code class="xref py py-attr docutils literal notranslate"><span class="pre">form</span></code> at each site.
 If <code class="docutils literal notranslate"><span class="pre">True</span></code>, we ignore the canonical form (i.e., whether the MPS is in left, right,
 mixed or no canonical form) and just contract all the <code class="xref py py-attr docutils literal notranslate"><span class="pre">_B</span></code> as they are.
 (This can give different results!)</p>
+</dd>
+<dt><strong>**kwargs :</strong></dt>
+<dd><p class="first last">Further keyword arguments given to <a class="reference internal" href="#tenpy.networks.mps.TransferMatrix.eigenvectors" title="tenpy.networks.mps.TransferMatrix.eigenvectors"><code class="xref py py-meth docutils literal notranslate"><span class="pre">TransferMatrix.eigenvectors()</span></code></a>;
+only used for infinite boundary conditions.</p>
 </dd>
 </dl>
 </td>
@@ -1578,7 +1587,7 @@ and right-canonical <cite>B</cite> to the right parts <cite>RP</cite>.
 Thus, the special case <code class="docutils literal notranslate"><span class="pre">ket=bra</span></code> should yield identity matrices for <cite>LP</cite> and <cite>RP</cite>.</p>
 <div class="admonition-todo admonition" id="index-1">
 <p class="first admonition-title">Todo</p>
-<p class="last">Functionality to find the dominant LP/RP in the TD limit -&gt; requires TransferMatrix</p>
+<p class="last">Initial firstLP and first_RP could be calculated with the TransferMatrix. Usefull?</p>
 </div>
 <div class="admonition-todo admonition" id="index-2">
 <p class="first admonition-title">Todo</p>
