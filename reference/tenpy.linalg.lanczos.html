@@ -50,85 +50,6 @@
 <span id="tenpy-linalg-lanczos-module"></span><h1>tenpy.linalg.lanczos module<a class="headerlink" href="#module-tenpy.linalg.lanczos" title="Permalink to this headline">¶</a></h1>
 <p>Lanczos algorithm for np_conserved arrays.</p>
 <dl class="class">
-<dt id="tenpy.linalg.lanczos.LanczosEvolution">
-<em class="property">class </em><code class="descclassname">tenpy.linalg.lanczos.</code><code class="descname">LanczosEvolution</code><span class="sig-paren">(</span><em>H</em>, <em>psi0</em>, <em>params</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/lanczos.html#LanczosEvolution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.lanczos.LanczosEvolution" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#tenpy.linalg.lanczos.LanczosGroundState" title="tenpy.linalg.lanczos.LanczosGroundState"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.linalg.lanczos.LanczosGroundState</span></code></a></p>
-<p>Calculate <span class="math notranslate">\(exp(delta H) |psi0&gt;\)</span> using Lanczos.</p>
-<p>It turns out that the Lanczos algorithm is also good for calculating the matrix exponential
-applied to the starting vector. Instead of diagonalizing the tri-diagonal <cite>T</cite> and taking the
-ground state, we now calculate <code class="docutils literal notranslate"><span class="pre">exp(delta</span> <span class="pre">T)</span> <span class="pre">e_0</span> <span class="pre">in</span> <span class="pre">the</span> <span class="pre">Krylov</span> <span class="pre">ONB,</span> <span class="pre">where</span>
-<span class="pre">``e_0</span> <span class="pre">=</span> <span class="pre">(1,</span> <span class="pre">0,</span> <span class="pre">0,</span> <span class="pre">...)</span></code> corresponds to <code class="docutils literal notranslate"><span class="pre">psi0</span></code> in the original basis.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>H, psi0, params :</strong></dt>
-<dd><p class="first last">Hamiltonian, starting vector and parameters as defined in <a class="reference internal" href="#tenpy.linalg.lanczos.LanczosGroundState" title="tenpy.linalg.lanczos.LanczosGroundState"><code class="xref py py-class docutils literal notranslate"><span class="pre">LanczosGroundState</span></code></a>.
-The parameters <cite>E_tol</cite> and <cite>min_gap</cite> are ignored,
-the parameters <cite>P_tol</cite> defines when convergence is reached, see <code class="xref py py-meth docutils literal notranslate"><span class="pre">_converged()</span></code> for
-details.</p>
-</dd>
-</dl>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>delta</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float/complex</span></dt>
-<dd><p class="first last">Prefactor of H in the exponential.</p>
-</dd>
-<dt><strong>_result_norm</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd><p class="first last">Norm of the resulting vector.</p>
-</dd>
-</dl>
-</td>
-</tr>
-</tbody>
-</table>
-<p class="rubric">Methods</p>
-<table border="1" class="longtable docutils">
-<colgroup>
-<col width="10%" />
-<col width="90%" />
-</colgroup>
-<tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.linalg.lanczos.LanczosEvolution.run" title="tenpy.linalg.lanczos.LanczosEvolution.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>(delta)</td>
-<td>Calculate <code class="docutils literal notranslate"><span class="pre">expm(delta</span> <span class="pre">H).dot(psi0)</span></code> using Lanczos.</td>
-</tr>
-</tbody>
-</table>
-<dl class="method">
-<dt id="tenpy.linalg.lanczos.LanczosEvolution.run">
-<code class="descname">run</code><span class="sig-paren">(</span><em>delta</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/lanczos.html#LanczosEvolution.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.lanczos.LanczosEvolution.run" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculate <code class="docutils literal notranslate"><span class="pre">expm(delta</span> <span class="pre">H).dot(psi0)</span></code> using Lanczos.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>delta</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float/complex</span></dt>
-<dd><p class="first last">Time step by which we should evolve psi0: prefactor of H in the exponential.
-Note that the complex <cite>i</cite> is <em>not</em> included!</p>
-</dd>
-</dl>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>psi_f</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
-<dd><p class="first last">Best approximation for <code class="docutils literal notranslate"><span class="pre">expm(delta</span> <span class="pre">H).dot(psi0)</span></code></p>
-</dd>
-<dt><strong>N</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd><p class="first last">Krylov space dimension used.</p>
-</dd>
-</dl>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
 <dt id="tenpy.linalg.lanczos.LanczosGroundState">
 <em class="property">class </em><code class="descclassname">tenpy.linalg.lanczos.</code><code class="descname">LanczosGroundState</code><span class="sig-paren">(</span><em>H</em>, <em>psi0</em>, <em>params</em>, <em>orthogonal_to=[]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/lanczos.html#LanczosGroundState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.lanczos.LanczosGroundState" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
@@ -218,8 +139,10 @@ and <cite>beta</cite> will be zero.</td>
 </table>
 </dd>
 <dt><strong>orthogonal_to</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
-<dd><p class="first last">Vectors (same tensor structure as psi) Lanczos will orthogonalize against,
-ensuring that the result is perpendicular to them.</p>
+<dd><p class="first last">Vectors (same tensor structure as psi) against which Lanczos will orthogonalize,
+ensuring that the result is perpendicular to them.
+(Assumes that the smallest eigenvalue is smaller than 0, which should <em>always</em> be the
+case if you want to find ground states with Lanczos!)</p>
 </dd>
 </dl>
 </td>
@@ -308,6 +231,91 @@ FIFO (first in first out) cache of at most N_cache vectors.</p>
 
 </dd></dl>
 
+<dl class="class">
+<dt id="tenpy.linalg.lanczos.LanczosEvolution">
+<em class="property">class </em><code class="descclassname">tenpy.linalg.lanczos.</code><code class="descname">LanczosEvolution</code><span class="sig-paren">(</span><em>H</em>, <em>psi0</em>, <em>params</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/lanczos.html#LanczosEvolution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.lanczos.LanczosEvolution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tenpy.linalg.lanczos.LanczosGroundState" title="tenpy.linalg.lanczos.LanczosGroundState"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.linalg.lanczos.LanczosGroundState</span></code></a></p>
+<p>Calculate <span class="math notranslate">\(exp(delta H) |psi0&gt;\)</span> using Lanczos.</p>
+<p>It turns out that the Lanczos algorithm is also good for calculating the matrix exponential
+applied to the starting vector. Instead of diagonalizing the tri-diagonal <cite>T</cite> and taking the
+ground state, we now calculate <code class="docutils literal notranslate"><span class="pre">exp(delta</span> <span class="pre">T)</span> <span class="pre">e_0</span> <span class="pre">in</span> <span class="pre">the</span> <span class="pre">Krylov</span> <span class="pre">ONB,</span> <span class="pre">where</span>
+<span class="pre">``e_0</span> <span class="pre">=</span> <span class="pre">(1,</span> <span class="pre">0,</span> <span class="pre">0,</span> <span class="pre">...)</span></code> corresponds to <code class="docutils literal notranslate"><span class="pre">psi0</span></code> in the original basis.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>H, psi0, params :</strong></dt>
+<dd><p class="first last">Hamiltonian, starting vector and parameters as defined in <a class="reference internal" href="#tenpy.linalg.lanczos.LanczosGroundState" title="tenpy.linalg.lanczos.LanczosGroundState"><code class="xref py py-class docutils literal notranslate"><span class="pre">LanczosGroundState</span></code></a>.
+The parameters <cite>E_tol</cite> and <cite>min_gap</cite> are ignored,
+the parameters <cite>P_tol</cite> defines when convergence is reached, see <code class="xref py py-meth docutils literal notranslate"><span class="pre">_converged()</span></code> for
+details.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>delta</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float/complex</span></dt>
+<dd><p class="first last">Prefactor of H in the exponential.</p>
+</dd>
+<dt><strong>_result_norm</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Norm of the resulting vector.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.linalg.lanczos.LanczosEvolution.run" title="tenpy.linalg.lanczos.LanczosEvolution.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>(delta)</td>
+<td>Calculate <code class="docutils literal notranslate"><span class="pre">expm(delta</span> <span class="pre">H).dot(psi0)</span></code> using Lanczos.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="tenpy.linalg.lanczos.LanczosEvolution.run">
+<code class="descname">run</code><span class="sig-paren">(</span><em>delta</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/lanczos.html#LanczosEvolution.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.lanczos.LanczosEvolution.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate <code class="docutils literal notranslate"><span class="pre">expm(delta</span> <span class="pre">H).dot(psi0)</span></code> using Lanczos.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>delta</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float/complex</span></dt>
+<dd><p class="first last">Time step by which we should evolve psi0: prefactor of H in the exponential.
+Note that the complex <cite>i</cite> is <em>not</em> included!</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>psi_f</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Best approximation for <code class="docutils literal notranslate"><span class="pre">expm(delta</span> <span class="pre">H).dot(psi0)</span></code></p>
+</dd>
+<dt><strong>N</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Krylov space dimension used.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="tenpy.linalg.lanczos.lanczos">
+<code class="descclassname">tenpy.linalg.lanczos.</code><code class="descname">lanczos</code><span class="sig-paren">(</span><em>H</em>, <em>psi</em>, <em>lanczos_params={}</em>, <em>orthogonal_to=[]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/lanczos.html#lanczos"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.lanczos.lanczos" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simple wrapper calling <code class="docutils literal notranslate"><span class="pre">LanczosGroundState(H,</span> <span class="pre">psi,</span> <span class="pre">params,</span> <span class="pre">orthogonal_to).run()</span></code></p>
+</dd></dl>
+
 <dl class="function">
 <dt id="tenpy.linalg.lanczos.gram_schmidt">
 <code class="descclassname">tenpy.linalg.lanczos.</code><code class="descname">gram_schmidt</code><span class="sig-paren">(</span><em>vecs</em>, <em>rcond=1e-14</em>, <em>verbose=0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/lanczos.html#gram_schmidt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.lanczos.gram_schmidt" title="Permalink to this definition">¶</a></dt>
@@ -343,12 +351,6 @@ if a norm &lt; rcond, they entry is set to <cite>None</cite></p>
 </tr>
 </tbody>
 </table>
-</dd></dl>
-
-<dl class="function">
-<dt id="tenpy.linalg.lanczos.lanczos">
-<code class="descclassname">tenpy.linalg.lanczos.</code><code class="descname">lanczos</code><span class="sig-paren">(</span><em>H</em>, <em>psi</em>, <em>lanczos_params={}</em>, <em>orthogonal_to=[]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/lanczos.html#lanczos"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.lanczos.lanczos" title="Permalink to this definition">¶</a></dt>
-<dd><p>Simple wrapper calling <code class="docutils literal notranslate"><span class="pre">LanczosGroundState(H,</span> <span class="pre">psi,</span> <span class="pre">params,</span> <span class="pre">orthogonal_to).run()</span></code></p>
 </dd></dl>
 
 <dl class="function">

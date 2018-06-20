@@ -50,7 +50,7 @@
 
 <span class="sd">The function :func:`run` - well - runs one DMRG simulation.</span>
 <span class="sd">Internally, it generates an instance of an :class:`Engine`.</span>
-<span class="sd">It implements the common functionality like defining a `sweep`,</span>
+<span class="sd">This class implements the common functionality like defining a `sweep`,</span>
 <span class="sd">but leaves the details of the contractions to be performed to the derived classes.</span>
 
 <span class="sd">Currently, there are two derived classes implementing the contractions.</span>
@@ -65,7 +65,6 @@
 <span class="sd">.. todo ::</span>
 <span class="sd">    Need function to plot the statistics in the end</span>
 <span class="sd">    Write UserGuide/Example!!!</span>
-<span class="sd">    Allow to keep MPS orthogonal to other states, for finding excited states</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="c1"># Copyright 2018 TeNPy Developers</span>
 
@@ -74,6 +73,7 @@
 <span class="kn">import</span> <span class="nn">warnings</span>
 
 <span class="kn">from</span> <span class="nn">..linalg</span> <span class="k">import</span> <span class="n">np_conserved</span> <span class="k">as</span> <span class="n">npc</span>
+<span class="kn">from</span> <span class="nn">..networks.mps</span> <span class="k">import</span> <span class="n">MPSEnvironment</span>
 <span class="kn">from</span> <span class="nn">..networks.mpo</span> <span class="k">import</span> <span class="n">MPOEnvironment</span>
 <span class="kn">from</span> <span class="nn">..linalg.lanczos</span> <span class="k">import</span> <span class="n">lanczos</span>
 <span class="kn">from</span> <span class="nn">..linalg.sparse</span> <span class="k">import</span> <span class="n">NpcLinearOperator</span>
@@ -116,6 +116,14 @@
 <span class="sd">        mixer_params   dict      Non-default initialization arguments of the mixer.</span>
 <span class="sd">                                 Options may be custom to the specified mixer, so they&#39;re</span>
 <span class="sd">                                 documented in the class doc-string of the mixer.</span>
+<span class="sd">        -------------- --------- ---------------------------------------------------------------</span>
+<span class="sd">        orthogonal_to  list of   List of other matrix produc states to orthogonalize against.</span>
+<span class="sd">                       MPS       Works only for finite systems.</span>
+<span class="sd">                                 This parameter can be used to find (a few) excited states as</span>
+<span class="sd">                                 follows. First, run DMRG to find the ground state and then</span>
+<span class="sd">                                 run DMRG again while orthogonalizing against the ground state,</span>
+<span class="sd">                                 which yields the first excited state (in the same symmetry</span>
+<span class="sd">                                 sector), and so on.</span>
 <span class="sd">        -------------- --------- ---------------------------------------------------------------</span>
 <span class="sd">        engine         str |     Chooses the (derived class of) :class:`Engine` to be used.</span>
 <span class="sd">                       class     A string stands for one of the engines defined in this module,</span>
@@ -239,6 +247,9 @@
 <span class="sd">        environment updates).</span>
 <span class="sd">    env : :class:`~tenpy.networks.mpo.MPOEnvironment`</span>
 <span class="sd">        Environment for contraction ``&lt;psi|H|psi&gt;``.</span>
+<span class="sd">    ortho_to_envs : list of :class:`~tenpy.networks.mps.MPSEnvironment`</span>
+<span class="sd">        Environments of the form ``&lt;psi|orhto&gt;`` for states `ortho` of the `orthogonal_to`</span>
+<span class="sd">        parameter; needed to find excited states.</span>
 <span class="sd">    mixer : :class:`Mixer` | ``None``</span>
 <span class="sd">        If ``None``, no mixer is used (anymore), otherwise the mixer instance.</span>
 <span class="sd">    DMRG_params : dict</span>
@@ -312,14 +323,15 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">chi_list</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;chi_list&#39;</span><span class="p">,</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="n">chi_max_default</span><span class="p">},</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">env</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ortho_to_envs</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">init_env</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Engine.init_env"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.init_env">[docs]</a>    <span class="k">def</span> <span class="nf">init_env</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;(Re-)initialize the environment.</span>
 
 <span class="sd">        This function is useful to re-start DMRG after with a slightly different model or</span>
-<span class="sd">        different parameters.</span>
-<span class="sd">        Calls :meth:`reset_stats`</span>
+<span class="sd">        different (DMRG) parameters. Note that we assume that we still have the same `psi`.</span>
+<span class="sd">        Calls :meth:`reset_stats`.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -359,6 +371,13 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">[</span><span class="s1">&#39;chi_max&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">chi_max</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">env</span> <span class="o">=</span> <span class="n">MPOEnvironment</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="p">,</span> <span class="n">LP</span><span class="p">,</span> <span class="n">RP</span><span class="p">,</span> <span class="n">LP_age</span><span class="p">,</span> <span class="n">RP_age</span><span class="p">)</span>
 
+        <span class="c1"># (re)initialize ortho_to_envs</span>
+        <span class="n">orthogonal_to</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;orthogonal_to&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">orthogonal_to</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t orthogonalize for infinite MPS: overlap not well defined.&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ortho_to_envs</span> <span class="o">=</span> <span class="p">[</span><span class="n">MPSEnvironment</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="p">,</span> <span class="n">ortho</span><span class="p">)</span> <span class="k">for</span> <span class="n">ortho</span> <span class="ow">in</span> <span class="n">orthogonal_to</span><span class="p">]</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">reset_stats</span><span class="p">()</span>
 
         <span class="c1"># initial sweeps of the environment (without mixer)</span>
@@ -392,6 +411,16 @@
         <span class="n">unused_parameters</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s2">&quot;DMRG&quot;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Engine.run"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Run the DMRG simulation to find the ground state.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        E : float</span>
+<span class="sd">            The energy of the resulting ground state MPS.</span>
+<span class="sd">        psi : :class:`~tenpy.networks.mps.MPS`</span>
+<span class="sd">            The MPS representing the ground state after the simluation,</span>
+<span class="sd">            i.e. just a reference to :attr:`psi`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">DMRG_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DMRG_params</span>
         <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">shelve</span> <span class="o">=</span> <span class="kc">False</span>
@@ -651,10 +680,10 @@
 <span class="sd">            Current size of the DMRG simulation: number of physical sites involved</span>
 <span class="sd">            into the contraction.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_diag</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">update_LP</span><span class="p">,</span> <span class="n">update_RP</span><span class="p">)</span>
+        <span class="n">theta</span><span class="p">,</span> <span class="n">theta_ortho</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_diag</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">update_LP</span><span class="p">,</span> <span class="n">update_RP</span><span class="p">)</span>
         <span class="n">age</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get_LP_age</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get_RP_age</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">optimize</span><span class="p">:</span>
-            <span class="n">E0</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">N</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+            <span class="n">E0</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">N</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">theta_ortho</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">E0</span><span class="p">,</span> <span class="n">N</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="mi">0</span>
         <span class="n">theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_svd</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
@@ -662,8 +691,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">set_B</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">VH</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">update_LP</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">update_LP</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">U</span><span class="p">)</span>  <span class="c1"># (requires updated B)</span>
+            <span class="k">for</span> <span class="n">o_env</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ortho_to_envs</span><span class="p">:</span>
+                <span class="n">o_env</span><span class="o">.</span><span class="n">get_LP</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">update_RP</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">update_RP</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">VH</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">o_env</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ortho_to_envs</span><span class="p">:</span>
+                <span class="n">o_env</span><span class="o">.</span><span class="n">get_RP</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">E_trunc</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">meas_E_trunc</span> <span class="ow">or</span> <span class="n">E0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">E_trunc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">full_contraction</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span><span class="o">.</span><span class="n">real</span>
@@ -684,16 +717,45 @@
 <span class="sd">        -------</span>
 <span class="sd">        theta_guess : :class:`~tenpy.linalg.np_conserved.Array`</span>
 <span class="sd">            Current best guess for the ground state, which is to be optimized.</span>
+<span class="sd">        theta_ortho : list of :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            States (with the same tensor structure) to orthogonalize against,</span>
+<span class="sd">            c.f. see :meth:`get_theta_ortho`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;This function should be implemented in derived classes&quot;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Engine.diag"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.diag">[docs]</a>    <span class="k">def</span> <span class="nf">diag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta_guess</span><span class="p">):</span>
+<div class="viewcode-block" id="Engine.get_theta_ortho"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.get_theta_ortho">[docs]</a>    <span class="k">def</span> <span class="nf">get_theta_ortho</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the 2-site wavefunctions to orthogonalize against from :attr:`ortho_to_envs`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        i0 : int</span>
+<span class="sd">            We want to optimize on sites ``(i0, i0+1)``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        theta_ortho : list of :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            States to orthogonalize against, with legs &#39;vL&#39;, &#39;p0&#39;, &#39;p1&#39;, &#39;vR&#39;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">theta_ortho</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">o_env</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ortho_to_envs</span><span class="p">:</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">o_env</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">get_theta</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>   <span class="c1"># the envirionments are of the form &lt;psi|ortho&gt;</span>
+            <span class="n">LP</span> <span class="o">=</span> <span class="n">o_env</span><span class="o">.</span><span class="n">get_LP</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">RP</span> <span class="o">=</span> <span class="n">o_env</span><span class="o">.</span><span class="n">get_RP</span><span class="p">(</span><span class="n">i0</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">LP</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">))</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">RP</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">))</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="s1">&#39;vL*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">])</span>
+            <span class="n">theta_ortho</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">theta_ortho</span></div>
+
+<div class="viewcode-block" id="Engine.diag"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.diag">[docs]</a>    <span class="k">def</span> <span class="nf">diag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta_guess</span><span class="p">,</span> <span class="n">theta_ortho</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Diagonalize the effective Hamiltonian represented by self.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        theta_guess : :class:`~tenpy.linalg.np_conserved.Array`</span>
 <span class="sd">            Initial guess for the ground state of the effective Hamiltonian.</span>
+<span class="sd">        theta_ortho : list of :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            States to orthogonalize against, with same tensor structure as `theta_guess`.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -704,7 +766,7 @@
 <span class="sd">        N : int</span>
 <span class="sd">            Number of Lanczos iterations used.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">E</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">N</span> <span class="o">=</span> <span class="n">lanczos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta_guess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lanczos_params</span><span class="p">)</span>
+        <span class="n">E</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">N</span> <span class="o">=</span> <span class="n">lanczos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta_guess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lanczos_params</span><span class="p">,</span> <span class="n">theta_ortho</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">E</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">N</span></div>
 
 <div class="viewcode-block" id="Engine.matvec"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.matvec">[docs]</a>    <span class="k">def</span> <span class="nf">matvec</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
@@ -939,9 +1001,13 @@
         <span class="n">B1</span> <span class="o">=</span> <span class="n">VH</span><span class="o">.</span><span class="n">split_legs</span><span class="p">([</span><span class="s1">&#39;(vR.p1)&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">replace_label</span><span class="p">(</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_B</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">B0</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;A&#39;</span><span class="p">)</span>  <span class="c1"># left-canonical</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_B</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">B1</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">)</span>  <span class="c1"># right-canonical</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">del_LP</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># the old stored environments are now invalid</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">del_RP</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_SR</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_SR</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span>
+        <span class="c1"># the old stored environments are now invalid</span>
+        <span class="k">for</span> <span class="n">o_env</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ortho_to_envs</span><span class="p">:</span>
+            <span class="n">o_env</span><span class="o">.</span><span class="n">del_LP</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">o_env</span><span class="o">.</span><span class="n">del_RP</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">del_LP</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">del_RP</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Engine.update_LP"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.update_LP">[docs]</a>    <span class="k">def</span> <span class="nf">update_LP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">U</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Update left part of the environment.</span>
@@ -998,6 +1064,9 @@
 <span class="sd">        theta_guess : :class:`~tenpy.linalg.np_conserved.Array`</span>
 <span class="sd">            Current best guess for the ground state, which is to be optimized.</span>
 <span class="sd">            Labels ``&#39;(vL.p0)&#39;, &#39;(vR.p1)&#39;``.</span>
+<span class="sd">        theta_ortho : list of :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            States (also with labels ``&#39;(vL.p0)&#39;, &#39;(vR.p1)&#39;``) to orthogonalize against,</span>
+<span class="sd">            c.f. see :meth:`get_theta_ortho`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">env</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span>
         <span class="n">LP</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">get_LP</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># labels &#39;vR*&#39;, &#39;wR&#39;, &#39;vR&#39;</span>
@@ -1019,7 +1088,10 @@
         <span class="n">cutoff</span> <span class="o">=</span> <span class="mf">1.e-16</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="mf">1.e-8</span>
         <span class="n">theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_theta</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">cutoff</span><span class="o">=</span><span class="n">cutoff</span><span class="p">)</span>  <span class="c1"># labels &#39;vL&#39;, &#39;vR&#39;, &#39;p0&#39;, &#39;p1&#39;</span>
         <span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([[</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">]],</span> <span class="n">pipes</span><span class="o">=</span><span class="p">[</span><span class="n">pipeL</span><span class="p">,</span> <span class="n">pipeR</span><span class="p">])</span>
-        <span class="k">return</span> <span class="n">theta</span></div>
+        <span class="n">theta_ortho</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_theta_ortho</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span>
+        <span class="n">theta_ortho</span> <span class="o">=</span> <span class="p">[</span><span class="n">th_o</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([[</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">]],</span> <span class="n">pipes</span><span class="o">=</span><span class="p">[</span><span class="n">pipeL</span><span class="p">,</span> <span class="n">pipeR</span><span class="p">])</span>
+                       <span class="k">for</span> <span class="n">th_o</span> <span class="ow">in</span> <span class="n">theta_ortho</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">theta</span><span class="p">,</span> <span class="n">theta_ortho</span></div>
 
 <div class="viewcode-block" id="EngineCombine.matvec"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.EngineCombine.matvec">[docs]</a>    <span class="k">def</span> <span class="nf">matvec</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Apply the effective Hamiltonian to `theta`.</span>
@@ -1204,6 +1276,9 @@
 <span class="sd">        theta_guess : :class:`~tenpy.linalg.np_conserved.Array`</span>
 <span class="sd">            Current best guess for the ground state, which is to be optimized.</span>
 <span class="sd">            Labels ``&#39;vL&#39;, &#39;p0&#39;, &#39;vR&#39;, &#39;p1&#39;``.</span>
+<span class="sd">        theta_ortho : list of :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            States (also with labels ``&#39;vL&#39;, &#39;p0&#39;, &#39;vR&#39;, &#39;p1&#39;``) to orthogonalize against,</span>
+<span class="sd">            c.f. see :meth:`get_theta_ortho`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">env</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">LP</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">get_LP</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># labels &#39;vR*&#39;, &#39;wR&#39;, &#39;vR&#39;</span>
@@ -1215,7 +1290,11 @@
         <span class="c1"># make theta</span>
         <span class="n">cutoff</span> <span class="o">=</span> <span class="mf">1.e-16</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="mf">1.e-8</span>
         <span class="n">theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_theta</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">cutoff</span><span class="o">=</span><span class="n">cutoff</span><span class="p">)</span>  <span class="c1"># labels &#39;vL&#39;, &#39;vR&#39;, &#39;p0&#39;, &#39;p1&#39;</span>
-        <span class="k">return</span> <span class="n">theta</span><span class="o">.</span><span class="n">itranspose</span><span class="p">([</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">])</span></div>
+        <span class="n">theta</span><span class="o">.</span><span class="n">itranspose</span><span class="p">([</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">])</span>
+        <span class="n">theta_ortho</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_theta_ortho</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">th_o</span> <span class="ow">in</span> <span class="n">theta_ortho</span><span class="p">:</span>
+            <span class="n">th_o</span><span class="o">.</span><span class="n">itranspose</span><span class="p">([</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">theta</span><span class="p">,</span> <span class="n">theta_ortho</span></div>
 
 <div class="viewcode-block" id="EngineFracture.matvec"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.EngineFracture.matvec">[docs]</a>    <span class="k">def</span> <span class="nf">matvec</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Apply the effective Hamiltonian to `theta`.</span>
