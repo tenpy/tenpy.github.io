@@ -9,7 +9,7 @@
     <title>Introduction to np_conserved &#8212; TeNPy 0.3.0 documentation</title>
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <script type="text/javascript" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
@@ -54,19 +54,19 @@ of certain matrices, which in turn speeds up SVD or diagonalization a lot.
 Even for more general (non-square-matrix) tensors, charge conservation imposes restrictions which blocks of a tensor can
 be non-zero. Only those blocks need to be saved, and e.g. tensordot can be speeded up.</p>
 <p>This introduction covers our implementation of charges; explaining mathematical details of the underlying symmetry is beyond its scope.
-We refer you to Ref. <a class="reference internal" href="literature.html#singh2009" id="id1">[Singh2009]</a> for the general idea, which is more nicely explained for the example of a <span class="math notranslate">\(U(1)\)</span> symmetry in <a class="reference internal" href="literature.html#singh2010" id="id2">[Singh2010]</a>.</p>
+We refer you to Ref. <a class="reference internal" href="literature.html#singh2009" id="id1">[Singh2009]</a> for the general idea, which is more nicely explained for the example of a <span class="math notranslate nohighlight">\(U(1)\)</span> symmetry in <a class="reference internal" href="literature.html#singh2010" id="id2">[Singh2010]</a>.</p>
 <div class="section" id="notations">
 <h2>Notations<a class="headerlink" href="#notations" title="Permalink to this headline">¶</a></h2>
 <p>Lets fix the notation for this introduction and the doc-strings in <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#module-tenpy.linalg.np_conserved" title="tenpy.linalg.np_conserved"><code class="xref py py-mod docutils literal notranslate"><span class="pre">np_conserved</span></code></a>.</p>
 <p>A <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a> is a multi-dimensional array representing a <strong>tensor</strong> with the entries:</p>
-<div class="math notranslate">
+<div class="math notranslate nohighlight">
 \[T_{a_0, a_1, ... a_{rank-1}} \quad \text{ with } \quad a_i \in \lbrace 0, ..., n_i-1 \rbrace\]</div>
-<p>Each <strong>leg</strong> <span class="math notranslate">\(a_i\)</span> corresponds the a vector space of dimension <cite>n_i</cite>.</p>
-<p>An <strong>index</strong> of a leg is a particular value <span class="math notranslate">\(a_i \in \lbrace 0, ... ,n_i-1\rbrace\)</span>.</p>
-<p>The <strong>rank</strong> is the number of legs, the <strong>shape</strong> is <span class="math notranslate">\((n_0, ..., n_{rank-1})\)</span>.</p>
-<p>We restrict ourselfes to abelian charges with entries in <span class="math notranslate">\(\mathbb{Z}\)</span> or in <span class="math notranslate">\(\mathbb{Z}_m\)</span>.
-The nature of a charge is specified by <span class="math notranslate">\(m\)</span>; we set <span class="math notranslate">\(m=1\)</span> for charges corresponding to <span class="math notranslate">\(\mathbb{Z}\)</span>.
-The number of charges is refered to as <strong>qnumber</strong> as a short hand, and the collection of <span class="math notranslate">\(m\)</span> for each charge is called <strong>qmod</strong>.
+<p>Each <strong>leg</strong> <span class="math notranslate nohighlight">\(a_i\)</span> corresponds the a vector space of dimension <cite>n_i</cite>.</p>
+<p>An <strong>index</strong> of a leg is a particular value <span class="math notranslate nohighlight">\(a_i \in \lbrace 0, ... ,n_i-1\rbrace\)</span>.</p>
+<p>The <strong>rank</strong> is the number of legs, the <strong>shape</strong> is <span class="math notranslate nohighlight">\((n_0, ..., n_{rank-1})\)</span>.</p>
+<p>We restrict ourselfes to abelian charges with entries in <span class="math notranslate nohighlight">\(\mathbb{Z}\)</span> or in <span class="math notranslate nohighlight">\(\mathbb{Z}_m\)</span>.
+The nature of a charge is specified by <span class="math notranslate nohighlight">\(m\)</span>; we set <span class="math notranslate nohighlight">\(m=1\)</span> for charges corresponding to <span class="math notranslate nohighlight">\(\mathbb{Z}\)</span>.
+The number of charges is refered to as <strong>qnumber</strong> as a short hand, and the collection of <span class="math notranslate nohighlight">\(m\)</span> for each charge is called <strong>qmod</strong>.
 The qnumber, qmod and possibly descriptive names of the charges are saved in an instance of <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.ChargeInfo" title="tenpy.linalg.charges.ChargeInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChargeInfo</span></code></a>.</p>
 <p>To each index of each leg, a value of the charge(s) is associated.
 A <strong>charge block</strong> is a contiguous slice corresponding to the same charge(s) of the leg.
@@ -92,22 +92,22 @@ is used to formally combine multiple legs into one leg. Again, more details foll
 </div>
 <div class="section" id="physical-example">
 <h2>Physical Example<a class="headerlink" href="#physical-example" title="Permalink to this headline">¶</a></h2>
-<p>For concreteness, you can think of the Hamiltonian <span class="math notranslate">\(H = -t \sum_{&lt;i,j&gt;} (c^\dagger_i c_j + H.c.) + U n_i n_j\)</span>
-with <span class="math notranslate">\(n_i = c^\dagger_i c_i\)</span>.
-This Hamiltonian has the global <span class="math notranslate">\(U(1)\)</span> gauge symmetry <span class="math notranslate">\(c_i \rightarrow c_i e^{i\phi}\)</span>.
-The corresponding charge is the total number of particles <span class="math notranslate">\(N = \sum_i n_i\)</span>.
-You would then introduce one charge with <span class="math notranslate">\(m=1\)</span>.</p>
+<p>For concreteness, you can think of the Hamiltonian <span class="math notranslate nohighlight">\(H = -t \sum_{&lt;i,j&gt;} (c^\dagger_i c_j + H.c.) + U n_i n_j\)</span>
+with <span class="math notranslate nohighlight">\(n_i = c^\dagger_i c_i\)</span>.
+This Hamiltonian has the global <span class="math notranslate nohighlight">\(U(1)\)</span> gauge symmetry <span class="math notranslate nohighlight">\(c_i \rightarrow c_i e^{i\phi}\)</span>.
+The corresponding charge is the total number of particles <span class="math notranslate nohighlight">\(N = \sum_i n_i\)</span>.
+You would then introduce one charge with <span class="math notranslate nohighlight">\(m=1\)</span>.</p>
 <p>Note that the total charge is a sum of local terms, living on single sites.
-Thus, you can infer the charge of a single physical site: it’s just the value <span class="math notranslate">\(q_i = n_i \in \mathbb{N}\)</span> for each of the states.</p>
+Thus, you can infer the charge of a single physical site: it’s just the value <span class="math notranslate nohighlight">\(q_i = n_i \in \mathbb{N}\)</span> for each of the states.</p>
 <p>Note that you can only assign integer charges. Consider for example the spin 1/2 Heisenberg chain.
-Here, you can naturally identify the magnetization <span class="math notranslate">\(S^z = \sum_i S^z_i\)</span> as the conserved quantity,
-with values <span class="math notranslate">\(S^z_i = \pm \frac{1}{2}\)</span>.
-Obviously, if <span class="math notranslate">\(S^z\)</span> is conserved, then so is <span class="math notranslate">\(2 S^z\)</span>, so you can use the charges
-<span class="math notranslate">\(q_i = 2 S^z_i \in \lbrace-1, +1 \rbrace\)</span> for the <cite>down</cite> and <cite>up</cite> states, respectively.
-Alternatively, you can also use a shift and define <span class="math notranslate">\(q_i = S^z_i + \frac{1}{2} \in \lbrace 0, 1 \rbrace\)</span>.</p>
-<p>As another example, consider BCS like terms <span class="math notranslate">\(\sum_k (c^\dagger_k c^\dagger_{-k} + H.c.)\)</span>.
+Here, you can naturally identify the magnetization <span class="math notranslate nohighlight">\(S^z = \sum_i S^z_i\)</span> as the conserved quantity,
+with values <span class="math notranslate nohighlight">\(S^z_i = \pm \frac{1}{2}\)</span>.
+Obviously, if <span class="math notranslate nohighlight">\(S^z\)</span> is conserved, then so is <span class="math notranslate nohighlight">\(2 S^z\)</span>, so you can use the charges
+<span class="math notranslate nohighlight">\(q_i = 2 S^z_i \in \lbrace-1, +1 \rbrace\)</span> for the <cite>down</cite> and <cite>up</cite> states, respectively.
+Alternatively, you can also use a shift and define <span class="math notranslate nohighlight">\(q_i = S^z_i + \frac{1}{2} \in \lbrace 0, 1 \rbrace\)</span>.</p>
+<p>As another example, consider BCS like terms <span class="math notranslate nohighlight">\(\sum_k (c^\dagger_k c^\dagger_{-k} + H.c.)\)</span>.
 These terms break the total particle conservation,
-but they preserve the total parity, i.e., <span class="math notranslate">\(N % 2\)</span> is conserved. Thus, you would introduce a charge with <span class="math notranslate">\(m = 2\)</span> in this case.</p>
+but they preserve the total parity, i.e., <span class="math notranslate nohighlight">\(N % 2\)</span> is conserved. Thus, you would introduce a charge with <span class="math notranslate nohighlight">\(m = 2\)</span> in this case.</p>
 <p>In the above examples, we had only a single charge conserved at a time, but you might be lucky and have multiple
 conserved quantities, e.g. if you have two chains coupled only by interactions.
 TeNPy is designed to handle the general case of multiple charges.
@@ -215,7 +215,7 @@ See also <a class="reference internal" href="#blocking"><span class="std std-ref
 <span id="nonzero-entries"></span><h2>Which entries of the npc Array can be non-zero?<a class="headerlink" href="#which-entries-of-the-npc-array-can-be-non-zero" title="Permalink to this headline">¶</a></h2>
 <p>The reason for the speedup with np_conserved lies in the fact that it saves only the blocks ‘compatible’ with the charges.
 But how is this ‘compatible’ defined?</p>
-<p>Assume you have a tensor, call it <span class="math notranslate">\(T\)</span>, and the <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge" title="tenpy.linalg.charges.LegCharge"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegCharge</span></code></a> for all of its legs, say <span class="math notranslate">\(a, b, c, ...\)</span>.</p>
+<p>Assume you have a tensor, call it <span class="math notranslate nohighlight">\(T\)</span>, and the <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge" title="tenpy.linalg.charges.LegCharge"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegCharge</span></code></a> for all of its legs, say <span class="math notranslate nohighlight">\(a, b, c, ...\)</span>.</p>
 <p>Remeber that the LegCharge associates to each index of the leg a charge value (for each of the charges, if <cite>qnumber</cite> &gt; 1).
 Let <code class="docutils literal notranslate"><span class="pre">a.to_qflat()[ia]</span></code> denote the charge(s) of index <code class="docutils literal notranslate"><span class="pre">ia</span></code> for leg <code class="docutils literal notranslate"><span class="pre">a</span></code>, and similar for other legs.</p>
 <p>In addition, the LegCharge has a flag <code class="xref py py-attr docutils literal notranslate"><span class="pre">qconj</span></code>. This flag <strong>qconj</strong> is only a sign,
@@ -245,7 +245,7 @@ So whats the reasoning?</p>
 <p>The short answer is, that LegCharges actually live on bonds (i.e., legs which are to be contracted)
 rather than individual tensors. Thus, it is convenient to share the LegCharges between different legs and even tensors,
 and just adjust the sign of the charges with <cite>qconj</cite>.</p>
-<p>As an example, consider the contraction of two tensors, <span class="math notranslate">\(C_{ia,ic} = \sum_{ib} A_{ia,ib} B_{ib,ic}\)</span>.
+<p>As an example, consider the contraction of two tensors, <span class="math notranslate nohighlight">\(C_{ia,ic} = \sum_{ib} A_{ia,ib} B_{ib,ic}\)</span>.
 For simplicity, say that the total charge of all three tensors is zero.
 What are the implications of the above rule for non-zero entries?
 Or rather, how can we ensure that <code class="docutils literal notranslate"><span class="pre">C</span></code> complies with the above rule?
@@ -261,7 +261,7 @@ fullfilled:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">C</span><span class="o">.</span><span class="n">legs</span> <span class="o">=</span> <span class="p">[</span><span class="n">A</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">B</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
 </pre></div>
 </div>
-<p>It is then straight-forward to check, that the rule is fullfilled for <span class="math notranslate">\(C\)</span>, if the following condition is met:</p>
+<p>It is then straight-forward to check, that the rule is fullfilled for <span class="math notranslate nohighlight">\(C\)</span>, if the following condition is met:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">A</span><span class="o">.</span><span class="n">qtotal</span> <span class="o">+</span> <span class="n">B</span><span class="o">.</span><span class="n">qtotal</span> <span class="o">-</span> <span class="n">C</span><span class="o">.</span><span class="n">qtotal</span> <span class="o">==</span> <span class="n">A</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="n">ib</span><span class="p">]</span> <span class="n">A</span><span class="o">.</span><span class="n">b</span><span class="o">.</span><span class="n">qconj</span> <span class="o">+</span> <span class="n">B</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="n">ib</span><span class="p">]</span> <span class="n">B</span><span class="o">.</span><span class="n">b</span><span class="o">.</span><span class="n">qconj</span>  <span class="n">modulo</span> <span class="n">qmod</span>
 </pre></div>
 </div>
@@ -294,8 +294,8 @@ As a concrete example, consider an MPS on just two spin 1/2 sites:</p>
 </pre></div>
 </div>
 <p>The two legs <code class="docutils literal notranslate"><span class="pre">p</span></code> are the physical legs and share the same charge, as they both describe the same local Hilbert space.
-For better distincition, let me label the indices of them by <span class="math notranslate">\(\uparrow=0\)</span> and <span class="math notranslate">\(\downarrow=1\)</span>.
-As noted above, we can associate the charges 1 (<span class="math notranslate">\(p=\uparrow\)</span>) and -1 (<span class="math notranslate">\(p=\downarrow\)</span>), respectively, so we define:</p>
+For better distincition, let me label the indices of them by <span class="math notranslate nohighlight">\(\uparrow=0\)</span> and <span class="math notranslate nohighlight">\(\downarrow=1\)</span>.
+As noted above, we can associate the charges 1 (<span class="math notranslate nohighlight">\(p=\uparrow\)</span>) and -1 (<span class="math notranslate nohighlight">\(p=\downarrow\)</span>), respectively, so we define:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">chinfo</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">ChargeInfo</span><span class="p">([</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;2*Sz&#39;</span><span class="p">])</span>
 <span class="n">p</span>  <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">qconj</span><span class="o">=+</span><span class="mi">1</span><span class="p">)</span>
 </pre></div>
@@ -306,34 +306,34 @@ This is acchieved by using <code class="docutils literal notranslate"><span clas
 default <code class="docutils literal notranslate"><span class="pre">qconj=+1</span></code> for all <code class="docutils literal notranslate"><span class="pre">p,</span> <span class="pre">x,</span> <span class="pre">y,</span> <span class="pre">z</span></code>: <code class="docutils literal notranslate"><span class="pre">y.conj()</span></code> has the same charges as <code class="docutils literal notranslate"><span class="pre">y</span></code>, but opposite <code class="docutils literal notranslate"><span class="pre">qconj=-1</span></code>.</p>
 <p>The legs <code class="docutils literal notranslate"><span class="pre">x</span></code> and <code class="docutils literal notranslate"><span class="pre">z</span></code> of an <code class="docutils literal notranslate"><span class="pre">L=2</span></code> MPS, are ‘dummy’ legs with just one index <code class="docutils literal notranslate"><span class="pre">0</span></code>.
 The charge on one of them, as well as the total charge of both <code class="docutils literal notranslate"><span class="pre">A</span></code> and <code class="docutils literal notranslate"><span class="pre">B</span></code> is arbitrary (i.e., a gauge freedom),
-so we make a simple choice: total charge 0 on both arrays, as well as for <span class="math notranslate">\(x=0\)</span>,
+so we make a simple choice: total charge 0 on both arrays, as well as for <span class="math notranslate nohighlight">\(x=0\)</span>,
 <code class="docutils literal notranslate"><span class="pre">x</span> <span class="pre">=</span> <span class="pre">npc.LegCharge.from_qflat(chinfo,</span> <span class="pre">[0],</span> <span class="pre">qconj=+1)</span></code>.</p>
 <p>The charges on the bonds <cite>y</cite> and <cite>z</cite> then depend on the state the MPS represents.
-Here, we consider a singlet <span class="math notranslate">\(\psi = (|\uparrow \downarrow\rangle  - |\downarrow \uparrow\rangle)/\sqrt{2}\)</span>
+Here, we consider a singlet <span class="math notranslate nohighlight">\(\psi = (|\uparrow \downarrow\rangle  - |\downarrow \uparrow\rangle)/\sqrt{2}\)</span>
 as a simple example. A possible MPS representation is given by:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">A</span><span class="p">[</span><span class="n">up</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>   <span class="o">=</span> <span class="p">[[</span><span class="mi">1</span><span class="o">/</span><span class="mf">2.</span><span class="o">**</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span>     <span class="n">B</span><span class="p">[</span><span class="n">up</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>   <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
 <span class="n">A</span><span class="p">[</span><span class="n">down</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="o">/</span><span class="mf">2.</span><span class="o">**</span><span class="mf">0.5</span><span class="p">]]</span>     <span class="n">B</span><span class="p">[</span><span class="n">down</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
 </pre></div>
 </div>
-<p>There are two non-zero entries in <code class="docutils literal notranslate"><span class="pre">A</span></code>, for the indices <span class="math notranslate">\((a, x, y) = (\uparrow, 0, 0)\)</span> and <span class="math notranslate">\((\downarrow, 0, 1)\)</span>.
-For <span class="math notranslate">\((a, x, y) = (\uparrow, 0, 0)\)</span>, we want:</p>
+<p>There are two non-zero entries in <code class="docutils literal notranslate"><span class="pre">A</span></code>, for the indices <span class="math notranslate nohighlight">\((a, x, y) = (\uparrow, 0, 0)\)</span> and <span class="math notranslate nohighlight">\((\downarrow, 0, 1)\)</span>.
+For <span class="math notranslate nohighlight">\((a, x, y) = (\uparrow, 0, 0)\)</span>, we want:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">A</span><span class="o">.</span><span class="n">qtotal</span> <span class="o">=</span> <span class="mi">0</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="n">up</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">qconj</span> <span class="o">+</span> <span class="n">x</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">x</span><span class="o">.</span><span class="n">qconj</span> <span class="o">+</span> <span class="n">y</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">y</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">qconj</span>
              <span class="o">=</span> <span class="mi">1</span>                <span class="o">*</span> <span class="p">(</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>    <span class="o">+</span> <span class="mi">0</span>               <span class="o">*</span> <span class="p">(</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>    <span class="o">+</span> <span class="n">y</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>This fixes the charge of <code class="docutils literal notranslate"><span class="pre">y=0</span></code> to 1.
-A similar calculation for <span class="math notranslate">\((a, x, y) = (\downarrow, 0, 1)\)</span> yields the charge <code class="docutils literal notranslate"><span class="pre">-1</span></code> for <code class="docutils literal notranslate"><span class="pre">y=1</span></code>.
+A similar calculation for <span class="math notranslate nohighlight">\((a, x, y) = (\downarrow, 0, 1)\)</span> yields the charge <code class="docutils literal notranslate"><span class="pre">-1</span></code> for <code class="docutils literal notranslate"><span class="pre">y=1</span></code>.
 We have thus all the charges of the leg <code class="docutils literal notranslate"><span class="pre">y</span></code> and can define <code class="docutils literal notranslate"><span class="pre">y</span> <span class="pre">=</span> <span class="pre">npc.LegCharge.from_qflat(chinfo,</span> <span class="pre">[1,</span> <span class="pre">-1],</span> <span class="pre">qconj=+1)</span></code>.</p>
 <p>Now take a look at the entries of <code class="docutils literal notranslate"><span class="pre">B</span></code>.
-For the non-zero entry <span class="math notranslate">\((b, y, z) = (\uparrow, 1, 0)\)</span>, we want:</p>
+For the non-zero entry <span class="math notranslate nohighlight">\((b, y, z) = (\uparrow, 1, 0)\)</span>, we want:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">B</span><span class="o">.</span><span class="n">qtotal</span> <span class="o">=</span> <span class="mi">0</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="n">up</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">qconj</span> <span class="o">+</span> <span class="n">y</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">y</span><span class="o">.</span><span class="n">qconj</span> <span class="o">+</span> <span class="n">z</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">z</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">qconj</span>
              <span class="o">=</span> <span class="mi">1</span>                <span class="o">*</span> <span class="p">(</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>    <span class="o">+</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>            <span class="o">*</span> <span class="p">(</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>    <span class="o">+</span> <span class="n">z</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>This implies the charge 0 for <cite>z</cite> = 0, thus <code class="docutils literal notranslate"><span class="pre">z</span> <span class="pre">=</span> <span class="pre">npc.LegCharge.form_qflat(chinfo,</span> <span class="pre">[0],</span> <span class="pre">qconj=+1)</span></code>.
-Finally, note that the rule for <span class="math notranslate">\((b, y, z) = (\downarrow, 0, 0)\)</span> is automatically fullfilled!
-This is an implication of the fact that the singlet has a well defined value for <span class="math notranslate">\(S^z_a + S^z_b\)</span>.
-For other states without fixed magnetization (e.g., <span class="math notranslate">\(|\uparrow \uparrow\rangle + |\downarrow \downarrow\rangle\)</span>)
+Finally, note that the rule for <span class="math notranslate nohighlight">\((b, y, z) = (\downarrow, 0, 0)\)</span> is automatically fullfilled!
+This is an implication of the fact that the singlet has a well defined value for <span class="math notranslate nohighlight">\(S^z_a + S^z_b\)</span>.
+For other states without fixed magnetization (e.g., <span class="math notranslate nohighlight">\(|\uparrow \uparrow\rangle + |\downarrow \downarrow\rangle\)</span>)
 this would not be the case, and we could not use charge conservation.</p>
 <p>As an exercise, you can calculate the charge of <cite>z</cite> in the case that <code class="docutils literal notranslate"><span class="pre">A.qtotal=5</span></code>, <code class="docutils literal notranslate"><span class="pre">B.qtotal</span> <span class="pre">=</span> <span class="pre">-1</span></code> and
 charge <code class="docutils literal notranslate"><span class="pre">2</span></code> for <code class="docutils literal notranslate"><span class="pre">x=0</span></code>. The result is -2.</p>
@@ -529,7 +529,7 @@ If you need a <cite>LegPipe</cite> with the same incoming <code class="docutils 
 </div>
 <div class="section" id="leg-labeling">
 <h2>Leg labeling<a class="headerlink" href="#leg-labeling" title="Permalink to this headline">¶</a></h2>
-<p>It’s convenient to name the legs of a tensor: for instance, we can name legs 0, 1, 2 to be <code class="docutils literal notranslate"><span class="pre">'a',</span> <span class="pre">'b',</span> <span class="pre">'c'</span></code>: <span class="math notranslate">\(T_{i_a,i_b,i_c}\)</span>.
+<p>It’s convenient to name the legs of a tensor: for instance, we can name legs 0, 1, 2 to be <code class="docutils literal notranslate"><span class="pre">'a',</span> <span class="pre">'b',</span> <span class="pre">'c'</span></code>: <span class="math notranslate nohighlight">\(T_{i_a,i_b,i_c}\)</span>.
 That way we don’t have to remember the ordering! Under tensordot, we can then call</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">U</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="p">[</span> <span class="p">[</span><span class="o">...</span><span class="p">],</span>  <span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">]</span> <span class="p">]</span> <span class="p">)</span>
 </pre></div>
@@ -835,7 +835,7 @@ As noted above, the ‘public’ API is imported to (and accessible from) <a cla
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2018, TeNPy Developers.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
     </div>
   </body>
 </html>
