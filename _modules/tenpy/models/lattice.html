@@ -97,6 +97,8 @@
 <span class="sd">        Defaults ``&#39;default&#39;``: First direction changing slowest, within the unit cell fastest.</span>
 <span class="sd">    bc_MPS : {&#39;finite&#39; | &#39;segment&#39; | &#39;infinite&#39;}</span>
 <span class="sd">        boundary conditions for an MPS/MPO living on the ordered lattice. Default &#39;finite&#39;.</span>
+<span class="sd">        If the system is ``&#39;infinite&#39;``, the infinite direction is always along the first basis</span>
+<span class="sd">        vector (justifying the definition of `N_rings` and `N_sites_per_ring`).</span>
 <span class="sd">    basis : iterable of 1D arrays</span>
 <span class="sd">        for each direction one translation vectors shifting the unit cell.</span>
 <span class="sd">        Defaults to the standard ONB ``np.eye(dim)``.</span>
@@ -107,8 +109,14 @@
 <span class="sd">    Attributes</span>
 <span class="sd">    ----------</span>
 <span class="sd">    dim</span>
-<span class="sd">    N_cells</span>
-<span class="sd">    N_sites</span>
+<span class="sd">    N_cells : int</span>
+<span class="sd">        the number of unit cells in the lattice, ``np.prod(self.Ls)``.</span>
+<span class="sd">    N_sites : int</span>
+<span class="sd">        the number of sites in the lattice, ``np.prod(self.shape)``.</span>
+<span class="sd">    N_sites_per_ring : int</span>
+<span class="sd">        Defined as ``N_sites / Ls[0]``, for an infinite system the number of cites per &quot;ring&quot;.</span>
+<span class="sd">    N_rings : int</span>
+<span class="sd">        Alias for ``Ls[0]``, for an infinite system the number of &quot;rings&quot; in the unit cell.</span>
 <span class="sd">    Ls : tuple of int</span>
 <span class="sd">        the length in each direction.</span>
 <span class="sd">    shape : tuple of int</span>
@@ -149,6 +157,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Ls</span> <span class="o">+</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">unit_cell</span><span class="p">),</span> <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">N_sites</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_sites_per_ring</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N_sites</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">Ls</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_rings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Ls</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">positions</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">basis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -402,7 +412,7 @@
 <span class="sd">        `A`, where `A[i]` is the expectation value of the site given by ``self.mps2lat_idx(i)``.</span>
 <span class="sd">        Then this function gives you the expectation values ordered by the lattice:</span>
 
-<span class="sd">        &gt;&gt;&gt; print lat.shape, A.shape</span>
+<span class="sd">        &gt;&gt;&gt; print(lat.shape, A.shape)</span>
 <span class="sd">        (10, 3, 2) (60,)</span>
 <span class="sd">        &gt;&gt;&gt; A_res = lat.mps2lat_values(A)</span>
 <span class="sd">        &gt;&gt;&gt; A_res.shape</span>
@@ -412,7 +422,7 @@
 
 <span class="sd">        If you have a correlation function ``C[i, j]``, it gets just slightly more complicated:</span>
 
-<span class="sd">        &gt;&gt;&gt; print lat.shape, C.shape</span>
+<span class="sd">        &gt;&gt;&gt; print(lat.shape, C.shape)</span>
 <span class="sd">        (10, 3, 2) (60, 60)</span>
 <span class="sd">        &gt;&gt;&gt; lat.mps2lat_values(C, axes=[0, 1]).shape</span>
 <span class="sd">        (10, 3, 2, 10, 3, 2)</span>

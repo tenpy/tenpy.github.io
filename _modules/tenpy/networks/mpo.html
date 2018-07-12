@@ -237,14 +237,14 @@
 
 <span class="sd">    This representation is used for building H_MPO from the interactions.</span>
 <span class="sd">    The idea is to view the MPO as a kind of &#39;finite state machine&#39;.</span>
-<span class="sd">    The &#39;states&#39; or **keys** of this finite state machine life on the MPO bonds *between* the `Ws`,</span>
-<span class="sd">    and are the **vertices** of the graph. They label the indices of the virtul bonds</span>
-<span class="sd">    of the MPOS (i.e. the indices on legs ``wL`` and ``wR``).</span>
-<span class="sd">    They can be anything hash-able like a ``str``, ``int`` or a tuple of them.</span>
+<span class="sd">    The **states** or **keys** of this finite state machine life on the MPO bonds *between* the</span>
+<span class="sd">    `Ws`. They label the indices of the virtul bonds of the MPOs, i.e., the indices on legs</span>
+<span class="sd">    ``wL`` and ``wR``. They can be anything hash-able like a ``str``, ``int`` or a tuple of them.</span>
 
-<span class="sd">    The **edges** of the graph are the entries ``W[wL, wR]``, which itself are onsite operators</span>
-<span class="sd">    on the local Hilbert space. The entry ``W[wL, wR]`` connects the vertex ``wL`` on bond</span>
-<span class="sd">    ``(i-1, i)`` with the vertex ``wR`` on bond ``(i, i+1)``.</span>
+<span class="sd">    The **edges** of the graph are the entries ``W[keyL, keyR]``, which itself are onsite operators</span>
+<span class="sd">    on the local Hilbert space. The indices `keyL` and `keyR` correspond to the legs ``&#39;wL&#39;, &#39;wR&#39;``</span>
+<span class="sd">    of the MPO. The entry ``W[keyL, keyR]`` connects the state ``keyL`` on bond ``(i-1, i)``</span>
+<span class="sd">    with the state ``keyR`` on bond ``(i, i+1)``.</span>
 
 <span class="sd">    The keys ``&#39;IdR&#39;`` (for &#39;idenity left&#39;) and ``&#39;IdR&#39;`` (for &#39;identity right&#39;) are reserved to</span>
 <span class="sd">    represent only ``&#39;Id&#39;`` (=identity) operators to the left and right of the bond, respectively.</span>
@@ -353,12 +353,14 @@
 
 <span class="sd">        Terms like :math:`S^z_i S^z_j` actually stand for</span>
 <span class="sd">        :math:`S^z_i \otimes \prod_{i &lt; k &lt; j} \mathbb{1}_k \otimes S^z_j`.</span>
-<span class="sd">        This function adds the :math:`\mathbb{1}` terms.</span>
+<span class="sd">        This function adds the :math:`\mathbb{1}` terms to the graph.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        i, j: int</span>
-<span class="sd">            An edge is inserted on all bonds between `i` and `j`.</span>
+<span class="sd">            An edge is inserted on all bonds between `i` and `j`, `i &lt; j`.</span>
+<span class="sd">            `j` can be larger than :attr:`L`, in which case the operators are supposed to act on</span>
+<span class="sd">            different MPS unit cells.</span>
 <span class="sd">        key: hashable</span>
 <span class="sd">            The state at bond (i-1, i) to connect from and on bond (j-1, j) to connect to.</span>
 <span class="sd">            Also used for the intermediate states.</span>
@@ -366,15 +368,25 @@
 <span class="sd">        opname : str</span>
 <span class="sd">            Name of the operator to be used for the string.</span>
 <span class="sd">            Useful for the Jordan-Wigner transformation to fermions.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        label_j : hashable</span>
+<span class="sd">            The `key` on the left of site j to connect to. Usually the same as the parameter `key`,</span>
+<span class="sd">            except if ``j - i &gt; self.L``, in which case we use the additional labels ``(key, 1)``,</span>
+<span class="sd">            ``(key, 2)``, ... to generate couplings over multiple unit cells.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">i</span><span class="p">:</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="o">!=</span> <span class="s1">&#39;infinite&#39;</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;j &lt; i not allowed for finite boundary conditions&quot;</span><span class="p">)</span>
-            <span class="n">j</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;j &lt; i not allowed&quot;</span><span class="p">)</span>
+        <span class="n">keyL</span> <span class="o">=</span> <span class="n">keyR</span> <span class="o">=</span> <span class="n">key</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">k</span> <span class="o">-</span> <span class="n">i</span><span class="p">)</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">keyR</span> <span class="o">=</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">k</span><span class="o">-</span><span class="n">i</span><span class="p">)</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">)</span>
             <span class="n">k</span> <span class="o">=</span> <span class="n">k</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_edge</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">opname</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">check_op</span><span class="o">=</span><span class="n">check_op</span><span class="p">)</span></div>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_edge</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">keyL</span><span class="p">,</span> <span class="n">keyR</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">keyL</span><span class="p">,</span> <span class="n">keyR</span><span class="p">,</span> <span class="n">opname</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">check_op</span><span class="o">=</span><span class="n">check_op</span><span class="p">)</span>
+            <span class="n">keyL</span> <span class="o">=</span> <span class="n">keyR</span>
+        <span class="k">return</span> <span class="n">keyL</span></div>
 
 <div class="viewcode-block" id="MPOGraph.add_missing_IdL_IdR"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOGraph.add_missing_IdL_IdR">[docs]</a>    <span class="k">def</span> <span class="nf">add_missing_IdL_IdR</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Add missing identity (&#39;Id&#39;) edges connecting ``&#39;IdL&#39;-&gt;&#39;IdL&#39; and ``&#39;IdR&#39;-&gt;&#39;IdR&#39;``.</span>
@@ -387,14 +399,17 @@
 <span class="sd">        This function should be called *after* all other operators have been inserted.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="o">==</span> <span class="s1">&#39;infinite&#39;</span><span class="p">:</span>
-            <span class="c1"># infinite boundary connections: add for all sites</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">add_string</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="s1">&#39;IdL&#39;</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">add_string</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="s1">&#39;IdR&#39;</span><span class="p">)</span>
+            <span class="n">max_IdL</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>  <span class="c1"># add identities for all sites</span>
+            <span class="n">min_IdR</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">max_IdL</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="k">if</span> <span class="s1">&#39;IdL&#39;</span> <span class="ow">in</span> <span class="n">s</span><span class="p">])</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">add_string</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_IdL</span><span class="p">,</span> <span class="s1">&#39;IdL&#39;</span><span class="p">,</span> <span class="s1">&#39;Id&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">)</span>
             <span class="n">min_IdR</span> <span class="o">=</span> <span class="nb">min</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="k">if</span> <span class="s1">&#39;IdR&#39;</span> <span class="ow">in</span> <span class="n">s</span><span class="p">])</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">add_string</span><span class="p">(</span><span class="n">min_IdR</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="s1">&#39;IdR&#39;</span><span class="p">,</span> <span class="s1">&#39;Id&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">)</span></div>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_IdL</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_edge</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s1">&#39;IdL&#39;</span><span class="p">,</span> <span class="s1">&#39;IdL&#39;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s1">&#39;IdL&#39;</span><span class="p">,</span> <span class="s1">&#39;IdL&#39;</span><span class="p">,</span> <span class="s1">&#39;Id&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">min_IdR</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_edge</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s1">&#39;IdR&#39;</span><span class="p">,</span> <span class="s1">&#39;IdR&#39;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s1">&#39;IdR&#39;</span><span class="p">,</span> <span class="s1">&#39;IdR&#39;</span><span class="p">,</span> <span class="s1">&#39;Id&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">)</span></div>
         <span class="c1"># done</span>
 
 <div class="viewcode-block" id="MPOGraph.has_edge"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOGraph.has_edge">[docs]</a>    <span class="k">def</span> <span class="nf">has_edge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">keyL</span><span class="p">,</span> <span class="n">keyR</span><span class="p">):</span>
@@ -486,10 +501,10 @@
             <span class="n">stL</span><span class="p">,</span> <span class="n">stR</span> <span class="o">=</span> <span class="n">states</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]</span>
             <span class="n">graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>  <span class="c1"># ``{keyL: {keyR: [(opname, strength)]}}``</span>
             <span class="n">grid</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">stL</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">sL</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">stL</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">keyL</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">stL</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                 <span class="n">row</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">stR</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">sR</span><span class="p">,</span> <span class="n">lst</span> <span class="ow">in</span> <span class="n">graph</span><span class="p">[</span><span class="n">sL</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                    <span class="n">b</span> <span class="o">=</span> <span class="n">stR</span><span class="p">[</span><span class="n">sR</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">keyR</span><span class="p">,</span> <span class="n">lst</span> <span class="ow">in</span> <span class="n">graph</span><span class="p">[</span><span class="n">keyL</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">b</span> <span class="o">=</span> <span class="n">stR</span><span class="p">[</span><span class="n">keyR</span><span class="p">]</span>
                     <span class="n">row</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">lst</span>
                 <span class="n">grid</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="o">=</span> <span class="n">row</span>
             <span class="n">grid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_insert_ops</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>  <span class="c1"># replace `lst` by the actual operators</span>
@@ -594,7 +609,8 @@
                 <span class="k">break</span>
         <span class="k">else</span><span class="p">:</span>  <span class="c1"># no `break` in the for loop, i.e. we are unable to determine all grid legcharges.</span>
             <span class="c1"># this should not happen (if we have no bugs), but who knows ^_^</span>
-            <span class="k">assert</span> <span class="p">(</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># maybe some unconnected parts in the graph?</span>
+            <span class="c1"># if it happens, there might be unconnected parts in the graph</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t determine LegCharge for the MPO&quot;</span><span class="p">)</span>
         <span class="c1"># finally generate LegCharge from the dictionaries</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_grid_legs</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">qs</span><span class="p">,</span> <span class="n">st</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">charges</span><span class="p">,</span> <span class="n">states</span><span class="p">):</span>

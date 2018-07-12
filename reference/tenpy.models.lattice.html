@@ -66,7 +66,7 @@ Above, make table with pictures of them (-&gt; use Lattice.plot_ordering)</p>
 <dl class="class">
 <dt id="tenpy.models.lattice.Lattice">
 <em class="property">class </em><code class="descclassname">tenpy.models.lattice.</code><code class="descname">Lattice</code><span class="sig-paren">(</span><em>Ls</em>, <em>unit_cell</em>, <em>order='default'</em>, <em>bc_MPS='finite'</em>, <em>basis=None</em>, <em>positions=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/lattice.html#Lattice"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.lattice.Lattice" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>A general lattice.</p>
 <p>The lattice consists of a <strong>unit cell</strong> which is repeated in <cite>dim</cite> different directions.
 A site of the lattice is thus identified by <strong>lattice indices</strong> <code class="docutils literal notranslate"><span class="pre">(x_0,</span> <span class="pre">...,</span> <span class="pre">x_{dim-1},</span> <span class="pre">u)</span></code>,
@@ -100,7 +100,9 @@ MPS form to arrays indexed in lattice form.</p>
 Defaults <code class="docutils literal notranslate"><span class="pre">'default'</span></code>: First direction changing slowest, within the unit cell fastest.</p>
 </dd>
 <dt><strong>bc_MPS</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{‘finite’ | ‘segment’ | ‘infinite’}</span></dt>
-<dd><p class="first last">boundary conditions for an MPS/MPO living on the ordered lattice. Default ‘finite’.</p>
+<dd><p class="first last">boundary conditions for an MPS/MPO living on the ordered lattice. Default ‘finite’.
+If the system is <code class="docutils literal notranslate"><span class="pre">'infinite'</span></code>, the infinite direction is always along the first basis
+vector (justifying the definition of <cite>N_rings</cite> and <cite>N_sites_per_ring</cite>).</p>
 </dd>
 <dt><strong>basis</strong> <span class="classifier-delimiter">:</span> <span class="classifier">iterable of 1D arrays</span></dt>
 <dd><p class="first last">for each direction one translation vectors shifting the unit cell.
@@ -117,10 +119,18 @@ Defaults to <code class="docutils literal notranslate"><span class="pre">np.zero
 <dt><a class="reference internal" href="#tenpy.models.lattice.Lattice.dim" title="tenpy.models.lattice.Lattice.dim"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dim</span></code></a></dt>
 <dd><p class="first last">the dimension of the lattice.</p>
 </dd>
-<dt><strong>N_cells</strong></dt>
-<dd></dd>
-<dt><strong>N_sites</strong></dt>
-<dd></dd>
+<dt><strong>N_cells</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">the number of unit cells in the lattice, <code class="docutils literal notranslate"><span class="pre">np.prod(self.Ls)</span></code>.</p>
+</dd>
+<dt><strong>N_sites</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">the number of sites in the lattice, <code class="docutils literal notranslate"><span class="pre">np.prod(self.shape)</span></code>.</p>
+</dd>
+<dt><strong>N_sites_per_ring</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Defined as <code class="docutils literal notranslate"><span class="pre">N_sites</span> <span class="pre">/</span> <span class="pre">Ls[0]</span></code>, for an infinite system the number of cites per “ring”.</p>
+</dd>
+<dt><strong>N_rings</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Alias for <code class="docutils literal notranslate"><span class="pre">Ls[0]</span></code>, for an infinite system the number of “rings” in the unit cell.</p>
+</dd>
 <dt><strong>Ls</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple of int</span></dt>
 <dd><p class="first last">the length in each direction.</p>
 </dd>
@@ -268,7 +278,7 @@ The resulting array will not have the additional dimension(s) of <cite>u</cite>.
 <p>Say you measure expection values of an onsite term for an MPS, which gives you an 1D array
 <cite>A</cite>, where <cite>A[i]</cite> is the expectation value of the site given by <code class="docutils literal notranslate"><span class="pre">self.mps2lat_idx(i)</span></code>.
 Then this function gives you the expectation values ordered by the lattice:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">lat</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">lat</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 <span class="go">(10, 3, 2) (60,)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">A_res</span> <span class="o">=</span> <span class="n">lat</span><span class="o">.</span><span class="n">mps2lat_values</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">A_res</span><span class="o">.</span><span class="n">shape</span>
@@ -278,7 +288,7 @@ Then this function gives you the expectation values ordered by the lattice:</p>
 </pre></div>
 </div>
 <p>If you have a correlation function <code class="docutils literal notranslate"><span class="pre">C[i,</span> <span class="pre">j]</span></code>, it gets just slightly more complicated:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">lat</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">C</span><span class="o">.</span><span class="n">shape</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">lat</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">C</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 <span class="go">(10, 3, 2) (60, 60)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">lat</span><span class="o">.</span><span class="n">mps2lat_values</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">shape</span>
 <span class="go">(10, 3, 2, 10, 3, 2)</span>

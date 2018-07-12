@@ -48,7 +48,7 @@
             
   <div class="section" id="module-tenpy.models.model">
 <span id="tenpy-models-model-module"></span><h1>tenpy.models.model module<a class="headerlink" href="#module-tenpy.models.model" title="Permalink to this headline">¶</a></h1>
-<p>This module contains a base class for a model.</p>
+<p>This module contains some base classes for a model.</p>
 <p>A ‘model’ is supposed to represent a Hamiltonian in a generalized way.
 Beside a <a class="reference internal" href="tenpy.models.lattice.html#tenpy.models.lattice.Lattice" title="tenpy.models.lattice.Lattice"><code class="xref py py-class docutils literal notranslate"><span class="pre">Lattice</span></code></a> specifying the geometry and
 underlying Hilbert space, it thus needs some way to represent the different terms
@@ -71,7 +71,7 @@ it might be simpler to specify the MPO explicitly.</p>
 <dl class="class">
 <dt id="tenpy.models.model.CouplingModel">
 <em class="property">class </em><code class="descclassname">tenpy.models.model.</code><code class="descname">CouplingModel</code><span class="sig-paren">(</span><em>lattice</em>, <em>bc_coupling='open'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#CouplingModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.CouplingModel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Base class for a general model of a Hamiltonian consisting of two-site couplings.</p>
 <p>In this class, the terms of the Hamiltonian are specified explicitly as onsite or coupling
 terms.</p>
@@ -85,7 +85,7 @@ terms.</p>
 </dd>
 <dt><strong>bc_coupling</strong> <span class="classifier-delimiter">:</span> <span class="classifier">(iterable of) {‘open’ | ‘periodic’}</span></dt>
 <dd><p class="first last">Boundary conditions of the couplings in each direction of the lattice. Defines how the
-couplings are added in <a class="reference internal" href="#tenpy.models.model.CouplingModel.add_coupling" title="tenpy.models.model.CouplingModel.add_coupling"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_coupling()</span></code></a>. A singe string holds for all directions.</p>
+couplings are added in <a class="reference internal" href="#tenpy.models.model.CouplingModel.add_coupling" title="tenpy.models.model.CouplingModel.add_coupling"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_coupling()</span></code></a>. A single string holds for all directions.</p>
 </dd>
 </dl>
 </td>
@@ -99,16 +99,16 @@ couplings are added in <a class="reference internal" href="#tenpy.models.model.C
 translated into a bool array with the global <cite>_bc_coupling_choices</cite>.</p>
 </dd>
 <dt><strong>onsite_terms</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of dict</span></dt>
-<dd><p class="first last">For each MPS index <cite>i</cite> a dictionary <code class="docutils literal notranslate"><span class="pre">{'opname':</span> <span class="pre">strength}</span></code> defining the onsite terms.
-Filled by <a class="reference internal" href="#tenpy.models.model.CouplingModel.add_onsite" title="tenpy.models.model.CouplingModel.add_onsite"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_onsite()</span></code></a>.</p>
+<dd><p class="first last">Filled by <a class="reference internal" href="#tenpy.models.model.CouplingModel.add_onsite" title="tenpy.models.model.CouplingModel.add_onsite"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_onsite()</span></code></a>.
+For each MPS index <cite>i</cite> a dictionary <code class="docutils literal notranslate"><span class="pre">{'opname':</span> <span class="pre">strength}</span></code> defining the onsite terms.</p>
 </dd>
 <dt><strong>coupling_terms</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of dict</span></dt>
-<dd><p class="first last">For each MPS index <cite>i</cite> a dictionary of the form
+<dd><p class="first last">Filled by <a class="reference internal" href="#tenpy.models.model.CouplingModel.add_coupling" title="tenpy.models.model.CouplingModel.add_coupling"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_coupling()</span></code></a>.
+For each MPS index <cite>i</cite> a dictionary of the form
 <code class="docutils literal notranslate"><span class="pre">{('opname_i',</span> <span class="pre">'opname_string'):</span> <span class="pre">{j:</span> <span class="pre">{'opname_j':</span> <span class="pre">strength}}}</span></code>.
-Entries with <code class="docutils literal notranslate"><span class="pre">j</span> <span class="pre">&lt;</span> <span class="pre">i</span></code> are only allowed for <code class="docutils literal notranslate"><span class="pre">lat.bc_MPS</span> <span class="pre">==</span> <span class="pre">'infinite'</span></code>, in which case
-they indicate couplings over the iMPS boundary, i.e., between the sites
-<code class="docutils literal notranslate"><span class="pre">(i,</span> <span class="pre">j+lat.N_sites)</span></code> and between the sites <code class="docutils literal notranslate"><span class="pre">(i-lat.N_sites,</span> <span class="pre">j)</span></code>.
-Filled by <a class="reference internal" href="#tenpy.models.model.CouplingModel.add_coupling" title="tenpy.models.model.CouplingModel.add_coupling"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_coupling()</span></code></a>.</p>
+Note that always <code class="docutils literal notranslate"><span class="pre">j</span> <span class="pre">&gt;</span> <span class="pre">i</span></code>, entries with <code class="docutils literal notranslate"><span class="pre">j</span> <span class="pre">&gt;=</span> <span class="pre">lat.N_sites</span></code> are allowed for
+<code class="docutils literal notranslate"><span class="pre">lat.bc_MPS</span> <span class="pre">==</span> <span class="pre">'infinite'</span></code>, in which case they indicate couplings between different
+iMPS unit cells.</p>
 </dd>
 <dt><strong>H_onsite</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <code class="xref py py-class docutils literal notranslate"><span class="pre">npc.Array</span></code></span></dt>
 <dd><p class="first last">For each site (in MPS order) the onsite part of the Hamiltonian.</p>
@@ -335,7 +335,7 @@ Legs are <code class="docutils literal notranslate"><span class="pre">['p0',</sp
 <dl class="class">
 <dt id="tenpy.models.model.NearestNeighborModel">
 <em class="property">class </em><code class="descclassname">tenpy.models.model.</code><code class="descname">NearestNeighborModel</code><span class="sig-paren">(</span><em>lat</em>, <em>H_bond</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#NearestNeighborModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.NearestNeighborModel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Base class for a model of nearest neigbor interactions (w.r.t. the MPS index).</p>
 <p>Suitable for TEBD.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -436,7 +436,7 @@ for infinite bc <code class="docutils literal notranslate"><span class="pre">E_b
 <dl class="class">
 <dt id="tenpy.models.model.MPOModel">
 <em class="property">class </em><code class="descclassname">tenpy.models.model.</code><code class="descname">MPOModel</code><span class="sig-paren">(</span><em>lat</em>, <em>H_MPO</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#MPOModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.MPOModel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Base class for a model with an MPO representation of the Hamiltonian.</p>
 <p>Suitable for MPO-based algorithms, e.g. DMRG and MPO time evolution.</p>
 <div class="admonition-todo admonition" id="index-0">

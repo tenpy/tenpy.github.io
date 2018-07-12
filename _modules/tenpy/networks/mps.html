@@ -1499,15 +1499,29 @@
 <div class="viewcode-block" id="MPS.correlation_length"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.html#tenpy.networks.mps.MPS.correlation_length">[docs]</a>    <span class="k">def</span> <span class="nf">correlation_length</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">tol_ev0</span><span class="o">=</span><span class="mf">1.e-8</span><span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculate the correlation length by diagonalizing the transfer matrix.</span>
 
+<span class="sd">        Assumes that `self` is in canonical form.</span>
+
 <span class="sd">        Works only for infinite MPS, where the transfer matrix is a useful concept.</span>
-<span class="sd">        For an MPS, any correlation function splits into :math:`C(A_i, B_j) = A&#39;_i T^{j-i-1} B&#39;_j`</span>
+<span class="sd">        Assuming a single-site unit cell, any correlation function splits into</span>
+<span class="sd">        :math:`C(A_i, B_j) = A&#39;_i T^{j-i-1} B&#39;_j`</span>
 <span class="sd">        with some parts left and right and the :math:`j-i-1`-th power of the transfer matrix in</span>
 <span class="sd">        between. The largest eigenvalue is 1 (if self is properly normalized)</span>
 <span class="sd">        and gives the dominant contribution of</span>
 <span class="sd">        :math:`A&#39;_i E_1 * 1^{j-i-1} * E_1^T B&#39;_j = &lt;A&gt; &lt;B&gt;`,</span>
 <span class="sd">        and the second largest one gives a contribution :math:`\propto \lambda_2^{j-i-1}`.</span>
 <span class="sd">        Thus :math:`\lambda_2 = \exp(-\frac{1}{\xi})`.</span>
-<span class="sd">        Assumes that `self` is in canonical form.</span>
+
+<span class="sd">        More general for a `L`-site unit cell we get :math:`\lambda_2 = \exp(-\frac{L}{\xi})`,</span>
+<span class="sd">        where the `xi` is given in units of 1 lattice spacing in the MPS.</span>
+
+<span class="sd">        .. warning ::</span>
+<span class="sd">            For a higher-dimensional lattice (which the MPS class doesn&#39;t know about),</span>
+<span class="sd">            the correct unit is the lattice spacing in x-direction, and the correct formula is</span>
+<span class="sd">            :math:`\lambda_2 = \exp(-\frac{L_x}{\xi})`,</span>
+<span class="sd">            where `L_x` is the number of lattice spacings in the infinite direction within the</span>
+<span class="sd">            MPS unit cell, e.g. the number of &quot;rings&quot; of a cylinder in the MPS unit cell.</span>
+<span class="sd">            To get to these units, divide the returned `xi` by the number of sites within a &quot;ring&quot;,</span>
+<span class="sd">            for a lattice given in :attr:`~tenpy.networks.lattice.N_sites_per_ring`.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1521,6 +1535,8 @@
 <span class="sd">        xi : float | 1D array</span>
 <span class="sd">            If `target`=1, return just the correlation length,</span>
 <span class="sd">            otherwise an array of the `target` largest correlation lengths.</span>
+<span class="sd">            It is measured in units of a single lattice spacing in the MPS language,</span>
+<span class="sd">            see the warning above.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">finite</span><span class="p">)</span>
         <span class="n">T</span> <span class="o">=</span> <span class="n">TransferMatrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">charge_sector</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">)</span>
@@ -2185,6 +2201,7 @@
 
 <span class="sd">    .. todo ::</span>
 <span class="sd">        Doesn&#39;t work for different qtotal in ket._B / bra._B -&gt; Need MPS.gauge_qtotal()</span>
+<span class="sd">        Or just define firstLP and firstRP to have nonzero qtotal in this case...</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>

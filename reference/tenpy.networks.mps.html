@@ -156,7 +156,7 @@ before using algorithms.</td>
 <dl class="class">
 <dt id="tenpy.networks.mps.MPS">
 <em class="property">class </em><code class="descclassname">tenpy.networks.mps.</code><code class="descname">MPS</code><span class="sig-paren">(</span><em>sites</em>, <em>Bs</em>, <em>SVs</em>, <em>bc='finite'</em>, <em>form='B'</em>, <em>norm=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mps.html#MPS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mps.MPS" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>A Matrix Product State, finite (MPS) or infinite (iMPS).</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -707,15 +707,28 @@ If <cite>opstr</cite> is given, it gives (for <code class="docutils literal notr
 <dt id="tenpy.networks.mps.MPS.correlation_length">
 <code class="descname">correlation_length</code><span class="sig-paren">(</span><em>target=1</em>, <em>tol_ev0=1e-08</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mps.html#MPS.correlation_length"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mps.MPS.correlation_length" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate the correlation length by diagonalizing the transfer matrix.</p>
+<p>Assumes that <cite>self</cite> is in canonical form.</p>
 <p>Works only for infinite MPS, where the transfer matrix is a useful concept.
-For an MPS, any correlation function splits into <span class="math notranslate">\(C(A_i, B_j) = A'_i T^{j-i-1} B'_j\)</span>
+Assuming a single-site unit cell, any correlation function splits into
+<span class="math notranslate">\(C(A_i, B_j) = A'_i T^{j-i-1} B'_j\)</span>
 with some parts left and right and the <span class="math notranslate">\(j-i-1\)</span>-th power of the transfer matrix in
 between. The largest eigenvalue is 1 (if self is properly normalized)
 and gives the dominant contribution of
 <span class="math notranslate">\(A'_i E_1 * 1^{j-i-1} * E_1^T B'_j = &lt;A&gt; &lt;B&gt;\)</span>,
 and the second largest one gives a contribution <span class="math notranslate">\(\propto \lambda_2^{j-i-1}\)</span>.
-Thus <span class="math notranslate">\(\lambda_2 = \exp(-\frac{1}{\xi})\)</span>.
-Assumes that <cite>self</cite> is in canonical form.</p>
+Thus <span class="math notranslate">\(\lambda_2 = \exp(-\frac{1}{\xi})\)</span>.</p>
+<p>More general for a <cite>L</cite>-site unit cell we get <span class="math notranslate">\(\lambda_2 = \exp(-\frac{L}{\xi})\)</span>,
+where the <cite>xi</cite> is given in units of 1 lattice spacing in the MPS.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">For a higher-dimensional lattice (which the MPS class doesn’t know about),
+the correct unit is the lattice spacing in x-direction, and the correct formula is
+<span class="math notranslate">\(\lambda_2 = \exp(-\frac{L_x}{\xi})\)</span>,
+where <cite>L_x</cite> is the number of lattice spacings in the infinite direction within the
+MPS unit cell, e.g. the number of “rings” of a cylinder in the MPS unit cell.
+To get to these units, divide the returned <cite>xi</cite> by the number of sites within a “ring”,
+for a lattice given in <code class="xref py py-attr docutils literal notranslate"><span class="pre">N_sites_per_ring</span></code>.</p>
+</div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -733,7 +746,9 @@ Assumes that <cite>self</cite> is in canonical form.</p>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
 <dt><strong>xi</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float | 1D array</span></dt>
 <dd><p class="first last">If <cite>target`=1, return just the correlation length,
-otherwise an array of the `target</cite> largest correlation lengths.</p>
+otherwise an array of the `target</cite> largest correlation lengths.
+It is measured in units of a single lattice spacing in the MPS language,
+see the warning above.</p>
 </dd>
 </dl>
 </td>
@@ -1552,7 +1567,7 @@ Should have legs <code class="docutils literal notranslate"><span class="pre">['
 <dl class="class">
 <dt id="tenpy.networks.mps.MPSEnvironment">
 <em class="property">class </em><code class="descclassname">tenpy.networks.mps.</code><code class="descname">MPSEnvironment</code><span class="sig-paren">(</span><em>bra</em>, <em>ket</em>, <em>firstLP=None</em>, <em>lastRP=None</em>, <em>age_LP=0</em>, <em>age_RP=0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mps.html#MPSEnvironment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mps.MPSEnvironment" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Stores partial contractions of <span class="math notranslate">\(&lt;bra|Op|ket&gt;\)</span> for local operators <cite>Op</cite>.</p>
 <p>The network for a contraction <span class="math notranslate">\(&lt;bra|Op|ket&gt;\)</span> of a local operator <cite>Op</cite>, say exemplary
 at sites <cite>i, i+1</cite> looks like:</p>
@@ -1591,7 +1606,8 @@ Thus, the special case <code class="docutils literal notranslate"><span class="p
 </div>
 <div class="admonition-todo admonition" id="index-2">
 <p class="first admonition-title">Todo</p>
-<p class="last">Doesn’t work for different qtotal in ket._B / bra._B -&gt; Need MPS.gauge_qtotal()</p>
+<p class="last">Doesn’t work for different qtotal in ket._B / bra._B -&gt; Need MPS.gauge_qtotal()
+Or just define firstLP and firstRP to have nonzero qtotal in this case…</p>
 </div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
