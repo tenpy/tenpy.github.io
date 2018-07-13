@@ -54,43 +54,37 @@ The project adheres <a class="reference external" href="http://semver.org/spec/v
 <div class="section" id="added">
 <h3>Added<a class="headerlink" href="#added" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
-<li>MPS.canonical_form_infinite()</li>
-<li>npc.Array.extend() and charges.extend(), allowing to extend an Array with zeros.</li>
-<li>DMRG parameter ‘orthogonal_to’ allows to calculate excited states for finite systems.</li>
+<li><a class="reference internal" href="reference/tenpy.networks.mps.html#tenpy.networks.mps.MPS.canonical_form_infinite" title="tenpy.networks.mps.MPS.canonical_form_infinite"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.networks.mps.MPS.canonical_form_infinite()</span></code></a>.</li>
+<li><a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array.extend" title="tenpy.linalg.np_conserved.Array.extend"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.linalg.np_conserved.Array.extend()</span></code></a> and <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge.extend" title="tenpy.linalg.charges.LegCharge.extend"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.linalg.charges.LegCharge.extend()</span></code></a>,
+allowing to extend an Array with zeros.</li>
+<li>DMRG parameter <code class="docutils literal notranslate"><span class="pre">'orthogonal_to'</span></code> allows to calculate excited states for finite systems.</li>
 <li>possibility to change the number of charges after creating LegCharges/Arrays</li>
 </ul>
 </div>
 <div class="section" id="changed">
 <h3>Changed<a class="headerlink" href="#changed" title="Permalink to this headline">¶</a></h3>
-<ul>
-<li><p class="first">moved toycodes from examples/ to a new folder toycodes/</p>
-</li>
-<li><p class="first">Restructured lanczos into a class, added time evolution calculating exp(A*dt)|psi0&gt;</p>
-</li>
-<li><p class="first">Warning for poorly conditioned Lanczos; to overcome this enable the new parameter “reortho”</p>
-</li>
-<li><p class="first">By default, make deep copies of npc Arrays.</p>
-</li>
-<li><p class="first">Restructured <code class="xref py py-mod docutils literal notranslate"><span class="pre">tenpy.dmrg</span></code>:</p>
 <ul class="simple">
-<li><code class="xref py py-func docutils literal notranslate"><span class="pre">tenpy.dmrg.run()</span></code> is now just a wrapper around the new
-<code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.dmrg.Engine.run()</span></code>, <code class="docutils literal notranslate"><span class="pre">run(psi,</span> <span class="pre">model,</span> <span class="pre">pars)</span></code> is roughly equivalent to
+<li>moved toycodes from the folder <code class="docutils literal notranslate"><span class="pre">examples/</span></code> to a new folder <code class="docutils literal notranslate"><span class="pre">toycodes/</span></code> to separate them clearly.</li>
+<li>Restructured lanczos into a class, added time evolution calculating exp(A*dt)|psi0&gt;</li>
+<li>Warning for poorly conditioned Lanczos; to overcome this enable the new parameter “reortho”</li>
+<li>By default, make deep copies of npc Arrays.</li>
+<li>Restructured <a class="reference internal" href="reference/tenpy.algorithms.dmrg.html#module-tenpy.algorithms.dmrg" title="tenpy.algorithms.dmrg"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tenpy.algorithms.dmrg</span></code></a>:<ul>
+<li><a class="reference internal" href="reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.run" title="tenpy.algorithms.dmrg.run"><code class="xref py py-func docutils literal notranslate"><span class="pre">run()</span></code></a> is now just a wrapper around the new
+<a class="reference internal" href="reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.run" title="tenpy.algorithms.dmrg.Engine.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a>, <code class="docutils literal notranslate"><span class="pre">run(psi,</span> <span class="pre">model,</span> <span class="pre">pars)</span></code> is roughly equivalent to
 <code class="docutils literal notranslate"><span class="pre">eng</span> <span class="pre">=</span> <span class="pre">EngineCombine(psi,</span> <span class="pre">model,</span> <span class="pre">pars);</span> <span class="pre">eng.run()</span></code>.</li>
-<li>Added <code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.dmrg.Engine.init_env()</span></code> and <code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.dmrg.Engine.reset_stats()</span></code>
+<li>Added <a class="reference internal" href="reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.init_env" title="tenpy.algorithms.dmrg.Engine.init_env"><code class="xref py py-meth docutils literal notranslate"><span class="pre">init_env()</span></code></a> and <a class="reference internal" href="reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.reset_stats" title="tenpy.algorithms.dmrg.Engine.reset_stats"><code class="xref py py-meth docutils literal notranslate"><span class="pre">reset_stats()</span></code></a>
 to allow a simple restart of DMRG with slightly different parameters.</li>
 <li>call <code class="docutils literal notranslate"><span class="pre">MPS.canonical_form()</span></code> for infinite systems if the final state is not in canonical form.</li>
 </ul>
 </li>
-<li><p class="first">Changed <strong>default values</strong> for some parameters:
-- increase <code class="docutils literal notranslate"><span class="pre">Lanczos_params['N_cache']</span> <span class="pre">=</span> <span class="pre">N_max</span></code> (i.e. keep all states)
-- set <code class="docutils literal notranslate"><span class="pre">DMRG_params['P_tol_to_trunc']</span> <span class="pre">=</span> <span class="pre">0.05</span></code> and provide reasonable …_min and …_max values.
-- increased (default) DMRG accuracy by setting</p>
-<blockquote>
-<div><p><code class="docutils literal notranslate"><span class="pre">DMRG_params['max_E_err']</span> <span class="pre">=</span> <span class="pre">1.e-5</span></code> and <code class="docutils literal notranslate"><span class="pre">DMRG_params['max_S_err']</span> <span class="pre">=</span> <span class="pre">1.e-3</span></code>.</p>
-</div></blockquote>
+<li>Changed <strong>default values</strong> for some parameters:<ul>
+<li>increase <code class="docutils literal notranslate"><span class="pre">Lanczos_params['N_cache']</span> <span class="pre">=</span> <span class="pre">N_max</span></code> (i.e. keep all states)</li>
+<li>set <code class="docutils literal notranslate"><span class="pre">DMRG_params['P_tol_to_trunc']</span> <span class="pre">=</span> <span class="pre">0.05</span></code> and provide reasonable …_min and …_max values.</li>
+<li>increased (default) DMRG accuracy by setting
+<code class="docutils literal notranslate"><span class="pre">DMRG_params['max_E_err']</span> <span class="pre">=</span> <span class="pre">1.e-5</span></code> and <code class="docutils literal notranslate"><span class="pre">DMRG_params['max_S_err']</span> <span class="pre">=</span> <span class="pre">1.e-3</span></code>.</li>
+</ul>
 </li>
-<li><p class="first">don’t print the energy during real-time TEBD evolution - it’s preserved…</p>
-</li>
+<li>don’t print the energy during real-time TEBD evolution - it’s preserved up to truncation errors.</li>
 </ul>
 </div>
 <div class="section" id="fixed">
@@ -101,6 +95,7 @@ to allow a simple restart of DMRG with slightly different parameters.</li>
 <li>Corrected couplings of the FermionicHubbardChain</li>
 <li>issue #2: memory leak in cython parts when using intelpython/anaconda</li>
 <li>issue #4: incompatible data types.</li>
+<li>issue #6: the CouplingModel generated wrong Couplings in some cases</li>
 <li>more reasonable traceback in case of wrong labels</li>
 </ul>
 </div>
