@@ -51,7 +51,8 @@
 <p>Classes to define the lattice structure of a model.</p>
 <p>The base class <code class="xref py py-class docutils literal notranslate"><span class="pre">lattice</span></code> defines the general structure of a lattice,
 you can subclass this to define you own lattice.
-Further, we have the predefined lattices, namely <a class="reference internal" href="#tenpy.models.lattice.Chain" title="tenpy.models.lattice.Chain"><code class="xref py py-class docutils literal notranslate"><span class="pre">Chain</span></code></a> and <a class="reference internal" href="#tenpy.models.lattice.SquareLattice" title="tenpy.models.lattice.SquareLattice"><code class="xref py py-class docutils literal notranslate"><span class="pre">SquareLattice</span></code></a>.</p>
+Further, we have the predefined lattices, namely <a class="reference internal" href="#tenpy.models.lattice.Chain" title="tenpy.models.lattice.Chain"><code class="xref py py-class docutils literal notranslate"><span class="pre">Chain</span></code></a>, <a class="reference internal" href="#tenpy.models.lattice.Square" title="tenpy.models.lattice.Square"><code class="xref py py-class docutils literal notranslate"><span class="pre">Square</span></code></a>, and
+<a class="reference internal" href="#tenpy.models.lattice.Honeycomb" title="tenpy.models.lattice.Honeycomb"><code class="xref py py-class docutils literal notranslate"><span class="pre">Honeycomb</span></code></a>.</p>
 <div class="admonition-todo admonition" id="index-0">
 <p class="first admonition-title">Todo</p>
 <p class="last">documentation, how to generate new lattices, examples, …
@@ -60,8 +61,7 @@ equality tests?</p>
 </div>
 <div class="admonition-todo admonition" id="index-1">
 <p class="first admonition-title">Todo</p>
-<p class="last">add further lattices: honeycomb, …
-Above, make table with pictures of them (-&gt; use Lattice.plot_ordering)</p>
+<p class="last">Above, make table with pictures of them (-&gt; use Lattice.plot_ordering)</p>
 </div>
 <dl class="class">
 <dt id="tenpy.models.lattice.Lattice">
@@ -80,10 +80,6 @@ The <strong>MPS index</strong> <cite>i</cite> corresponds thus to the lattice si
 Use <a class="reference internal" href="#tenpy.models.lattice.Lattice.mps2lat_idx" title="tenpy.models.lattice.Lattice.mps2lat_idx"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mps2lat_idx()</span></code></a> and <a class="reference internal" href="#tenpy.models.lattice.Lattice.lat2mps_idx" title="tenpy.models.lattice.Lattice.lat2mps_idx"><code class="xref py py-meth docutils literal notranslate"><span class="pre">lat2mps_idx()</span></code></a> for conversion of indices.
 <a class="reference internal" href="#tenpy.models.lattice.Lattice.mps2lat_values" title="tenpy.models.lattice.Lattice.mps2lat_values"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mps2lat_values()</span></code></a> perform the necessary reshaping and re-ordering from arrays indexed in
 MPS form to arrays indexed in lattice form.</p>
-<div class="admonition-todo admonition" id="index-2">
-<p class="first admonition-title">Todo</p>
-<p class="last">some way to define what are the ‘nearest neighbours’/’next nearest neighbours’?</p>
-</div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -95,9 +91,8 @@ MPS form to arrays indexed in lattice form.</p>
 <dt><strong>unit_cell</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></span></dt>
 <dd><p class="first last">the lattice sites making up a unit cell of the lattice.</p>
 </dd>
-<dt><strong>order</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
-<dd><p class="first last">a string specifying the order, given to <a class="reference internal" href="#tenpy.models.lattice.Lattice.ordering" title="tenpy.models.lattice.Lattice.ordering"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ordering()</span></code></a>.
-Defaults <code class="docutils literal notranslate"><span class="pre">'default'</span></code>: First direction changing slowest, within the unit cell fastest.</p>
+<dt><strong>order</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str | (priority, snake_winding)</span></dt>
+<dd><p class="first last">A string or tuple specifying the order, given to <a class="reference internal" href="#tenpy.models.lattice.Lattice.ordering" title="tenpy.models.lattice.Lattice.ordering"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ordering()</span></code></a>.</p>
 </dd>
 <dt><strong>bc_MPS</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{‘finite’ | ‘segment’ | ‘infinite’}</span></dt>
 <dd><p class="first last">boundary conditions for an MPS/MPO living on the ordered lattice. Default ‘finite’.
@@ -157,6 +152,16 @@ direction <cite>i</cite>.</p>
 <dt><strong>unit_cell_positions</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray, shape (len(unit_cell), dim)</span></dt>
 <dd><p class="first last">for each site in the unit cell a vector giving its position within the unit cell.</p>
 </dd>
+<dt><strong>nearest_neighbors</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">None</span></code> | list of <code class="docutils literal notranslate"><span class="pre">(u1,</span> <span class="pre">u2,</span> <span class="pre">dx)</span></code></span></dt>
+<dd><p class="first last">May be unspecified (<code class="docutils literal notranslate"><span class="pre">None</span></code>), otherwise it gives a list of parameters <cite>u1</cite>, <cite>u2</cite>, <cite>dx</cite>
+as needed for the <a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-meth docutils literal notranslate"><span class="pre">CouplingModel()</span></code></a> to generate nearest-neighbor
+couplings.
+Note that we include each coupling only in one direction; to get both directions, use
+<code class="docutils literal notranslate"><span class="pre">nearest_neighbors</span> <span class="pre">+</span> <span class="pre">[(u1,</span> <span class="pre">u2,</span> <span class="pre">-dx)</span> <span class="pre">for</span> <span class="pre">(u1,</span> <span class="pre">u2,</span> <span class="pre">dx)</span> <span class="pre">in</span> <span class="pre">nearest_neighbors]</span></code>.</p>
+</dd>
+<dt><strong>next_nearest_neighbors</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">None</span></code> | list of <code class="docutils literal notranslate"><span class="pre">(u1,</span> <span class="pre">u2,</span> <span class="pre">dx)</span></code></span></dt>
+<dd><p class="first last">Same as <code class="xref py py-attr docutils literal notranslate"><span class="pre">nearest_neighbors</span></code>, but for the next-nearest neigbhors.</p>
+</dd>
 <dt><strong>_strides</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray (dim, )</span></dt>
 <dd><p class="first last">necessary for <a class="reference internal" href="#tenpy.models.lattice.Lattice.mps2lat_idx" title="tenpy.models.lattice.Lattice.mps2lat_idx"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mps2lat_idx()</span></code></a></p>
 </dd>
@@ -168,9 +173,6 @@ direction <cite>i</cite>.</p>
 </dd>
 <dt><strong>_mps_fix_u</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple of ndarray (N_cells, ) np.intp</span></dt>
 <dd><p class="first last">for each site of the unit cell an index array selecting the mps indices of that site.</p>
-</dd>
-<dt><strong>_mps_fix_u_None</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray (N_sites, )</span></dt>
-<dd><p class="first last">just np.arange(N_sites, np.intp)</p>
 </dd>
 <dt><strong>_mps2lat_vals_idx_fix_u</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple of ndarray of shape <cite>Ls</cite></span></dt>
 <dd><p class="first last">similar as <cite>_mps2lat_vals_idx</cite>, but for a fixed <cite>u</cite> picking a site from the unit cell.</p>
@@ -205,19 +207,34 @@ direction <cite>i</cite>.</p>
 <tr class="row-even"><td><a class="reference internal" href="#tenpy.models.lattice.Lattice.mps_sites" title="tenpy.models.lattice.Lattice.mps_sites"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mps_sites</span></code></a>()</td>
 <td>Return a list [self.site(i) for i in range(self.N_sites)].</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.lattice.Lattice.ordering" title="tenpy.models.lattice.Lattice.ordering"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ordering</span></code></a>(name)</td>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.lattice.Lattice.number_nearest_neighbors" title="tenpy.models.lattice.Lattice.number_nearest_neighbors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">number_nearest_neighbors</span></code></a>([u])</td>
+<td>Count the number of nearest neighbors for a site in the bulk.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.lattice.Lattice.number_next_nearest_neighbors" title="tenpy.models.lattice.Lattice.number_next_nearest_neighbors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">number_next_nearest_neighbors</span></code></a>([u])</td>
+<td>Count the number of next nearest neighbors for a site in the bulk.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.lattice.Lattice.ordering" title="tenpy.models.lattice.Lattice.ordering"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ordering</span></code></a>(order)</td>
 <td>Provide possible orderings of the <cite>N</cite> lattice sites.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.lattice.Lattice.plot_ordering" title="tenpy.models.lattice.Lattice.plot_ordering"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_ordering</span></code></a>([order,&nbsp;ax])</td>
-<td>Vizualize the ordering by plotting the lattice.</td>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.lattice.Lattice.plot_basis" title="tenpy.models.lattice.Lattice.plot_basis"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_basis</span></code></a>(ax,&nbsp;**kwargs)</td>
+<td>Plot arrows indicating the basis vectors of the lattice</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.lattice.Lattice.position" title="tenpy.models.lattice.Lattice.position"><code class="xref py py-obj docutils literal notranslate"><span class="pre">position</span></code></a>(lat_idx)</td>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.lattice.Lattice.plot_coupling" title="tenpy.models.lattice.Lattice.plot_coupling"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_coupling</span></code></a>(ax[,&nbsp;coupling])</td>
+<td>Plot lines connecting nearest neighbors of the lattice.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.lattice.Lattice.plot_order" title="tenpy.models.lattice.Lattice.plot_order"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_order</span></code></a>(ax[,&nbsp;order,&nbsp;textkwargs])</td>
+<td>Plot a line connecting sites in the specified “order” and text labels enumerating them.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.lattice.Lattice.plot_sites" title="tenpy.models.lattice.Lattice.plot_sites"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_sites</span></code></a>(ax[,&nbsp;markers])</td>
+<td>Plot the sites of the lattice with markers.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.lattice.Lattice.position" title="tenpy.models.lattice.Lattice.position"><code class="xref py py-obj docutils literal notranslate"><span class="pre">position</span></code></a>(lat_idx)</td>
 <td>return ‘space’ position of one or multiple sites.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.lattice.Lattice.site" title="tenpy.models.lattice.Lattice.site"><code class="xref py py-obj docutils literal notranslate"><span class="pre">site</span></code></a>(i)</td>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.lattice.Lattice.site" title="tenpy.models.lattice.Lattice.site"><code class="xref py py-obj docutils literal notranslate"><span class="pre">site</span></code></a>(i)</td>
 <td>return <code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code> instance corresponding to an MPS index <cite>i</cite></td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.lattice.Lattice.test_sanity" title="tenpy.models.lattice.Lattice.test_sanity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.lattice.Lattice.test_sanity" title="tenpy.models.lattice.Lattice.test_sanity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code></a>()</td>
 <td>Sanity check.</td>
 </tr>
 </tbody>
@@ -308,7 +325,7 @@ the argument <cite>u</cite> of this function. say y</p>
 <span class="go">True</span>
 </pre></div>
 </div>
-<div class="admonition-todo admonition" id="index-3">
+<div class="admonition-todo admonition" id="index-2">
 <p class="first admonition-title">Todo</p>
 <p class="last">make sure this function is used for expectation values…</p>
 </div>
@@ -380,41 +397,105 @@ sites given by <code class="docutils literal notranslate"><span class="pre">self
 </dd></dl>
 
 <dl class="method">
+<dt id="tenpy.models.lattice.Lattice.number_nearest_neighbors">
+<code class="descname">number_nearest_neighbors</code><span class="sig-paren">(</span><em>u=0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/lattice.html#Lattice.number_nearest_neighbors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.lattice.Lattice.number_nearest_neighbors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Count the number of nearest neighbors for a site in the bulk.</p>
+<p>Requires <code class="xref py py-attr docutils literal notranslate"><span class="pre">nearest_neighbors</span></code> to be set.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>u</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Specifies the site in the unit cell.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>number_NN</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Number of nearest neighbors of the <cite>u</cite>-th site in the unit cell in the bulk of the
+lattice, not that it might be different at the edges of the lattice for open boundary
+conditions.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.models.lattice.Lattice.number_next_nearest_neighbors">
+<code class="descname">number_next_nearest_neighbors</code><span class="sig-paren">(</span><em>u=0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/lattice.html#Lattice.number_next_nearest_neighbors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.lattice.Lattice.number_next_nearest_neighbors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Count the number of next nearest neighbors for a site in the bulk.</p>
+<p>Requires <code class="xref py py-attr docutils literal notranslate"><span class="pre">next_nearest_neighbors</span></code> to be set.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>u</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Specifies the site in the unit cell.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>number_NNN</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Number of next nearest neighbors of the <cite>u</cite>-th site in the unit cell in the bulk of the
+lattice, not that it might be different at the edges of the lattice for open boundary
+conditions.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="tenpy.models.lattice.Lattice.ordering">
-<code class="descname">ordering</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/lattice.html#Lattice.ordering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.lattice.Lattice.ordering" title="Permalink to this definition">¶</a></dt>
+<code class="descname">ordering</code><span class="sig-paren">(</span><em>order</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/lattice.html#Lattice.ordering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.lattice.Lattice.ordering" title="Permalink to this definition">¶</a></dt>
 <dd><p>Provide possible orderings of the <cite>N</cite> lattice sites.</p>
 <p>This function can be overwritten by derived lattices to define additional orderings.
-The following orders are devined in this function:</p>
+The following orders are defined in this method:</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="13%" />
-<col width="88%" />
+<col width="24%" />
+<col width="36%" />
+<col width="39%" />
 </colgroup>
 <thead valign="bottom">
-<tr class="row-odd"><th class="head">name</th>
-<th class="head">ordering</th>
+<tr class="row-odd"><th class="head"><cite>order</cite></th>
+<th class="head">equivalent <cite>priority</cite></th>
+<th class="head">equivalent <code class="docutils literal notranslate"><span class="pre">snake_winding</span></code></th>
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td>Cstyle</td>
-<td>First ascending within the unit cell, then through the lattice in
-C-style array order, i.e., the first direction changes slowest.</td>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">'Cstyle'</span></code></td>
+<td>(0, 1, …, dim-1, dim)</td>
+<td>(False, …, False, False)</td>
 </tr>
-<tr class="row-odd"><td>Fstyle</td>
-<td>Similar as default, but use Fortran-style array order for the lattice sites,
-i.e., the last dimension changes slowest, unit cell fastest.</td>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">'default'</span></code></td>
+<td>&#160;</td>
+<td>&#160;</td>
 </tr>
-<tr class="row-even"><td>snakeCstyle</td>
-<td>like Cstyle but always alternate ascending/descending.</td>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">'snake'</span></code></td>
+<td>(0, 1, …, dim-1, dim)</td>
+<td>(True, …, True, True)</td>
 </tr>
-<tr class="row-odd"><td>snakeFstyle</td>
-<td>like Fstyle but always alternate ascending/descending.</td>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">'snakeCstyle'</span></code></td>
+<td>&#160;</td>
+<td>&#160;</td>
 </tr>
-<tr class="row-even"><td>default</td>
-<td>same as Cstyle</td>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">'Fstyle'</span></code></td>
+<td>(dim-1, …, 1, 0, dim)</td>
+<td>(False, …, False, False)</td>
 </tr>
-<tr class="row-odd"><td>snake</td>
-<td>same as snakeCstyle</td>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">'snakeFstyle'</span></code></td>
+<td>(dim-1, …, 1, 0, dim)</td>
+<td>(False, …, False, False)</td>
 </tr>
 </tbody>
 </table>
@@ -423,15 +504,19 @@ i.e., the last dimension changes slowest, unit cell fastest.</td>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>name</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
-<dd><p class="first last">specifies the desired ordering, see table above.</p>
+<dt><strong>order</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str | (priority, snake_winding)</span></dt>
+<dd><p class="first last">Specifies the desired ordering using one of the strings of the above tables.
+Alternatively, an ordering is specified by the
+<cite>priority</cite> (one value for each direction, winding along the highest value first)
+and the <cite>snake_winding</cite> (True/False for each direction).
+Further explanations of these tuples in <a class="reference internal" href="#tenpy.models.lattice.get_order" title="tenpy.models.lattice.get_order"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_order()</span></code></a>.</p>
 </dd>
 </dl>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
 <dt><strong>order</strong> <span class="classifier-delimiter">:</span> <span class="classifier">array, shape (N, D+1), dtype np.intp</span></dt>
-<dd><p class="first last">the order to be used for <code class="docutils literal notranslate"><span class="pre">self.order</span></code>.</p>
+<dd><p class="first last">the order to be used for <code class="xref py py-attr docutils literal notranslate"><span class="pre">order</span></code>.</p>
 </dd>
 </dl>
 </td>
@@ -441,26 +526,112 @@ i.e., the last dimension changes slowest, unit cell fastest.</td>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
 <dl class="last docutils">
-<dt><a class="reference internal" href="#tenpy.models.lattice.Lattice.plot_ordering" title="tenpy.models.lattice.Lattice.plot_ordering"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_ordering</span></code></a></dt>
+<dt><a class="reference internal" href="#tenpy.models.lattice.get_order" title="tenpy.models.lattice.get_order"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_order()</span></code></a></dt>
+<dd>generates the ordering from the equivalent <cite>priority</cite> and <cite>snake_winding</cite>.</dd>
+<dt><code class="xref py py-meth docutils literal notranslate"><span class="pre">plot_ordering()</span></code></dt>
 <dd>visualizes the ordering</dd>
 </dl>
 </div>
 </dd></dl>
 
 <dl class="method">
-<dt id="tenpy.models.lattice.Lattice.plot_ordering">
-<code class="descname">plot_ordering</code><span class="sig-paren">(</span><em>order=None</em>, <em>ax=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/lattice.html#Lattice.plot_ordering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.lattice.Lattice.plot_ordering" title="Permalink to this definition">¶</a></dt>
-<dd><p>Vizualize the ordering by plotting the lattice.</p>
+<dt id="tenpy.models.lattice.Lattice.plot_basis">
+<code class="descname">plot_basis</code><span class="sig-paren">(</span><em>ax</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/lattice.html#Lattice.plot_basis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.lattice.Lattice.plot_basis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot arrows indicating the basis vectors of the lattice</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>order</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None | 2D array (self.N_sites, self.dim+1)</span></dt>
-<dd><p class="first last">An order array as returned by <a class="reference internal" href="#tenpy.models.lattice.Lattice.ordering" title="tenpy.models.lattice.Lattice.ordering"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ordering()</span></code></a>. <code class="docutils literal notranslate"><span class="pre">None</span></code> defaults to <code class="docutils literal notranslate"><span class="pre">self.order</span></code>.</p>
-</dd>
 <dt><strong>ax</strong> <span class="classifier-delimiter">:</span> <span class="classifier">matplotlib.pyplot.Axes</span></dt>
-<dd><p class="first last">The axes on which the ordering should be plotted. Defaults to <code class="docutils literal notranslate"><span class="pre">pylab.gca()</span></code>.</p>
+<dd><p class="first last">The axes on which we should plot.</p>
+</dd>
+<dt><strong>**kwargs :</strong></dt>
+<dd><p class="first last">Keyword arguments specifying the “arrowprops” of <code class="docutils literal notranslate"><span class="pre">ax.annotate</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.models.lattice.Lattice.plot_coupling">
+<code class="descname">plot_coupling</code><span class="sig-paren">(</span><em>ax</em>, <em>coupling=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/lattice.html#Lattice.plot_coupling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.lattice.Lattice.plot_coupling" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot lines connecting nearest neighbors of the lattice.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>ax</strong> <span class="classifier-delimiter">:</span> <span class="classifier">matplotlib.pyplot.Axes</span></dt>
+<dd><p class="first last">The axes on which we should plot.</p>
+</dd>
+<dt><strong>coupling</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of (u1, u2, dx)</span></dt>
+<dd><p class="first last">Specifies the connections to be plotted; iteating over lattice indices <cite>(i0, i1, …)</cite>,
+we plot a connection from the site <code class="docutils literal notranslate"><span class="pre">(i0,</span> <span class="pre">i1,</span> <span class="pre">...,</span> <span class="pre">u1)</span></code> to the site
+<code class="docutils literal notranslate"><span class="pre">(i0+dx[0],</span> <span class="pre">i1+dx[1],</span> <span class="pre">...,</span> <span class="pre">u1)</span></code>.
+By default (<code class="docutils literal notranslate"><span class="pre">None</span></code>), use :attr:<code class="docutils literal notranslate"><span class="pre">nearest_neighbors</span></code>.</p>
+</dd>
+<dt><strong>**kwargs :</strong></dt>
+<dd><p class="first last">Further keyword arguments given to <code class="docutils literal notranslate"><span class="pre">ax.plot()</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.models.lattice.Lattice.plot_order">
+<code class="descname">plot_order</code><span class="sig-paren">(</span><em>ax</em>, <em>order=None</em>, <em>textkwargs={}</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/lattice.html#Lattice.plot_order"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.lattice.Lattice.plot_order" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot a line connecting sites in the specified “order” and text labels enumerating them.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>ax</strong> <span class="classifier-delimiter">:</span> <span class="classifier">matplotlib.pyplot.Axes</span></dt>
+<dd><p class="first last">The axes on which we should plot.</p>
+</dd>
+<dt><strong>order</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None | 2D array (self.N_sites, self.dim+1)</span></dt>
+<dd><p class="first last">The order as returned by <a class="reference internal" href="#tenpy.models.lattice.Lattice.ordering" title="tenpy.models.lattice.Lattice.ordering"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ordering()</span></code></a>; by default (<code class="docutils literal notranslate"><span class="pre">None</span></code>) use <code class="xref py py-attr docutils literal notranslate"><span class="pre">order</span></code>.</p>
+</dd>
+<dt><strong>textkwargs: ``None`` | dict</strong></dt>
+<dd><p class="first last">If not <code class="docutils literal notranslate"><span class="pre">None</span></code>, we add text labels enumerating the sites in the plot. The dictionary
+can contain keyword arguments for <code class="docutils literal notranslate"><span class="pre">ax.text()</span></code>.</p>
+</dd>
+<dt><strong>**kwargs :</strong></dt>
+<dd><p class="first last">Further keyword arguments given to <code class="docutils literal notranslate"><span class="pre">ax.plot()</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.models.lattice.Lattice.plot_sites">
+<code class="descname">plot_sites</code><span class="sig-paren">(</span><em>ax, markers=['o', '^', 's', 'p', 'h', 'D'], **kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/lattice.html#Lattice.plot_sites"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.lattice.Lattice.plot_sites" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the sites of the lattice with markers.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>ax</strong> <span class="classifier-delimiter">:</span> <span class="classifier">matplotlib.pyplot.Axes</span></dt>
+<dd><p class="first last">The axes on which we should plot.</p>
+</dd>
+<dt><strong>markers</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd><p class="first last">List of values for the keywork <cite>marker</cite> of <code class="docutils literal notranslate"><span class="pre">ax.plot()</span></code> to distinguish the different
+sites in the unit cell, a site <cite>u</cite> in the unit cell is plotted with a marker
+<code class="docutils literal notranslate"><span class="pre">markers[u</span> <span class="pre">%</span> <span class="pre">len(markers)]</span></code>.</p>
+</dd>
+<dt><strong>**kwargs :</strong></dt>
+<dd><p class="first last">Further keyword arguments given to <code class="docutils literal notranslate"><span class="pre">ax.plot()</span></code>.</p>
 </dd>
 </dl>
 </td>
@@ -486,7 +657,8 @@ i.e., the last dimension changes slowest, unit cell fastest.</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
 <dt><strong>pos</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray, <code class="docutils literal notranslate"><span class="pre">(...,</span> <span class="pre">dim)</span></code></span></dt>
-<dd></dd>
+<dd><p class="first last">The position of the lattice sites specified by <cite>lat_idx</cite> in real-space.</p>
+</dd>
 </dl>
 </td>
 </tr>
@@ -517,7 +689,7 @@ i.e., the last dimension changes slowest, unit cell fastest.</td>
 <cite>u</cite> of an ‘lattice index’ can only be <code class="docutils literal notranslate"><span class="pre">0</span></code>.
 From the point of internal algorithms, we handle this class like a <a class="reference internal" href="#tenpy.models.lattice.Lattice" title="tenpy.models.lattice.Lattice"><code class="xref py py-class docutils literal notranslate"><span class="pre">Lattice</span></code></a> –
 in that way we don’t need to distinguish special cases in the algorithms.</p>
-<p>Yet, from the point of a tenpy user, for example if you measure and expectation value
+<p>Yet, from the point of a tenpy user, for example if you measure an expectation value
 on each site in a <cite>SimpleLattice</cite>, you expect to get an ndarray of dimensions <code class="docutils literal notranslate"><span class="pre">self.Ls</span></code>,
 not <code class="docutils literal notranslate"><span class="pre">self.shape</span></code>. To avoid that problem, <cite>SimpleLattice</cite> overwrites just the meaning of
 <code class="docutils literal notranslate"><span class="pre">u=None</span></code> in <a class="reference internal" href="#tenpy.models.lattice.SimpleLattice.mps2lat_values" title="tenpy.models.lattice.SimpleLattice.mps2lat_values"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mps2lat_values()</span></code></a> to be the same as <code class="docutils literal notranslate"><span class="pre">u=0</span></code>.</p>
@@ -532,9 +704,10 @@ not <code class="docutils literal notranslate"><span class="pre">self.shape</spa
 <dt><strong>site</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></span></dt>
 <dd><p class="first last">the lattice site. The <cite>unit_cell</cite> of the <a class="reference internal" href="#tenpy.models.lattice.Lattice" title="tenpy.models.lattice.Lattice"><code class="xref py py-class docutils literal notranslate"><span class="pre">Lattice</span></code></a> is just <code class="docutils literal notranslate"><span class="pre">[site]</span></code>.</p>
 </dd>
-<dt><strong>order</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
-<dd><p class="first last">A string specifying the order, given to <code class="xref py py-meth docutils literal notranslate"><span class="pre">ordering()</span></code>.
-Defaults <code class="docutils literal notranslate"><span class="pre">'default'</span></code>: First direction changing slowest.</p>
+<dt><strong>order</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str | (priority, snake_winding)</span></dt>
+<dd><p class="first last">A string or tuple specifying the order, given to <code class="xref py py-meth docutils literal notranslate"><span class="pre">ordering()</span></code>.
+If a tuple, the priority and snake_winding should only be specified for the lattice
+directions.</p>
 </dd>
 <dt><strong>bc_MPS</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{‘finite’, ‘segment’, ‘infinite’}</span></dt>
 <dd><p class="first last">boundary conditions for an MPS/MPO living on the ordered lattice. Default ‘finite’.</p>
@@ -583,19 +756,34 @@ Defaults to the standard ONB <code class="docutils literal notranslate"><span cl
 <tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">mps_sites</span></code>()</td>
 <td>Return a list [self.site(i) for i in range(self.N_sites)].</td>
 </tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">ordering</span></code>(name)</td>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">number_nearest_neighbors</span></code>([u])</td>
+<td>Count the number of nearest neighbors for a site in the bulk.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">number_next_nearest_neighbors</span></code>([u])</td>
+<td>Count the number of next nearest neighbors for a site in the bulk.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">ordering</span></code>(order)</td>
 <td>Provide possible orderings of the <cite>N</cite> lattice sites.</td>
 </tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_ordering</span></code>([order,&nbsp;ax])</td>
-<td>Vizualize the ordering by plotting the lattice.</td>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_basis</span></code>(ax,&nbsp;**kwargs)</td>
+<td>Plot arrows indicating the basis vectors of the lattice</td>
 </tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">position</span></code>(lat_idx)</td>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_coupling</span></code>(ax[,&nbsp;coupling])</td>
+<td>Plot lines connecting nearest neighbors of the lattice.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_order</span></code>(ax[,&nbsp;order,&nbsp;textkwargs])</td>
+<td>Plot a line connecting sites in the specified “order” and text labels enumerating them.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_sites</span></code>(ax[,&nbsp;markers])</td>
+<td>Plot the sites of the lattice with markers.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">position</span></code>(lat_idx)</td>
 <td>return ‘space’ position of one or multiple sites.</td>
 </tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">site</span></code>(i)</td>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">site</span></code>(i)</td>
 <td>return <code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code> instance corresponding to an MPS index <cite>i</cite></td>
 </tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
 <td>Sanity check.</td>
 </tr>
 </tbody>
@@ -664,19 +852,34 @@ Defaults to the standard ONB <code class="docutils literal notranslate"><span cl
 <tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">mps_sites</span></code>()</td>
 <td>Return a list [self.site(i) for i in range(self.N_sites)].</td>
 </tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">ordering</span></code>(name)</td>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">number_nearest_neighbors</span></code>([u])</td>
+<td>Count the number of nearest neighbors for a site in the bulk.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">number_next_nearest_neighbors</span></code>([u])</td>
+<td>Count the number of next nearest neighbors for a site in the bulk.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">ordering</span></code>(order)</td>
 <td>Provide possible orderings of the <cite>N</cite> lattice sites.</td>
 </tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_ordering</span></code>([order,&nbsp;ax])</td>
-<td>Vizualize the ordering by plotting the lattice.</td>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_basis</span></code>(ax,&nbsp;**kwargs)</td>
+<td>Plot arrows indicating the basis vectors of the lattice</td>
 </tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">position</span></code>(lat_idx)</td>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_coupling</span></code>(ax[,&nbsp;coupling])</td>
+<td>Plot lines connecting nearest neighbors of the lattice.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_order</span></code>(ax[,&nbsp;order,&nbsp;textkwargs])</td>
+<td>Plot a line connecting sites in the specified “order” and text labels enumerating them.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_sites</span></code>(ax[,&nbsp;markers])</td>
+<td>Plot the sites of the lattice with markers.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">position</span></code>(lat_idx)</td>
 <td>return ‘space’ position of one or multiple sites.</td>
 </tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">site</span></code>(i)</td>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">site</span></code>(i)</td>
 <td>return <code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code> instance corresponding to an MPS index <cite>i</cite></td>
 </tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
 <td>Sanity check.</td>
 </tr>
 </tbody>
@@ -684,8 +887,8 @@ Defaults to the standard ONB <code class="docutils literal notranslate"><span cl
 </dd></dl>
 
 <dl class="class">
-<dt id="tenpy.models.lattice.SquareLattice">
-<em class="property">class </em><code class="descclassname">tenpy.models.lattice.</code><code class="descname">SquareLattice</code><span class="sig-paren">(</span><em>Lx</em>, <em>Ly</em>, <em>site</em>, <em>order='default'</em>, <em>bc_MPS='finite'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/lattice.html#SquareLattice"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.lattice.SquareLattice" title="Permalink to this definition">¶</a></dt>
+<dt id="tenpy.models.lattice.Square">
+<em class="property">class </em><code class="descclassname">tenpy.models.lattice.</code><code class="descname">Square</code><span class="sig-paren">(</span><em>Lx</em>, <em>Ly</em>, <em>site</em>, <em>order='default'</em>, <em>bc_MPS='finite'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/lattice.html#Square"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.lattice.Square" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#tenpy.models.lattice.SimpleLattice" title="tenpy.models.lattice.SimpleLattice"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.lattice.SimpleLattice</span></code></a></p>
 <p>A simple uniform square lattice of <cite>Lx</cite> by <cite>Ly</cite> sites.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -726,20 +929,214 @@ Defaults to the standard ONB <code class="docutils literal notranslate"><span cl
 <tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">mps_sites</span></code>()</td>
 <td>Return a list [self.site(i) for i in range(self.N_sites)].</td>
 </tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">ordering</span></code>(name)</td>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">number_nearest_neighbors</span></code>([u])</td>
+<td>Count the number of nearest neighbors for a site in the bulk.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">number_next_nearest_neighbors</span></code>([u])</td>
+<td>Count the number of next nearest neighbors for a site in the bulk.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">ordering</span></code>(order)</td>
 <td>Provide possible orderings of the <cite>N</cite> lattice sites.</td>
 </tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_ordering</span></code>([order,&nbsp;ax])</td>
-<td>Vizualize the ordering by plotting the lattice.</td>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_basis</span></code>(ax,&nbsp;**kwargs)</td>
+<td>Plot arrows indicating the basis vectors of the lattice</td>
 </tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">position</span></code>(lat_idx)</td>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_coupling</span></code>(ax[,&nbsp;coupling])</td>
+<td>Plot lines connecting nearest neighbors of the lattice.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_order</span></code>(ax[,&nbsp;order,&nbsp;textkwargs])</td>
+<td>Plot a line connecting sites in the specified “order” and text labels enumerating them.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_sites</span></code>(ax[,&nbsp;markers])</td>
+<td>Plot the sites of the lattice with markers.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">position</span></code>(lat_idx)</td>
 <td>return ‘space’ position of one or multiple sites.</td>
 </tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">site</span></code>(i)</td>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">site</span></code>(i)</td>
 <td>return <code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code> instance corresponding to an MPS index <cite>i</cite></td>
 </tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
 <td>Sanity check.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="tenpy.models.lattice.Honeycomb">
+<em class="property">class </em><code class="descclassname">tenpy.models.lattice.</code><code class="descname">Honeycomb</code><span class="sig-paren">(</span><em>Lx</em>, <em>Ly</em>, <em>siteA</em>, <em>siteB</em>, <em>order='default'</em>, <em>bc_MPS='finite'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/lattice.html#Honeycomb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.lattice.Honeycomb" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tenpy.models.lattice.Lattice" title="tenpy.models.lattice.Lattice"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.lattice.Lattice</span></code></a></p>
+<p>A honeycomb lattice.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">dim</span></code></dt>
+<dd><p class="first last">the dimension of the lattice.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">lat2mps_idx</span></code>(lat_idx)</td>
+<td>translate lattice indices <code class="docutils literal notranslate"><span class="pre">(x_0,</span> <span class="pre">...,</span> <span class="pre">x_{D-1},</span> <span class="pre">u)</span></code> to MPS index <cite>i</cite>.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">mps2lat_idx</span></code>(i)</td>
+<td>translate MPS index <cite>i</cite> to lattice indices <code class="docutils literal notranslate"><span class="pre">(x_0,</span> <span class="pre">...,</span> <span class="pre">x_{D_1},</span> <span class="pre">u)</span></code></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">mps2lat_values</span></code>(A[,&nbsp;axes,&nbsp;u])</td>
+<td>reshape/reorder A to replace an MPS index by lattice indices.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">mps_idx_fix_u</span></code>([u])</td>
+<td>return an index array of MPS indices for which the site within the unit cell is <cite>u</cite>.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">mps_lat_idx_fix_u</span></code>([u])</td>
+<td>Similar as <code class="xref py py-meth docutils literal notranslate"><span class="pre">mps_idx_fix_u()</span></code>, but return also the corresponding lattice indices.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">mps_sites</span></code>()</td>
+<td>Return a list [self.site(i) for i in range(self.N_sites)].</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">number_nearest_neighbors</span></code>([u])</td>
+<td>Count the number of nearest neighbors for a site in the bulk.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">number_next_nearest_neighbors</span></code>([u])</td>
+<td>Count the number of next nearest neighbors for a site in the bulk.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.lattice.Honeycomb.ordering" title="tenpy.models.lattice.Honeycomb.ordering"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ordering</span></code></a>(order)</td>
+<td>Provide possible orderings of the <cite>N</cite> lattice sites.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_basis</span></code>(ax,&nbsp;**kwargs)</td>
+<td>Plot arrows indicating the basis vectors of the lattice</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_coupling</span></code>(ax[,&nbsp;coupling])</td>
+<td>Plot lines connecting nearest neighbors of the lattice.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_order</span></code>(ax[,&nbsp;order,&nbsp;textkwargs])</td>
+<td>Plot a line connecting sites in the specified “order” and text labels enumerating them.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_sites</span></code>(ax[,&nbsp;markers])</td>
+<td>Plot the sites of the lattice with markers.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">position</span></code>(lat_idx)</td>
+<td>return ‘space’ position of one or multiple sites.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">site</span></code>(i)</td>
+<td>return <code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code> instance corresponding to an MPS index <cite>i</cite></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
+<td>Sanity check.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="tenpy.models.lattice.Honeycomb.ordering">
+<code class="descname">ordering</code><span class="sig-paren">(</span><em>order</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/lattice.html#Honeycomb.ordering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.lattice.Honeycomb.ordering" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provide possible orderings of the <cite>N</cite> lattice sites.</p>
+<p>The following orders are defined in this method compared to <a class="reference internal" href="#tenpy.models.lattice.Lattice.ordering" title="tenpy.models.lattice.Lattice.ordering"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Lattice.ordering()</span></code></a>:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="24%" />
+<col width="36%" />
+<col width="39%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head"><cite>order</cite></th>
+<th class="head">equivalent <cite>priority</cite></th>
+<th class="head">equivalent <code class="docutils literal notranslate"><span class="pre">snake_winding</span></code></th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">'default'</span></code></td>
+<td>(0, 2, 1)</td>
+<td>(False, False, False)</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">'snake'</span></code></td>
+<td>(0, 2, 1)</td>
+<td>(False, True, False)</td>
+</tr>
+</tbody>
+</table>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>order</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str | (priority, snake_winding)</span></dt>
+<dd><p class="first last">Specifies the desired ordering using one of the strings of the above tables.
+Alternatively, an ordering is specified by the
+<cite>priority</cite> (one value for each direction, winding along the highest value first)
+and the <cite>snake_winding</cite> (True/False for each direction).
+Further explanations of these tuples in <a class="reference internal" href="#tenpy.models.lattice.get_order" title="tenpy.models.lattice.get_order"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_order()</span></code></a>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>order</strong> <span class="classifier-delimiter">:</span> <span class="classifier">array, shape (N, D+1), dtype np.intp</span></dt>
+<dd><p class="first last">the order to be used for <code class="xref py py-attr docutils literal notranslate"><span class="pre">order</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<dl class="last docutils">
+<dt><a class="reference internal" href="#tenpy.models.lattice.get_order" title="tenpy.models.lattice.get_order"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_order()</span></code></a></dt>
+<dd>generates the ordering from the equivalent <cite>priority</cite> and <cite>snake_winding</cite>.</dd>
+<dt><code class="xref py py-meth docutils literal notranslate"><span class="pre">plot_ordering()</span></code></dt>
+<dd>visualizes the ordering</dd>
+</dl>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="tenpy.models.lattice.get_order">
+<code class="descclassname">tenpy.models.lattice.</code><code class="descname">get_order</code><span class="sig-paren">(</span><em>shape</em>, <em>snake_winding</em>, <em>priority=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/lattice.html#get_order"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.lattice.get_order" title="Permalink to this definition">¶</a></dt>
+<dd><p>Built the <code class="xref py py-attr docutils literal notranslate"><span class="pre">Lattice.order</span></code> in (Snake-) C-Style for a given lattice shape.</p>
+<p>In this function, the word ‘direction’ referst to a physical direction of the lattice or the
+index <cite>u</cite> of the unit cell as an “artificial direction”.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>shape</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple of int</span></dt>
+<dd><p class="first last">The shape of the lattice, i.e., the length in each direction.</p>
+</dd>
+<dt><strong>snake_winding</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple of bool</span></dt>
+<dd><p class="first last">For each direction one bool, whether we should wind as a “snake” (True) in that direction
+(i.e., going forth and back) or simply repeat ascending (False)</p>
+</dd>
+<dt><strong>priority: ``None`` | tuple of float</strong></dt>
+<dd><p class="first last">If <code class="docutils literal notranslate"><span class="pre">None</span></code> (default), use C-Style ordering.
+Otherwise, this defines the priority along which direction to wind first;
+the direction with the highest priority increases fastest.
+For example, “C-Style” order is enforced by <code class="docutils literal notranslate"><span class="pre">priority=(0,</span> <span class="pre">1,</span> <span class="pre">2,</span> <span class="pre">...)</span></code>,
+and Fortrans F-style order is enforced by <code class="docutils literal notranslate"><span class="pre">priority=(dim,</span> <span class="pre">dim-1,</span> <span class="pre">...,</span> <span class="pre">1,</span> <span class="pre">0)</span></code></p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>order</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray (np.prod(shape), len(shape))</span></dt>
+<dd><p class="first last">An order of the sites for <code class="xref py py-attr docutils literal notranslate"><span class="pre">Lattice.order</span></code> in the specified <cite>ordering</cite>.</p>
+</dd>
+</dl>
+</td>
 </tr>
 </tbody>
 </table>
