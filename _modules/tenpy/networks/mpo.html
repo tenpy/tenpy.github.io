@@ -85,7 +85,7 @@
 <span class="kn">from</span> <span class="nn">.mps</span> <span class="k">import</span> <span class="n">MPS</span> <span class="k">as</span> <span class="n">_MPS</span>  <span class="c1"># only for MPS._valid_bc</span>
 <span class="kn">from</span> <span class="nn">.mps</span> <span class="k">import</span> <span class="n">MPSEnvironment</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;MPO&#39;</span><span class="p">,</span> <span class="s1">&#39;MPOGraph&#39;</span><span class="p">,</span> <span class="s1">&#39;MPOEnvironment&#39;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;MPO&#39;</span><span class="p">,</span> <span class="s1">&#39;MPOGraph&#39;</span><span class="p">,</span> <span class="s1">&#39;MPOEnvironment&#39;</span><span class="p">,</span> <span class="s1">&#39;grid_insert_ops&#39;</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="MPO"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPO">[docs]</a><span class="k">class</span> <span class="nc">MPO</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -138,22 +138,75 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">find_common_type</span><span class="p">([</span><span class="n">W</span><span class="o">.</span><span class="n">dtype</span> <span class="k">for</span> <span class="n">W</span> <span class="ow">in</span> <span class="n">Ws</span><span class="p">],</span> <span class="p">[])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_W</span> <span class="o">=</span> <span class="p">[</span><span class="n">W</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">for</span> <span class="n">W</span> <span class="ow">in</span> <span class="n">Ws</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">IdL</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">IdL</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">IdL</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">IdL</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">IdL</span> <span class="o">=</span> <span class="p">[</span><span class="n">IdL</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">IdR</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">IdR</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">IdR</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">IdR</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">IdR</span> <span class="o">=</span> <span class="p">[</span><span class="n">IdR</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">IdL</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_Id</span><span class="p">(</span><span class="n">IdL</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">sites</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">IdR</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_Id</span><span class="p">(</span><span class="n">IdR</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">sites</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="o">=</span> <span class="n">bc</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">()</span>
+
+<div class="viewcode-block" id="MPO.from_grids"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPO.from_grids">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_grids</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">sites</span><span class="p">,</span> <span class="n">grids</span><span class="p">,</span> <span class="n">bc</span><span class="o">=</span><span class="s1">&#39;finite&#39;</span><span class="p">,</span> <span class="n">IdL</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">IdR</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Ws_qtotal</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">leg0</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize an MPO from `grids`.</span>
+
+<span class="sd">        The `grid` specifies</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        sites : list of :class:`~tenpy.models.lattice.Site`</span>
+<span class="sd">            Defines the local Hilbert space for each site.</span>
+<span class="sd">        grids : list of list of list of entries</span>
+<span class="sd">            For each site (outer-most list) a matrix-grid (corresponding to ``wL, wR``)</span>
+<span class="sd">            with entries being or representing onsite-operators.</span>
+<span class="sd">            `Entries` may be ``None``, :class:`~tenpy.linalg.np_conserved.Array` or of the</span>
+<span class="sd">            form ``[(opname, strength), ...]``, where &#39;opname&#39; labels an operator in `site`.</span>
+<span class="sd">            In the last case, the entry is a sum of `strength`*`op`, where `op` is obtained</span>
+<span class="sd">            from the corresponding site with :meth:`~tenpy.networks.site.Site.get_op`.</span>
+<span class="sd">        bc : {&#39;finite&#39; | &#39;segment&#39; | &#39;infinite&#39;}</span>
+<span class="sd">            Boundary conditions as described in :mod:`~tenpy.networks.mps`.</span>
+<span class="sd">        IdL : (iterable of) {int | None}</span>
+<span class="sd">            Indices on the bonds, which correpond to &#39;only identities to the left&#39;.</span>
+<span class="sd">            A single entry holds for all bonds.</span>
+<span class="sd">        IdR : (iterable of) {int | None}</span>
+<span class="sd">            Indices on the bonds, which correpond to &#39;only identities to the right&#39;.</span>
+
+<span class="sd">        See also</span>
+<span class="sd">        --------</span>
+<span class="sd">        :meth:`~tenpy.linalg.np_conserved.grid_outer` : converts a grid into an Array</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">chinfo</span> <span class="o">=</span> <span class="n">sites</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sites</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">grids</span><span class="p">)</span> <span class="o">==</span> <span class="n">L</span>  <span class="c1"># wrong arguments?</span>
+        <span class="n">grids</span> <span class="o">=</span> <span class="p">[</span><span class="n">grid_insert_ops</span><span class="p">(</span><span class="n">site</span><span class="p">,</span> <span class="n">grid</span><span class="p">)</span> <span class="k">for</span> <span class="n">site</span><span class="p">,</span> <span class="n">grid</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="n">grids</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="n">Ws_qtotal</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">Ws_qtotal</span> <span class="o">=</span> <span class="p">[</span><span class="n">chinfo</span><span class="o">.</span><span class="n">make_valid</span><span class="p">()]</span> <span class="o">*</span> <span class="n">L</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">Ws_qtotal</span> <span class="o">=</span> <span class="n">chinfo</span><span class="o">.</span><span class="n">make_valid</span><span class="p">(</span><span class="n">Ws_qtotal</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">Ws_qtotal</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">Ws_qtotal</span> <span class="o">=</span> <span class="p">[</span><span class="n">Ws_qtotal</span><span class="p">]</span> <span class="o">*</span> <span class="n">L</span>
+        <span class="n">IdL</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_Id</span><span class="p">(</span><span class="n">IdL</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span>
+        <span class="n">IdR</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_Id</span><span class="p">(</span><span class="n">IdR</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">bc</span> <span class="o">!=</span> <span class="s1">&#39;infinite&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">leg0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># ensure that we have only a single entry in the first and last leg</span>
+                <span class="c1"># i.e. project grids[0][:, :] -&gt; grids[0][IdL[0], :]</span>
+                <span class="c1"># and         grids[-1][:, :] -&gt; grids[-1][:,IdR[-1], :]</span>
+                <span class="n">first_grid</span> <span class="o">=</span> <span class="n">grids</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">last_grid</span> <span class="o">=</span> <span class="n">grids</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">first_grid</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">grids</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">first_grid</span><span class="p">[</span><span class="n">IdL</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+                    <span class="n">IdL</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">last_grid</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">grids</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="n">IdR</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">last_grid</span><span class="p">]</span>
+                    <span class="n">IdR</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">legs</span> <span class="o">=</span> <span class="n">_calc_grid_legs_finite</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="n">grids</span><span class="p">,</span> <span class="n">Ws_qtotal</span><span class="p">,</span> <span class="n">leg0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">legs</span> <span class="o">=</span> <span class="n">_calc_grid_legs_infinite</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="n">grids</span><span class="p">,</span> <span class="n">Ws_qtotal</span><span class="p">,</span> <span class="n">leg0</span><span class="p">,</span> <span class="n">IdL</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="c1"># now build the `W` from the grid</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">legs</span><span class="p">)</span> <span class="o">==</span> <span class="n">L</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">Ws</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">):</span>
+            <span class="n">W</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">grid_outer</span><span class="p">(</span><span class="n">grids</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="p">[</span><span class="n">legs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">legs</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">()],</span> <span class="n">Ws_qtotal</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">W</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;wL&#39;</span><span class="p">,</span> <span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">])</span>
+            <span class="n">Ws</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">W</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="n">Ws</span><span class="p">,</span> <span class="n">bc</span><span class="p">,</span> <span class="n">IdL</span><span class="p">,</span> <span class="n">IdR</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MPO.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPO.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Sanity check. Raises Errors if something is wrong.&quot;&quot;&quot;</span>
@@ -173,7 +226,6 @@
             <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_W</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;wR&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">ind_len</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">IdL</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">IdR</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;wrong len of `IdL`/`IdR`&quot;</span><span class="p">)</span></div>
-
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">L</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Number of physical sites. For an iMPO the len of the MPO unit cell.&quot;&quot;&quot;</span>
@@ -229,7 +281,18 @@
             <span class="n">i</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
         <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="ow">or</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;i = </span><span class="si">{0:d}</span><span class="s2"> out of bounds for finite MPO&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
-        <span class="k">return</span> <span class="n">i</span></div>
+        <span class="k">return</span> <span class="n">i</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_Id</span><span class="p">(</span><span class="n">Id</span><span class="p">,</span> <span class="n">L</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;parse the IdL or IdR argument of __init__&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">Id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">Id</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">[</span><span class="n">Id</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="MPOGraph"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOGraph">[docs]</a><span class="k">class</span> <span class="nc">MPOGraph</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -286,8 +349,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="nb">set</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">graph</span> <span class="o">=</span> <span class="p">[{}</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">)]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_ordered_states</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_grids</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_grid_legs</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">()</span>
 
 <div class="viewcode-block" id="MPOGraph.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOGraph.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -416,13 +477,14 @@
         <span class="sd">&quot;&quot;&quot;True if there is an edge from `keyL` on bond (i-1, i) to `keyR` on bond (i, i+1).&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">keyR</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">keyL</span><span class="p">,</span> <span class="p">[])</span></div>
 
-<div class="viewcode-block" id="MPOGraph.build_MPO"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOGraph.build_MPO">[docs]</a>    <span class="k">def</span> <span class="nf">build_MPO</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">W_qtotal</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">leg0</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="MPOGraph.build_MPO"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOGraph.build_MPO">[docs]</a>    <span class="k">def</span> <span class="nf">build_MPO</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Ws_qtotal</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">leg0</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Build the MPO represented by the graph (`self`).</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        W_qtotal : None | charge</span>
-<span class="sd">            A single qtotal used for *each* of the individual `W`.</span>
+<span class="sd">        Ws_qtotal : None | (list of) charges</span>
+<span class="sd">            The `qtotal` for each of the Ws to be generated., default (``None``) means 0 charge.</span>
+<span class="sd">            A single qtotal holds for each site.</span>
 <span class="sd">        leg0 : None | :class:`npc.LegCharge`</span>
 <span class="sd">            The charges to be used for the very first leg (which is a gauge freedom).</span>
 <span class="sd">            If ``None`` (default), use zeros.</span>
@@ -435,18 +497,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">()</span>
         <span class="c1"># pre-work: generate the grid</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_set_ordered_states</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_build_grids</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_calc_grid_legs</span><span class="p">(</span><span class="n">W_qtotal</span><span class="p">,</span> <span class="n">leg0</span><span class="p">)</span>
-        <span class="c1"># now build the `W` from the grid</span>
-        <span class="n">Ws</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
-            <span class="n">legs</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_grid_legs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_legs</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">()]</span>
-            <span class="n">W</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">grid_outer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_grids</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">legs</span><span class="p">,</span> <span class="n">W_qtotal</span><span class="p">)</span>
-            <span class="n">W</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;wL&#39;</span><span class="p">,</span> <span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">])</span>
-            <span class="n">Ws</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">W</span><span class="p">)</span>
+        <span class="n">grids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_grids</span><span class="p">()</span>
         <span class="n">IdL</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;IdL&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ordered_states</span><span class="p">]</span>
         <span class="n">IdR</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;IdR&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ordered_states</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">MPO</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">,</span> <span class="n">Ws</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span><span class="p">,</span> <span class="n">IdL</span><span class="p">,</span> <span class="n">IdR</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">MPO</span><span class="o">.</span><span class="n">from_grids</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">,</span> <span class="n">grids</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span><span class="p">,</span> <span class="n">IdL</span><span class="p">,</span> <span class="n">IdR</span><span class="p">,</span> <span class="n">Ws_qtotal</span><span class="p">,</span> <span class="n">leg0</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="s2">&quot;&lt;MPOGraph L=</span><span class="si">{L:d}</span><span class="s2">&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">L</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">)</span>
@@ -507,118 +561,8 @@
                     <span class="n">b</span> <span class="o">=</span> <span class="n">stR</span><span class="p">[</span><span class="n">keyR</span><span class="p">]</span>
                     <span class="n">row</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">lst</span>
                 <span class="n">grid</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="o">=</span> <span class="n">row</span>
-            <span class="n">grid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_insert_ops</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>  <span class="c1"># replace `lst` by the actual operators</span>
             <span class="n">grids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">grid</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_grids</span> <span class="o">=</span> <span class="n">grids</span>
-
-    <span class="k">def</span> <span class="nf">_grid_insert_ops</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Replaces ``[(&#39;opname&#39;, strength)]`` in a grid representing W[i] with actual Arrays.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        grid : list of list of entries</span>
-<span class="sd">            Entries may be ``None`` or like ``[(opname, strength)]``. Modified.</span>
-<span class="sd">        i : int</span>
-<span class="sd">            MPS index at which the grid is define</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        grid : list of list of {None | :class:`~tenpy.linalg.np_conserved.Array`}</span>
-<span class="sd">            The grid W[i] with operators</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">site</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">grid</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">row</span><span class="p">):</span>
-                <span class="k">if</span> <span class="n">entry</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="k">continue</span>
-                <span class="n">opname</span><span class="p">,</span> <span class="n">strength</span> <span class="o">=</span> <span class="n">entry</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-                <span class="n">res</span> <span class="o">=</span> <span class="n">strength</span> <span class="o">*</span> <span class="n">site</span><span class="o">.</span><span class="n">get_op</span><span class="p">(</span><span class="n">opname</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">opname</span><span class="p">,</span> <span class="n">strength</span> <span class="ow">in</span> <span class="n">entry</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
-                    <span class="n">res</span> <span class="o">=</span> <span class="n">res</span> <span class="o">+</span> <span class="n">strength</span> <span class="o">*</span> <span class="n">site</span><span class="o">.</span><span class="n">get_op</span><span class="p">(</span><span class="n">opname</span><span class="p">)</span>
-                <span class="n">row</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">res</span>  <span class="c1"># replace entry</span>
-        <span class="k">return</span> <span class="n">grid</span>
-
-    <span class="k">def</span> <span class="nf">_calc_grid_legs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">W_qtotal</span><span class="p">,</span> <span class="n">leg0</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;calculate LegCharges for the grids from self.grid&quot;&quot;&quot;</span>
-        <span class="n">grids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grids</span>
-        <span class="k">assert</span> <span class="p">(</span><span class="n">grids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>  <span class="c1"># make sure _grid_insert_ops was called</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="o">!=</span> <span class="s1">&#39;infinite&#39;</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_calc_grid_legs_finite</span><span class="p">(</span><span class="n">grids</span><span class="p">,</span> <span class="n">W_qtotal</span><span class="p">,</span> <span class="n">leg0</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_calc_grid_legs_infinite</span><span class="p">(</span><span class="n">grids</span><span class="p">,</span> <span class="n">W_qtotal</span><span class="p">,</span> <span class="n">leg0</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">_calc_grid_legs_finite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grids</span><span class="p">,</span> <span class="n">W_qtotal</span><span class="p">,</span> <span class="n">leg0</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;calculate LegCharges from `self._grid` for a finite MPO.</span>
-
-<span class="sd">        This is the easier case. We just gauge the very first leg to the left to zeros,</span>
-<span class="sd">        then all other charges (hopefully) follow from the entries of the grid.&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">leg0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">grids</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;finite MPO with len of first bond != 1: how????&quot;</span><span class="p">)</span>
-            <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="o">.</span><span class="n">make_valid</span><span class="p">()</span>
-            <span class="n">leg0</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="p">,</span> <span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="n">qconj</span><span class="o">=+</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">legs</span> <span class="o">=</span> <span class="p">[</span><span class="n">leg0</span><span class="p">]</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">gr</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">grids</span><span class="p">):</span>
-            <span class="n">gr_legs</span> <span class="o">=</span> <span class="p">[</span><span class="n">legs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span>
-            <span class="n">gr_legs</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">detect_grid_outer_legcharge</span><span class="p">(</span>
-                <span class="n">gr</span><span class="p">,</span> <span class="n">gr_legs</span><span class="p">,</span> <span class="n">qtotal</span><span class="o">=</span><span class="n">W_qtotal</span><span class="p">,</span> <span class="n">qconj</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">bunch</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-            <span class="n">legs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gr_legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_grid_legs</span> <span class="o">=</span> <span class="n">legs</span>
-
-    <span class="k">def</span> <span class="nf">_calc_grid_legs_infinite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grids</span><span class="p">,</span> <span class="n">W_qtotal</span><span class="p">,</span> <span class="n">leg0</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;calculate LegCharges from `self._grid` for an iMPO.</span>
-
-<span class="sd">        The hard case. Initially, we do not know all charges of the first leg; and they have to</span>
-<span class="sd">        be consistent with the final leg.</span>
-
-<span class="sd">        The way to go: gauge &#39;IdL&#39; on the very left leg to 0, then gradually calculate the charges</span>
-<span class="sd">        by going along the edges of the graph (maybe also over the iMPO boundary).</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">leg0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="c1"># have charges of first leg: simple case, can use the *_finite version.</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_calc_grid_legs_finite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grids</span><span class="p">,</span> <span class="n">W_qtotal</span><span class="p">,</span> <span class="n">leg0</span><span class="p">)</span>
-            <span class="c1"># just make sure, that everything is self consistent over the MPS boundary.</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">test_contractible</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-            <span class="k">return</span>
-        <span class="n">chinfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span>
-        <span class="n">W_qtotal</span> <span class="o">=</span> <span class="n">chinfo</span><span class="o">.</span><span class="n">make_valid</span><span class="p">(</span><span class="n">W_qtotal</span><span class="p">)</span>
-        <span class="n">states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ordered_states</span>
-        <span class="k">assert</span> <span class="p">(</span><span class="n">states</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>  <span class="c1"># make sure self._set_ordered_states() was called</span>
-        <span class="n">charges</span> <span class="o">=</span> <span class="p">[{}</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">)]</span>
-        <span class="n">charges</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">charges</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>  <span class="c1"># the *same* dictionary is shared for 0 and -1.</span>
-        <span class="n">charges</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;IdL&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="o">.</span><span class="n">make_valid</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>  <span class="c1"># default charge = 0.</span>
-        <span class="n">chis</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">]</span>
-        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
-                <span class="mi">1000</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>  <span class="c1"># I don&#39;t expect interactions with larger range than that...</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
-                <span class="n">chL</span><span class="p">,</span> <span class="n">chR</span> <span class="o">=</span> <span class="n">charges</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]</span>
-                <span class="n">stL</span><span class="p">,</span> <span class="n">stR</span> <span class="o">=</span> <span class="n">states</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]</span>
-                <span class="n">graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                <span class="n">grid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                <span class="k">for</span> <span class="n">keyL</span><span class="p">,</span> <span class="n">qL</span> <span class="ow">in</span> <span class="n">chL</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>  <span class="c1"># copy: for L=1 infinite, chL is chR</span>
-                    <span class="k">for</span> <span class="n">keyR</span> <span class="ow">in</span> <span class="n">graph</span><span class="p">[</span><span class="n">keyL</span><span class="p">]:</span>
-                        <span class="c1"># calculate charge qR from the entry of the grid</span>
-                        <span class="n">op</span> <span class="o">=</span> <span class="n">grid</span><span class="p">[</span><span class="n">stL</span><span class="p">[</span><span class="n">keyL</span><span class="p">]][</span><span class="n">stR</span><span class="p">[</span><span class="n">keyR</span><span class="p">]]</span>
-                        <span class="k">assert</span> <span class="p">(</span><span class="n">op</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
-                        <span class="n">qR</span> <span class="o">=</span> <span class="n">chinfo</span><span class="o">.</span><span class="n">make_valid</span><span class="p">(</span><span class="n">qL</span> <span class="o">+</span> <span class="n">op</span><span class="o">.</span><span class="n">qtotal</span> <span class="o">-</span> <span class="n">W_qtotal</span><span class="p">)</span>
-                        <span class="k">if</span> <span class="n">keyR</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">chR</span><span class="p">:</span>
-                            <span class="n">chR</span><span class="p">[</span><span class="n">keyR</span><span class="p">]</span> <span class="o">=</span> <span class="n">qR</span>
-                        <span class="k">elif</span> <span class="nb">any</span><span class="p">(</span><span class="n">chR</span><span class="p">[</span><span class="n">keyR</span><span class="p">]</span> <span class="o">!=</span> <span class="n">qR</span><span class="p">):</span>
-                            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;incompatible charges while creating the MPO&quot;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">qs</span><span class="p">)</span> <span class="o">==</span> <span class="n">chi</span> <span class="k">for</span> <span class="n">qs</span><span class="p">,</span> <span class="n">chi</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">charges</span><span class="p">,</span> <span class="n">chis</span><span class="p">)]):</span>
-                <span class="k">break</span>
-        <span class="k">else</span><span class="p">:</span>  <span class="c1"># no `break` in the for loop, i.e. we are unable to determine all grid legcharges.</span>
-            <span class="c1"># this should not happen (if we have no bugs), but who knows ^_^</span>
-            <span class="c1"># if it happens, there might be unconnected parts in the graph</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t determine LegCharge for the MPO&quot;</span><span class="p">)</span>
-        <span class="c1"># finally generate LegCharge from the dictionaries</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_grid_legs</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">qs</span><span class="p">,</span> <span class="n">st</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">charges</span><span class="p">,</span> <span class="n">states</span><span class="p">):</span>
-            <span class="n">qfl</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">qs</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">qs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="n">qfl</span><span class="p">[</span><span class="n">st</span><span class="p">[</span><span class="n">key</span><span class="p">]]</span> <span class="o">=</span> <span class="n">q</span>
-            <span class="n">leg</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="n">qfl</span><span class="p">,</span> <span class="n">qconj</span><span class="o">=+</span><span class="mi">1</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_grid_legs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">leg</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">grids</span></div>
 
 
 <div class="viewcode-block" id="MPOEnvironment"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOEnvironment">[docs]</a><span class="k">class</span> <span class="nc">MPOEnvironment</span><span class="p">(</span><span class="n">MPSEnvironment</span><span class="p">):</span>
@@ -814,6 +758,108 @@
         <span class="n">RP</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">bra</span><span class="o">.</span><span class="n">get_B</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">RP</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p*&#39;</span><span class="p">,</span> <span class="s1">&#39;vR*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;vL*&#39;</span><span class="p">]))</span>
         <span class="k">return</span> <span class="n">RP</span>  <span class="c1"># labels &#39;vL&#39;, &#39;wL&#39;, &#39;vL*&#39;</span></div>
+
+
+<div class="viewcode-block" id="grid_insert_ops"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.grid_insert_ops">[docs]</a><span class="k">def</span> <span class="nf">grid_insert_ops</span><span class="p">(</span><span class="n">site</span><span class="p">,</span> <span class="n">grid</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Replaces ``[(&#39;opname&#39;, strength), ...]`` in a grid of ``W[i]`` with actual npc.Arrays.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    site : :class:`~tenpy.networks.site`</span>
+<span class="sd">        The site at which</span>
+<span class="sd">    grid : list of list of `entries`</span>
+<span class="sd">        Represents a single matrix `W` of an MPO, i.e. the lists correspond to the legs</span>
+<span class="sd">        ``&#39;vL&#39;, &#39;vR&#39;``, and entries to onsite operators acting on the given `site`.</span>
+<span class="sd">        `Entries` may be ``None``, :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">        or of the form ``[(opname, strength), ...]``, where &#39;opname&#39; labels an operator in `site`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    grid : list of list of {None | :class:`~tenpy.linalg.np_conserved.Array`}</span>
+<span class="sd">        Copy of `grid` with ``[(opname, strength), ...]`` replace by</span>
+<span class="sd">        ``sum([strength*site.get_op(opname) for opname, strength in entry])``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">new_grid</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">grid</span><span class="p">:</span>
+        <span class="n">new_row</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">new_row</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">entry</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">npc</span><span class="o">.</span><span class="n">Array</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="n">opname</span><span class="p">,</span> <span class="n">strength</span> <span class="o">=</span> <span class="n">entry</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">strength</span> <span class="o">*</span> <span class="n">site</span><span class="o">.</span><span class="n">get_op</span><span class="p">(</span><span class="n">opname</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">opname</span><span class="p">,</span> <span class="n">strength</span> <span class="ow">in</span> <span class="n">entry</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+                <span class="n">res</span> <span class="o">=</span> <span class="n">res</span> <span class="o">+</span> <span class="n">strength</span> <span class="o">*</span> <span class="n">site</span><span class="o">.</span><span class="n">get_op</span><span class="p">(</span><span class="n">opname</span><span class="p">)</span>
+            <span class="n">row</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">res</span>  <span class="c1"># replace entry</span>
+            <span class="c1">#  row[j] = sum([strength*site.get_op(opname) for opname, strength in entry])</span>
+    <span class="k">return</span> <span class="n">grid</span></div>
+
+
+<span class="k">def</span> <span class="nf">_calc_grid_legs_finite</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="n">grids</span><span class="p">,</span> <span class="n">Ws_qtotal</span><span class="p">,</span> <span class="n">leg0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Calculate LegCharges from `grids` for a finite MPO.</span>
+
+<span class="sd">    This is the easier case. We just gauge the very first leg to the left to zeros,</span>
+<span class="sd">    then all other charges (hopefully) follow from the entries of the grid.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">leg0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">grids</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;finite MPO with len of first bond != 1&quot;</span><span class="p">)</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">chinfo</span><span class="o">.</span><span class="n">make_valid</span><span class="p">()</span>
+        <span class="n">leg0</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="n">qconj</span><span class="o">=+</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">legs</span> <span class="o">=</span> <span class="p">[</span><span class="n">leg0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">gr</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">grids</span><span class="p">):</span>
+        <span class="n">gr_legs</span> <span class="o">=</span> <span class="p">[</span><span class="n">legs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="n">gr_legs</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">detect_grid_outer_legcharge</span><span class="p">(</span>
+            <span class="n">gr</span><span class="p">,</span> <span class="n">gr_legs</span><span class="p">,</span> <span class="n">qtotal</span><span class="o">=</span><span class="n">Ws_qtotal</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">qconj</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">bunch</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">legs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gr_legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">legs</span>
+
+
+<span class="k">def</span> <span class="nf">_calc_grid_legs_infinite</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="n">grids</span><span class="p">,</span> <span class="n">Ws_qtotal</span><span class="p">,</span> <span class="n">leg0</span><span class="p">,</span> <span class="n">IdL_0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;calculate LegCharges from `grids` for an iMPO.</span>
+
+<span class="sd">    The hard case. Initially, we do not know all charges of the first leg; and they have to</span>
+<span class="sd">    be consistent with the final leg.</span>
+
+<span class="sd">    The way this workso: gauge &#39;IdL&#39; on the very left leg to 0,</span>
+<span class="sd">    then gradually calculate the charges by going along the edges of the graph (maybe also over the iMPO boundary).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">leg0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># have charges of first leg: simple case, can use the _calc_grid_legs_finite version.</span>
+        <span class="n">legs</span> <span class="o">=</span> <span class="n">_calc_grid_legs_finite</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="n">grids</span><span class="p">,</span> <span class="n">Ws_qtotal</span><span class="p">,</span> <span class="n">leg0</span><span class="p">)</span>
+        <span class="n">legs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">test_contractible</span><span class="p">(</span><span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>  <span class="c1"># consistent?</span>
+        <span class="k">return</span> <span class="n">legs</span>
+    <span class="n">L</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">grids</span><span class="p">)</span>
+    <span class="n">chis</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">g</span><span class="p">)</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">grids</span><span class="p">]</span>
+    <span class="n">charges</span> <span class="o">=</span> <span class="p">[[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="n">chi</span> <span class="k">for</span> <span class="n">chi</span> <span class="ow">in</span> <span class="n">chis</span><span class="p">]</span>
+    <span class="n">charges</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">charges</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>  <span class="c1"># the *same* list is shared for 0 and -1.</span>
+
+    <span class="n">charges</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">IdL_0</span><span class="p">]</span> <span class="o">=</span> <span class="n">chinfo</span><span class="o">.</span><span class="n">make_valid</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>  <span class="c1"># default charge = 0.</span>
+
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1000</span> <span class="o">*</span> <span class="n">L</span><span class="p">):</span>  <span class="c1"># I don&#39;t expect interactions with larger range than that...</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">):</span>
+            <span class="n">grid</span> <span class="o">=</span> <span class="n">grids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">QsL</span><span class="p">,</span> <span class="n">QsR</span> <span class="o">=</span> <span class="n">charges</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">vL</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">grid</span><span class="p">):</span>
+                <span class="n">qL</span> <span class="o">=</span> <span class="n">QsL</span><span class="p">[</span><span class="n">vL</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">qL</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">continue</span>  <span class="c1"># don&#39;t know the charge on the left yet</span>
+                <span class="k">for</span> <span class="n">vR</span><span class="p">,</span> <span class="n">op</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">row</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">op</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="k">continue</span>
+                    <span class="c1"># calculate charge qR from the entry of the grid</span>
+                    <span class="n">qR</span> <span class="o">=</span> <span class="n">chinfo</span><span class="o">.</span><span class="n">make_valid</span><span class="p">(</span><span class="n">qL</span> <span class="o">+</span> <span class="n">op</span><span class="o">.</span><span class="n">qtotal</span> <span class="o">-</span> <span class="n">Ws_qtotal</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">QsR</span><span class="p">[</span><span class="n">vR</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">QsR</span><span class="p">[</span><span class="n">vR</span><span class="p">]</span> <span class="o">=</span> <span class="n">qR</span>
+                    <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">QsR</span><span class="p">[</span><span class="n">vR</span><span class="p">]</span> <span class="o">!=</span> <span class="n">qR</span><span class="p">):</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;incompatible charges while creating the MPO&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">q</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">Qs</span> <span class="ow">in</span> <span class="n">charges</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">Qs</span><span class="p">):</span>
+            <span class="k">break</span>
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># no `break` in the for loop, i.e. we are unable to determine all grid legcharges.</span>
+        <span class="c1"># this should not happen (if we have no bugs), but who knows ^_^</span>
+        <span class="c1"># if it happens, there might be unconnected parts in the graph</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t determine LegCharge for the MPO&quot;</span><span class="p">)</span>
+    <span class="n">legs</span> <span class="o">=</span> <span class="p">[</span><span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="n">qflat</span><span class="p">,</span> <span class="n">qconj</span><span class="o">=+</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">qflat</span> <span class="ow">in</span> <span class="n">charges</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+    <span class="n">legs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">legs</span>
 </pre></div>
 
           </div>
