@@ -213,11 +213,7 @@ sites : list of <code class="xref py py-class docutils literal notranslate"><spa
 <dl class="docutils">
 <dt>grids <span class="classifier-delimiter">:</span> <span class="classifier">list of list of list of entries</span></dt>
 <dd>For each site (outer-most list) a matrix-grid (corresponding to <code class="docutils literal notranslate"><span class="pre">wL,</span> <span class="pre">wR</span></code>)
-with entries being or representing onsite-operators.
-<cite>Entries</cite> may be <code class="docutils literal notranslate"><span class="pre">None</span></code>, <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a> or of the
-form <code class="docutils literal notranslate"><span class="pre">[(opname,</span> <span class="pre">strength),</span> <span class="pre">...]</span></code>, where ‘opname’ labels an operator in <cite>site</cite>.
-In the last case, the entry is a sum of <cite>strength`*`op</cite>, where <cite>op</cite> is obtained
-from the corresponding site with <a class="reference internal" href="tenpy.networks.site.html#tenpy.networks.site.Site.get_op" title="tenpy.networks.site.Site.get_op"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_op()</span></code></a>.</dd>
+with entries being or representing (see <a class="reference internal" href="#tenpy.networks.mpo.grid_insert_ops" title="tenpy.networks.mpo.grid_insert_ops"><code class="xref py py-func docutils literal notranslate"><span class="pre">grid_insert_ops()</span></code></a>) onsite-operators.</dd>
 <dt>bc <span class="classifier-delimiter">:</span> <span class="classifier">{‘finite’ | ‘segment’ | ‘infinite’}</span></dt>
 <dd>Boundary conditions as described in <a class="reference internal" href="tenpy.networks.mps.html#module-tenpy.networks.mps" title="tenpy.networks.mps"><code class="xref py py-mod docutils literal notranslate"><span class="pre">mps</span></code></a>.</dd>
 <dt>IdL <span class="classifier-delimiter">:</span> <span class="classifier">(iterable of) {int | None}</span></dt>
@@ -229,6 +225,8 @@ A single entry holds for all bonds.</dd>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
 <dl class="last docutils">
+<dt><a class="reference internal" href="#tenpy.networks.mpo.grid_insert_ops" title="tenpy.networks.mpo.grid_insert_ops"><code class="xref py py-meth docutils literal notranslate"><span class="pre">grid_insert_ops()</span></code></a></dt>
+<dd>used to convert <cite>entries</cite> of the grid into operators</dd>
 <dt><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.grid_outer" title="tenpy.linalg.np_conserved.grid_outer"><code class="xref py py-meth docutils literal notranslate"><span class="pre">grid_outer()</span></code></a></dt>
 <dd>converts a grid into an Array</dd>
 </dl>
@@ -716,28 +714,30 @@ with labels <code class="docutils literal notranslate"><span class="pre">'vL*',<
 <dl class="function">
 <dt id="tenpy.networks.mpo.grid_insert_ops">
 <code class="descclassname">tenpy.networks.mpo.</code><code class="descname">grid_insert_ops</code><span class="sig-paren">(</span><em>site</em>, <em>grid</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#grid_insert_ops"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.grid_insert_ops" title="Permalink to this definition">¶</a></dt>
-<dd><p>Replaces <code class="docutils literal notranslate"><span class="pre">[('opname',</span> <span class="pre">strength),</span> <span class="pre">...]</span></code> in a grid of <code class="docutils literal notranslate"><span class="pre">W[i]</span></code> with actual npc.Arrays.</p>
+<dd><p>Replaces entries representing operators in a grid of <code class="docutils literal notranslate"><span class="pre">W[i]</span></code> with npc.Arrays.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
 <dt><strong>site</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.networks.site.html#module-tenpy.networks.site" title="tenpy.networks.site"><code class="xref py py-class docutils literal notranslate"><span class="pre">site</span></code></a></span></dt>
-<dd><p class="first last">The site at which</p>
+<dd><p class="first last">The site on which the grid acts.</p>
 </dd>
 <dt><strong>grid</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of list of <cite>entries</cite></span></dt>
 <dd><p class="first last">Represents a single matrix <cite>W</cite> of an MPO, i.e. the lists correspond to the legs
 <code class="docutils literal notranslate"><span class="pre">'vL',</span> <span class="pre">'vR'</span></code>, and entries to onsite operators acting on the given <cite>site</cite>.
-<cite>Entries</cite> may be <code class="docutils literal notranslate"><span class="pre">None</span></code>, <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a>
-or of the form <code class="docutils literal notranslate"><span class="pre">[(opname,</span> <span class="pre">strength),</span> <span class="pre">...]</span></code>, where ‘opname’ labels an operator in <cite>site</cite>.</p>
+<cite>entries</cite> may be <code class="docutils literal notranslate"><span class="pre">None</span></code>, <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a>, a single string
+or of the form <code class="docutils literal notranslate"><span class="pre">[('opname',</span> <span class="pre">strength),</span> <span class="pre">...]</span></code>, where <code class="docutils literal notranslate"><span class="pre">'opname'</span></code> labels an operator in
+the <cite>site</cite>.</p>
 </dd>
 </dl>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
 <dt><strong>grid</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of list of {None | <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a>}</span></dt>
-<dd><p class="first last">Copy of <cite>grid</cite> with <code class="docutils literal notranslate"><span class="pre">[(opname,</span> <span class="pre">strength),</span> <span class="pre">...]</span></code> replace by
-<code class="docutils literal notranslate"><span class="pre">sum([strength*site.get_op(opname)</span> <span class="pre">for</span> <span class="pre">opname,</span> <span class="pre">strength</span> <span class="pre">in</span> <span class="pre">entry])</span></code>.</p>
+<dd><p class="first last">Copy of <cite>grid</cite> with entries <code class="docutils literal notranslate"><span class="pre">[('opname',</span> <span class="pre">strength),</span> <span class="pre">...]</span></code> replaced by
+<code class="docutils literal notranslate"><span class="pre">sum([strength*site.get_op('opname')</span> <span class="pre">for</span> <span class="pre">opname,</span> <span class="pre">strength</span> <span class="pre">in</span> <span class="pre">entry])</span></code>
+and entries <code class="docutils literal notranslate"><span class="pre">'opname'</span></code> replaced by <code class="docutils literal notranslate"><span class="pre">site.get_op('opname')</span></code>.</p>
 </dd>
 </dl>
 </td>

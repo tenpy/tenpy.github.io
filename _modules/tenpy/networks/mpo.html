@@ -154,11 +154,7 @@
 <span class="sd">            Defines the local Hilbert space for each site.</span>
 <span class="sd">        grids : list of list of list of entries</span>
 <span class="sd">            For each site (outer-most list) a matrix-grid (corresponding to ``wL, wR``)</span>
-<span class="sd">            with entries being or representing onsite-operators.</span>
-<span class="sd">            `Entries` may be ``None``, :class:`~tenpy.linalg.np_conserved.Array` or of the</span>
-<span class="sd">            form ``[(opname, strength), ...]``, where &#39;opname&#39; labels an operator in `site`.</span>
-<span class="sd">            In the last case, the entry is a sum of `strength`*`op`, where `op` is obtained</span>
-<span class="sd">            from the corresponding site with :meth:`~tenpy.networks.site.Site.get_op`.</span>
+<span class="sd">            with entries being or representing (see :func:`grid_insert_ops`) onsite-operators.</span>
 <span class="sd">        bc : {&#39;finite&#39; | &#39;segment&#39; | &#39;infinite&#39;}</span>
 <span class="sd">            Boundary conditions as described in :mod:`~tenpy.networks.mps`.</span>
 <span class="sd">        IdL : (iterable of) {int | None}</span>
@@ -169,6 +165,7 @@
 
 <span class="sd">        See also</span>
 <span class="sd">        --------</span>
+<span class="sd">        :meth:`grid_insert_ops` : used to convert `entries` of the grid into operators</span>
 <span class="sd">        :meth:`~tenpy.linalg.np_conserved.grid_outer` : converts a grid into an Array</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">chinfo</span> <span class="o">=</span> <span class="n">sites</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span>
@@ -761,37 +758,42 @@
 
 
 <div class="viewcode-block" id="grid_insert_ops"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.grid_insert_ops">[docs]</a><span class="k">def</span> <span class="nf">grid_insert_ops</span><span class="p">(</span><span class="n">site</span><span class="p">,</span> <span class="n">grid</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Replaces ``[(&#39;opname&#39;, strength), ...]`` in a grid of ``W[i]`` with actual npc.Arrays.</span>
+    <span class="sd">&quot;&quot;&quot;Replaces entries representing operators in a grid of ``W[i]`` with npc.Arrays.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    site : :class:`~tenpy.networks.site`</span>
-<span class="sd">        The site at which</span>
+<span class="sd">        The site on which the grid acts.</span>
 <span class="sd">    grid : list of list of `entries`</span>
 <span class="sd">        Represents a single matrix `W` of an MPO, i.e. the lists correspond to the legs</span>
 <span class="sd">        ``&#39;vL&#39;, &#39;vR&#39;``, and entries to onsite operators acting on the given `site`.</span>
-<span class="sd">        `Entries` may be ``None``, :class:`~tenpy.linalg.np_conserved.Array`</span>
-<span class="sd">        or of the form ``[(opname, strength), ...]``, where &#39;opname&#39; labels an operator in `site`.</span>
+<span class="sd">        `entries` may be ``None``, :class:`~tenpy.linalg.np_conserved.Array`, a single string</span>
+<span class="sd">        or of the form ``[(&#39;opname&#39;, strength), ...]``, where ``&#39;opname&#39;`` labels an operator in</span>
+<span class="sd">        the `site`.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    grid : list of list of {None | :class:`~tenpy.linalg.np_conserved.Array`}</span>
-<span class="sd">        Copy of `grid` with ``[(opname, strength), ...]`` replace by</span>
-<span class="sd">        ``sum([strength*site.get_op(opname) for opname, strength in entry])``.</span>
+<span class="sd">        Copy of `grid` with entries ``[(&#39;opname&#39;, strength), ...]`` replaced by</span>
+<span class="sd">        ``sum([strength*site.get_op(&#39;opname&#39;) for opname, strength in entry])``</span>
+<span class="sd">        and entries ``&#39;opname&#39;`` replaced by ``site.get_op(&#39;opname&#39;)``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">new_grid</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">grid</span><span class="p">:</span>
-        <span class="n">new_row</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+    <span class="n">new_grid</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">grid</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">grid</span><span class="p">):</span>
+        <span class="n">new_row</span> <span class="o">=</span> <span class="n">new_grid</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">new_row</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">entry</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">npc</span><span class="o">.</span><span class="n">Array</span><span class="p">):</span>
                 <span class="k">continue</span>
-            <span class="n">opname</span><span class="p">,</span> <span class="n">strength</span> <span class="o">=</span> <span class="n">entry</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="n">res</span> <span class="o">=</span> <span class="n">strength</span> <span class="o">*</span> <span class="n">site</span><span class="o">.</span><span class="n">get_op</span><span class="p">(</span><span class="n">opname</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">opname</span><span class="p">,</span> <span class="n">strength</span> <span class="ow">in</span> <span class="n">entry</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
-                <span class="n">res</span> <span class="o">=</span> <span class="n">res</span> <span class="o">+</span> <span class="n">strength</span> <span class="o">*</span> <span class="n">site</span><span class="o">.</span><span class="n">get_op</span><span class="p">(</span><span class="n">opname</span><span class="p">)</span>
-            <span class="n">row</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">res</span>  <span class="c1"># replace entry</span>
-            <span class="c1">#  row[j] = sum([strength*site.get_op(opname) for opname, strength in entry])</span>
-    <span class="k">return</span> <span class="n">grid</span></div>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">new_row</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">site</span><span class="o">.</span><span class="n">get_op</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">opname</span><span class="p">,</span> <span class="n">strength</span> <span class="o">=</span> <span class="n">entry</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">res</span> <span class="o">=</span> <span class="n">strength</span> <span class="o">*</span> <span class="n">site</span><span class="o">.</span><span class="n">get_op</span><span class="p">(</span><span class="n">opname</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">opname</span><span class="p">,</span> <span class="n">strength</span> <span class="ow">in</span> <span class="n">entry</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+                    <span class="n">res</span> <span class="o">=</span> <span class="n">res</span> <span class="o">+</span> <span class="n">strength</span> <span class="o">*</span> <span class="n">site</span><span class="o">.</span><span class="n">get_op</span><span class="p">(</span><span class="n">opname</span><span class="p">)</span>
+                <span class="n">new_row</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">res</span>  <span class="c1"># replace entry</span>
+                <span class="c1"># new_row[j] = sum([strength*site.get_op(opname) for opname, strength in entry])</span>
+    <span class="k">return</span> <span class="n">new_grid</span></div>
 
 
 <span class="k">def</span> <span class="nf">_calc_grid_legs_finite</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="n">grids</span><span class="p">,</span> <span class="n">Ws_qtotal</span><span class="p">,</span> <span class="n">leg0</span><span class="p">):</span>
