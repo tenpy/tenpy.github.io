@@ -56,7 +56,7 @@
 <span class="sd">for converting the specified couplings into an MPO or nearest-neighbor bonds.</span>
 <span class="sd">This allows to quickly generate new model classes for a broad class of Hamiltonians.</span>
 <span class="sd">For simplicity, the :class:`CouplingModel` is limited to interactions involving only two sites.</span>
-<span class="sd">However, we also provide the :class:`MultiCouplintModel` to generate Models for Hamiltonians</span>
+<span class="sd">However, we also provide the :class:`MultiCouplingModel` to generate Models for Hamiltonians</span>
 <span class="sd">involving couplings between multiple sites.</span>
 
 <span class="sd">For other cases (e.g. exponentially decaying long-range interactions in 1D),</span>
@@ -75,7 +75,7 @@
 <span class="kn">from</span> <span class="nn">..tools.misc</span> <span class="k">import</span> <span class="n">to_array</span>
 <span class="kn">from</span> <span class="nn">..networks</span> <span class="k">import</span> <span class="n">mpo</span>  <span class="c1"># used to construct the Hamiltonian as MPO</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;CouplingModel&#39;</span><span class="p">,</span> <span class="s1">&#39;NearestNeighborModel&#39;</span><span class="p">,</span> <span class="s1">&#39;MPOModel&#39;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;CouplingModel&#39;</span><span class="p">,</span> <span class="s1">&#39;MultiCouplingModel&#39;</span><span class="p">,</span> <span class="s1">&#39;NearestNeighborModel&#39;</span><span class="p">,</span> <span class="s1">&#39;MPOModel&#39;</span><span class="p">]</span>
 
 <span class="n">_bc_coupling_choices</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;open&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;periodic&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
 
@@ -90,9 +90,12 @@
 <span class="sd">    ----------</span>
 <span class="sd">    lattice : :class:`tenpy.model.lattice.Lattice`</span>
 <span class="sd">        The lattice defining the geometry and the local Hilbert space(s).</span>
-<span class="sd">    bc_coupling : (iterable of) {&#39;open&#39; | &#39;periodic&#39;}</span>
+<span class="sd">    bc_coupling : (iterable of) {``&#39;open&#39;`` | ``&#39;periodic&#39;`` | ``int``}</span>
 <span class="sd">        Boundary conditions of the couplings in each direction of the lattice. Defines how the</span>
 <span class="sd">        couplings are added in :meth:`add_coupling`. A single string holds for all directions.</span>
+<span class="sd">        An integer `shift` means that we have periodic boundary conditions along this direction,</span>
+<span class="sd">        but shift/tilt by ``lattice.basis[0] * shift`` (=cylinder axis for ``bc_MPS=&#39;infinite&#39;``)</span>
+<span class="sd">        when going around the boundary along this direction.</span>
 
 <span class="sd">    Attributes</span>
 <span class="sd">    ----------</span>
@@ -101,6 +104,8 @@
 <span class="sd">    bc_coupling : bool ndarray</span>
 <span class="sd">        Boundary conditions of the couplings in each direction of the lattice,</span>
 <span class="sd">        translated into a bool array with the global `_bc_coupling_choices`.</span>
+<span class="sd">    bc_shift : None | ndarray(int)</span>
+<span class="sd">        The shift in x-direction when going around periodic boundaries in other directions.</span>
 <span class="sd">    onsite_terms : list of dict</span>
 <span class="sd">        Filled by :meth:`add_onsite`.</span>
 <span class="sd">        For each MPS index `i` a dictionary ``{&#39;opname&#39;: strength}`` defining the onsite terms.</span>
@@ -120,8 +125,19 @@
         <span class="k">global</span> <span class="n">_bc_coupling_choices</span>
         <span class="k">if</span> <span class="n">bc_coupling</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">_bc_coupling_choices</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="n">bc_coupling</span> <span class="o">=</span> <span class="p">[</span><span class="n">_bc_coupling_choices</span><span class="p">[</span><span class="n">bc_coupling</span><span class="p">]]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">dim</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bc_shift</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">bc_coupling</span> <span class="o">=</span> <span class="p">[</span><span class="n">_bc_coupling_choices</span><span class="p">[</span><span class="n">bc</span><span class="p">]</span> <span class="k">for</span> <span class="n">bc</span> <span class="ow">in</span> <span class="n">bc_coupling</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bc_shift</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">dim</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int_</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bc</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bc_coupling</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bc</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid bc_coupling: first entry can&#39;t be a shift&quot;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">bc_shift</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">bc</span>
+                    <span class="n">bc_coupling</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">_bc_coupling_choices</span><span class="p">[</span><span class="s1">&#39;periodic&#39;</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">bc_coupling</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">_bc_coupling_choices</span><span class="p">[</span><span class="n">bc</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bc_shift</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">bc_shift</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">bc_coupling</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">bc_coupling</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">onsite_terms</span> <span class="o">=</span> <span class="p">[</span><span class="nb">dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">N_sites</span><span class="p">)]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
@@ -135,7 +151,7 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Wrong len of bc_coupling&quot;</span><span class="p">)</span>
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc_coupling</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">bool</span>
         <span class="k">assert</span> <span class="nb">int</span><span class="p">(</span><span class="n">_bc_coupling_choices</span><span class="p">[</span><span class="s1">&#39;open&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1</span>  <span class="c1"># this is used explicitly</span>
-        <span class="k">assert</span> <span class="nb">int</span><span class="p">(</span><span class="n">_bc_coupling_choices</span><span class="p">[</span><span class="s1">&#39;periodic&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="nb">int</span><span class="p">(</span><span class="n">_bc_coupling_choices</span><span class="p">[</span><span class="s1">&#39;periodic&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span>   <span class="c1"># and this as well</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc_coupling</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">bc_MPS</span> <span class="o">==</span> <span class="s1">&#39;infinite&#39;</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Need periodic boundary conditions along the x-direction &quot;</span>
                              <span class="s2">&quot;for &#39;infinite&#39; `bc_MPS`&quot;</span><span class="p">)</span>
@@ -264,9 +280,13 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Coupling shouldn&#39;t be onsite!&quot;</span><span class="p">)</span>
 
         <span class="c1"># prepare: figure out the necessary mps indices</span>
+        <span class="n">Ls</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">Ls</span><span class="p">)</span>
+        <span class="n">N_sites</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">N_sites</span>
         <span class="n">mps_i</span><span class="p">,</span> <span class="n">lat_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">mps_lat_idx_fix_u</span><span class="p">(</span><span class="n">u1</span><span class="p">)</span>
         <span class="n">lat_j_shifted</span> <span class="o">=</span> <span class="n">lat_i</span> <span class="o">+</span> <span class="n">dx</span>
-        <span class="n">lat_j</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">lat_j_shifted</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">Ls</span><span class="p">))</span> <span class="c1"># assuming PBC</span>
+        <span class="n">lat_j</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">lat_j_shifted</span><span class="p">,</span> <span class="n">Ls</span><span class="p">)</span> <span class="c1"># assuming PBC</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc_shift</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">lat_j</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(((</span><span class="n">lat_j_shifted</span> <span class="o">-</span> <span class="n">lat_j</span><span class="p">)</span> <span class="o">//</span> <span class="n">Ls</span><span class="p">)[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc_shift</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">keep</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span>
             <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
                 <span class="n">lat_j_shifted</span> <span class="o">==</span> <span class="n">lat_j</span><span class="p">,</span>  <span class="c1"># not accross the boundary</span>
@@ -275,11 +295,12 @@
         <span class="n">mps_i</span> <span class="o">=</span> <span class="n">mps_i</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
         <span class="n">lat_i</span> <span class="o">=</span> <span class="n">lat_i</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span> <span class="o">+</span> <span class="n">shift_i_lat_strength</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
         <span class="n">lat_j</span> <span class="o">=</span> <span class="n">lat_j</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
+        <span class="n">lat_j_shifted</span> <span class="o">=</span> <span class="n">lat_j_shifted</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
         <span class="n">mps_j</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">lat2mps_idx</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">lat_j</span><span class="p">,</span> <span class="p">[[</span><span class="n">u2</span><span class="p">]]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">lat_j</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
-        <span class="n">N_sites</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">N_sites</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">bc_MPS</span> <span class="o">==</span> <span class="s1">&#39;infinite&#39;</span><span class="p">:</span>
-            <span class="c1"># shift j by whole unit cells for couplings along the infinite direction</span>
-            <span class="n">mps_j_shift</span> <span class="o">=</span> <span class="p">(</span><span class="n">lat_j_shifted</span><span class="p">[</span><span class="n">keep</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">lat_j</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="n">N_sites</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">N_rings</span><span class="p">)</span>
+            <span class="c1"># shift j by whole MPS unit cells for couplings along the infinite direction</span>
+            <span class="n">mps_j_shift</span> <span class="o">=</span> <span class="n">lat_j_shifted</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">lat_j_shifted</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">Ls</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">mps_j_shift</span> <span class="o">*=</span> <span class="p">(</span><span class="n">N_sites</span> <span class="o">//</span> <span class="n">Ls</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
             <span class="n">mps_j</span> <span class="o">+=</span> <span class="n">mps_j_shift</span>
             <span class="c1"># finally, ensure 0 &lt;= min(i, j) &lt; N_sites.</span>
             <span class="n">mps_ij_shift</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mps_j_shift</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="n">mps_j_shift</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
@@ -479,7 +500,7 @@
         <span class="c1"># done</span>
 
 
-<span class="k">class</span> <span class="nc">MultiCouplingModel</span><span class="p">(</span><span class="n">CouplingModel</span><span class="p">):</span>
+<div class="viewcode-block" id="MultiCouplingModel"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.MultiCouplingModel">[docs]</a><span class="k">class</span> <span class="nc">MultiCouplingModel</span><span class="p">(</span><span class="n">CouplingModel</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Generalizes :class:`CouplingModel` to allow couplings involving more than two sites.</span>
 
 <span class="sd">    Attributes</span>
@@ -505,7 +526,7 @@
 <span class="sd">        between different iMPS unit cells.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">add_multi_coupling</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strength</span><span class="p">,</span> <span class="n">u0</span><span class="p">,</span> <span class="n">op0</span><span class="p">,</span> <span class="n">other_ops</span><span class="p">,</span> <span class="n">op_string</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="MultiCouplingModel.add_multi_coupling"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.MultiCouplingModel.add_multi_coupling">[docs]</a>    <span class="k">def</span> <span class="nf">add_multi_coupling</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strength</span><span class="p">,</span> <span class="n">u0</span><span class="p">,</span> <span class="n">op0</span><span class="p">,</span> <span class="n">other_ops</span><span class="p">,</span> <span class="n">op_string</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Add multi-site coupling terms to the Hamiltonian.</span>
 
 <span class="sd">        Represents couplings of the form</span>
@@ -581,9 +602,15 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Coupling shouldn&#39;t be purely onsite!&quot;</span><span class="p">)</span>
 
         <span class="c1"># prepare: figure out the necessary mps indices</span>
+        <span class="n">Ls</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">Ls</span><span class="p">)</span>
+        <span class="n">N_sites</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">N_sites</span>
         <span class="n">mps_i</span><span class="p">,</span> <span class="n">lat_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">mps_lat_idx_fix_u</span><span class="p">(</span><span class="n">u0</span><span class="p">)</span>
         <span class="n">lat_jkl_shifted</span> <span class="o">=</span> <span class="n">lat_i</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">dx</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
-        <span class="n">lat_jkl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">lat_jkl_shifted</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">Ls</span><span class="p">))</span> <span class="c1"># assuming PBC</span>
+        <span class="c1"># lat_jkl* has 3 axes &quot;initial site&quot;, &quot;other_op&quot;, &quot;spatial directions&quot;</span>
+        <span class="n">lat_jkl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">lat_jkl_shifted</span><span class="p">,</span> <span class="n">Ls</span><span class="p">)</span> <span class="c1"># assuming PBC</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc_shift</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">lat_jkl</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(((</span><span class="n">lat_jkl_shifted</span> <span class="o">-</span> <span class="n">lat_jkl</span><span class="p">)</span> <span class="o">//</span> <span class="n">Ls</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">*</span>
+                                       <span class="bp">self</span><span class="o">.</span><span class="n">bc_shift</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
         <span class="n">keep</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span>
             <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
                 <span class="n">lat_jkl_shifted</span> <span class="o">==</span> <span class="n">lat_jkl</span><span class="p">,</span>  <span class="c1"># not accross the boundary</span>
@@ -592,15 +619,14 @@
         <span class="n">mps_i</span> <span class="o">=</span> <span class="n">mps_i</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
         <span class="n">lat_i</span> <span class="o">=</span> <span class="n">lat_i</span><span class="p">[</span><span class="n">keep</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">shift_i_lat_strength</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
         <span class="n">lat_jkl</span> <span class="o">=</span> <span class="n">lat_jkl</span><span class="p">[</span><span class="n">keep</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+        <span class="n">lat_jkl_shifted</span> <span class="o">=</span> <span class="n">lat_jkl_shifted</span><span class="p">[</span><span class="n">keep</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
         <span class="n">latu_jkl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">lat_jkl</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">all_us</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">lat_jkl</span><span class="p">))[:,</span> <span class="p">:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]),</span>
                                   <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
         <span class="n">mps_jkl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">lat2mps_idx</span><span class="p">(</span><span class="n">latu_jkl</span><span class="p">)</span>
-        <span class="n">N_sites</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">N_sites</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">bc_MPS</span> <span class="o">==</span> <span class="s1">&#39;infinite&#39;</span><span class="p">:</span>
-            <span class="c1"># shift by whole unit cells for couplings along the infinite direction</span>
-            <span class="n">mps_jkl_shift</span> <span class="o">=</span> <span class="p">((</span><span class="n">lat_jkl_shifted</span><span class="p">[</span><span class="n">keep</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">lat_jkl</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">])</span>
-                             <span class="o">*</span> <span class="p">(</span><span class="n">N_sites</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">N_rings</span><span class="p">))</span>
-            <span class="n">mps_jkl</span> <span class="o">+=</span> <span class="n">mps_jkl_shift</span>
+            <span class="c1"># shift by whole MPS unit cells for couplings along the infinite direction</span>
+            <span class="n">mps_jkl_shift</span> <span class="o">=</span> <span class="n">lat_jkl_shifted</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">lat_jkl_shifted</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">Ls</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">mps_jkl</span> <span class="o">+=</span> <span class="n">mps_jkl_shift</span> <span class="o">*</span> <span class="p">(</span><span class="n">N_sites</span> <span class="o">//</span> <span class="n">Ls</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
         <span class="n">mps_ijkl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">mps_i</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="n">mps_jkl</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
         <span class="c1"># loop to perform the sum over {x_0, x_1, ...}</span>
@@ -623,7 +649,7 @@
                 <span class="n">d0</span> <span class="o">=</span> <span class="n">d1</span><span class="o">.</span><span class="n">setdefault</span><span class="p">((</span><span class="n">ops</span><span class="p">[</span><span class="n">x</span><span class="p">],</span> <span class="n">op_str</span><span class="p">[</span><span class="n">x</span><span class="p">]),</span> <span class="nb">dict</span><span class="p">())</span>
             <span class="n">d1</span> <span class="o">=</span> <span class="n">d0</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">ijkl</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="nb">dict</span><span class="p">())</span>
             <span class="n">op</span> <span class="o">=</span> <span class="n">ops</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-            <span class="n">d1</span><span class="p">[</span><span class="n">op</span><span class="p">]</span> <span class="o">=</span> <span class="n">d1</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">current_strength</span>
+            <span class="n">d1</span><span class="p">[</span><span class="n">op</span><span class="p">]</span> <span class="o">=</span> <span class="n">d1</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">current_strength</span></div>
         <span class="c1"># done</span>
 
     <span class="k">def</span> <span class="nf">_test_coupling_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d0</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -641,7 +667,7 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">_test_coupling_terms</span><span class="p">(</span><span class="n">d2</span><span class="p">)</span>  <span class="c1"># recursive!</span>
                 <span class="k">else</span><span class="p">:</span>  <span class="c1"># last term of the coupling</span>
                     <span class="n">op_i</span> <span class="o">=</span> <span class="n">key</span>
-                    <span class="k">if</span> <span class="ow">not</span> <span class="n">site_i</span><span class="o">.</span><span class="n">valid_opname</span><span class="p">(</span><span class="n">opname_j</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">site_i</span><span class="o">.</span><span class="n">valid_opname</span><span class="p">(</span><span class="n">op_i</span><span class="p">):</span>
                         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Operator </span><span class="si">{op!r}</span><span class="s2"> not in site&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op_i</span><span class="p">))</span>
         <span class="c1"># done</span>
 
@@ -699,7 +725,7 @@
                 <span class="k">else</span><span class="p">:</span>  <span class="c1"># maximal nesting reached: exit recursion</span>
                     <span class="c1"># i is actually the `l`</span>
                     <span class="n">op_i</span><span class="p">,</span> <span class="n">strength</span> <span class="o">=</span> <span class="n">key</span><span class="p">,</span> <span class="n">d2</span>
-                    <span class="n">graph</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">label_left</span><span class="p">,</span> <span class="s1">&#39;IdR&#39;</span><span class="p">,</span> <span class="n">op_i</span><span class="p">,</span> <span class="n">strength</span><span class="p">)</span>
+                    <span class="n">graph</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">label_left</span><span class="p">,</span> <span class="s1">&#39;IdR&#39;</span><span class="p">,</span> <span class="n">op_i</span><span class="p">,</span> <span class="n">strength</span><span class="p">)</span></div>
         <span class="c1"># done</span>
 
 

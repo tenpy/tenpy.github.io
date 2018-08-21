@@ -63,7 +63,7 @@ by explicitly specifying the couplings of onsite-terms, and providing functional
 for converting the specified couplings into an MPO or nearest-neighbor bonds.
 This allows to quickly generate new model classes for a broad class of Hamiltonians.
 For simplicity, the <a class="reference internal" href="#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></a> is limited to interactions involving only two sites.
-However, we also provide the <code class="xref py py-class docutils literal notranslate"><span class="pre">MultiCouplintModel</span></code> to generate Models for Hamiltonians
+However, we also provide the <a class="reference internal" href="#tenpy.models.model.MultiCouplingModel" title="tenpy.models.model.MultiCouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">MultiCouplingModel</span></code></a> to generate Models for Hamiltonians
 involving couplings between multiple sites.</p>
 <p>For other cases (e.g. exponentially decaying long-range interactions in 1D),
 it might be simpler to just specify the MPO explicitly.</p>
@@ -85,9 +85,12 @@ terms.</p>
 <dt><strong>lattice</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.model.lattice.Lattice</span></code></span></dt>
 <dd><p class="first last">The lattice defining the geometry and the local Hilbert space(s).</p>
 </dd>
-<dt><strong>bc_coupling</strong> <span class="classifier-delimiter">:</span> <span class="classifier">(iterable of) {‘open’ | ‘periodic’}</span></dt>
+<dt><strong>bc_coupling</strong> <span class="classifier-delimiter">:</span> <span class="classifier">(iterable of) {<code class="docutils literal notranslate"><span class="pre">'open'</span></code> | <code class="docutils literal notranslate"><span class="pre">'periodic'</span></code> | <code class="docutils literal notranslate"><span class="pre">int</span></code>}</span></dt>
 <dd><p class="first last">Boundary conditions of the couplings in each direction of the lattice. Defines how the
-couplings are added in <a class="reference internal" href="#tenpy.models.model.CouplingModel.add_coupling" title="tenpy.models.model.CouplingModel.add_coupling"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_coupling()</span></code></a>. A single string holds for all directions.</p>
+couplings are added in <a class="reference internal" href="#tenpy.models.model.CouplingModel.add_coupling" title="tenpy.models.model.CouplingModel.add_coupling"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_coupling()</span></code></a>. A single string holds for all directions.
+An integer <cite>shift</cite> means that we have periodic boundary conditions along this direction,
+but shift/tilt by <code class="docutils literal notranslate"><span class="pre">lattice.basis[0]</span> <span class="pre">*</span> <span class="pre">shift</span></code> (=cylinder axis for <code class="docutils literal notranslate"><span class="pre">bc_MPS='infinite'</span></code>)
+when going around the boundary along this direction.</p>
 </dd>
 </dl>
 </td>
@@ -99,6 +102,9 @@ couplings are added in <a class="reference internal" href="#tenpy.models.model.C
 <dt><strong>bc_coupling</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool ndarray</span></dt>
 <dd><p class="first last">Boundary conditions of the couplings in each direction of the lattice,
 translated into a bool array with the global <cite>_bc_coupling_choices</cite>.</p>
+</dd>
+<dt><strong>bc_shift</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None | ndarray(int)</span></dt>
+<dd><p class="first last">The shift in x-direction when going around periodic boundaries in other directions.</p>
 </dd>
 <dt><strong>onsite_terms</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of dict</span></dt>
 <dd><p class="first last">Filled by <a class="reference internal" href="#tenpy.models.model.CouplingModel.add_onsite" title="tenpy.models.model.CouplingModel.add_onsite"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_onsite()</span></code></a>.
@@ -340,6 +346,126 @@ Legs are <code class="docutils literal notranslate"><span class="pre">['p0',</sp
 <dt id="tenpy.models.model.CouplingModel.test_sanity">
 <code class="descname">test_sanity</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#CouplingModel.test_sanity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.CouplingModel.test_sanity" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sanity check. Raises ValueErrors, if something is wrong.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tenpy.models.model.MultiCouplingModel">
+<em class="property">class </em><code class="descclassname">tenpy.models.model.</code><code class="descname">MultiCouplingModel</code><span class="sig-paren">(</span><em>lattice</em>, <em>bc_coupling='open'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#MultiCouplingModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.MultiCouplingModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.CouplingModel</span></code></a></p>
+<p>Generalizes <a class="reference internal" href="#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></a> to allow couplings involving more than two sites.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>coupling_terms</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict of dict</span></dt>
+<dd><p class="first">Generalization of the coupling_terms of a <a class="reference internal" href="#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></a> for M-site couplings.
+Filled by <code class="xref py py-meth docutils literal notranslate"><span class="pre">add_coupling()</span></code> or <a class="reference internal" href="#tenpy.models.model.MultiCouplingModel.add_multi_coupling" title="tenpy.models.model.MultiCouplingModel.add_multi_coupling"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_multi_coupling()</span></code></a>.
+Nested dictionaries of the following form:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="p">{(</span><span class="s1">&#39;opname_i&#39;</span><span class="p">,</span> <span class="s1">&#39;opname_string_ij&#39;</span><span class="p">):</span>
+     <span class="p">{</span><span class="n">j</span><span class="p">:</span> <span class="p">{(</span><span class="s1">&#39;opname_j&#39;</span><span class="p">,</span> <span class="s1">&#39;opname_string_jk&#39;</span><span class="p">):</span>
+          <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="p">{(</span><span class="s1">&#39;opname_k&#39;</span><span class="p">,</span> <span class="s1">&#39;opname_string_kl&#39;</span><span class="p">):</span>
+               <span class="o">...</span>
+               <span class="p">{</span><span class="n">l</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;opname_l&#39;</span><span class="p">:</span> <span class="n">strength</span>
+               <span class="p">}</span>   <span class="p">}</span>
+          <span class="p">}</span>   <span class="p">}</span>
+     <span class="p">}</span>   <span class="p">}</span>
+<span class="p">}</span>   <span class="p">}</span>
+</pre></div>
+</div>
+<p class="last">For a M-site coupling, this involves a nesting depth of 2*M dictionaries.
+Note that always <code class="docutils literal notranslate"><span class="pre">i</span> <span class="pre">&lt;</span> <span class="pre">j</span> <span class="pre">&lt;</span> <span class="pre">k</span> <span class="pre">&lt;</span> <span class="pre">...</span> <span class="pre">&lt;</span> <span class="pre">l</span></code>, but entries with <code class="docutils literal notranslate"><span class="pre">j,k,l</span> <span class="pre">&gt;=</span> <span class="pre">lat.N_sites</span></code>
+are allowed for <code class="docutils literal notranslate"><span class="pre">lat.bc_MPS</span> <span class="pre">==</span> <span class="pre">'infinite'</span></code>, in which case they indicate couplings
+between different iMPS unit cells.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_coupling</span></code>(strength,&nbsp;u1,&nbsp;op1,&nbsp;u2,&nbsp;op2,&nbsp;dx)</td>
+<td>Add twosite coupling terms to the Hamiltonian.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.MultiCouplingModel.add_multi_coupling" title="tenpy.models.model.MultiCouplingModel.add_multi_coupling"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_multi_coupling</span></code></a>(strength,&nbsp;u0,&nbsp;op0,&nbsp;other_ops)</td>
+<td>Add multi-site coupling terms to the Hamiltonian.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite</span></code>(strength,&nbsp;u,&nbsp;opname)</td>
+<td>Add onsite terms to self.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_MPO</span></code>([tol_zero])</td>
+<td>Calculate MPO representation of the Hamiltonian.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_bond</span></code>([tol_zero])</td>
+<td>calculate <cite>H_bond</cite> from <cite>self.coupling_terms</cite> and <cite>self.H_onsite</cite>.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_onsite</span></code>([tol_zero])</td>
+<td>Calculate <cite>H_onsite</cite> from <cite>self.onsite_terms</cite>.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
+<td>Sanity check.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="tenpy.models.model.MultiCouplingModel.add_multi_coupling">
+<code class="descname">add_multi_coupling</code><span class="sig-paren">(</span><em>strength</em>, <em>u0</em>, <em>op0</em>, <em>other_ops</em>, <em>op_string=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#MultiCouplingModel.add_multi_coupling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.MultiCouplingModel.add_multi_coupling" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add multi-site coupling terms to the Hamiltonian.</p>
+<p>Represents couplings of the form
+<span class="math notranslate nohighlight">\(sum_{x_0, ..., x_{dim-1}} strength[loc(\vec{x})] * OP0 * OP1 * ... * OPM\)</span>,
+where <code class="docutils literal notranslate"><span class="pre">OP_0</span> <span class="pre">:=</span> <span class="pre">lat.unit_cell[u0].get_op(op0)</span></code> acts on the site
+<code class="docutils literal notranslate"><span class="pre">(x_0,</span> <span class="pre">...,</span> <span class="pre">x_{dim-1},</span> <span class="pre">u0)</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">OP_m</span> <span class="pre">:=</span> <span class="pre">lat.unit_cell[other_u[m]].get_op(other_op[m])</span></code>, m=1…M, acts on the site
+<code class="docutils literal notranslate"><span class="pre">(x_0+other_dx[m][0],</span> <span class="pre">...,</span> <span class="pre">x_{dim-1}+other_dx[m][dim-1],</span> <span class="pre">other_u[m])</span></code>.
+For periodic boundary conditions along direction <cite>a</cite> (<code class="docutils literal notranslate"><span class="pre">bc_coupling[a]</span> <span class="pre">==</span> <span class="pre">False</span></code>)
+the index <code class="docutils literal notranslate"><span class="pre">x_a</span></code> is taken modulo <code class="docutils literal notranslate"><span class="pre">lat.Ls[a]</span></code> and runs through <code class="docutils literal notranslate"><span class="pre">range(lat.Ls[a])</span></code>.
+For open boundary conditions, <code class="docutils literal notranslate"><span class="pre">x_a</span></code> is limited to <code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">&lt;=</span> <span class="pre">x_a</span> <span class="pre">&lt;</span> <span class="pre">Ls[a]</span></code> and
+<code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">&lt;=</span> <span class="pre">x_a+other_dx[m,a]</span> <span class="pre">&lt;</span> <span class="pre">lat.Ls[a]</span></code>.
+The coupling <cite>strength</cite> may vary spatially, <span class="math notranslate nohighlight">\(loc(\vec{x})\)</span> indicates the lower left
+corner of the hypercube containing all the involved sites
+<span class="math notranslate nohighlight">\(\vec{x}, \vec{x}+\vec{other_dx[m, :]}\)</span>.</p>
+<p>The necessary terms are just added to <code class="xref py py-attr docutils literal notranslate"><span class="pre">coupling_terms</span></code>; doesn’t rebuild the MPO.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>strength</strong> <span class="classifier-delimiter">:</span> <span class="classifier">scalar | array</span></dt>
+<dd><p class="first last">Prefactor of the coupling. May vary spatially and is tiled to the required shape.</p>
+</dd>
+<dt><strong>u0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Picks the site <code class="docutils literal notranslate"><span class="pre">lat.unit_cell[u0]</span></code> for OP0.</p>
+</dd>
+<dt><strong>op0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Valid operator name of an onsite operator in <code class="docutils literal notranslate"><span class="pre">lat.unit_cell[u0]</span></code> for OP0.</p>
+</dd>
+<dt><strong>other_ops</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <code class="docutils literal notranslate"><span class="pre">(u,</span> <span class="pre">op_m,</span> <span class="pre">dx)</span></code></span></dt>
+<dd><p class="first last">One tuple for each of the other operators <code class="docutils literal notranslate"><span class="pre">OP1,</span> <span class="pre">OP2,</span> <span class="pre">...</span> <span class="pre">OPM</span></code> involved.
+<cite>u</cite> picks the site <code class="docutils literal notranslate"><span class="pre">lat.unit_cell[u]</span></code>, <cite>op_name</cite> is a valid operator acting on that
+site, and <cite>dx</cite> gives the translation vector between <code class="docutils literal notranslate"><span class="pre">OP0</span></code> and the specified operator.</p>
+</dd>
+<dt><strong>op_string</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str | None</span></dt>
+<dd><p class="first">Name of an operator to be used inbetween the operators, excluding the sites on which
+the operators act. This operator should be defined on all sites in the unit cell.</p>
+<p class="last">Special case: If <code class="docutils literal notranslate"><span class="pre">None</span></code>, auto-determine whether a Jordan-Wigner string is needed
+(using <a class="reference internal" href="tenpy.networks.site.html#tenpy.networks.site.Site.op_needs_JW" title="tenpy.networks.site.Site.op_needs_JW"><code class="xref py py-meth docutils literal notranslate"><span class="pre">op_needs_JW()</span></code></a>), for each of the segments
+inbetween the operators and also on the sites of the left operators.
+Note that in this case the ordering of the operators <em>is</em> important and handled in the
+usual convention that <code class="docutils literal notranslate"><span class="pre">OPM</span></code> acts first and <code class="docutils literal notranslate"><span class="pre">OP0</span></code> last on a physical state.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>
