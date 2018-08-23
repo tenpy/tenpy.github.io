@@ -134,21 +134,24 @@ iMPS unit cells.</p>
 </colgroup>
 <tbody valign="top">
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.add_coupling" title="tenpy.models.model.CouplingModel.add_coupling"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_coupling</span></code></a>(strength,&nbsp;u1,&nbsp;op1,&nbsp;u2,&nbsp;op2,&nbsp;dx)</td>
-<td>Add twosite coupling terms to the Hamiltonian.</td>
+<td>Add twosite coupling terms to the Hamiltonian, summing over lattice sites.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.add_onsite" title="tenpy.models.model.CouplingModel.add_onsite"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite</span></code></a>(strength,&nbsp;u,&nbsp;opname)</td>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.add_coupling_term" title="tenpy.models.model.CouplingModel.add_coupling_term"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_coupling_term</span></code></a>(strength,&nbsp;i,&nbsp;j,&nbsp;op_i,&nbsp;op_j)</td>
+<td>Add a two-site coupling term on given MPS sites.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.add_onsite" title="tenpy.models.model.CouplingModel.add_onsite"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite</span></code></a>(strength,&nbsp;u,&nbsp;opname)</td>
 <td>Add onsite terms to self.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.calc_H_MPO" title="tenpy.models.model.CouplingModel.calc_H_MPO"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_MPO</span></code></a>([tol_zero])</td>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.calc_H_MPO" title="tenpy.models.model.CouplingModel.calc_H_MPO"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_MPO</span></code></a>([tol_zero])</td>
 <td>Calculate MPO representation of the Hamiltonian.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.calc_H_bond" title="tenpy.models.model.CouplingModel.calc_H_bond"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_bond</span></code></a>([tol_zero])</td>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.calc_H_bond" title="tenpy.models.model.CouplingModel.calc_H_bond"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_bond</span></code></a>([tol_zero])</td>
 <td>calculate <cite>H_bond</cite> from <cite>self.coupling_terms</cite> and <cite>self.H_onsite</cite>.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.calc_H_onsite" title="tenpy.models.model.CouplingModel.calc_H_onsite"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_onsite</span></code></a>([tol_zero])</td>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.calc_H_onsite" title="tenpy.models.model.CouplingModel.calc_H_onsite"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_onsite</span></code></a>([tol_zero])</td>
 <td>Calculate <cite>H_onsite</cite> from <cite>self.onsite_terms</cite>.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.test_sanity" title="tenpy.models.model.CouplingModel.test_sanity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.test_sanity" title="tenpy.models.model.CouplingModel.test_sanity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code></a>()</td>
 <td>Sanity check.</td>
 </tr>
 </tbody>
@@ -156,7 +159,7 @@ iMPS unit cells.</p>
 <dl class="method">
 <dt id="tenpy.models.model.CouplingModel.add_coupling">
 <code class="descname">add_coupling</code><span class="sig-paren">(</span><em>strength</em>, <em>u1</em>, <em>op1</em>, <em>u2</em>, <em>op2</em>, <em>dx</em>, <em>op_string=None</em>, <em>str_on_first=True</em>, <em>raise_op2_left=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#CouplingModel.add_coupling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.CouplingModel.add_coupling" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add twosite coupling terms to the Hamiltonian.</p>
+<dd><p>Add twosite coupling terms to the Hamiltonian, summing over lattice sites.</p>
 <p>Represents couplings of the form
 <span class="math notranslate nohighlight">\(\sum_{x_0, ..., x_{dim-1}} strength[loc(\vec{x})] * OP1 * OP2\)</span>, where
 <code class="docutils literal notranslate"><span class="pre">OP1</span> <span class="pre">:=</span> <span class="pre">lat.unit_cell[u1].get_op(op1)</span></code> acts on the site <code class="docutils literal notranslate"><span class="pre">(x_0,</span> <span class="pre">...,</span> <span class="pre">x_{dim-1},</span> <span class="pre">u1)</span></code>,
@@ -215,6 +218,36 @@ independent of the MPS ordering.</p>
 <dt><strong>raise_op2_left</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
 <dd><p class="first last">Raise an error when <cite>op2</cite> appears left of <cite>op1</cite>
 (in the sense of the MPS ordering given by the lattice).</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.models.model.CouplingModel.add_coupling_term">
+<code class="descname">add_coupling_term</code><span class="sig-paren">(</span><em>strength</em>, <em>i</em>, <em>j</em>, <em>op_i</em>, <em>op_j</em>, <em>op_string='Id'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#CouplingModel.add_coupling_term"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.CouplingModel.add_coupling_term" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a two-site coupling term on given MPS sites.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>strength</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The strength of the coupling term.</p>
+</dd>
+<dt><strong>i, j</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">The MPS indices of the two sites on which the operator acts.
+We require <code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">&lt;=</span> <span class="pre">i</span> <span class="pre">&lt;</span> <span class="pre">N_sites</span></code>  and <code class="docutils literal notranslate"><span class="pre">i</span> <span class="pre">&lt;</span> <span class="pre">j</span></code>, i.e., <cite>op_i</cite> acts “left” of <cite>op_j</cite>.
+If j &gt;= N_sites, it indicates couplings between unit cells of an infinite MPS.</p>
+</dd>
+<dt><strong>op1, op2</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Names of the involved operators.</p>
+</dd>
+<dt><strong>op_string</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">The operator to be inserted between <cite>i</cite> and <cite>j</cite>.</p>
 </dd>
 </dl>
 </td>
@@ -393,10 +426,16 @@ between different iMPS unit cells.</p>
 </colgroup>
 <tbody valign="top">
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_coupling</span></code>(strength,&nbsp;u1,&nbsp;op1,&nbsp;u2,&nbsp;op2,&nbsp;dx)</td>
-<td>Add twosite coupling terms to the Hamiltonian.</td>
+<td>Add twosite coupling terms to the Hamiltonian, summing over lattice sites.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.MultiCouplingModel.add_multi_coupling" title="tenpy.models.model.MultiCouplingModel.add_multi_coupling"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_multi_coupling</span></code></a>(strength,&nbsp;u0,&nbsp;op0,&nbsp;other_ops)</td>
-<td>Add multi-site coupling terms to the Hamiltonian.</td>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_coupling_term</span></code>(strength,&nbsp;i,&nbsp;j,&nbsp;op_i,&nbsp;op_j)</td>
+<td>Add a two-site coupling term on given MPS sites.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.MultiCouplingModel.add_multi_coupling" title="tenpy.models.model.MultiCouplingModel.add_multi_coupling"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_multi_coupling</span></code></a>(strength,&nbsp;u0,&nbsp;op0,&nbsp;other_ops)</td>
+<td>Add multi-site coupling terms to the Hamiltonian, summing over lattice sites.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.MultiCouplingModel.add_multi_coupling_term" title="tenpy.models.model.MultiCouplingModel.add_multi_coupling_term"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_multi_coupling_term</span></code></a>(strength,&nbsp;ijkl,&nbsp;…)</td>
+<td>Add a multi-site coupling term on given MPS sites.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite</span></code>(strength,&nbsp;u,&nbsp;opname)</td>
 <td>Add onsite terms to self.</td>
@@ -418,7 +457,7 @@ between different iMPS unit cells.</p>
 <dl class="method">
 <dt id="tenpy.models.model.MultiCouplingModel.add_multi_coupling">
 <code class="descname">add_multi_coupling</code><span class="sig-paren">(</span><em>strength</em>, <em>u0</em>, <em>op0</em>, <em>other_ops</em>, <em>op_string=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#MultiCouplingModel.add_multi_coupling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.MultiCouplingModel.add_multi_coupling" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add multi-site coupling terms to the Hamiltonian.</p>
+<dd><p>Add multi-site coupling terms to the Hamiltonian, summing over lattice sites.</p>
 <p>Represents couplings of the form
 <span class="math notranslate nohighlight">\(sum_{x_0, ..., x_{dim-1}} strength[loc(\vec{x})] * OP0 * OP1 * ... * OPM\)</span>,
 where <code class="docutils literal notranslate"><span class="pre">OP_0</span> <span class="pre">:=</span> <span class="pre">lat.unit_cell[u0].get_op(op0)</span></code> acts on the site
@@ -460,6 +499,38 @@ the operators act. This operator should be defined on all sites in the unit cell
 inbetween the operators and also on the sites of the left operators.
 Note that in this case the ordering of the operators <em>is</em> important and handled in the
 usual convention that <code class="docutils literal notranslate"><span class="pre">OPM</span></code> acts first and <code class="docutils literal notranslate"><span class="pre">OP0</span></code> last on a physical state.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.models.model.MultiCouplingModel.add_multi_coupling_term">
+<code class="descname">add_multi_coupling_term</code><span class="sig-paren">(</span><em>strength</em>, <em>ijkl</em>, <em>ops_ijkl</em>, <em>op_string</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#MultiCouplingModel.add_multi_coupling_term"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.MultiCouplingModel.add_multi_coupling_term" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a multi-site coupling term on given MPS sites.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>strength</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The strength of the coupling term.</p>
+</dd>
+<dt><strong>ijkl</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of int</span></dt>
+<dd><p class="first last">The MPS indices of the sites on which the operators acts. With <cite>i, j, k, … = ijkl</cite>,
+we require that they are ordered ascending, <code class="docutils literal notranslate"><span class="pre">i</span> <span class="pre">&lt;</span> <span class="pre">j</span> <span class="pre">&lt;</span> <span class="pre">k</span> <span class="pre">&lt;</span> <span class="pre">...</span></code> and
+that <code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">&lt;=</span> <span class="pre">i</span> <span class="pre">&lt;</span> <span class="pre">N_sites</span></code>.
+Inidces &gt;= N_sites indicate couplings between different unit cells of an infinite MPS.</p>
+</dd>
+<dt><strong>ops_ijkl</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of str</span></dt>
+<dd><p class="first last">Names of the involved operators on sites <cite>i, j, k, …</cite>.</p>
+</dd>
+<dt><strong>op_string</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of str</span></dt>
+<dd><p class="first last">Names of the operator to be inserted between the operators,
+e.g., op_string[0] is inserted between <cite>i</cite> and <cite>j</cite>.</p>
 </dd>
 </dl>
 </td>
