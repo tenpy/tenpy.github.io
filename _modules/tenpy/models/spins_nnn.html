@@ -40,7 +40,12 @@
   <h1>Source code for tenpy.models.spins_nnn</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;Next-Nearest-neighbour spin-S models.</span>
 
-<span class="sd">Uniform lattice of spin-S sites, coupled by nearest-neighbour interactions.</span>
+<span class="sd">Uniform lattice of spin-S sites, coupled by next-nearest-neighbour interactions.</span>
+<span class="sd">We have two variants implementing the same hamiltonian. The first uses the</span>
+<span class="sd">:class:`~tenpy.networks.site.DoubleSite` to keep it a</span>
+<span class="sd">:class:`~tenpy.models.model.NearestNeighborModel` suitable for TEBD,</span>
+<span class="sd">while the second one just involves longer-range couplings in the MPO.</span>
+<span class="sd">The second one is preferable for pure DMRG calculations.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="c1"># Copyright 2018 TeNPy Developers</span>
 
@@ -52,7 +57,7 @@
 <span class="kn">from</span> <span class="nn">..tools.params</span> <span class="k">import</span> <span class="n">get_parameter</span><span class="p">,</span> <span class="n">unused_parameters</span>
 <span class="kn">from</span> <span class="nn">..tools.misc</span> <span class="k">import</span> <span class="n">any_nonzero</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;SpinChainNNN&#39;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;SpinChainNNN&#39;</span><span class="p">,</span> <span class="s1">&#39;SpinChainNNN2&#39;</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="SpinChainNNN"><a class="viewcode-back" href="../../../reference/tenpy.models.spins_nnn.html#tenpy.models.spins_nnn.SpinChainNNN">[docs]</a><span class="k">class</span> <span class="nc">SpinChainNNN</span><span class="p">(</span><span class="n">CouplingModel</span><span class="p">,</span> <span class="n">MPOModel</span><span class="p">,</span> <span class="n">NearestNeighborModel</span><span class="p">):</span>
@@ -76,7 +81,8 @@
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    L : int</span>
-<span class="sd">        Length of the chain</span>
+<span class="sd">        Length of the chain in terms of :class:`~tenpy.networks.site.DoubleSite`,</span>
+<span class="sd">        i.e. we have ``2*L`` spin sites.</span>
 <span class="sd">    S : {0.5, 1, 1.5, 2, ...}</span>
 <span class="sd">        The 2S+1 local states range from m = -S, -S+1, ... +S.</span>
 <span class="sd">    conserve : &#39;best&#39; | &#39;Sz&#39; | &#39;parity&#39; | None</span>
@@ -164,6 +170,101 @@
         <span class="n">MPOModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_H_MPO</span><span class="p">())</span>
         <span class="c1"># 5) initialize H_bond</span>
         <span class="n">NearestNeighborModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_H_bond</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="SpinChainNNN2"><a class="viewcode-back" href="../../../reference/tenpy.models.spins_nnn.html#tenpy.models.spins_nnn.SpinChainNNN2">[docs]</a><span class="k">class</span> <span class="nc">SpinChainNNN2</span><span class="p">(</span><span class="n">CouplingModel</span><span class="p">,</span> <span class="n">MPOModel</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Spin-S sites coupled by next-nearest neighbour interactions.</span>
+
+<span class="sd">    The Hamiltonian reads:</span>
+
+<span class="sd">    .. math ::</span>
+<span class="sd">        H = \sum_{\langle i,j \rangle, i &lt; j}</span>
+<span class="sd">                \mathtt{Jx} S^x_i S^x_j + \mathtt{Jy} S^y_i S^y_j + \mathtt{Jz} S^z_i S^z_j \\</span>
+<span class="sd">            + \sum_{\langle \langle i,j \rangle \rangle, i&lt; j}</span>
+<span class="sd">                \mathtt{Jxp} S^x_i S^x_j + \mathtt{Jyp} S^y_i S^y_j + \mathtt{Jzp} S^z_i S^z_j \\</span>
+<span class="sd">            - \sum_i</span>
+<span class="sd">              \mathtt{hx} S^x_i + \mathtt{hy} S^y_i + \mathtt{hz} S^z_i</span>
+
+<span class="sd">    Here, :math:`\langle i,j \rangle, i&lt; j` denotes nearest neighbors and</span>
+<span class="sd">    :math:`\langle \langle i,j \rangle \rangle, i &lt; j` denotes next nearest neighbors.</span>
+<span class="sd">    All parameters are collected in a single dictionary `model_param` and read out with</span>
+<span class="sd">    :func:`~tenpy.tools.params.get_parameter`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    L : int</span>
+<span class="sd">        Length of the chain</span>
+<span class="sd">    S : {0.5, 1, 1.5, 2, ...}</span>
+<span class="sd">        The 2S+1 local states range from m = -S, -S+1, ... +S.</span>
+<span class="sd">    conserve : &#39;best&#39; | &#39;Sz&#39; | &#39;parity&#39; | None</span>
+<span class="sd">        What should be conserved. See :class:`~tenpy.networks.Site.SpinSite`.</span>
+<span class="sd">    Jx, Jy, Jz, Jxp, Jyp, Jzp, hx, hy, hz : float | array</span>
+<span class="sd">        Couplings as defined for the Hamiltonian above.</span>
+<span class="sd">    bc_MPS : {&#39;finite&#39; | &#39;infinte&#39;}</span>
+<span class="sd">        MPS boundary conditions. Coupling boundary conditions are chosen appropriately.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">):</span>
+        <span class="c1"># 0) read out/set default parameters</span>
+        <span class="n">verbose</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;L&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">Jx</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;Jx&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">Jy</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;Jy&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">Jz</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;Jz&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">Jxp</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;Jxp&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">Jyp</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;Jyp&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">Jzp</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;Jzp&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">hx</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;hx&#39;</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">hy</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;hy&#39;</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">hz</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;hz&#39;</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">bc_MPS</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;bc_MPS&#39;</span><span class="p">,</span> <span class="s1">&#39;finite&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">S</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;S&#39;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">conserve</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;conserve&#39;</span><span class="p">,</span> <span class="s1">&#39;best&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="c1"># check what we can conserve</span>
+        <span class="k">if</span> <span class="n">conserve</span> <span class="o">==</span> <span class="s1">&#39;best&#39;</span><span class="p">:</span>
+            <span class="c1"># check how much we can conserve:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">any_nonzero</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;Jx&#39;</span><span class="p">,</span> <span class="s1">&#39;Jy&#39;</span><span class="p">),</span>
+                                             <span class="p">(</span><span class="s1">&#39;Jxp&#39;</span><span class="p">,</span> <span class="s1">&#39;Jyp&#39;</span><span class="p">),</span> <span class="s1">&#39;hx&#39;</span><span class="p">,</span> <span class="s1">&#39;hy&#39;</span><span class="p">],</span> <span class="s2">&quot;check Sz conservation&quot;</span><span class="p">):</span>
+                <span class="n">conserve</span> <span class="o">=</span> <span class="s1">&#39;Sz&#39;</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="n">any_nonzero</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;hx&#39;</span><span class="p">,</span> <span class="s1">&#39;hy&#39;</span><span class="p">],</span> <span class="s2">&quot;check parity conservation&quot;</span><span class="p">):</span>
+                <span class="n">conserve</span> <span class="o">=</span> <span class="s1">&#39;parity&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">conserve</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;: set conserve to &quot;</span><span class="p">,</span> <span class="n">conserve</span><span class="p">)</span>
+        <span class="n">unused_parameters</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="c1"># 1) define Site and lattice</span>
+        <span class="n">site</span> <span class="o">=</span> <span class="n">SpinSite</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">conserve</span><span class="p">)</span>
+        <span class="n">lat</span> <span class="o">=</span> <span class="n">Chain</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="n">bc_MPS</span><span class="p">)</span>
+        <span class="c1"># 2) initialize CouplingModel</span>
+        <span class="n">bc_coupling</span> <span class="o">=</span> <span class="s1">&#39;periodic&#39;</span> <span class="k">if</span> <span class="n">bc_MPS</span> <span class="o">==</span> <span class="s1">&#39;infinite&#39;</span> <span class="k">else</span> <span class="s1">&#39;open&#39;</span>
+        <span class="n">CouplingModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">bc_coupling</span><span class="p">)</span>
+        <span class="c1"># 3) add terms of the Hamiltonian</span>
+        <span class="c1"># (u is always 0 as we have only one site in the unit cell)</span>
+        <span class="n">hx</span><span class="p">,</span> <span class="n">hy</span><span class="p">,</span> <span class="n">hz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">hx</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">hy</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">hz</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_onsite</span><span class="p">(</span><span class="o">-</span><span class="n">hx</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sx&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_onsite</span><span class="p">(</span><span class="o">-</span><span class="n">hy</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sy&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_onsite</span><span class="p">(</span><span class="o">-</span><span class="n">hz</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sz&#39;</span><span class="p">)</span>
+        <span class="n">Jx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">Jx</span><span class="p">)</span>
+        <span class="n">Jy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">Jy</span><span class="p">)</span>
+        <span class="c1"># Sp = Sx + i Sy, Sm = Sx - i Sy,  Sx = (Sp+Sm)/2, Sy = (Sp-Sm)/2i</span>
+        <span class="c1"># Sx.Sx = 0.25 ( Sp.Sm + Sm.Sp + Sp.Sp + Sm.Sm )</span>
+        <span class="c1"># Sy.Sy = 0.25 ( Sp.Sm + Sm.Sp - Sp.Sp - Sm.Sm )</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">((</span><span class="n">Jx</span> <span class="o">+</span> <span class="n">Jy</span><span class="p">)</span> <span class="o">/</span> <span class="mf">4.</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sp&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sm&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">((</span><span class="n">Jx</span> <span class="o">+</span> <span class="n">Jy</span><span class="p">)</span> <span class="o">/</span> <span class="mf">4.</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sm&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sp&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">((</span><span class="n">Jx</span> <span class="o">-</span> <span class="n">Jy</span><span class="p">)</span> <span class="o">/</span> <span class="mf">4.</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sp&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sp&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">((</span><span class="n">Jx</span> <span class="o">-</span> <span class="n">Jy</span><span class="p">)</span> <span class="o">/</span> <span class="mf">4.</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sm&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sm&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">Jz</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sz&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sz&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># next-nearest neighbor couplings</span>
+        <span class="n">Jxp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">Jxp</span><span class="p">)</span>
+        <span class="n">Jyp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">Jyp</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">((</span><span class="n">Jxp</span> <span class="o">+</span> <span class="n">Jyp</span><span class="p">)</span> <span class="o">/</span> <span class="mf">4.</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sp&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sm&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">((</span><span class="n">Jxp</span> <span class="o">+</span> <span class="n">Jyp</span><span class="p">)</span> <span class="o">/</span> <span class="mf">4.</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sm&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sp&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">((</span><span class="n">Jxp</span> <span class="o">-</span> <span class="n">Jyp</span><span class="p">)</span> <span class="o">/</span> <span class="mf">4.</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sp&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sp&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">((</span><span class="n">Jxp</span> <span class="o">-</span> <span class="n">Jyp</span><span class="p">)</span> <span class="o">/</span> <span class="mf">4.</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sm&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sm&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">Jzp</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sz&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sz&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="c1"># 4) initialize MPO</span>
+        <span class="n">MPOModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_H_MPO</span><span class="p">())</span></div>
 </pre></div>
 
           </div>
