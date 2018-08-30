@@ -42,8 +42,8 @@
 
 <span class="sd">The base class :class:`lattice` defines the general structure of a lattice,</span>
 <span class="sd">you can subclass this to define you own lattice.</span>
-<span class="sd">Further, we have the predefined lattices, namely :class:`Chain`, :class:`Square`, and</span>
-<span class="sd">:class:`Honeycomb`.</span>
+<span class="sd">Further, we have the predefined lattices, namely :class:`Chain`, :class:`Square`,</span>
+<span class="sd">:class:`Honeycomb`, and :class:`Kagome`.</span>
 
 <span class="sd">.. todo ::</span>
 <span class="sd">    documentation, how to generate new lattices, examples, ...</span>
@@ -51,7 +51,7 @@
 <span class="sd">    equality tests?</span>
 
 <span class="sd">.. todo ::</span>
-<span class="sd">    Above, make table with pictures of them (-&gt; use Lattice.plot_ordering)</span>
+<span class="sd">    Above, make table with pictures of them (-&gt; use Lattice.plot_order)</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="c1"># Copyright 2018 TeNPy Developers</span>
 
@@ -62,7 +62,7 @@
 <span class="kn">from</span> <span class="nn">..tools.misc</span> <span class="k">import</span> <span class="n">to_iterable</span><span class="p">,</span> <span class="n">inverse_permutation</span>
 <span class="kn">from</span> <span class="nn">..networks.mps</span> <span class="k">import</span> <span class="n">MPS</span>  <span class="c1"># only to check boundary conditions</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Lattice&#39;</span><span class="p">,</span> <span class="s1">&#39;SimpleLattice&#39;</span><span class="p">,</span> <span class="s1">&#39;Chain&#39;</span><span class="p">,</span> <span class="s1">&#39;Square&#39;</span><span class="p">,</span> <span class="s1">&#39;Honeycomb&#39;</span><span class="p">,</span> <span class="s1">&#39;get_order&#39;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Lattice&#39;</span><span class="p">,</span> <span class="s1">&#39;SimpleLattice&#39;</span><span class="p">,</span> <span class="s1">&#39;Chain&#39;</span><span class="p">,</span> <span class="s1">&#39;Square&#39;</span><span class="p">,</span> <span class="s1">&#39;Honeycomb&#39;</span><span class="p">,</span> <span class="s1">&#39;Kagome&#39;</span><span class="p">,</span> <span class="s1">&#39;get_order&#39;</span><span class="p">]</span>
 
 <span class="c1"># (update module doc string if you add further lattices)</span>
 
@@ -90,7 +90,7 @@
 <span class="sd">        the length in each direction</span>
 <span class="sd">    unit_cell : list of :class:`~tenpy.networks.Site`</span>
 <span class="sd">        the lattice sites making up a unit cell of the lattice.</span>
-<span class="sd">    order : str | (priority, snake_winding)</span>
+<span class="sd">    order : str | ``(&#39;standard&#39;, snake_winding, priority)`` | ``(&#39;grouped&#39;, groups)``</span>
 <span class="sd">        A string or tuple specifying the order, given to :meth:`ordering`.</span>
 <span class="sd">    bc_MPS : {&#39;finite&#39; | &#39;segment&#39; | &#39;infinite&#39;}</span>
 <span class="sd">        boundary conditions for an MPS/MPO living on the ordered lattice. Default &#39;finite&#39;.</span>
@@ -245,12 +245,12 @@
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        order : str | (priority, snake_winding)</span>
+<span class="sd">        order : str | ``(&#39;standard&#39;, snake_winding, priority)`` | ``(&#39;grouped&#39;, groups)``</span>
 <span class="sd">            Specifies the desired ordering using one of the strings of the above tables.</span>
-<span class="sd">            Alternatively, an ordering is specified by the</span>
-<span class="sd">            `priority` (one value for each direction, winding along the highest value first)</span>
-<span class="sd">            and the `snake_winding` (True/False for each direction).</span>
-<span class="sd">            Further explanations of these tuples in :func:`get_order`.</span>
+<span class="sd">            Alternatively, an ordering is specified by a tuple with first entry specifying a</span>
+<span class="sd">            function, ``&#39;standard&#39;`` for :func:`get_order` and ``&#39;grouped&#39;`` for</span>
+<span class="sd">            :func:`get_order_grouped`, and other arguments in the tuple as specified in the</span>
+<span class="sd">            documentation of these functions.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -259,8 +259,9 @@
 
 <span class="sd">        See also</span>
 <span class="sd">        --------</span>
-<span class="sd">        :func:`get_order` : generates the ordering from the equivalent `priority` and `snake_winding`.</span>
-<span class="sd">        :meth:`plot_ordering` : visualizes the ordering</span>
+<span class="sd">        :func:`get_order` : generates the `order` from equivalent `priority` and `snake_winding`.</span>
+<span class="sd">        :func:`get_order_grouped` : variant of `get_order`.</span>
+<span class="sd">        :meth:`plot_order` : visualizes the resulting `order`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">order</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">order</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;default&quot;</span><span class="p">,</span> <span class="s2">&quot;Cstyle&quot;</span><span class="p">]:</span>
@@ -280,7 +281,13 @@
                 <span class="c1"># such that the derived lattice also has the orderings defined in this function.</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;unknown ordering &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">order</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">priority</span><span class="p">,</span> <span class="n">snake_winding</span> <span class="o">=</span> <span class="n">order</span>
+            <span class="n">descr</span> <span class="o">=</span> <span class="n">order</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">descr</span> <span class="o">==</span> <span class="s1">&#39;standard&#39;</span><span class="p">:</span>
+                <span class="n">snake_winding</span><span class="p">,</span> <span class="n">priority</span> <span class="o">=</span> <span class="n">order</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">order</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="n">descr</span> <span class="o">==</span> <span class="s1">&#39;grouped&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">get_order_grouped</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">order</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;unknown ordering &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">order</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">get_order</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">snake_winding</span><span class="p">,</span> <span class="n">priority</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Lattice.position"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Lattice.position">[docs]</a>    <span class="k">def</span> <span class="nf">position</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat_idx</span><span class="p">):</span>
@@ -618,7 +625,7 @@
 <span class="sd">        the length in each direction</span>
 <span class="sd">    site : :class:`~tenpy.networks.Site`</span>
 <span class="sd">        the lattice site. The `unit_cell` of the :class:`Lattice` is just ``[site]``.</span>
-<span class="sd">    order : str | (priority, snake_winding)</span>
+<span class="sd">    order : str | ``(&#39;standard&#39;, snake_winding, priority)``</span>
 <span class="sd">        A string or tuple specifying the order, given to :meth:`ordering`.</span>
 <span class="sd">        If a tuple, the priority and snake_winding should only be specified for the lattice</span>
 <span class="sd">        directions.</span>
@@ -635,10 +642,11 @@
         <span class="k">if</span> <span class="n">position</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">position</span> <span class="o">=</span> <span class="p">[</span><span class="n">position</span><span class="p">]</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">order</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="n">priority</span><span class="p">,</span> <span class="n">snake_winding</span> <span class="o">=</span> <span class="n">order</span>
-            <span class="n">priority</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">priority</span><span class="p">)</span> <span class="o">+</span>  <span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">priority</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1.</span><span class="p">,</span> <span class="p">)</span>
+            <span class="k">assert</span> <span class="n">order</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;standard&#39;</span>
+            <span class="n">descr</span><span class="p">,</span> <span class="n">snake_winding</span><span class="p">,</span> <span class="n">priority</span> <span class="o">=</span> <span class="n">order</span>
             <span class="n">snake_winding</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">snake_winding</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="p">)</span>
-            <span class="n">order</span> <span class="o">=</span> <span class="n">priority</span><span class="p">,</span> <span class="n">snake_winding</span>
+            <span class="n">priority</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">priority</span><span class="p">)</span> <span class="o">+</span>  <span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">priority</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1.</span><span class="p">,</span> <span class="p">)</span>
+            <span class="n">order</span> <span class="o">=</span> <span class="n">descr</span><span class="p">,</span> <span class="n">snake_winding</span><span class="p">,</span> <span class="n">priority</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">SimpleLattice</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">Ls</span><span class="p">,</span> <span class="p">[</span><span class="n">site</span><span class="p">],</span> <span class="n">order</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="p">,</span> <span class="n">basis</span><span class="p">,</span> <span class="n">position</span><span class="p">)</span>
 
 <div class="viewcode-block" id="SimpleLattice.mps2lat_values"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.SimpleLattice.mps2lat_values">[docs]</a>    <span class="k">def</span> <span class="nf">mps2lat_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">u</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -706,24 +714,6 @@
 <span class="sd">        ``&#39;snake&#39;``        (0, 2, 1)                   (False, True, False)</span>
 <span class="sd">        ================== =========================== =============================</span>
 
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        order : str | (priority, snake_winding)</span>
-<span class="sd">            Specifies the desired ordering using one of the strings of the above tables.</span>
-<span class="sd">            Alternatively, an ordering is specified by the</span>
-<span class="sd">            `priority` (one value for each direction, winding along the highest value first)</span>
-<span class="sd">            and the `snake_winding` (True/False for each direction).</span>
-<span class="sd">            Further explanations of these tuples in :func:`get_order`.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        order : array, shape (N, D+1), dtype np.intp</span>
-<span class="sd">            the order to be used for :attr:`order`.</span>
-
-<span class="sd">        See also</span>
-<span class="sd">        --------</span>
-<span class="sd">        :func:`get_order` : generates the ordering from the equivalent `priority` and `snake_winding`.</span>
-<span class="sd">        :meth:`plot_ordering` : visualizes the ordering</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">order</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">order</span> <span class="o">==</span> <span class="s2">&quot;default&quot;</span><span class="p">:</span>
@@ -737,9 +727,10 @@
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">ordering</span><span class="p">(</span><span class="n">order</span><span class="p">)</span></div></div>
 
 
-<span class="k">class</span> <span class="nc">Kagome</span><span class="p">(</span><span class="n">Lattice</span><span class="p">):</span>
+<div class="viewcode-block" id="Kagome"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Kagome">[docs]</a><span class="k">class</span> <span class="nc">Kagome</span><span class="p">(</span><span class="n">Lattice</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Lx</span><span class="p">,</span> <span class="n">Ly</span><span class="p">,</span> <span class="n">sites</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;default&quot;</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="s2">&quot;infinite&quot;</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;A Kagome lattice.</span>
+
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        Lx : int</span>
@@ -747,8 +738,7 @@
 <span class="sd">        Ly : int</span>
 <span class="sd">            The unit cell is repeated `Ly` times into the y-direction.</span>
 <span class="sd">        sites : list of :class:`~tenpy.networks.Site`</span>
-<span class="sd">            Definitions of the physical sites. If `x`, `sites` has to be of</span>
-<span class="sd">            length 3, otherwise of length 6.</span>
+<span class="sd">            Definitions of the physical sites.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sites</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
@@ -757,12 +747,10 @@
                 <span class="s2">&quot;(but is of length </span><span class="si">{}</span><span class="s2">).&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sites</span><span class="p">))</span>
             <span class="p">)</span>
 
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">           2</span>
-<span class="sd">          / \</span>
-<span class="sd">         /   \</span>
-<span class="sd">        0-----1</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">#     2</span>
+        <span class="c1">#    / \</span>
+        <span class="c1">#   /   \</span>
+        <span class="c1">#  0-----1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
@@ -796,7 +784,7 @@
 
         <span class="n">Lattice</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span> <span class="p">[</span><span class="n">Lx</span><span class="p">,</span> <span class="n">Ly</span><span class="p">],</span> <span class="n">sites</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">basis</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span>
-        <span class="p">)</span>
+        <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="get_order"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.get_order">[docs]</a><span class="k">def</span> <span class="nf">get_order</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">snake_winding</span><span class="p">,</span> <span class="n">priority</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -812,17 +800,26 @@
 <span class="sd">    snake_winding : tuple of bool</span>
 <span class="sd">        For each direction one bool, whether we should wind as a &quot;snake&quot; (True) in that direction</span>
 <span class="sd">        (i.e., going forth and back) or simply repeat ascending (False)</span>
-<span class="sd">    priority: ``None`` | tuple of float</span>
+<span class="sd">    priority : ``None`` | tuple of float</span>
 <span class="sd">        If ``None`` (default), use C-Style ordering.</span>
 <span class="sd">        Otherwise, this defines the priority along which direction to wind first;</span>
 <span class="sd">        the direction with the highest priority increases fastest.</span>
 <span class="sd">        For example, &quot;C-Style&quot; order is enforced by ``priority=(0, 1, 2, ...)``,</span>
 <span class="sd">        and Fortrans F-style order is enforced by ``priority=(dim, dim-1, ..., 1, 0)``</span>
+<span class="sd">    group : ``None`` | tuple of tuple</span>
+<span class="sd">        If ``None`` (default), ignore it.</span>
+<span class="sd">        Otherwise, it specifies that we group the fastests changing dimension</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    order : ndarray (np.prod(shape), len(shape))</span>
 <span class="sd">        An order of the sites for :attr:`Lattice.order` in the specified `ordering`.</span>
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+<span class="sd">    :meth:`Lattice.ordering` : method in :class:`Lattice` to obtain the order from parameters.</span>
+<span class="sd">    :meth:`Lattice.plot_order` : visualizes the resulting order in a :class:`Lattice`.</span>
+<span class="sd">    :func:`get_order_groups` : a variant grouping sites of the unit cell.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">priority</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># reduce this case to C-style order and a few permutations</span>
@@ -867,6 +864,66 @@
                     <span class="n">new_order</span><span class="p">[</span><span class="o">-</span><span class="n">L0</span><span class="p">:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">order</span>
         <span class="n">order</span> <span class="o">=</span> <span class="n">new_order</span>
     <span class="k">return</span> <span class="n">order</span></div>
+
+
+<span class="k">def</span> <span class="nf">get_order_grouped</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">groups</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Variant of :func:`get_order`, grouping some sites of the unit cell.</span>
+
+<span class="sd">    In this function, the word &#39;direction&#39; referst to a physical direction of the lattice or the</span>
+<span class="sd">    index `u` of the unit cell as an &quot;artificial direction&quot;.</span>
+<span class="sd">    This function is usefull for lattices with a unit cell of more than 2 sites (e.g. Kagome).</span>
+<span class="sd">    The argument `group` is a</span>
+<span class="sd">    To explain the order, assume we have a 3-site unit cell in a 2D lattice with shape (Lx, Ly, 3).</span>
+<span class="sd">    Calling this function with</span>
+<span class="sd">    then this function called with groups=((1), (2, 0)) returns an order</span>
+<span class="sd">    [[0, 0, 1], [0, 1, 1], [0, 1,</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    shape : tuple of int</span>
+<span class="sd">        The shape of the lattice, i.e., the length in each direction.</span>
+<span class="sd">    groups : tuple of tuple of int</span>
+<span class="sd">        A partition and reordering of range(shape[-1]) into smaller groups.</span>
+<span class="sd">        The ordering goes first within a group, then along the last spatial dimensions, then</span>
+<span class="sd">        changing between different groups and finally in Cstyle order along the remaining spatial</span>
+<span class="sd">        dimensions.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    order : ndarray (np.prod(shape), len(shape))</span>
+<span class="sd">        An order of the sites for :attr:`Lattice.order` in the specified `ordering`.</span>
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+<span class="sd">    :meth:`Lattice.ordering` : method in :class:`Lattice` to obtain the order from parameters.</span>
+<span class="sd">    :meth:`Lattice.plot_order` : visualizes the resulting order in a :class:`Lattice`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">Ly</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">Lu</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">N_sites</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+    <span class="c1"># sanity check for argument group</span>
+    <span class="n">groups</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">groups</span><span class="p">)</span>
+    <span class="nb">all</span> <span class="o">=</span> <span class="p">[</span><span class="n">g</span> <span class="k">for</span> <span class="n">gr</span> <span class="ow">in</span> <span class="n">groups</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">gr</span><span class="p">]</span>
+    <span class="n">all_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">all</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">all_set</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">Lu</span><span class="p">))</span> <span class="c1"># does every number appear?</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="nb">all</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">all_set</span><span class="p">)</span> <span class="o">==</span> <span class="n">Lu</span> <span class="c1"># exactly once?</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
+    <span class="n">rLy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">Ly</span><span class="p">)</span>
+    <span class="n">pre_order</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">Ly</span><span class="o">*</span><span class="n">Lu</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">gr</span> <span class="ow">in</span> <span class="n">groups</span><span class="p">:</span>
+        <span class="n">gr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">gr</span><span class="p">)</span>
+        <span class="n">Lgr</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">gr</span><span class="p">)</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">start</span> <span class="o">+</span> <span class="n">Lgr</span> <span class="o">*</span> <span class="n">Ly</span>
+        <span class="n">pre_order</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">rLy</span><span class="p">,</span> <span class="n">Lgr</span><span class="p">)</span>
+        <span class="n">pre_order</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">gr</span><span class="p">,</span> <span class="n">Ly</span><span class="p">)</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">end</span>
+    <span class="k">assert</span> <span class="n">end</span> <span class="o">==</span> <span class="n">Ly</span> <span class="o">*</span> <span class="n">Lu</span> <span class="c1"># TODO</span>
+    <span class="n">other_order</span> <span class="o">=</span> <span class="n">get_order</span><span class="p">(</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="kc">False</span><span class="p">])</span>
+    <span class="n">order</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">N_sites</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
+    <span class="n">order</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">other_order</span><span class="p">,</span> <span class="n">Ly</span><span class="o">*</span><span class="n">Lu</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">order</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">pre_order</span><span class="p">,</span> <span class="p">(</span><span class="n">N_sites</span><span class="o">//</span><span class="p">(</span><span class="n">Ly</span><span class="o">*</span><span class="n">Lu</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">order</span>
 </pre></div>
 
           </div>
