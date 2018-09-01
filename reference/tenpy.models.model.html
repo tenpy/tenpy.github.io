@@ -72,17 +72,21 @@ it might be simpler to just specify the MPO explicitly.</p>
 <p>See also the introduction <a class="reference internal" href="../intro_model.html"><span class="doc">Introduction to models</span></a>.</p>
 <dl class="class">
 <dt id="tenpy.models.model.CouplingModel">
-<em class="property">class </em><code class="descclassname">tenpy.models.model.</code><code class="descname">CouplingModel</code><span class="sig-paren">(</span><em>lattice</em>, <em>bc_coupling='open'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#CouplingModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.CouplingModel" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tenpy.models.model.</code><code class="descname">CouplingModel</code><span class="sig-paren">(</span><em>lattice</em>, <em>bc_coupling=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#CouplingModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.CouplingModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Base class for a general model of a Hamiltonian consisting of two-site couplings.</p>
 <p>In this class, the terms of the Hamiltonian are specified explicitly as onsite or coupling
 terms.</p>
+<div class="deprecated">
+<p><span class="versionmodified">Deprecated since version 0.4.0: </span><cite>bc_coupling</cite> will be removed in 1.0.0. To specify the full geometry in the lattice, it
+is the <cite>bc</cite> parameter of the <code class="xref py py-class docutils literal notranslate"><span class="pre">Lattice</span></code>.</p>
+</div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>lattice</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.model.lattice.Lattice</span></code></span></dt>
+<dt><strong>lattice</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">Lattice</span></code></span></dt>
 <dd><p class="first last">The lattice defining the geometry and the local Hilbert space(s).</p>
 </dd>
 <dt><strong>bc_coupling</strong> <span class="classifier-delimiter">:</span> <span class="classifier">(iterable of) {<code class="docutils literal notranslate"><span class="pre">'open'</span></code> | <code class="docutils literal notranslate"><span class="pre">'periodic'</span></code> | <code class="docutils literal notranslate"><span class="pre">int</span></code>}</span></dt>
@@ -96,15 +100,8 @@ when going around the boundary along this direction.</p>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>lat</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.model.lattice.Lattice</span></code></span></dt>
+<dt><strong>lat</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">Lattice</span></code></span></dt>
 <dd><p class="first last">The lattice defining the geometry and the local Hilbert space(s).</p>
-</dd>
-<dt><strong>bc_coupling</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool ndarray</span></dt>
-<dd><p class="first last">Boundary conditions of the couplings in each direction of the lattice,
-translated into a bool array with the global <cite>_bc_coupling_choices</cite>.</p>
-</dd>
-<dt><strong>bc_shift</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None | ndarray(int)</span></dt>
-<dd><p class="first last">The shift in x-direction when going around periodic boundaries in other directions.</p>
 </dd>
 <dt><strong>onsite_terms</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of dict</span></dt>
 <dd><p class="first last">Filled by <a class="reference internal" href="#tenpy.models.model.CouplingModel.add_onsite" title="tenpy.models.model.CouplingModel.add_onsite"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_onsite()</span></code></a>.
@@ -165,7 +162,7 @@ iMPS unit cells.</p>
 <code class="docutils literal notranslate"><span class="pre">OP1</span> <span class="pre">:=</span> <span class="pre">lat.unit_cell[u1].get_op(op1)</span></code> acts on the site <code class="docutils literal notranslate"><span class="pre">(x_0,</span> <span class="pre">...,</span> <span class="pre">x_{dim-1},</span> <span class="pre">u1)</span></code>,
 and <code class="docutils literal notranslate"><span class="pre">OP2</span> <span class="pre">:=</span> <span class="pre">lat.unit_cell[u2].get_op(op2)</span></code> acts on the site
 <code class="docutils literal notranslate"><span class="pre">(x_0+dx[0],</span> <span class="pre">...,</span> <span class="pre">x_{dim-1}+dx[dim-1],</span> <span class="pre">u2)</span></code>.
-For periodic boundary conditions (<code class="docutils literal notranslate"><span class="pre">bc_coupling[a]</span> <span class="pre">==</span> <span class="pre">False</span></code>)
+For periodic boundary conditions (<code class="docutils literal notranslate"><span class="pre">lat.bc[a]</span> <span class="pre">==</span> <span class="pre">False</span></code>)
 the index <code class="docutils literal notranslate"><span class="pre">x_a</span></code> is taken modulo <code class="docutils literal notranslate"><span class="pre">lat.Ls[a]</span></code> and runs through <code class="docutils literal notranslate"><span class="pre">range(lat.Ls[a])</span></code>.
 For open boundary conditions, <code class="docutils literal notranslate"><span class="pre">x_a</span></code> is limited to <code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">&lt;=</span> <span class="pre">x_a</span> <span class="pre">&lt;</span> <span class="pre">Ls[a]</span></code> and
 <code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">&lt;=</span> <span class="pre">x_a+dx[a]</span> <span class="pre">&lt;</span> <span class="pre">lat.Ls[a]</span></code>.
@@ -385,7 +382,7 @@ Legs are <code class="docutils literal notranslate"><span class="pre">['p0',</sp
 
 <dl class="class">
 <dt id="tenpy.models.model.MultiCouplingModel">
-<em class="property">class </em><code class="descclassname">tenpy.models.model.</code><code class="descname">MultiCouplingModel</code><span class="sig-paren">(</span><em>lattice</em>, <em>bc_coupling='open'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#MultiCouplingModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.MultiCouplingModel" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tenpy.models.model.</code><code class="descname">MultiCouplingModel</code><span class="sig-paren">(</span><em>lattice</em>, <em>bc_coupling=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#MultiCouplingModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.MultiCouplingModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.CouplingModel</span></code></a></p>
 <p>Generalizes <a class="reference internal" href="#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></a> to allow couplings involving more than two sites.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -464,7 +461,7 @@ where <code class="docutils literal notranslate"><span class="pre">OP_0</span> <
 <code class="docutils literal notranslate"><span class="pre">(x_0,</span> <span class="pre">...,</span> <span class="pre">x_{dim-1},</span> <span class="pre">u0)</span></code>,
 and <code class="docutils literal notranslate"><span class="pre">OP_m</span> <span class="pre">:=</span> <span class="pre">lat.unit_cell[other_u[m]].get_op(other_op[m])</span></code>, m=1…M, acts on the site
 <code class="docutils literal notranslate"><span class="pre">(x_0+other_dx[m][0],</span> <span class="pre">...,</span> <span class="pre">x_{dim-1}+other_dx[m][dim-1],</span> <span class="pre">other_u[m])</span></code>.
-For periodic boundary conditions along direction <cite>a</cite> (<code class="docutils literal notranslate"><span class="pre">bc_coupling[a]</span> <span class="pre">==</span> <span class="pre">False</span></code>)
+For periodic boundary conditions along direction <cite>a</cite> (<code class="docutils literal notranslate"><span class="pre">lat.bc[a]</span> <span class="pre">==</span> <span class="pre">False</span></code>)
 the index <code class="docutils literal notranslate"><span class="pre">x_a</span></code> is taken modulo <code class="docutils literal notranslate"><span class="pre">lat.Ls[a]</span></code> and runs through <code class="docutils literal notranslate"><span class="pre">range(lat.Ls[a])</span></code>.
 For open boundary conditions, <code class="docutils literal notranslate"><span class="pre">x_a</span></code> is limited to <code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">&lt;=</span> <span class="pre">x_a</span> <span class="pre">&lt;</span> <span class="pre">Ls[a]</span></code> and
 <code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">&lt;=</span> <span class="pre">x_a+other_dx[m,a]</span> <span class="pre">&lt;</span> <span class="pre">lat.Ls[a]</span></code>.

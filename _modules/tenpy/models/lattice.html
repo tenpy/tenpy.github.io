@@ -40,18 +40,15 @@
   <h1>Source code for tenpy.models.lattice</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;Classes to define the lattice structure of a model.</span>
 
-<span class="sd">The base class :class:`lattice` defines the general structure of a lattice,</span>
+<span class="sd">The base class :class:`Lattice` defines the general structure of a lattice,</span>
 <span class="sd">you can subclass this to define you own lattice.</span>
-<span class="sd">Further, we have the predefined lattices, namely :class:`Chain`, :class:`Square`,</span>
-<span class="sd">:class:`Honeycomb`, and :class:`Kagome`.</span>
+<span class="sd">The :class:`SimpleLattice` is a slight simplification for lattices with a single-site unit cell.</span>
+<span class="sd">Further, we have some predefined lattices, namely</span>
+<span class="sd">:class:`Chain`, :class:`Ladder`,</span>
+<span class="sd">:class:`Square`, :class:`Honeycomb`, and :class:`Kagome`.</span>
 
 <span class="sd">.. todo ::</span>
-<span class="sd">    documentation, how to generate new lattices, examples, ...</span>
-<span class="sd">    implement some __repr__ and/or __str__...</span>
-<span class="sd">    equality tests?</span>
-
-<span class="sd">.. todo ::</span>
-<span class="sd">    Above, make table with pictures of them (-&gt; use Lattice.plot_order)</span>
+<span class="sd">    documentation of boundary conditions, how to define new lattices</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="c1"># Copyright 2018 TeNPy Developers</span>
 
@@ -62,9 +59,13 @@
 <span class="kn">from</span> <span class="nn">..tools.misc</span> <span class="k">import</span> <span class="n">to_iterable</span><span class="p">,</span> <span class="n">inverse_permutation</span>
 <span class="kn">from</span> <span class="nn">..networks.mps</span> <span class="k">import</span> <span class="n">MPS</span>  <span class="c1"># only to check boundary conditions</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Lattice&#39;</span><span class="p">,</span> <span class="s1">&#39;SimpleLattice&#39;</span><span class="p">,</span> <span class="s1">&#39;Chain&#39;</span><span class="p">,</span> <span class="s1">&#39;Square&#39;</span><span class="p">,</span> <span class="s1">&#39;Honeycomb&#39;</span><span class="p">,</span> <span class="s1">&#39;Kagome&#39;</span><span class="p">,</span> <span class="s1">&#39;get_order&#39;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Lattice&#39;</span><span class="p">,</span> <span class="s1">&#39;SimpleLattice&#39;</span><span class="p">,</span> <span class="s1">&#39;Chain&#39;</span><span class="p">,</span> <span class="s1">&#39;Ladder&#39;</span><span class="p">,</span> <span class="s1">&#39;Square&#39;</span><span class="p">,</span> <span class="s1">&#39;Honeycomb&#39;</span><span class="p">,</span> <span class="s1">&#39;Kagome&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;get_order&#39;</span><span class="p">,</span> <span class="s1">&#39;get_order_grouped&#39;</span><span class="p">,</span> <span class="s1">&#39;bc_choices&#39;</span><span class="p">]</span>
 
 <span class="c1"># (update module doc string if you add further lattices)</span>
+
+<span class="n">bc_choices</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;open&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;periodic&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
+<span class="sd">&quot;&quot;&quot;dict: maps possible choices of boundary conditions in a lattice to bool/int.&quot;&quot;&quot;</span>
 
 
 <div class="viewcode-block" id="Lattice"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Lattice">[docs]</a><span class="k">class</span> <span class="nc">Lattice</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -89,23 +90,31 @@
 <span class="sd">    Ls : list of int</span>
 <span class="sd">        the length in each direction</span>
 <span class="sd">    unit_cell : list of :class:`~tenpy.networks.Site`</span>
-<span class="sd">        the lattice sites making up a unit cell of the lattice.</span>
+<span class="sd">        The sites making up a unit cell of the lattice.</span>
+<span class="sd">        If you want to specify it only after initialization, use ``None`` entries in the list.</span>
 <span class="sd">    order : str | ``(&#39;standard&#39;, snake_winding, priority)`` | ``(&#39;grouped&#39;, groups)``</span>
 <span class="sd">        A string or tuple specifying the order, given to :meth:`ordering`.</span>
-<span class="sd">    bc_MPS : {&#39;finite&#39; | &#39;segment&#39; | &#39;infinite&#39;}</span>
-<span class="sd">        boundary conditions for an MPS/MPO living on the ordered lattice. Default &#39;finite&#39;.</span>
+<span class="sd">    bc : (iterable of) {&#39;open&#39; | &#39;periodic&#39; | int}</span>
+<span class="sd">        Boundary conditions in each direction of the lattice.</span>
+<span class="sd">        A single string holds for all directions.</span>
+<span class="sd">        An integer `shift` means that we have periodic boundary conditions along this direction,</span>
+<span class="sd">        but shift/tilt by ``-shift*lattice.basis[0]`` (~cylinder axis for ``bc_MPS=&#39;infinite&#39;``)</span>
+<span class="sd">        when going around the boundary along this direction.</span>
+<span class="sd">    bc_MPS : &#39;finite&#39; | &#39;segment&#39; | &#39;infinite&#39;</span>
+<span class="sd">        Boundary conditions for an MPS/MPO living on the ordered lattice.</span>
 <span class="sd">        If the system is ``&#39;infinite&#39;``, the infinite direction is always along the first basis</span>
 <span class="sd">        vector (justifying the definition of `N_rings` and `N_sites_per_ring`).</span>
 <span class="sd">    basis : iterable of 1D arrays</span>
-<span class="sd">        for each direction one translation vectors shifting the unit cell.</span>
+<span class="sd">        For each direction one translation vectors shifting the unit cell.</span>
 <span class="sd">        Defaults to the standard ONB ``np.eye(dim)``.</span>
 <span class="sd">    positions : iterable of 1D arrays</span>
-<span class="sd">        for each site of the unit cell the position within the unit cell.</span>
+<span class="sd">        For each site of the unit cell the position within the unit cell.</span>
 <span class="sd">        Defaults to ``np.zeros((len(unit_cell), dim))``.</span>
 
 <span class="sd">    Attributes</span>
 <span class="sd">    ----------</span>
-<span class="sd">    dim</span>
+<span class="sd">    dim : int</span>
+<span class="sd">    order : ndarray (N_sites, dim+1)</span>
 <span class="sd">    N_cells : int</span>
 <span class="sd">        the number of unit cells in the lattice, ``np.prod(self.Ls)``.</span>
 <span class="sd">    N_sites : int</span>
@@ -118,19 +127,21 @@
 <span class="sd">        the length in each direction.</span>
 <span class="sd">    shape : tuple of int</span>
 <span class="sd">        the &#39;shape&#39; of the lattice, same as ``Ls + (len(unit_cell), )``</span>
-<span class="sd">    chinfo : :class:`~tenpy.linalg.charges.ChargeInfo`</span>
-<span class="sd">        The nature of the charge (which is the same for all sites).</span>
 <span class="sd">    unit_cell : list of :class:`~tenpy.networks.Site`</span>
 <span class="sd">        the lattice sites making up a unit cell of the lattice.</span>
-<span class="sd">    order : ndarray (N_sites, dim+1)</span>
-<span class="sd">        Defines an ordering of the lattice sites, thus mapping the lattice to a 1D chain.</span>
-<span class="sd">        This order defines how an MPS/MPO winds through the lattice.</span>
-<span class="sd">    bc_MPS : {&#39;finite&#39; | &#39;segment&#39; | &#39;infinite&#39;}</span>
-<span class="sd">        boundary conditions for an MPS/MPO living on the ordered lattice.</span>
-<span class="sd">    basis: ndarray (dim, dim)</span>
+<span class="sd">    bc : bool ndarray</span>
+<span class="sd">        Boundary conditions of the couplings in each direction of the lattice,</span>
+<span class="sd">        translated into a bool array with the global `bc_choices`.</span>
+<span class="sd">    bc_shift : None | ndarray(int)</span>
+<span class="sd">        The shift in x-direction when going around periodic boundaries in other directions.</span>
+<span class="sd">    bc_MPS : &#39;finite&#39; | &#39;segment&#39; | &#39;infinite&#39;</span>
+<span class="sd">        Boundary conditions for an MPS/MPO living on the ordered lattice.</span>
+<span class="sd">        If the system is ``&#39;infinite&#39;``, the infinite direction is always along the first basis</span>
+<span class="sd">        vector (justifying the definition of `N_rings` and `N_sites_per_ring`).</span>
+<span class="sd">    basis: ndarray (dim, Dim)</span>
 <span class="sd">        translation vectors shifting the unit cell. The row `i` gives the vector shifting in</span>
 <span class="sd">        direction `i`.</span>
-<span class="sd">    unit_cell_positions : ndarray, shape (len(unit_cell), dim)</span>
+<span class="sd">    unit_cell_positions : ndarray, shape (len(unit_cell), Dim)</span>
 <span class="sd">        for each site in the unit cell a vector giving its position within the unit cell.</span>
 <span class="sd">    nearest_neighbors : ``None`` | list of ``(u1, u2, dx)``</span>
 <span class="sd">        May be unspecified (``None``), otherwise it gives a list of parameters `u1`, `u2`, `dx`</span>
@@ -140,6 +151,10 @@
 <span class="sd">        ``nearest_neighbors + [(u1, u2, -dx) for (u1, u2, dx) in nearest_neighbors]``.</span>
 <span class="sd">    next_nearest_neighbors : ``None`` | list of ``(u1, u2, dx)``</span>
 <span class="sd">        Same as :attr:`nearest_neighbors`, but for the next-nearest neigbhors.</span>
+<span class="sd">    next_next_nearest_neighbors : ``None`` | list of ``(u1, u2, dx)``</span>
+<span class="sd">        Same as :attr:`nearest_neighbors`, but for the next-next-nearest neigbhors.</span>
+<span class="sd">    _order : ndarray (N_sites, dim+1)</span>
+<span class="sd">        The place where :attr:`order` is stored.</span>
 <span class="sd">    _strides : ndarray (dim, )</span>
 <span class="sd">        necessary for :meth:`mps2lat_idx`</span>
 <span class="sd">    _perm : ndarray (N, )</span>
@@ -152,13 +167,19 @@
 <span class="sd">        similar as `_mps2lat_vals_idx`, but for a fixed `u` picking a site from the unit cell.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Ls</span><span class="p">,</span> <span class="n">unit_cell</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="s1">&#39;finite&#39;</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">positions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Ls</span><span class="p">,</span> <span class="n">unit_cell</span><span class="p">,</span>
+                 <span class="n">order</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">,</span>
+                 <span class="n">bc</span><span class="o">=</span><span class="s1">&#39;open&#39;</span><span class="p">,</span>
+                 <span class="n">bc_MPS</span><span class="o">=</span><span class="s1">&#39;finite&#39;</span><span class="p">,</span>
+                 <span class="n">basis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">positions</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">nearest_neighbors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">next_nearest_neighbors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">next_next_nearest_neighbors</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">Ls</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">L</span><span class="p">)</span> <span class="k">for</span> <span class="n">L</span> <span class="ow">in</span> <span class="n">Ls</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">unit_cell</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">N_cells</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Ls</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Ls</span> <span class="o">+</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">unit_cell</span><span class="p">),</span> <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">N_sites</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">N_sites_per_ring</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N_sites</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">Ls</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">N_rings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Ls</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -166,34 +187,21 @@
             <span class="n">positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">basis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">basis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">unit_cell_positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">basis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">basis</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unit_cell_positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">basis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">basis</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_bc</span><span class="p">(</span><span class="n">bc</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">bc_MPS</span> <span class="o">=</span> <span class="n">bc_MPS</span>
         <span class="c1"># calculate order for MPS</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">order</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ordering</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
         <span class="c1"># from order, calc necessary stuff for mps2lat and lat2mps</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_perm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">lexsort</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
-        <span class="c1"># use advanced numpy indexing...</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_mps2lat_vals_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_mps2lat_vals_idx</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="o">.</span><span class="n">T</span><span class="p">)]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N_sites</span><span class="p">)</span>
-        <span class="c1"># versions for fixed u</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_mps_fix_u</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_mps2lat_vals_idx_fix_u</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">)):</span>
-            <span class="n">mps_fix_u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">u</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_mps_fix_u</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mps_fix_u</span><span class="p">)</span>
-            <span class="n">mps2lat_vals_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Ls</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
-            <span class="n">mps2lat_vals_idx</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">[</span><span class="n">mps_fix_u</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">)]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N_cells</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_mps2lat_vals_idx_fix_u</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mps2lat_vals_idx</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_mps_fix_u</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mps_fix_u</span><span class="p">)</span>
         <span class="c1"># calculate _strides</span>
         <span class="n">strides</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">L</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">Ls</span><span class="p">:</span>
             <span class="n">strides</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">strides</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">L</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_strides</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">strides</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;nearest_neighbors&#39;</span><span class="p">,</span> <span class="s1">&#39;next_nearest_neighbors&#39;</span><span class="p">):</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
-                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nearest_neighbors</span> <span class="o">=</span> <span class="n">nearest_neighbors</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">next_nearest_neighbors</span> <span class="o">=</span> <span class="n">next_nearest_neighbors</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">next_next_nearest_neighbors</span> <span class="o">=</span> <span class="n">next_next_nearest_neighbors</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">()</span>  <span class="c1"># check consistency</span>
 
 <div class="viewcode-block" id="Lattice.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Lattice.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -201,12 +209,19 @@
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">Ls</span> <span class="o">+</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">),</span> <span class="p">)</span>
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_cells</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Ls</span><span class="p">)</span>
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_sites</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Wrong len of bc&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">bool</span>
+        <span class="n">chinfo</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">for</span> <span class="n">site</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">site</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">chinfo</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">chinfo</span> <span class="o">=</span> <span class="n">site</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">site</span><span class="p">,</span> <span class="n">Site</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;element of Unit cell is not Site.&quot;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">site</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">site</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span> <span class="o">!=</span> <span class="n">chinfo</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;All sites must have the same ChargeInfo!&quot;</span><span class="p">)</span>
-            <span class="n">site</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">()</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">basis</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Need one basis vector for each direction!&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit_cell_positions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">):</span>
@@ -214,17 +229,44 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">basis</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit_cell_positions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Different space dimensions of `basis` and `unit_cell_positions`&quot;</span><span class="p">)</span>
         <span class="c1"># if one of the following assert fails, the `ordering` function returned an invalid array</span>
-        <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">order</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">order</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>  <span class="c1"># entries of `order`</span>
+        <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_order</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_order</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>  <span class="c1"># entries of `order`</span>
         <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">order</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_strides</span><span class="p">,</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_order</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_strides</span><span class="p">,</span>
                    <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">_perm</span><span class="p">]</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N_sites</span><span class="p">))</span>  <span class="c1"># rows of `order` unique?</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc_MPS</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">MPS</span><span class="o">.</span><span class="n">_valid_bc</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;invalid MPS boundary conditions&quot;</span><span class="p">)</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">dim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;the dimension of the lattice.&quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;The dimension of the lattice.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Ls</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">order</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Defines an ordering of the lattice sites, thus mapping the lattice to a 1D chain.</span>
+<span class="sd">        This order defines how an MPS/MPO winds through the lattice.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_order</span>
+
+    <span class="nd">@order</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="c1"># update the value itself</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_order</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="c1"># and the other stuff which is cached</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_perm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">lexsort</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="c1"># use advanced numpy indexing...</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mps2lat_vals_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mps2lat_vals_idx</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">T</span><span class="p">)]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N_sites</span><span class="p">)</span>
+        <span class="c1"># versions for fixed u</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mps_fix_u</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mps2lat_vals_idx_fix_u</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">)):</span>
+            <span class="n">mps_fix_u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">value</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">u</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mps_fix_u</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mps_fix_u</span><span class="p">)</span>
+            <span class="n">mps2lat_vals_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Ls</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
+            <span class="n">mps2lat_vals_idx</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="n">mps_fix_u</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">)]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N_cells</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mps2lat_vals_idx_fix_u</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mps2lat_vals_idx</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mps_fix_u</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mps_fix_u</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Lattice.ordering"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Lattice.ordering">[docs]</a>    <span class="k">def</span> <span class="nf">ordering</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Provide possible orderings of the `N` lattice sites.</span>
@@ -453,7 +495,7 @@
 <span class="sd">        -------</span>
 <span class="sd">        number_NN : int</span>
 <span class="sd">            Number of nearest neighbors of the `u`-th site in the unit cell in the bulk of the</span>
-<span class="sd">            lattice, not that it might be different at the edges of the lattice for open boundary</span>
+<span class="sd">            lattice. Note that it might be different at the edges of the lattice for open boundary</span>
 <span class="sd">            conditions.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nearest_neighbors</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -480,7 +522,7 @@
 <span class="sd">        -------</span>
 <span class="sd">        number_NNN : int</span>
 <span class="sd">            Number of next nearest neighbors of the `u`-th site in the unit cell in the bulk of the</span>
-<span class="sd">            lattice, not that it might be different at the edges of the lattice for open boundary</span>
+<span class="sd">            lattice. Note that it might be different at the edges of the lattice for open boundary</span>
 <span class="sd">            conditions.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_nearest_neighbors</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -544,6 +586,7 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;can only plot in 2 dimensions.&quot;</span><span class="p">)</span>
         <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pos</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">pos</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">textkwargs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">textkwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;color&#39;</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">])</span>
             <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pos</span><span class="p">):</span>
                 <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="o">**</span><span class="n">textkwargs</span><span class="p">)</span></div>
 
@@ -565,12 +608,26 @@
         <span class="k">if</span> <span class="n">coupling</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">coupling</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nearest_neighbors</span>
         <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;color&#39;</span><span class="p">,</span> <span class="s1">&#39;k&#39;</span><span class="p">)</span>
+        <span class="n">Ls</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Ls</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">u1</span><span class="p">,</span> <span class="n">u2</span><span class="p">,</span> <span class="n">dx</span> <span class="ow">in</span> <span class="n">coupling</span><span class="p">:</span>
             <span class="n">dx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dx</span><span class="p">),</span> <span class="mi">0</span><span class="p">]</span>  <span class="c1"># append a 0 to dx</span>
             <span class="n">lat_idx_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_mps_fix_u</span><span class="p">[</span><span class="n">u1</span><span class="p">],</span> <span class="p">:]</span>
             <span class="n">lat_idx_2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_mps_fix_u</span><span class="p">[</span><span class="n">u2</span><span class="p">],</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">dx</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
-            <span class="n">pos1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="p">(</span><span class="n">lat_idx_1</span><span class="p">)</span>
-            <span class="n">pos2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="p">(</span><span class="n">lat_idx_2</span><span class="p">)</span>
+            <span class="n">lat_idx_2_mod</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">lat_idx_2</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">Ls</span><span class="p">)</span>
+            <span class="c1"># handle boundary conditions</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc_shift</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">shift</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(((</span><span class="n">lat_idx_2</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">lat_idx_2_mod</span><span class="p">)</span> <span class="o">//</span> <span class="n">Ls</span><span class="p">)[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc_shift</span><span class="p">,</span>
+                               <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">lat_idx_2</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-=</span> <span class="n">shift</span>
+                <span class="n">lat_idx_2_mod</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">lat_idx_2</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">Ls</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">keep</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
+                    <span class="n">lat_idx_2_mod</span> <span class="o">==</span> <span class="n">lat_idx_2</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>  <span class="c1"># not accross the boundary</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bc</span><span class="p">)),</span>  <span class="c1"># direction has PBC</span>
+                <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="c1"># get positions</span>
+            <span class="n">pos1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="p">(</span><span class="n">lat_idx_1</span><span class="p">[</span><span class="n">keep</span><span class="p">,</span> <span class="p">:])</span>
+            <span class="n">pos2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="p">(</span><span class="n">lat_idx_2</span><span class="p">[</span><span class="n">keep</span><span class="p">,</span> <span class="p">:])</span>
             <span class="n">pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">((</span><span class="n">pos1</span><span class="p">,</span> <span class="n">pos2</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
             <span class="c1"># ax.plot connects columns of 2D array by lines</span>
             <span class="k">if</span> <span class="n">pos</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
@@ -603,7 +660,27 @@
         <span class="n">lat_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lat_idx</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">lat_idx</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;wrong len of last dimension of lat_idx: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">lat_idx</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
-        <span class="k">return</span> <span class="n">lat_idx</span></div>
+        <span class="k">return</span> <span class="n">lat_idx</span>
+
+    <span class="k">def</span> <span class="nf">_set_bc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bc</span><span class="p">):</span>
+        <span class="k">global</span> <span class="n">bc_choices</span>
+        <span class="k">if</span> <span class="n">bc</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">bc_choices</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="n">bc</span> <span class="o">=</span> <span class="p">[</span><span class="n">bc_choices</span><span class="p">[</span><span class="n">bc</span><span class="p">]]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bc_shift</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">bc</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">bc</span><span class="p">)</span>  <span class="c1"># we modify entries...</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bc_shift</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int_</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bc_i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bc</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bc_i</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid bc: first entry can&#39;t be a shift&quot;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">bc_shift</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">bc_i</span>
+                    <span class="n">bc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">bc_choices</span><span class="p">[</span><span class="s1">&#39;periodic&#39;</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">bc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">bc_choices</span><span class="p">[</span><span class="n">bc_i</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bc_shift</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">bc_shift</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">bc</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="SimpleLattice"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.SimpleLattice">[docs]</a><span class="k">class</span> <span class="nc">SimpleLattice</span><span class="p">(</span><span class="n">Lattice</span><span class="p">):</span>
@@ -625,82 +702,150 @@
 <span class="sd">        the length in each direction</span>
 <span class="sd">    site : :class:`~tenpy.networks.Site`</span>
 <span class="sd">        the lattice site. The `unit_cell` of the :class:`Lattice` is just ``[site]``.</span>
-<span class="sd">    order : str | ``(&#39;standard&#39;, snake_winding, priority)``</span>
-<span class="sd">        A string or tuple specifying the order, given to :meth:`ordering`.</span>
-<span class="sd">        If a tuple, the priority and snake_winding should only be specified for the lattice</span>
-<span class="sd">        directions.</span>
-<span class="sd">    bc_MPS : {&#39;finite&#39;, &#39;segment&#39;, &#39;infinite&#39;}</span>
-<span class="sd">        boundary conditions for an MPS/MPO living on the ordered lattice. Default &#39;finite&#39;.</span>
-<span class="sd">    basis : iterable of 1D arrays</span>
-<span class="sd">        for each direction one translation vectors shifting the unit cell.</span>
-<span class="sd">        Defaults to the standard ONB ``np.eye(dim)``.</span>
-<span class="sd">    position : 1D array</span>
-<span class="sd">        The position of the site within the unit cell. Defaults to ``np.zeros(dim))``.</span>
+<span class="sd">    **kwargs :</span>
+<span class="sd">        Additional keyword arguments given to the :class:`Lattice`.</span>
+<span class="sd">        If `order` is specified in the form ``(&#39;standard&#39;, snake_windingi, priority)``,</span>
+<span class="sd">        the `snake_winding` and `priority` should only be specified for the spatial directions.</span>
+<span class="sd">        Similarly, `positions` can be specified as a single vector.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Ls</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="s1">&#39;finite&#39;</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">position</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">position</span> <span class="o">=</span> <span class="p">[</span><span class="n">position</span><span class="p">]</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">order</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="k">assert</span> <span class="n">order</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;standard&#39;</span>
-            <span class="n">descr</span><span class="p">,</span> <span class="n">snake_winding</span><span class="p">,</span> <span class="n">priority</span> <span class="o">=</span> <span class="n">order</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Ls</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s1">&#39;positions&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">Dim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;basis&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="k">if</span> <span class="s1">&#39;basis&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="n">Ls</span><span class="p">)</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;positions&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;positions&#39;</span><span class="p">],</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">Dim</span><span class="p">))</span>
+        <span class="k">if</span> <span class="s1">&#39;order&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;order&#39;</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">descr</span><span class="p">,</span> <span class="n">snake_winding</span><span class="p">,</span> <span class="n">priority</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;order&#39;</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="n">descr</span> <span class="o">==</span> <span class="s1">&#39;standard&#39;</span>
             <span class="n">snake_winding</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">snake_winding</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="p">)</span>
             <span class="n">priority</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">priority</span><span class="p">)</span> <span class="o">+</span>  <span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">priority</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1.</span><span class="p">,</span> <span class="p">)</span>
-            <span class="n">order</span> <span class="o">=</span> <span class="n">descr</span><span class="p">,</span> <span class="n">snake_winding</span><span class="p">,</span> <span class="n">priority</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">SimpleLattice</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">Ls</span><span class="p">,</span> <span class="p">[</span><span class="n">site</span><span class="p">],</span> <span class="n">order</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="p">,</span> <span class="n">basis</span><span class="p">,</span> <span class="n">position</span><span class="p">)</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;order&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">descr</span><span class="p">,</span> <span class="n">snake_winding</span><span class="p">,</span> <span class="n">priority</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">Ls</span><span class="p">,</span> <span class="p">[</span><span class="n">site</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
 <div class="viewcode-block" id="SimpleLattice.mps2lat_values"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.SimpleLattice.mps2lat_values">[docs]</a>    <span class="k">def</span> <span class="nf">mps2lat_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">u</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;same as :meth:`Lattice.mps2lat_values`, but ignore ``u``, setting it to ``0``.&quot;&quot;&quot;</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">SimpleLattice</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">mps2lat_values</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div></div>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">mps2lat_values</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="Chain"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Chain">[docs]</a><span class="k">class</span> <span class="nc">Chain</span><span class="p">(</span><span class="n">SimpleLattice</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;A simple uniform chain of L equal sites.</span>
+
+<span class="sd">    .. image :: ../images/lattices/Chain.*</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    L : int</span>
 <span class="sd">        The lenght of the chain.</span>
 <span class="sd">    site : :class:`~tenpy.networks.Site`</span>
-<span class="sd">        Definition of local Hilbert space.</span>
-<span class="sd">    bc_MPS : {&#39;finite&#39;, &#39;segment&#39;, &#39;infinite&#39;}</span>
-<span class="sd">        MPS boundary conditions.</span>
+<span class="sd">        The local lattice site. The `unit_cell` of the :class:`Lattice` is just ``[site]``.</span>
+<span class="sd">    **kwargs :</span>
+<span class="sd">        Additional keyword arguments given to the :class:`Lattice`.</span>
+<span class="sd">        `[[next_]next_]nearest_neighbors` are set accordingly.</span>
+<span class="sd">        If `order` is specified in the form ``(&#39;standard&#39;, snake_winding, priority)``,</span>
+<span class="sd">        the `snake_winding` and `priority` should only be specified for the spatial directions.</span>
+<span class="sd">        Similarly, `positions` can be specified as a single vector.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="s1">&#39;finite&#39;</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">nearest_neighbors</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,]))]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">next_nearest_neighbors</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">2</span><span class="p">,]))]</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">Chain</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">([</span><span class="n">L</span><span class="p">],</span> <span class="n">site</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="n">bc_MPS</span><span class="p">)</span>  <span class="c1"># and otherwise default values.</span></div>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;nearest_neighbors&#39;</span><span class="p">,</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,]))])</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;next_nearest_neighbors&#39;</span><span class="p">,</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">2</span><span class="p">,]))])</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;next_next_nearest_neighbors&#39;</span><span class="p">,</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">3</span><span class="p">,]))])</span>
+        <span class="c1"># and otherwise default values.</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">([</span><span class="n">L</span><span class="p">],</span> <span class="n">site</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Ladder"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Ladder">[docs]</a><span class="k">class</span> <span class="nc">Ladder</span><span class="p">(</span><span class="n">Lattice</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A ladder coupling two chains.</span>
+
+<span class="sd">    .. image :: ../images/lattice/Ladder.*</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    L : int</span>
+<span class="sd">        The length of each chain, we have 2*L sites in total.</span>
+<span class="sd">    sites : (list of) :class:`~tenpy.networks.Site`</span>
+<span class="sd">        The two local lattice sites making the `unit_cell` of the :class:`Lattice`.</span>
+<span class="sd">        If only a single :class:`~tenpy.networks.Site` is given, it is used for both chains.</span>
+<span class="sd">    **kwargs :</span>
+<span class="sd">        Additional keyword arguments given to the :class:`Lattice`.</span>
+<span class="sd">        `basis`, `pos` and `[[next_]next_]nearest_neighbors` are set accordingly.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Lx</span><span class="p">,</span> <span class="n">sites</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">sites</span> <span class="o">=</span> <span class="n">_parse_sites</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">basis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]])</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">]])</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;basis&#39;</span><span class="p">,</span> <span class="n">basis</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;positions&#39;</span><span class="p">,</span> <span class="n">pos</span><span class="p">)</span>
+        <span class="n">NN</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">])),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">])),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">]))]</span>
+        <span class="n">nNN</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">])),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">]))]</span>
+        <span class="n">nnNN</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">2</span><span class="p">])),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">2</span><span class="p">]))]</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;nearest_neighbors&#39;</span><span class="p">,</span> <span class="n">NN</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;next_nearest_neighbors&#39;</span><span class="p">,</span> <span class="n">nNN</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;next_next_nearest_neighbors&#39;</span><span class="p">,</span> <span class="n">nnNN</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">([</span><span class="n">Lx</span><span class="p">],</span> <span class="n">sites</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Square"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Square">[docs]</a><span class="k">class</span> <span class="nc">Square</span><span class="p">(</span><span class="n">SimpleLattice</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;A simple uniform square lattice of `Lx` by `Ly` sites.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;A simple uniform square lattice.</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Lx</span><span class="p">,</span> <span class="n">Ly</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="s1">&#39;finite&#39;</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">nearest_neighbors</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])),</span>
-                                  <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]))]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">next_nearest_neighbors</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])),</span>
-                                       <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]))]</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">Square</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">([</span><span class="n">Lx</span><span class="p">,</span> <span class="n">Ly</span><span class="p">],</span> <span class="n">site</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="p">)</span></div>
+<span class="sd">    .. image :: ../images/lattices/Square.*</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Lx, Ly : int</span>
+<span class="sd">        The length in each direction.</span>
+<span class="sd">    site : :class:`~tenpy.networks.Site`</span>
+<span class="sd">        The local lattice site. The `unit_cell` of the :class:`Lattice` is just ``[site]``.</span>
+<span class="sd">    **kwargs :</span>
+<span class="sd">        Additional keyword arguments given to the :class:`Lattice`.</span>
+<span class="sd">        `[[next_]next_]nearest_neighbors` are set accordingly.</span>
+<span class="sd">        If `order` is specified in the form ``(&#39;standard&#39;, snake_windingi, priority)``,</span>
+<span class="sd">        the `snake_winding` and `priority` should only be specified for the spatial directions.</span>
+<span class="sd">        Similarly, `positions` can be specified as a single vector.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Lx</span><span class="p">,</span> <span class="n">Ly</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">NN</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]))]</span>
+        <span class="n">nNN</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]))]</span>
+        <span class="n">nnNN</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">])),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]))]</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;nearest_neighbors&#39;</span><span class="p">,</span> <span class="n">NN</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;next_nearest_neighbors&#39;</span><span class="p">,</span> <span class="n">nNN</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;next_next_nearest_neighbors&#39;</span><span class="p">,</span> <span class="n">nnNN</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">([</span><span class="n">Lx</span><span class="p">,</span> <span class="n">Ly</span><span class="p">],</span> <span class="n">site</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Honeycomb"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Honeycomb">[docs]</a><span class="k">class</span> <span class="nc">Honeycomb</span><span class="p">(</span><span class="n">Lattice</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;A honeycomb lattice.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;A honeycomb lattice.</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Lx</span><span class="p">,</span> <span class="n">Ly</span><span class="p">,</span> <span class="n">siteA</span><span class="p">,</span> <span class="n">siteB</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="s1">&#39;finite&#39;</span><span class="p">):</span>
+<span class="sd">    .. image :: ../images/lattices/Honeycomb.*</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Lx, Ly : int</span>
+<span class="sd">        The length in each direction.</span>
+<span class="sd">    sites : (list of) :class:`~tenpy.networks.Site`</span>
+<span class="sd">        The two local lattice sites making the `unit_cell` of the :class:`Lattice`.</span>
+<span class="sd">        If only a single :class:`~tenpy.networks.Site` is given, it is used for both sites.</span>
+<span class="sd">    **kwargs :</span>
+<span class="sd">        Additional keyword arguments given to the :class:`Lattice`.</span>
+<span class="sd">        `basis`, `pos` and `[[next_]next_]nearest_neighbors` are set accordingly.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Lx</span><span class="p">,</span> <span class="n">Ly</span><span class="p">,</span> <span class="n">sites</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">sites</span> <span class="o">=</span> <span class="n">_parse_sites</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
         <span class="n">basis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(([</span><span class="mf">0.5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="mf">0.5</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mi">1</span><span class="p">]))</span>
         <span class="n">delta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="mf">2.</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.</span><span class="p">)),</span> <span class="mf">0.5</span><span class="p">])</span>
         <span class="n">pos</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="n">delta</span><span class="o">/</span><span class="mf">2.</span><span class="p">,</span> <span class="n">delta</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">nearest_neighbors</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])),</span>
-                                  <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])),</span>
-                                  <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]))]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">next_nearest_neighbors</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])),</span>
-                                       <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])),</span>
-                                       <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])),</span>
-                                       <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])),</span>
-                                       <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])),</span>
-                                       <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]))]</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">Honeycomb</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">([</span><span class="n">Lx</span><span class="p">,</span> <span class="n">Ly</span><span class="p">],</span> <span class="p">[</span><span class="n">siteA</span><span class="p">,</span> <span class="n">siteB</span><span class="p">],</span> <span class="n">order</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="p">,</span> <span class="n">basis</span><span class="p">,</span> <span class="n">pos</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;basis&#39;</span><span class="p">,</span> <span class="n">basis</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;positions&#39;</span><span class="p">,</span> <span class="n">pos</span><span class="p">)</span>
+        <span class="n">NN</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]))]</span>
+        <span class="n">nNN</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])),</span>
+               <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]))]</span>
+        <span class="n">nnNN</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]))]</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;nearest_neighbors&#39;</span><span class="p">,</span> <span class="n">NN</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;next_nearest_neighbors&#39;</span><span class="p">,</span> <span class="n">nNN</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;next_next_nearest_neighbors&#39;</span><span class="p">,</span> <span class="n">nnNN</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">([</span><span class="n">Lx</span><span class="p">,</span> <span class="n">Ly</span><span class="p">],</span> <span class="n">sites</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Honeycomb.ordering"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Honeycomb.ordering">[docs]</a>    <span class="k">def</span> <span class="nf">ordering</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Provide possible orderings of the `N` lattice sites.</span>
@@ -728,39 +873,32 @@
 
 
 <div class="viewcode-block" id="Kagome"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Kagome">[docs]</a><span class="k">class</span> <span class="nc">Kagome</span><span class="p">(</span><span class="n">Lattice</span><span class="p">):</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Lx</span><span class="p">,</span> <span class="n">Ly</span><span class="p">,</span> <span class="n">sites</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;default&quot;</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="s2">&quot;infinite&quot;</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;A Kagome lattice.</span>
+    <span class="sd">&quot;&quot;&quot;A Kagome lattice.</span>
 
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        Lx : int</span>
-<span class="sd">            The unit cell is repeated `Lx` times into the x-direction.</span>
-<span class="sd">        Ly : int</span>
-<span class="sd">            The unit cell is repeated `Ly` times into the y-direction.</span>
-<span class="sd">        sites : list of :class:`~tenpy.networks.Site`</span>
-<span class="sd">            Definitions of the physical sites.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">    .. image :: ../images/lattices/Kagome.*</span>
 
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sites</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;Parameter sites must be of length 3 &quot;</span>
-                <span class="s2">&quot;(but is of length </span><span class="si">{}</span><span class="s2">).&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sites</span><span class="p">))</span>
-            <span class="p">)</span>
-
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Lx, Ly : int</span>
+<span class="sd">        The length in each direction.</span>
+<span class="sd">    sites : (list of) :class:`~tenpy.networks.Site`</span>
+<span class="sd">        The two local lattice sites making the `unit_cell` of the :class:`Lattice`.</span>
+<span class="sd">        If only a single :class:`~tenpy.networks.Site` is given, it is used for both sites.</span>
+<span class="sd">    **kwargs :</span>
+<span class="sd">        Additional keyword arguments given to the :class:`Lattice`.</span>
+<span class="sd">        `basis`, `pos` and `[[next_]next_]nearest_neighbors` are set accordingly.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Lx</span><span class="p">,</span> <span class="n">Ly</span><span class="p">,</span> <span class="n">sites</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">sites</span> <span class="o">=</span> <span class="n">_parse_sites</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
         <span class="c1">#     2</span>
         <span class="c1">#    / \</span>
         <span class="c1">#   /   \</span>
         <span class="c1">#  0-----1</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="mi">3</span><span class="o">**</span><span class="mf">0.5</span><span class="p">]</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">basis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">basis</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">basis</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">nearest_neighbors</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="mi">3</span><span class="o">**</span><span class="mf">0.5</span><span class="p">]])</span>
+        <span class="n">basis</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="n">pos</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">2</span><span class="o">*</span><span class="n">pos</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;basis&#39;</span><span class="p">,</span> <span class="n">basis</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;positions&#39;</span><span class="p">,</span> <span class="n">pos</span><span class="p">)</span>
+        <span class="n">NN</span> <span class="o">=</span> <span class="p">[</span>
             <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])),</span>
             <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])),</span>
             <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])),</span>
@@ -768,7 +906,7 @@
             <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])),</span>
             <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]))</span>
         <span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">next_nearest_neighbors</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">nNN</span> <span class="o">=</span> <span class="p">[</span>
             <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])),</span>
             <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])),</span>
             <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])),</span>
@@ -776,15 +914,15 @@
             <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span>  <span class="mi">0</span><span class="p">])),</span>
             <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span>  <span class="mi">1</span><span class="p">]))</span>
         <span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">next_next_nearest_neighbors</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">nnNN</span> <span class="o">=</span> <span class="p">[</span>
             <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])),</span>
             <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span>  <span class="mi">1</span><span class="p">])),</span>
             <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span>  <span class="mi">0</span><span class="p">]))</span>
         <span class="p">]</span>
-
-        <span class="n">Lattice</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span> <span class="p">[</span><span class="n">Lx</span><span class="p">,</span> <span class="n">Ly</span><span class="p">],</span> <span class="n">sites</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">basis</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span>
-        <span class="p">)</span></div>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;nearest_neighbors&#39;</span><span class="p">,</span> <span class="n">NN</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;next_nearest_neighbors&#39;</span><span class="p">,</span> <span class="n">nNN</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;next_next_nearest_neighbors&#39;</span><span class="p">,</span> <span class="n">nnNN</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">([</span><span class="n">Lx</span><span class="p">,</span> <span class="n">Ly</span><span class="p">],</span> <span class="n">sites</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="get_order"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.get_order">[docs]</a><span class="k">def</span> <span class="nf">get_order</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">snake_winding</span><span class="p">,</span> <span class="n">priority</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -819,7 +957,7 @@
 <span class="sd">    --------</span>
 <span class="sd">    :meth:`Lattice.ordering` : method in :class:`Lattice` to obtain the order from parameters.</span>
 <span class="sd">    :meth:`Lattice.plot_order` : visualizes the resulting order in a :class:`Lattice`.</span>
-<span class="sd">    :func:`get_order_groups` : a variant grouping sites of the unit cell.</span>
+<span class="sd">    :func:`get_order_grouped` : a variant grouping sites of the unit cell.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">priority</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># reduce this case to C-style order and a few permutations</span>
@@ -866,7 +1004,7 @@
     <span class="k">return</span> <span class="n">order</span></div>
 
 
-<span class="k">def</span> <span class="nf">get_order_grouped</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">groups</span><span class="p">):</span>
+<div class="viewcode-block" id="get_order_grouped"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.get_order_grouped">[docs]</a><span class="k">def</span> <span class="nf">get_order_grouped</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">groups</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Variant of :func:`get_order`, grouping some sites of the unit cell.</span>
 
 <span class="sd">    In this function, the word &#39;direction&#39; referst to a physical direction of the lattice or the</span>
@@ -918,12 +1056,22 @@
         <span class="n">pre_order</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">rLy</span><span class="p">,</span> <span class="n">Lgr</span><span class="p">)</span>
         <span class="n">pre_order</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">gr</span><span class="p">,</span> <span class="n">Ly</span><span class="p">)</span>
         <span class="n">start</span> <span class="o">=</span> <span class="n">end</span>
-    <span class="k">assert</span> <span class="n">end</span> <span class="o">==</span> <span class="n">Ly</span> <span class="o">*</span> <span class="n">Lu</span> <span class="c1"># TODO</span>
     <span class="n">other_order</span> <span class="o">=</span> <span class="n">get_order</span><span class="p">(</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="kc">False</span><span class="p">])</span>
     <span class="n">order</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">N_sites</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
     <span class="n">order</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">other_order</span><span class="p">,</span> <span class="n">Ly</span><span class="o">*</span><span class="n">Lu</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     <span class="n">order</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">pre_order</span><span class="p">,</span> <span class="p">(</span><span class="n">N_sites</span><span class="o">//</span><span class="p">(</span><span class="n">Ly</span><span class="o">*</span><span class="n">Lu</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">order</span>
+    <span class="k">return</span> <span class="n">order</span></div>
+
+
+<span class="k">def</span> <span class="nf">_parse_sites</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="n">expected_number</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>  <span class="c1"># allow to specify a single site</span>
+        <span class="nb">iter</span><span class="p">(</span><span class="n">sites</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">sites</span><span class="p">]</span> <span class="o">*</span> <span class="n">expected_number</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sites</span><span class="p">)</span> <span class="o">!=</span> <span class="n">expected_number</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;need to specify a single site or exactly </span><span class="si">{0:d}</span><span class="s2">, got </span><span class="si">{1:d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">expected_number</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">sites</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="n">sites</span>
 </pre></div>
 
           </div>
