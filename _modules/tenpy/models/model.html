@@ -169,8 +169,23 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;unknown onsite operator </span><span class="si">{0!r}</span><span class="s2"> for u=</span><span class="si">{1:d}</span><span class="se">\n</span><span class="s2">&quot;</span>
                              <span class="s2">&quot;</span><span class="si">{2!r}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">opname</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">[</span><span class="n">u</span><span class="p">]))</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">i_lat</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">mps_lat_idx_fix_u</span><span class="p">(</span><span class="n">u</span><span class="p">)):</span>
-            <span class="n">term</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">onsite_terms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-            <span class="n">term</span><span class="p">[</span><span class="n">opname</span><span class="p">]</span> <span class="o">=</span> <span class="n">term</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">opname</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">strength</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">i_lat</span><span class="p">)]</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_onsite_term</span><span class="p">(</span><span class="n">strength</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">i_lat</span><span class="p">)],</span> <span class="n">i</span><span class="p">,</span> <span class="n">opname</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CouplingModel.add_onsite_term"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.CouplingModel.add_onsite_term">[docs]</a>    <span class="k">def</span> <span class="nf">add_onsite_term</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strength</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">op</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add a onsite term on a given MPS site.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        strength : float</span>
+<span class="sd">            The strength of the coupling term.</span>
+<span class="sd">        i : int</span>
+<span class="sd">            The MPS index of the site on which the operator acts.</span>
+<span class="sd">            We require ``0 &lt;= i &lt; N_sites``.</span>
+<span class="sd">        op : str</span>
+<span class="sd">            Name of the involved operators.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">term</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">onsite_terms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">term</span><span class="p">[</span><span class="n">op</span><span class="p">]</span> <span class="o">=</span> <span class="n">term</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">strength</span></div>
 
 <div class="viewcode-block" id="CouplingModel.add_coupling"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.CouplingModel.add_coupling">[docs]</a>    <span class="k">def</span> <span class="nf">add_coupling</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                      <span class="n">strength</span><span class="p">,</span>

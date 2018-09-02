@@ -47,8 +47,7 @@
 <span class="sd">:class:`Chain`, :class:`Ladder`,</span>
 <span class="sd">:class:`Square`, :class:`Honeycomb`, and :class:`Kagome`.</span>
 
-<span class="sd">.. todo ::</span>
-<span class="sd">    documentation of boundary conditions, how to define new lattices</span>
+<span class="sd">See also the :doc:`/intro_model`.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="c1"># Copyright 2018 TeNPy Developers</span>
 
@@ -618,8 +617,8 @@
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc_shift</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">shift</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(((</span><span class="n">lat_idx_2</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">lat_idx_2_mod</span><span class="p">)</span> <span class="o">//</span> <span class="n">Ls</span><span class="p">)[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc_shift</span><span class="p">,</span>
                                <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-                <span class="n">lat_idx_2</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-=</span> <span class="n">shift</span>
-                <span class="n">lat_idx_2_mod</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">lat_idx_2</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">Ls</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">lat_idx_2_mod</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-=</span> <span class="n">shift</span>
+                <span class="n">lat_idx_2_mod</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">lat_idx_2_mod</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">Ls</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
             <span class="n">keep</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span>
                 <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
                     <span class="n">lat_idx_2_mod</span> <span class="o">==</span> <span class="n">lat_idx_2</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>  <span class="c1"># not accross the boundary</span>
@@ -654,6 +653,49 @@
             <span class="k">if</span> <span class="n">vec</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;can only plot in 2 dimensions.&quot;</span><span class="p">)</span>
             <span class="n">ax</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">vec</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="n">arrowprops</span><span class="o">=</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Lattice.plot_bc_identified"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Lattice.plot_bc_identified">[docs]</a>    <span class="k">def</span> <span class="nf">plot_bc_identified</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">direction</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">shift</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Mark two sites indified by periodic boundary conditions</span>
+
+<span class="sd">        Works only for lattice with a 2-dimensional basis.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ax : matplotlib.pyplot.Axes</span>
+<span class="sd">            The axes on which we should plot.</span>
+<span class="sd">        direction : int</span>
+<span class="sd">            The direction of the lattice along which we should mark the idenitified sites.</span>
+<span class="sd">            If ``None``, mark it along all directions with periodic boundary conditions.</span>
+<span class="sd">        shift : None | np.ndarray</span>
+<span class="sd">            The origin starting from where we mark the identified sites.</span>
+<span class="sd">            Defaults to the first entry of :attr:`unit_cell_positions`.</span>
+<span class="sd">        **kwargs :</span>
+<span class="sd">            Keyword arguments for the used ``ax.plot``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">direction</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dirs</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">direction</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">direction</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span>
+            <span class="n">dirs</span> <span class="o">=</span> <span class="p">[</span><span class="n">direction</span><span class="p">]</span>
+        <span class="n">shift</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit_cell_positions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;marker&quot;</span><span class="p">,</span> <span class="s2">&quot;o&quot;</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;markersize&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="s2">&quot;orange&quot;</span><span class="p">)</span>
+        <span class="n">x_y</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">dirs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Boundary conditons are not periodic for given direction&quot;</span><span class="p">)</span>
+            <span class="n">x_y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shift</span><span class="p">)</span>
+            <span class="n">x_y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shift</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">Ls</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">basis</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc_shift</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">x_y</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">x_y</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc_shift</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">basis</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">x_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x_y</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">x_y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">x_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">x_y</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x_y</span><span class="p">)])</span>
+        <span class="k">if</span> <span class="n">x_y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;can only plot in 2D&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x_y</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">x_y</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_asvalid_latidx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat_idx</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;convert lat_idx to an ndarray with correct last dimension.&quot;&quot;&quot;</span>
@@ -729,7 +771,7 @@
 <div class="viewcode-block" id="Chain"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Chain">[docs]</a><span class="k">class</span> <span class="nc">Chain</span><span class="p">(</span><span class="n">SimpleLattice</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;A simple uniform chain of L equal sites.</span>
 
-<span class="sd">    .. image :: ../images/lattices/Chain.*</span>
+<span class="sd">    .. image :: /images/lattices/Chain.*</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -756,7 +798,7 @@
 <div class="viewcode-block" id="Ladder"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Ladder">[docs]</a><span class="k">class</span> <span class="nc">Ladder</span><span class="p">(</span><span class="n">Lattice</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;A ladder coupling two chains.</span>
 
-<span class="sd">    .. image :: ../images/lattice/Ladder.*</span>
+<span class="sd">    .. image :: /images/lattices/Ladder.*</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -788,7 +830,7 @@
 <div class="viewcode-block" id="Square"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Square">[docs]</a><span class="k">class</span> <span class="nc">Square</span><span class="p">(</span><span class="n">SimpleLattice</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;A simple uniform square lattice.</span>
 
-<span class="sd">    .. image :: ../images/lattices/Square.*</span>
+<span class="sd">    .. image :: /images/lattices/Square.*</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -817,7 +859,7 @@
 <div class="viewcode-block" id="Honeycomb"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Honeycomb">[docs]</a><span class="k">class</span> <span class="nc">Honeycomb</span><span class="p">(</span><span class="n">Lattice</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;A honeycomb lattice.</span>
 
-<span class="sd">    .. image :: ../images/lattices/Honeycomb.*</span>
+<span class="sd">    .. image :: /images/lattices/Honeycomb.*</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -875,7 +917,7 @@
 <div class="viewcode-block" id="Kagome"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Kagome">[docs]</a><span class="k">class</span> <span class="nc">Kagome</span><span class="p">(</span><span class="n">Lattice</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;A Kagome lattice.</span>
 
-<span class="sd">    .. image :: ../images/lattices/Kagome.*</span>
+<span class="sd">    .. image :: /images/lattices/Kagome.*</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>

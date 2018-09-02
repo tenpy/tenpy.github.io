@@ -139,16 +139,19 @@ iMPS unit cells.</p>
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.add_onsite" title="tenpy.models.model.CouplingModel.add_onsite"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite</span></code></a>(strength,&nbsp;u,&nbsp;opname)</td>
 <td>Add onsite terms to self.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.calc_H_MPO" title="tenpy.models.model.CouplingModel.calc_H_MPO"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_MPO</span></code></a>([tol_zero])</td>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.add_onsite_term" title="tenpy.models.model.CouplingModel.add_onsite_term"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite_term</span></code></a>(strength,&nbsp;i,&nbsp;op)</td>
+<td>Add a onsite term on a given MPS site.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.calc_H_MPO" title="tenpy.models.model.CouplingModel.calc_H_MPO"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_MPO</span></code></a>([tol_zero])</td>
 <td>Calculate MPO representation of the Hamiltonian.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.calc_H_bond" title="tenpy.models.model.CouplingModel.calc_H_bond"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_bond</span></code></a>([tol_zero])</td>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.calc_H_bond" title="tenpy.models.model.CouplingModel.calc_H_bond"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_bond</span></code></a>([tol_zero])</td>
 <td>calculate <cite>H_bond</cite> from <cite>self.coupling_terms</cite> and <cite>self.H_onsite</cite>.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.calc_H_onsite" title="tenpy.models.model.CouplingModel.calc_H_onsite"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_onsite</span></code></a>([tol_zero])</td>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.calc_H_onsite" title="tenpy.models.model.CouplingModel.calc_H_onsite"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_onsite</span></code></a>([tol_zero])</td>
 <td>Calculate <cite>H_onsite</cite> from <cite>self.onsite_terms</cite>.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.test_sanity" title="tenpy.models.model.CouplingModel.test_sanity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.test_sanity" title="tenpy.models.model.CouplingModel.test_sanity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code></a>()</td>
 <td>Sanity check.</td>
 </tr>
 </tbody>
@@ -276,6 +279,32 @@ is provided, it gets tiled to the required shape.</p>
 </dd>
 <dt><strong>opname</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
 <dd><p class="first last">valid operator name of an onsite operator in <code class="docutils literal notranslate"><span class="pre">lat.unit_cell[u]</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.models.model.CouplingModel.add_onsite_term">
+<code class="descname">add_onsite_term</code><span class="sig-paren">(</span><em>strength</em>, <em>i</em>, <em>op</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#CouplingModel.add_onsite_term"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.CouplingModel.add_onsite_term" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a onsite term on a given MPS site.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>strength</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The strength of the coupling term.</p>
+</dd>
+<dt><strong>i</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">The MPS index of the site on which the operator acts.
+We require <code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">&lt;=</span> <span class="pre">i</span> <span class="pre">&lt;</span> <span class="pre">N_sites</span></code>.</p>
+</dd>
+<dt><strong>op</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Name of the involved operators.</p>
 </dd>
 </dl>
 </td>
@@ -437,16 +466,19 @@ between different iMPS unit cells.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite</span></code>(strength,&nbsp;u,&nbsp;opname)</td>
 <td>Add onsite terms to self.</td>
 </tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_MPO</span></code>([tol_zero])</td>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite_term</span></code>(strength,&nbsp;i,&nbsp;op)</td>
+<td>Add a onsite term on a given MPS site.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_MPO</span></code>([tol_zero])</td>
 <td>Calculate MPO representation of the Hamiltonian.</td>
 </tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_bond</span></code>([tol_zero])</td>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_bond</span></code>([tol_zero])</td>
 <td>calculate <cite>H_bond</cite> from <cite>self.coupling_terms</cite> and <cite>self.H_onsite</cite>.</td>
 </tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_onsite</span></code>([tol_zero])</td>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_onsite</span></code>([tol_zero])</td>
 <td>Calculate <cite>H_onsite</cite> from <cite>self.onsite_terms</cite>.</td>
 </tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
 <td>Sanity check.</td>
 </tr>
 </tbody>
