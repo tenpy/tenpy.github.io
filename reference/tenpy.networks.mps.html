@@ -971,7 +971,7 @@ site(s) <code class="docutils literal notranslate"><span class="pre">j,</span> <
 
 <dl class="classmethod">
 <dt id="tenpy.networks.mps.MPS.from_Bflat">
-<em class="property">classmethod </em><code class="descname">from_Bflat</code><span class="sig-paren">(</span><em>sites</em>, <em>Bflat</em>, <em>SVs=None</em>, <em>bc='finite'</em>, <em>dtype=&lt;class 'float'&gt;</em>, <em>form='B'</em>, <em>legL=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mps.html#MPS.from_Bflat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mps.MPS.from_Bflat" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="descname">from_Bflat</code><span class="sig-paren">(</span><em>sites</em>, <em>Bflat</em>, <em>SVs=None</em>, <em>bc='finite'</em>, <em>dtype=&lt;class 'float'&gt;</em>, <em>permute=True</em>, <em>form='B'</em>, <em>legL=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mps.html#MPS.from_Bflat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mps.MPS.from_Bflat" title="Permalink to this definition">¶</a></dt>
 <dd><p>Construct a matrix product state from a given product state.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -995,6 +995,13 @@ Entries out of <a class="reference internal" href="#tenpy.networks.mps.MPS.nontr
 </dd>
 <dt><strong>dtype</strong> <span class="classifier-delimiter">:</span> <span class="classifier">type or string</span></dt>
 <dd><p class="first last">The data type of the array entries.</p>
+</dd>
+<dt><strong>permute</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">The <code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code> might permute the local basis states if charge
+conservation gets enabled.
+If <cite>permute</cite> is True (default), we permute the given <cite>Bflat</cite> locally according to
+each site’s <code class="xref py py-attr docutils literal notranslate"><span class="pre">perm</span></code>.
+The <cite>p_state</cite> argument should then always be given as if <cite>conserve=None</cite> in the Site.</p>
 </dd>
 <dt><strong>form</strong> <span class="classifier-delimiter">:</span> <span class="classifier">(list of) {<code class="docutils literal notranslate"><span class="pre">'B'</span> <span class="pre">|</span> <span class="pre">'A'</span> <span class="pre">|</span> <span class="pre">'C'</span> <span class="pre">|</span> <span class="pre">'G'</span> <span class="pre">|</span> <span class="pre">None</span></code> | tuple(float, float)}</span></dt>
 <dd><p class="first last">Defines the canonical form of <cite>Bflat</cite>. See module doc-string.
@@ -1062,7 +1069,7 @@ Should have labels <code class="docutils literal notranslate"><span class="pre">
 
 <dl class="classmethod">
 <dt id="tenpy.networks.mps.MPS.from_product_state">
-<em class="property">classmethod </em><code class="descname">from_product_state</code><span class="sig-paren">(</span><em>sites</em>, <em>p_state</em>, <em>bc='finite'</em>, <em>dtype=&lt;class 'float'&gt;</em>, <em>form='B'</em>, <em>chargeL=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mps.html#MPS.from_product_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mps.MPS.from_product_state" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="descname">from_product_state</code><span class="sig-paren">(</span><em>sites</em>, <em>p_state</em>, <em>bc='finite'</em>, <em>dtype=&lt;class 'float'&gt;</em>, <em>permute=True</em>, <em>form='B'</em>, <em>chargeL=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mps.html#MPS.from_product_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mps.MPS.from_product_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Construct a matrix product state from a given product state.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1073,19 +1080,24 @@ Should have labels <code class="docutils literal notranslate"><span class="pre">
 <dd><p class="first last">The sites defining the local Hilbert space.</p>
 </dd>
 <dt><strong>p_state</strong> <span class="classifier-delimiter">:</span> <span class="classifier">iterable of {int | str | 1D array}</span></dt>
-<dd><p class="first last">Defines the product state.
-If <code class="docutils literal notranslate"><span class="pre">p_state[i]</span></code> is int, then site <code class="docutils literal notranslate"><span class="pre">i</span></code> is in state <code class="docutils literal notranslate"><span class="pre">p_state[i]</span></code>.
+<dd><p class="first last">Defines the product state to be represented.
 If <code class="docutils literal notranslate"><span class="pre">p_state[i]</span></code> is str, then site <code class="docutils literal notranslate"><span class="pre">i</span></code> is in state
-<code class="docutils literal notranslate"><span class="pre">self.sites[i].state_label(p_state[i])</span></code>.
-If <code class="docutils literal notranslate"><span class="pre">p_state[i]</span></code> is an array, then site <code class="docutils literal notranslate"><span class="pre">i</span></code> wavefunction is <code class="docutils literal notranslate"><span class="pre">p_state[i]</span></code>.
-Note that what an int means can change depending in the charges;
-see the warning in the doc-string of <a class="reference internal" href="tenpy.networks.site.html#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a>.</p>
+<code class="docutils literal notranslate"><span class="pre">self.sites[i].state_labels(p_state[i])</span></code>.
+If <code class="docutils literal notranslate"><span class="pre">p_state[i]</span></code> is int, then site <code class="docutils literal notranslate"><span class="pre">i</span></code> is in state <code class="docutils literal notranslate"><span class="pre">p_state[i]</span></code>.
+If <code class="docutils literal notranslate"><span class="pre">p_state[i]</span></code> is an array, then site <code class="docutils literal notranslate"><span class="pre">i</span></code> wavefunction is <code class="docutils literal notranslate"><span class="pre">p_state[i]</span></code>.</p>
 </dd>
 <dt><strong>bc</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{‘infinite’, ‘finite’, ‘segmemt’}</span></dt>
 <dd><p class="first last">MPS boundary conditions. See docstring of <a class="reference internal" href="#tenpy.networks.mps.MPS" title="tenpy.networks.mps.MPS"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPS</span></code></a>.</p>
 </dd>
 <dt><strong>dtype</strong> <span class="classifier-delimiter">:</span> <span class="classifier">type or string</span></dt>
 <dd><p class="first last">The data type of the array entries.</p>
+</dd>
+<dt><strong>permute</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">The <code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code> might permute the local basis states if charge
+conservation gets enabled.
+If <cite>permute</cite> is True (default), we permute the given <cite>p_state</cite> locally according to
+each site’s <code class="xref py py-attr docutils literal notranslate"><span class="pre">perm</span></code>.
+The <cite>p_state</cite> argument should then always be given as if <cite>conserve=None</cite> in the Site.</p>
 </dd>
 <dt><strong>form</strong> <span class="classifier-delimiter">:</span> <span class="classifier">(list of) {<code class="docutils literal notranslate"><span class="pre">'B'</span> <span class="pre">|</span> <span class="pre">'A'</span> <span class="pre">|</span> <span class="pre">'C'</span> <span class="pre">|</span> <span class="pre">'G'</span> <span class="pre">|</span> <span class="pre">None</span></code> | tuple(float, float)}</span></dt>
 <dd><p class="first last">Defines the canonical form. See module doc-string.

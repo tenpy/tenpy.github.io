@@ -55,7 +55,7 @@
 <span class="p">]</span>
 
 
-<div class="viewcode-block" id="Site"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.Site">[docs]</a><span class="k">class</span> <span class="nc">Site</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="Site"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.Site">[docs]</a><span class="k">class</span> <span class="nc">Site</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Collects necessary information about a single local site of a lattice.</span>
 
 <span class="sd">    This class defines what the local basis states are: it provides the :attr:`leg`</span>
@@ -68,7 +68,7 @@
 <span class="sd">    .. warning ::</span>
 <span class="sd">        The order of the local basis can change depending on the charge conservation!</span>
 <span class="sd">        This is a *necessary* feature since we need to sort the basis by charges for efficiency.</span>
-<span class="sd">        We use the :attr:`state_labels` (and :attr:`perm`) to keep track of these permutations.</span>
+<span class="sd">        We use the :attr:`state_labels` and :attr:`perm` to keep track of these permutations.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -100,7 +100,9 @@
 <span class="sd">        For example after ``self.add_op(&#39;Sz&#39;, Sz)`` you can use ``self.Sz`` for the `Sz` operator.</span>
 <span class="sd">        All onsite operators have labels ``&#39;p&#39;, &#39;p*&#39;``.</span>
 <span class="sd">    perm : 1D array</span>
-<span class="sd">        Index permutation of the physical leg compared to `conserve=None`.</span>
+<span class="sd">        Index permutation of the physical leg compared to `conserve=None`,</span>
+<span class="sd">        i.e. ``OP_conserved = OP_nonconserved[np.ix_(perm,perm)]`` and</span>
+<span class="sd">        ``perm[state_labels_conserved[&quot;some_state&quot;]] == state_labels_nonconserved[&quot;some_state&quot;]``.</span>
 <span class="sd">    JW_exponent : 1D array</span>
 <span class="sd">        Exponents of the ``&#39;JW&#39;`` operator, such that</span>
 <span class="sd">        ``self.JW.to_ndarray() = np.diag(np.exp(1.j*np.pi* JW_exponent))``</span>
@@ -155,8 +157,12 @@
 <span class="sd">        ----------</span>
 <span class="sd">        new_leg_charge : :class:`LegCharge` | None</span>
 <span class="sd">            The new charges to be used. If ``None``, use trivial charges.</span>
-<span class="sd">        permute : ``None`` | ndarray</span>
-<span class="sd">            Ignored if ``None``; otherwise an permuation applied to the physical leg.</span>
+<span class="sd">        permute : ndarray | None</span>
+<span class="sd">            The permuation applied to the physical leg,</span>
+<span class="sd">            which gets used to adjust :attr:`state_labels` and :attr:`perm`.</span>
+<span class="sd">            If you sorted the previous leg with ``perm_qind, new_leg_charge = leg.sort()``,</span>
+<span class="sd">            use ``leg.perm_flat_from_perm_qind(perm_qind)``.</span>
+<span class="sd">            Ignored if ``None``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">new_leg_charge</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">new_leg_charge</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_trivial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span>
@@ -396,7 +402,7 @@
 <span class="sd">    i.e., we use the Kronecker product of ``[JW, op]`` instead of ``[Id, op]`` if necessary</span>
 <span class="sd">    (but always ``[op, Id]``).</span>
 <span class="sd">    In that way the onsite operators of this DoubleSite automatically fulfill the</span>
-<span class="sd">    expected commutation relations. See also :doc:`../intro_JordanWigner`.</span>
+<span class="sd">    expected commutation relations. See also :doc:`/intro_JordanWigner`.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -462,7 +468,7 @@
         <span class="n">JW0</span> <span class="o">=</span> <span class="n">site0</span><span class="o">.</span><span class="n">JW</span>
         <span class="n">JW1</span> <span class="o">=</span> <span class="n">site1</span><span class="o">.</span><span class="n">JW</span>
         <span class="n">JW_both</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kroneckerproduct</span><span class="p">(</span><span class="n">JW0</span><span class="p">,</span> <span class="n">JW1</span><span class="p">)</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">DoubleSite</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">pipe</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">JW</span><span class="o">=</span><span class="n">JW_both</span><span class="p">)</span>
+        <span class="n">Site</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pipe</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">JW</span><span class="o">=</span><span class="n">JW_both</span><span class="p">)</span>
         <span class="c1"># add remaining operators</span>
         <span class="n">Id1</span> <span class="o">=</span> <span class="n">site1</span><span class="o">.</span><span class="n">Id</span>
         <span class="k">for</span> <span class="n">opname</span><span class="p">,</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">site0</span><span class="o">.</span><span class="n">onsite_ops</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -657,7 +663,11 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">leg</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_trivial</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">conserve</span> <span class="o">=</span> <span class="n">conserve</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">SpinHalfSite</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">leg</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;up&#39;</span><span class="p">,</span> <span class="s1">&#39;down&#39;</span><span class="p">],</span> <span class="o">**</span><span class="n">ops</span><span class="p">)</span>
+        <span class="n">Site</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">leg</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;up&#39;</span><span class="p">,</span> <span class="s1">&#39;down&#39;</span><span class="p">],</span> <span class="o">**</span><span class="n">ops</span><span class="p">)</span>
+        <span class="c1"># further alias for state labels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">state_labels</span><span class="p">[</span><span class="s1">&#39;-0.5&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_labels</span><span class="p">[</span><span class="s1">&#39;down&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">state_labels</span><span class="p">[</span><span class="s1">&#39;0.5&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_labels</span><span class="p">[</span><span class="s1">&#39;up&#39;</span><span class="p">]</span>
+        <span class="c1"># Add Pauli matrices</span>
         <span class="k">if</span> <span class="n">conserve</span> <span class="o">!=</span> <span class="s1">&#39;Sz&#39;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">add_op</span><span class="p">(</span><span class="s1">&#39;Sigmax&#39;</span><span class="p">,</span> <span class="mf">2.</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">Sx</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">add_op</span><span class="p">(</span><span class="s1">&#39;Sigmay&#39;</span><span class="p">,</span> <span class="mf">2.</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">Sy</span><span class="p">)</span>
@@ -746,12 +756,11 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">leg</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_trivial</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">conserve</span> <span class="o">=</span> <span class="n">conserve</span>
-        <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">d</span>
-        <span class="n">names</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;down&#39;</span>
-        <span class="n">names</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;up&#39;</span>
-        <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">S</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">names</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">S</span><span class="p">)]</span> <span class="o">=</span> <span class="s1">&#39;0&#39;</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">SpinSite</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">leg</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="o">**</span><span class="n">ops</span><span class="p">)</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="n">S</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="mf">1.</span><span class="p">)]</span>
+        <span class="n">Site</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">leg</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="o">**</span><span class="n">ops</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">state_labels</span><span class="p">[</span><span class="s2">&quot;up&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_labels</span><span class="p">[</span><span class="n">names</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">state_labels</span><span class="p">[</span><span class="s2">&quot;up&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_labels</span><span class="p">[</span><span class="n">names</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+
 
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Debug representation of self&quot;&quot;&quot;</span>
@@ -766,7 +775,7 @@
 <span class="sd">    .. warning ::</span>
 <span class="sd">        Using the Jordan-Wigner string (``JW``) is crucial to get correct results,</span>
 <span class="sd">        otherwise you just describe hardcore bosons!</span>
-<span class="sd">        Further details in :doc:`../intro_JordanWigner`.</span>
+<span class="sd">        Further details in :doc:`/intro_JordanWigner`.</span>
 
 <span class="sd">    ==============  ===================================================================</span>
 <span class="sd">    operator        description</span>
@@ -823,7 +832,7 @@
             <span class="n">leg</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_trivial</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">conserve</span> <span class="o">=</span> <span class="n">conserve</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">filling</span> <span class="o">=</span> <span class="n">filling</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">FermionSite</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">leg</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;empty&#39;</span><span class="p">,</span> <span class="s1">&#39;full&#39;</span><span class="p">],</span> <span class="o">**</span><span class="n">ops</span><span class="p">)</span>
+        <span class="n">Site</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">leg</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;empty&#39;</span><span class="p">,</span> <span class="s1">&#39;full&#39;</span><span class="p">],</span> <span class="o">**</span><span class="n">ops</span><span class="p">)</span>
         <span class="c1"># specify fermionic operators</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">need_JW_string</span> <span class="o">|=</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="s1">&#39;Cd&#39;</span><span class="p">])</span>
 
@@ -1003,7 +1012,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">cons_N</span> <span class="o">=</span> <span class="n">cons_N</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cons_Sz</span> <span class="o">=</span> <span class="n">cons_Sz</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">filling</span> <span class="o">=</span> <span class="n">filling</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">SpinHalfFermionSite</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">leg</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="o">**</span><span class="n">ops</span><span class="p">)</span>
+        <span class="n">Site</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">leg</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="o">**</span><span class="n">ops</span><span class="p">)</span>
         <span class="c1"># specify fermionic operators</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">need_JW_string</span> <span class="o">|=</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;Cu&#39;</span><span class="p">,</span> <span class="s1">&#39;Cdu&#39;</span><span class="p">,</span> <span class="s1">&#39;Cd&#39;</span><span class="p">,</span> <span class="s1">&#39;Cdd&#39;</span><span class="p">])</span>
 
@@ -1097,7 +1106,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">Nmax</span> <span class="o">=</span> <span class="n">Nmax</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">conserve</span> <span class="o">=</span> <span class="n">conserve</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">filling</span> <span class="o">=</span> <span class="n">filling</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">BosonSite</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">leg</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="o">**</span><span class="n">ops</span><span class="p">)</span>
+        <span class="n">Site</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">leg</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="o">**</span><span class="n">ops</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">state_labels</span><span class="p">[</span><span class="s1">&#39;0&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_labels</span><span class="p">[</span><span class="s1">&#39;vac&#39;</span><span class="p">]</span> <span class="c1"># alias</span>
 
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Debug representation of self&quot;&quot;&quot;</span>

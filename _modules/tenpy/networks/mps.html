@@ -125,7 +125,7 @@
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;MPS&#39;</span><span class="p">,</span> <span class="s1">&#39;MPSEnvironment&#39;</span><span class="p">,</span> <span class="s1">&#39;TransferMatrix&#39;</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="MPS"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.html#tenpy.networks.mps.MPS">[docs]</a><span class="k">class</span> <span class="nc">MPS</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.html#tenpy.networks.mps.MPS">[docs]</a><span class="k">class</span> <span class="nc">MPS</span><span class="p">:</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;A Matrix Product State, finite (MPS) or infinite (iMPS).</span>
 
 <span class="sd">    Parameters</span>
@@ -255,6 +255,7 @@
                            <span class="n">p_state</span><span class="p">,</span>
                            <span class="n">bc</span><span class="o">=</span><span class="s1">&#39;finite&#39;</span><span class="p">,</span>
                            <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">,</span>
+                           <span class="n">permute</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                            <span class="n">form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">,</span>
                            <span class="n">chargeL</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Construct a matrix product state from a given product state.</span>
@@ -264,17 +265,21 @@
 <span class="sd">        sites : list of :class:`~tenpy.networks.site.Site`</span>
 <span class="sd">            The sites defining the local Hilbert space.</span>
 <span class="sd">        p_state : iterable of {int | str | 1D array}</span>
-<span class="sd">            Defines the product state.</span>
-<span class="sd">            If ``p_state[i]`` is int, then site ``i`` is in state ``p_state[i]``.</span>
+<span class="sd">            Defines the product state to be represented.</span>
 <span class="sd">            If ``p_state[i]`` is str, then site ``i`` is in state</span>
-<span class="sd">            ``self.sites[i].state_label(p_state[i])``.</span>
+<span class="sd">            ``self.sites[i].state_labels(p_state[i])``.</span>
+<span class="sd">            If ``p_state[i]`` is int, then site ``i`` is in state ``p_state[i]``.</span>
 <span class="sd">            If ``p_state[i]`` is an array, then site ``i`` wavefunction is ``p_state[i]``.</span>
-<span class="sd">            Note that what an int means can change depending in the charges;</span>
-<span class="sd">            see the warning in the doc-string of :class:`~tenpy.networks.site.Site`.</span>
 <span class="sd">        bc : {&#39;infinite&#39;, &#39;finite&#39;, &#39;segmemt&#39;}</span>
 <span class="sd">            MPS boundary conditions. See docstring of :class:`MPS`.</span>
 <span class="sd">        dtype : type or string</span>
 <span class="sd">            The data type of the array entries.</span>
+<span class="sd">        permute : bool</span>
+<span class="sd">            The :class:`~tenpy.networks.Site` might permute the local basis states if charge</span>
+<span class="sd">            conservation gets enabled.</span>
+<span class="sd">            If `permute` is True (default), we permute the given `p_state` locally according to</span>
+<span class="sd">            each site&#39;s :attr:`~tenpy.networks.Site.perm`.</span>
+<span class="sd">            The `p_state` argument should then always be given as if `conserve=None` in the Site.</span>
 <span class="sd">        form : (list of) {``&#39;B&#39; | &#39;A&#39; | &#39;C&#39; | &#39;G&#39; | None`` | tuple(float, float)}</span>
 <span class="sd">            Defines the canonical form. See module doc-string.</span>
 <span class="sd">            A single choice holds for all of the entries.</span>
@@ -310,20 +315,28 @@
         <span class="n">chargeL</span> <span class="o">=</span> <span class="n">ci</span><span class="o">.</span><span class="n">make_valid</span><span class="p">(</span><span class="n">chargeL</span><span class="p">)</span>  <span class="c1"># sets to zero if `None`</span>
         <span class="n">legL</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="n">ci</span><span class="p">,</span> <span class="p">[</span><span class="n">chargeL</span><span class="p">])</span>  <span class="c1"># (no need to bunch)</span>
         <span class="k">for</span> <span class="n">p_st</span><span class="p">,</span> <span class="n">site</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">p_state</span><span class="p">,</span> <span class="n">sites</span><span class="p">):</span>
+            <span class="n">perm</span> <span class="o">=</span> <span class="n">permute</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p_st</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">p_st</span> <span class="o">=</span> <span class="n">site</span><span class="o">.</span><span class="n">state_labels</span><span class="p">[</span><span class="n">p_st</span><span class="p">]</span>  <span class="c1"># translate labels into &quot;int&quot;</span>
+                <span class="n">perm</span> <span class="o">=</span> <span class="kc">False</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="nb">iter</span><span class="p">(</span><span class="n">p_st</span><span class="p">)</span>
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p_st</span><span class="p">)</span> <span class="o">!=</span> <span class="n">site</span><span class="o">.</span><span class="n">dim</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;p_state incompatible with local dim:&quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">p_st</span><span class="p">))</span>
                 <span class="n">B</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">p_st</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">site</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
             <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                <span class="c1"># just an int for p_st</span>
                 <span class="n">B</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">site</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="p">)</span>
                 <span class="n">B</span><span class="p">[</span><span class="n">p_st</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+            <span class="k">if</span> <span class="n">perm</span><span class="p">:</span>
+                <span class="n">B</span> <span class="o">=</span> <span class="n">B</span><span class="p">[</span><span class="n">site</span><span class="o">.</span><span class="n">perm</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
             <span class="n">Bs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">B</span><span class="p">)</span>
         <span class="n">SVs</span> <span class="o">=</span> <span class="p">[[</span><span class="mf">1.</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_Bflat</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="n">Bs</span><span class="p">,</span> <span class="n">SVs</span><span class="p">,</span> <span class="n">bc</span><span class="o">=</span><span class="n">bc</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="n">form</span><span class="p">,</span> <span class="n">legL</span><span class="o">=</span><span class="n">legL</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_Bflat</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="n">Bs</span><span class="p">,</span> <span class="n">SVs</span><span class="p">,</span> <span class="n">bc</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">form</span><span class="p">,</span> <span class="n">legL</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MPS.from_Bflat"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.html#tenpy.networks.mps.MPS.from_Bflat">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_Bflat</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">sites</span><span class="p">,</span> <span class="n">Bflat</span><span class="p">,</span> <span class="n">SVs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bc</span><span class="o">=</span><span class="s1">&#39;finite&#39;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">,</span> <span class="n">legL</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">from_Bflat</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">sites</span><span class="p">,</span> <span class="n">Bflat</span><span class="p">,</span> <span class="n">SVs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bc</span><span class="o">=</span><span class="s1">&#39;finite&#39;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="n">permute</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                   <span class="n">form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">,</span> <span class="n">legL</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Construct a matrix product state from a given product state.</span>
 
 <span class="sd">        Parameters</span>
@@ -341,6 +354,12 @@
 <span class="sd">            MPS boundary conditions. See docstring of :class:`MPS`.</span>
 <span class="sd">        dtype : type or string</span>
 <span class="sd">            The data type of the array entries.</span>
+<span class="sd">        permute : bool</span>
+<span class="sd">            The :class:`~tenpy.networks.Site` might permute the local basis states if charge</span>
+<span class="sd">            conservation gets enabled.</span>
+<span class="sd">            If `permute` is True (default), we permute the given `Bflat` locally according to</span>
+<span class="sd">            each site&#39;s :attr:`~tenpy.networks.Site.perm`.</span>
+<span class="sd">            The `p_state` argument should then always be given as if `conserve=None` in the Site.</span>
 <span class="sd">        form : (list of) {``&#39;B&#39; | &#39;A&#39; | &#39;C&#39; | &#39;G&#39; | None`` | tuple(float, float)}</span>
 <span class="sd">            Defines the canonical form of `Bflat`. See module doc-string.</span>
 <span class="sd">            A single choice holds for all of the entries.</span>
@@ -368,6 +387,8 @@
         <span class="n">Bs</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">site</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sites</span><span class="p">):</span>
             <span class="n">B</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">Bflat</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">dtype</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">permute</span><span class="p">:</span>
+                <span class="n">B</span> <span class="o">=</span> <span class="n">B</span><span class="p">[</span><span class="n">site</span><span class="o">.</span><span class="n">perm</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
             <span class="c1"># calculate the LegCharge of the right leg</span>
             <span class="n">legs</span> <span class="o">=</span> <span class="p">[</span><span class="n">site</span><span class="o">.</span><span class="n">leg</span><span class="p">,</span> <span class="n">legL</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>  <span class="c1"># other legs are known</span>
             <span class="n">legs</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">detect_legcharge</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">ci</span><span class="p">,</span> <span class="n">legs</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">qconj</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
@@ -541,7 +562,7 @@
                 <span class="n">B</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">])</span>
             <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels_L</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels_R</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="n">B</span> <span class="o">=</span> <span class="n">B</span><span class="o">.</span><span class="n">add_trivial_leg</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="n">qconj</span><span class="o">=+</span><span class="mi">1</span><span class="p">)</span>
-                <span class="n">B</span> <span class="o">=</span> <span class="n">B</span><span class="o">.</span><span class="n">add_trivial_leg</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="n">qconj</span><span class="o">=+</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">B</span> <span class="o">=</span> <span class="n">B</span><span class="o">.</span><span class="n">add_trivial_leg</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="n">qconj</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
                 <span class="n">B</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">])</span>
             <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels_L</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="n">B</span> <span class="o">=</span> <span class="n">B</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([</span><span class="n">labels_R</span><span class="p">],</span> <span class="n">new_axes</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">qconj</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
@@ -550,7 +571,7 @@
             <span class="k">else</span><span class="p">:</span>  <span class="c1"># len(labels_R) == 0</span>
                 <span class="n">B</span> <span class="o">=</span> <span class="n">B</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([</span><span class="n">labels_L</span><span class="p">],</span> <span class="n">new_axes</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qconj</span><span class="o">=</span><span class="p">[</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
                 <span class="n">B</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">])</span>
-                <span class="n">B</span> <span class="o">=</span> <span class="n">B</span><span class="o">.</span><span class="n">add_trivial_leg</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="n">qconj</span><span class="o">=+</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">B</span> <span class="o">=</span> <span class="n">B</span><span class="o">.</span><span class="n">add_trivial_leg</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="n">qconj</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
             <span class="n">Bs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">B</span><span class="p">)</span>
             <span class="n">N</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="nb">len</span><span class="p">(</span><span class="n">labels_R</span><span class="p">)</span>
             <span class="n">Ss</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">N</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">N</span><span class="o">**</span><span class="mf">0.5</span><span class="p">))</span>
@@ -2163,7 +2184,7 @@
         <span class="k">return</span> <span class="n">Gl</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">Yr</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">ind_len</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="MPSEnvironment"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.html#tenpy.networks.mps.MPSEnvironment">[docs]</a><span class="k">class</span> <span class="nc">MPSEnvironment</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="MPSEnvironment"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.html#tenpy.networks.mps.MPSEnvironment">[docs]</a><span class="k">class</span> <span class="nc">MPSEnvironment</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Stores partial contractions of :math:`&lt;bra|Op|ket&gt;` for local operators `Op`.</span>
 
 <span class="sd">    The network for a contraction :math:`&lt;bra|Op|ket&gt;` of a local operator `Op`, say exemplary</span>

@@ -88,7 +88,7 @@
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;MPO&#39;</span><span class="p">,</span> <span class="s1">&#39;MPOGraph&#39;</span><span class="p">,</span> <span class="s1">&#39;MPOEnvironment&#39;</span><span class="p">,</span> <span class="s1">&#39;grid_insert_ops&#39;</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="MPO"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPO">[docs]</a><span class="k">class</span> <span class="nc">MPO</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="MPO"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPO">[docs]</a><span class="k">class</span> <span class="nc">MPO</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Matrix product operator, finite (MPO) or infinite (iMPO).</span>
 
 <span class="sd">    Parameters</span>
@@ -164,8 +164,8 @@
 
 <span class="sd">        See also</span>
 <span class="sd">        --------</span>
-<span class="sd">        :meth:`grid_insert_ops` : used to convert `entries` of the grid into operators</span>
-<span class="sd">        :meth:`~tenpy.linalg.np_conserved.grid_outer` : converts a grid into an Array</span>
+<span class="sd">        :func:`grid_insert_ops` : used to plug in `entries` of the grid</span>
+<span class="sd">        grid_outer : Used :func:`~tenpy.linalg.np_conserved.grid_outer` for final conversion.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">chinfo</span> <span class="o">=</span> <span class="n">sites</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span>
         <span class="n">L</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sites</span><span class="p">)</span>
@@ -291,7 +291,7 @@
                 <span class="k">return</span> <span class="p">[</span><span class="n">Id</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="MPOGraph"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOGraph">[docs]</a><span class="k">class</span> <span class="nc">MPOGraph</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="MPOGraph"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOGraph">[docs]</a><span class="k">class</span> <span class="nc">MPOGraph</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Representation of an MPO by a graph, based on a &#39;finite state machine&#39;.</span>
 
 <span class="sd">    This representation is used for building H_MPO from the interactions.</span>
@@ -682,10 +682,10 @@
 <span class="sd">        -------</span>
 <span class="sd">        LP_i : :class:`~tenpy.linalg.np_conserved.Array`</span>
 <span class="sd">            Contraction of everything left of site `i`,</span>
-<span class="sd">            with labels ``&#39;vR*&#39;, &#39;vR&#39;`` for `bra`, `ket`.</span>
+<span class="sd">            with labels ``&#39;vR*&#39;, &#39;wR&#39;, &#39;vR&#39;`` for `bra`, `H`, `ket`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># actually same as MPSEnvironment, just updated the labels in the doc string.</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">MPOEnvironment</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_LP</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_LP</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">store</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MPOEnvironment.get_RP"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOEnvironment.get_RP">[docs]</a>    <span class="k">def</span> <span class="nf">get_RP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculate RP at given site from nearest available one (including `i`).</span>
@@ -700,11 +700,11 @@
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        RP_i : :class:`~tenpy.linalg.np_conserved.Array`</span>
-<span class="sd">            Contraction of everything left of site `i`,</span>
+<span class="sd">            Contraction of everything right of site `i`,</span>
 <span class="sd">            with labels ``&#39;vL*&#39;, &#39;wL&#39;, &#39;vL&#39;`` for `bra`, `H`, `ket`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># actually same as MPSEnvironment, just updated the labels in the doc string.</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">MPOEnvironment</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_RP</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_RP</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">store</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MPOEnvironment.full_contraction"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOEnvironment.full_contraction">[docs]</a>    <span class="k">def</span> <span class="nf">full_contraction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i0</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculate the energy by a full contraction of the network.</span>

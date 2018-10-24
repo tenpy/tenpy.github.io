@@ -65,7 +65,7 @@ The operator names <code class="docutils literal notranslate"><span class="pre">
 <p class="first admonition-title">Warning</p>
 <p class="last">The order of the local basis can change depending on the charge conservation!
 This is a <em>necessary</em> feature since we need to sort the basis by charges for efficiency.
-We use the <code class="xref py py-attr docutils literal notranslate"><span class="pre">state_labels</span></code> (and <code class="xref py py-attr docutils literal notranslate"><span class="pre">perm</span></code>) to keep track of these permutations.</p>
+We use the <code class="xref py py-attr docutils literal notranslate"><span class="pre">state_labels</span></code> and <code class="xref py py-attr docutils literal notranslate"><span class="pre">perm</span></code> to keep track of these permutations.</p>
 </div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -140,7 +140,9 @@ For example after <code class="docutils literal notranslate"><span class="pre">s
 All onsite operators have labels <code class="docutils literal notranslate"><span class="pre">'p',</span> <span class="pre">'p*'</span></code>.</p>
 </dd>
 <dt><strong>perm</strong> <span class="classifier-delimiter">:</span> <span class="classifier">1D array</span></dt>
-<dd><p class="first last">Index permutation of the physical leg compared to <cite>conserve=None</cite>.</p>
+<dd><p class="first last">Index permutation of the physical leg compared to <cite>conserve=None</cite>,
+i.e. <code class="docutils literal notranslate"><span class="pre">OP_conserved</span> <span class="pre">=</span> <span class="pre">OP_nonconserved[np.ix_(perm,perm)]</span></code> and
+<code class="docutils literal notranslate"><span class="pre">perm[state_labels_conserved[&quot;some_state&quot;]]</span> <span class="pre">==</span> <span class="pre">state_labels_nonconserved[&quot;some_state&quot;]</span></code>.</p>
 </dd>
 <dt><strong>JW_exponent</strong> <span class="classifier-delimiter">:</span> <span class="classifier">1D array</span></dt>
 <dd><p class="first last">Exponents of the <code class="docutils literal notranslate"><span class="pre">'JW'</span></code> operator, such that
@@ -233,8 +235,12 @@ If <code class="docutils literal notranslate"><span class="pre">True</span></cod
 <dt><strong>new_leg_charge</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegCharge</span></code> | None</span></dt>
 <dd><p class="first last">The new charges to be used. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, use trivial charges.</p>
 </dd>
-<dt><strong>permute</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">None</span></code> | ndarray</span></dt>
-<dd><p class="first last">Ignored if <code class="docutils literal notranslate"><span class="pre">None</span></code>; otherwise an permuation applied to the physical leg.</p>
+<dt><strong>permute</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray | None</span></dt>
+<dd><p class="first last">The permuation applied to the physical leg,
+which gets used to adjust <code class="xref py py-attr docutils literal notranslate"><span class="pre">state_labels</span></code> and <code class="xref py py-attr docutils literal notranslate"><span class="pre">perm</span></code>.
+If you sorted the previous leg with <code class="docutils literal notranslate"><span class="pre">perm_qind,</span> <span class="pre">new_leg_charge</span> <span class="pre">=</span> <span class="pre">leg.sort()</span></code>,
+use <code class="docutils literal notranslate"><span class="pre">leg.perm_flat_from_perm_qind(perm_qind)</span></code>.
+Ignored if <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
 </dd>
 </dl>
 </td>
