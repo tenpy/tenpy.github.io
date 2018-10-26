@@ -42,7 +42,7 @@
 
 <span class="sd">Uniform lattice of spin-S sites, coupled by next-nearest-neighbour interactions.</span>
 <span class="sd">We have two variants implementing the same hamiltonian. The first uses the</span>
-<span class="sd">:class:`~tenpy.networks.site.DoubleSite` to keep it a</span>
+<span class="sd">:class:`~tenpy.networks.site.GroupedSite` to keep it a</span>
 <span class="sd">:class:`~tenpy.models.model.NearestNeighborModel` suitable for TEBD,</span>
 <span class="sd">while the second one just involves longer-range couplings in the MPO.</span>
 <span class="sd">The second one is preferable for pure DMRG calculations.</span>
@@ -52,7 +52,7 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="kn">from</span> <span class="nn">.lattice</span> <span class="k">import</span> <span class="n">Chain</span>
-<span class="kn">from</span> <span class="nn">..networks.site</span> <span class="k">import</span> <span class="n">SpinSite</span><span class="p">,</span> <span class="n">DoubleSite</span>
+<span class="kn">from</span> <span class="nn">..networks.site</span> <span class="k">import</span> <span class="n">SpinSite</span><span class="p">,</span> <span class="n">GroupedSite</span>
 <span class="kn">from</span> <span class="nn">.model</span> <span class="k">import</span> <span class="n">CouplingModel</span><span class="p">,</span> <span class="n">NearestNeighborModel</span><span class="p">,</span> <span class="n">MPOModel</span>
 <span class="kn">from</span> <span class="nn">..tools.params</span> <span class="k">import</span> <span class="n">get_parameter</span><span class="p">,</span> <span class="n">unused_parameters</span>
 <span class="kn">from</span> <span class="nn">..tools.misc</span> <span class="k">import</span> <span class="n">any_nonzero</span>
@@ -61,7 +61,7 @@
 
 
 <div class="viewcode-block" id="SpinChainNNN"><a class="viewcode-back" href="../../../reference/tenpy.models.spins_nnn.html#tenpy.models.spins_nnn.SpinChainNNN">[docs]</a><span class="k">class</span> <span class="nc">SpinChainNNN</span><span class="p">(</span><span class="n">CouplingModel</span><span class="p">,</span> <span class="n">MPOModel</span><span class="p">,</span> <span class="n">NearestNeighborModel</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Spin-S sites coupled by (next-)nearest neighbour interactions on a `DoubleSite`.</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Spin-S sites coupled by (next-)nearest neighbour interactions on a `GroupedSite`.</span>
 
 <span class="sd">    The Hamiltonian reads:</span>
 
@@ -81,7 +81,7 @@
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    L : int</span>
-<span class="sd">        Length of the chain in terms of :class:`~tenpy.networks.site.DoubleSite`,</span>
+<span class="sd">        Length of the chain in terms of :class:`~tenpy.networks.site.GroupedSite`,</span>
 <span class="sd">        i.e. we have ``2*L`` spin sites.</span>
 <span class="sd">    S : {0.5, 1, 1.5, 2, ...}</span>
 <span class="sd">        The 2S+1 local states range from m = -S, -S+1, ... +S.</span>
@@ -124,7 +124,7 @@
         <span class="n">unused_parameters</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
         <span class="c1"># 1) define Site and lattice</span>
         <span class="n">spinsite</span> <span class="o">=</span> <span class="n">SpinSite</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">conserve</span><span class="p">)</span>
-        <span class="n">site</span> <span class="o">=</span> <span class="n">DoubleSite</span><span class="p">(</span><span class="n">spinsite</span><span class="p">,</span> <span class="n">spinsite</span><span class="p">,</span> <span class="n">charges</span><span class="o">=</span><span class="s1">&#39;same&#39;</span><span class="p">)</span>
+        <span class="n">site</span> <span class="o">=</span> <span class="n">GroupedSite</span><span class="p">([</span><span class="n">spinsite</span><span class="p">,</span> <span class="n">spinsite</span><span class="p">],</span> <span class="n">charges</span><span class="o">=</span><span class="s1">&#39;same&#39;</span><span class="p">)</span>
         <span class="n">bc</span> <span class="o">=</span> <span class="s1">&#39;periodic&#39;</span> <span class="k">if</span> <span class="n">bc_MPS</span> <span class="o">==</span> <span class="s1">&#39;infinite&#39;</span> <span class="k">else</span> <span class="s1">&#39;open&#39;</span>
         <span class="n">lat</span> <span class="o">=</span> <span class="n">Chain</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">bc</span><span class="o">=</span><span class="n">bc</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="n">bc_MPS</span><span class="p">)</span>
         <span class="c1"># 2) initialize CouplingModel</span>

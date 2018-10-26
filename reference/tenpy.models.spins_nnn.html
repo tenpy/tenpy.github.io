@@ -51,7 +51,7 @@
 <p>Next-Nearest-neighbour spin-S models.</p>
 <p>Uniform lattice of spin-S sites, coupled by next-nearest-neighbour interactions.
 We have two variants implementing the same hamiltonian. The first uses the
-<a class="reference internal" href="tenpy.networks.site.html#tenpy.networks.site.DoubleSite" title="tenpy.networks.site.DoubleSite"><code class="xref py py-class docutils literal notranslate"><span class="pre">DoubleSite</span></code></a> to keep it a
+<a class="reference internal" href="tenpy.networks.site.html#tenpy.networks.site.GroupedSite" title="tenpy.networks.site.GroupedSite"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroupedSite</span></code></a> to keep it a
 <a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.NearestNeighborModel" title="tenpy.models.model.NearestNeighborModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NearestNeighborModel</span></code></a> suitable for TEBD,
 while the second one just involves longer-range couplings in the MPO.
 The second one is preferable for pure DMRG calculations.</p>
@@ -59,7 +59,7 @@ The second one is preferable for pure DMRG calculations.</p>
 <dt id="tenpy.models.spins_nnn.SpinChainNNN">
 <em class="property">class </em><code class="descclassname">tenpy.models.spins_nnn.</code><code class="descname">SpinChainNNN</code><span class="sig-paren">(</span><em>model_param</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/spins_nnn.html#SpinChainNNN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.spins_nnn.SpinChainNNN" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.CouplingModel</span></code></a>, <a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.MPOModel" title="tenpy.models.model.MPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.MPOModel</span></code></a>, <a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.NearestNeighborModel" title="tenpy.models.model.NearestNeighborModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.NearestNeighborModel</span></code></a></p>
-<p>Spin-S sites coupled by (next-)nearest neighbour interactions on a <cite>DoubleSite</cite>.</p>
+<p>Spin-S sites coupled by (next-)nearest neighbour interactions on a <cite>GroupedSite</cite>.</p>
 <p>The Hamiltonian reads:</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}H = \sum_{\langle i,j \rangle, i &lt; j}
@@ -78,7 +78,7 @@ All parameters are collected in a single dictionary <cite>model_param</cite> and
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
 <dt><strong>L</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd><p class="first last">Length of the chain in terms of <a class="reference internal" href="tenpy.networks.site.html#tenpy.networks.site.DoubleSite" title="tenpy.networks.site.DoubleSite"><code class="xref py py-class docutils literal notranslate"><span class="pre">DoubleSite</span></code></a>,
+<dd><p class="first last">Length of the chain in terms of <a class="reference internal" href="tenpy.networks.site.html#tenpy.networks.site.GroupedSite" title="tenpy.networks.site.GroupedSite"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroupedSite</span></code></a>,
 i.e. we have <code class="docutils literal notranslate"><span class="pre">2*L</span></code> spin sites.</p>
 </dd>
 <dt><strong>S</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{0.5, 1, 1.5, 2, …}</span></dt>
@@ -114,22 +114,25 @@ i.e. we have <code class="docutils literal notranslate"><span class="pre">2*L</s
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite</span></code>(strength,&nbsp;u,&nbsp;opname)</td>
 <td>Add onsite terms to self.</td>
 </tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">bond_energies</span></code>(psi)</td>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite_term</span></code>(strength,&nbsp;i,&nbsp;op)</td>
+<td>Add a onsite term on a given MPS site.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">bond_energies</span></code>(psi)</td>
 <td>Calculate bond energies &lt;psi|H_bond|psi&gt;.</td>
 </tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_MPO</span></code>([tol_zero])</td>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_MPO</span></code>([tol_zero])</td>
 <td>Calculate MPO representation of the Hamiltonian.</td>
 </tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_bond</span></code>([tol_zero])</td>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_bond</span></code>([tol_zero])</td>
 <td>calculate <cite>H_bond</cite> from <cite>self.coupling_terms</cite> and <cite>self.H_onsite</cite>.</td>
 </tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_onsite</span></code>([tol_zero])</td>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_onsite</span></code>([tol_zero])</td>
 <td>Calculate <cite>H_onsite</cite> from <cite>self.onsite_terms</cite>.</td>
 </tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
 <td>Sanity check.</td>
 </tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">trivial_like_NNModel</span></code>()</td>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">trivial_like_NNModel</span></code>()</td>
 <td>Return a NearestNeighborModel with same lattice, but trivial (H=0) bonds.</td>
 </tr>
 </tbody>
@@ -194,16 +197,19 @@ All parameters are collected in a single dictionary <cite>model_param</cite> and
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite</span></code>(strength,&nbsp;u,&nbsp;opname)</td>
 <td>Add onsite terms to self.</td>
 </tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_MPO</span></code>([tol_zero])</td>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite_term</span></code>(strength,&nbsp;i,&nbsp;op)</td>
+<td>Add a onsite term on a given MPS site.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_MPO</span></code>([tol_zero])</td>
 <td>Calculate MPO representation of the Hamiltonian.</td>
 </tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_bond</span></code>([tol_zero])</td>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_bond</span></code>([tol_zero])</td>
 <td>calculate <cite>H_bond</cite> from <cite>self.coupling_terms</cite> and <cite>self.H_onsite</cite>.</td>
 </tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_onsite</span></code>([tol_zero])</td>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_onsite</span></code>([tol_zero])</td>
 <td>Calculate <cite>H_onsite</cite> from <cite>self.onsite_terms</cite>.</td>
 </tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
 <td>Sanity check.</td>
 </tr>
 </tbody>

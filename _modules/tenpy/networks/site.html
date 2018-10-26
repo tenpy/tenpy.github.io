@@ -45,13 +45,15 @@
 <span class="c1"># Copyright 2018 TeNPy Developers</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">copy</span>
 
 <span class="kn">from</span> <span class="nn">..linalg</span> <span class="k">import</span> <span class="n">np_conserved</span> <span class="k">as</span> <span class="n">npc</span>
 <span class="kn">from</span> <span class="nn">..tools.misc</span> <span class="k">import</span> <span class="n">inverse_permutation</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="s1">&#39;Site&#39;</span><span class="p">,</span> <span class="s1">&#39;DoubleSite&#39;</span><span class="p">,</span> <span class="s1">&#39;multi_sites_combine_charges&#39;</span><span class="p">,</span> <span class="s1">&#39;SpinHalfSite&#39;</span><span class="p">,</span> <span class="s1">&#39;SpinSite&#39;</span><span class="p">,</span> <span class="s1">&#39;FermionSite&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;SpinHalfFermionSite&#39;</span><span class="p">,</span> <span class="s1">&#39;BosonSite&#39;</span>
+    <span class="s1">&#39;Site&#39;</span><span class="p">,</span> <span class="s1">&#39;GroupedSite&#39;</span><span class="p">,</span> <span class="s1">&#39;group_sites&#39;</span><span class="p">,</span> <span class="s1">&#39;multi_sites_combine_charges&#39;</span><span class="p">,</span> <span class="s1">&#39;SpinHalfSite&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;SpinSite&#39;</span><span class="p">,</span> <span class="s1">&#39;FermionSite&#39;</span><span class="p">,</span> <span class="s1">&#39;SpinHalfFermionSite&#39;</span><span class="p">,</span> <span class="s1">&#39;BosonSite&#39;</span>
 <span class="p">]</span>
 
 
@@ -333,6 +335,7 @@
 <span class="sd">        -------</span>
 <span class="sd">        op : :class:`~tenpy.linalg.np_conserved`</span>
 <span class="sd">            The operator given by `name`, with labels ``&#39;p&#39;, &#39;p*&#39;``.</span>
+<span class="sd">            If name already was an npc Array, it&#39;s directly returned.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">names</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
         <span class="n">op</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">names</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -348,9 +351,6 @@
 <span class="sd">        ----------</span>
 <span class="sd">        name : str</span>
 <span class="sd">            The name of the operator, as in :meth:`get_op`.</span>
-<span class="sd">            In case of multiple operator names separated by whitespace,</span>
-<span class="sd">            we multiply them together to a single on-site operator</span>
-<span class="sd">            (with the one on the right acting first).</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -361,7 +361,7 @@
         <span class="n">need_JW</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">names</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">need_JW_string</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">names</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
             <span class="k">if</span> <span class="n">op</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">need_JW_string</span><span class="p">:</span>
-                <span class="n">need_JW</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">need_JW</span>  <span class="c1"># == (need_JW xor (op in self.need_JW_string)</span>
+                <span class="n">need_JW</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">need_JW</span>  <span class="c1"># == need_JW xor (op in self.need_JW_string)</span>
         <span class="k">return</span> <span class="n">need_JW</span></div>
 
 <div class="viewcode-block" id="Site.valid_opname"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.Site.valid_opname">[docs]</a>    <span class="k">def</span> <span class="nf">valid_opname</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
@@ -388,8 +388,8 @@
         <span class="k">return</span> <span class="s2">&quot;&lt;Site, d=</span><span class="si">{dim:d}</span><span class="s2">, ops=</span><span class="si">{ops!r}</span><span class="s2">&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="n">ops</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opnames</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="DoubleSite"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.DoubleSite">[docs]</a><span class="k">class</span> <span class="nc">DoubleSite</span><span class="p">(</span><span class="n">Site</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Group two :class:`Site` into a larger one.</span>
+<div class="viewcode-block" id="GroupedSite"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.GroupedSite">[docs]</a><span class="k">class</span> <span class="nc">GroupedSite</span><span class="p">(</span><span class="n">Site</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Group two or more :class:`Site` into a larger one.</span>
 
 <span class="sd">    A typical use-case is that you want a NearestNeigborModel for TEBD although you have</span>
 <span class="sd">    next-nearest neighbor interactions: you just double your local Hilbertspace to consist of</span>
@@ -406,101 +406,148 @@
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    site0 : :class:`Site`</span>
-<span class="sd">        The first site to be included.</span>
-<span class="sd">    site1 : :class:`Site`</span>
-<span class="sd">        The second site to be included.</span>
-<span class="sd">    label0 : str</span>
-<span class="sd">        Include the Kronecker product of ``[op, Id]`` as onsite operators with name</span>
-<span class="sd">        ``opname+label0`` for each of the operators `op` in `site0` (with name `opname`).</span>
-<span class="sd">    label1 : str</span>
-<span class="sd">        Include the Kronecker product of ``[Id, op]`` as onsite operators with name</span>
-<span class="sd">        ``opname+label1`` for each of the operators `op` in `site1` (with name `opname`).</span>
-<span class="sd">    charges : ``&#39;same&#39;`` | ``&#39;independent&#39; | &#39;drop&#39;``</span>
-<span class="sd">        How to handle charges, defaults to &#39;drop&#39;.</span>
-<span class="sd">        ``&#39;same&#39;`` means that `site0` and `site1` have the same `ChargeInfo`, and the total charge</span>
-<span class="sd">        is the sum of the charges on `site0` and `site1`.</span>
-<span class="sd">        ``&#39;independent&#39;`` means that `site0` and `site1` have possibly different `ChargeInfo`,</span>
-<span class="sd">        and the charges are conserved separately, i.e., we have two conserved charges.</span>
+<span class="sd">    sites : list of :class:`Site`</span>
+<span class="sd">        The individual sites being grouped together. Copied before use if ``charges!=&#39;same&#39;``.</span>
+<span class="sd">    labels :</span>
+<span class="sd">        Include the Kronecker product of the each onsite operator `op` on ``sites[i]`` and</span>
+<span class="sd">        identities on other sites with the name ``opname+labels[i]``.</span>
+<span class="sd">        Similarly, set state labels for ``&#39; &#39;.join(state[i]+&#39;_&#39;+labels[i])``.</span>
+<span class="sd">        Defaults to ``[str(i) for i in range(n_sites)]``, which for example grouping two SpinSites</span>
+<span class="sd">        gives operators name like ``&quot;Sz0&quot;`` and sites labels like ``&#39;up_0 down_1&#39;``.</span>
+<span class="sd">    charges : ``&#39;same&#39; | &#39;drop&#39; | &#39;independent&#39;``</span>
+<span class="sd">        How to handle charges, defaults to &#39;same&#39;.</span>
+<span class="sd">        ``&#39;same&#39;`` means that all `sites` have the same `ChargeInfo`, and the total charge</span>
+<span class="sd">        is the sum of the charges on the individual `sites`.</span>
+<span class="sd">        ``&#39;independent&#39;`` means that the `sites` have possibly different `ChargeInfo`,</span>
+<span class="sd">        and the charges are conserved separately, i.e., we have `n_sites` conserved charges.</span>
 <span class="sd">        For ``&#39;drop&#39;``, we drop any charges, such that the remaining legcharges are trivial.</span>
 
 <span class="sd">    Attributes</span>
 <span class="sd">    ----------</span>
-<span class="sd">    site0, site1 : :class:`Site`</span>
-<span class="sd">        The sites from which this is build.</span>
-<span class="sd">    label0, label1 : str</span>
-<span class="sd">        The labels which are added to the single-site operators during construction.</span>
+<span class="sd">    n_sites : int</span>
+<span class="sd">        The number of sites grouped together, i.e. ``len(sites)``.</span>
+<span class="sd">    sites : list of :class:`Site`</span>
+<span class="sd">        The sites grouped together into self.</span>
+<span class="sd">    labels: list of str</span>
+<span class="sd">        The labels using which the single-site operators are added during construction.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">site0</span><span class="p">,</span> <span class="n">site1</span><span class="p">,</span> <span class="n">label0</span><span class="o">=</span><span class="s1">&#39;0&#39;</span><span class="p">,</span> <span class="n">label1</span><span class="o">=</span><span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="n">charges</span><span class="o">=</span><span class="s1">&#39;drop&#39;</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">charges</span> <span class="o">==</span> <span class="s1">&#39;drop&#39;</span><span class="p">:</span>
-            <span class="n">leg0</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_drop_charge</span><span class="p">(</span><span class="n">site0</span><span class="o">.</span><span class="n">leg</span><span class="p">)</span>
-            <span class="n">leg1</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_drop_charge</span><span class="p">(</span><span class="n">site1</span><span class="o">.</span><span class="n">leg</span><span class="p">,</span> <span class="n">chargeinfo</span><span class="o">=</span><span class="n">leg0</span><span class="o">.</span><span class="n">chinfo</span><span class="p">)</span>
-            <span class="n">perm_qind0</span><span class="p">,</span> <span class="n">leg0s</span> <span class="o">=</span> <span class="n">leg0</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
-            <span class="n">perm_qind1</span><span class="p">,</span> <span class="n">leg1s</span> <span class="o">=</span> <span class="n">leg1</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
-            <span class="n">site0</span><span class="o">.</span><span class="n">change_charge</span><span class="p">(</span><span class="n">leg0s</span><span class="p">,</span> <span class="n">leg0</span><span class="o">.</span><span class="n">perm_flat_from_perm_qind</span><span class="p">(</span><span class="n">perm_qind0</span><span class="p">))</span>
-            <span class="n">site1</span><span class="o">.</span><span class="n">change_charge</span><span class="p">(</span><span class="n">leg1s</span><span class="p">,</span> <span class="n">leg1</span><span class="o">.</span><span class="n">perm_flat_from_perm_qind</span><span class="p">(</span><span class="n">perm_qind1</span><span class="p">))</span>
-        <span class="k">elif</span> <span class="n">charges</span> <span class="o">==</span> <span class="s1">&#39;same&#39;</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sites</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">charges</span><span class="o">=</span><span class="s1">&#39;same&#39;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_sites</span> <span class="o">=</span> <span class="n">n_sites</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sites</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sites</span> <span class="o">=</span> <span class="n">sites</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span>
+        <span class="k">assert</span> <span class="n">n_sites</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">labels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_sites</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="n">charges</span> <span class="o">==</span> <span class="s1">&#39;same&#39;</span><span class="p">:</span>
             <span class="k">pass</span>  <span class="c1"># nothing to do</span>
+        <span class="k">elif</span> <span class="n">charges</span> <span class="o">==</span> <span class="s1">&#39;drop&#39;</span><span class="p">:</span>
+            <span class="n">legs</span> <span class="o">=</span> <span class="p">[</span><span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_drop_charge</span><span class="p">(</span><span class="n">sites</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">leg</span><span class="p">)]</span>
+            <span class="n">chinfo</span> <span class="o">=</span> <span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">chinfo</span>
+            <span class="k">for</span> <span class="n">site</span> <span class="ow">in</span> <span class="n">sites</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+                <span class="n">legs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_drop_charge</span><span class="p">(</span><span class="n">sites</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">leg</span><span class="p">,</span> <span class="n">chargeinfo</span><span class="o">=</span><span class="n">chinfo</span><span class="p">))</span>
         <span class="k">elif</span> <span class="n">charges</span> <span class="o">==</span> <span class="s1">&#39;independent&#39;</span><span class="p">:</span>
             <span class="c1"># charges are separately conserved</span>
-            <span class="n">leg0_triv1</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_trivial</span><span class="p">(</span><span class="n">site0</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="n">site1</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span><span class="p">)</span>
-            <span class="n">leg1_triv0</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_trivial</span><span class="p">(</span><span class="n">site1</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="n">site0</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span><span class="p">)</span>
-            <span class="n">leg0</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_add_charge</span><span class="p">([</span><span class="n">site0</span><span class="o">.</span><span class="n">leg</span><span class="p">,</span> <span class="n">leg0_triv1</span><span class="p">])</span>
-            <span class="n">leg1</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_add_charge</span><span class="p">([</span><span class="n">leg1_triv0</span><span class="p">,</span> <span class="n">site1</span><span class="o">.</span><span class="n">leg</span><span class="p">],</span> <span class="n">chargeinfo</span><span class="o">=</span><span class="n">leg0</span><span class="o">.</span><span class="n">chinfo</span><span class="p">)</span>
-            <span class="n">perm_qind0</span><span class="p">,</span> <span class="n">leg0s</span> <span class="o">=</span> <span class="n">leg0</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
-            <span class="n">perm_qind1</span><span class="p">,</span> <span class="n">leg1s</span> <span class="o">=</span> <span class="n">leg1</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
-            <span class="n">site0</span><span class="o">.</span><span class="n">change_charge</span><span class="p">(</span><span class="n">leg0s</span><span class="p">,</span> <span class="n">leg0</span><span class="o">.</span><span class="n">perm_flat_from_perm_qind</span><span class="p">(</span><span class="n">perm_qind0</span><span class="p">))</span>
-            <span class="n">site1</span><span class="o">.</span><span class="n">change_charge</span><span class="p">(</span><span class="n">leg1s</span><span class="p">,</span> <span class="n">leg1</span><span class="o">.</span><span class="n">perm_flat_from_perm_qind</span><span class="p">(</span><span class="n">perm_qind1</span><span class="p">))</span>
+            <span class="n">legs</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_sites</span><span class="p">):</span>
+                <span class="n">d</span> <span class="o">=</span> <span class="n">sites</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">dim</span>
+                <span class="c1"># trivial charges</span>
+                <span class="n">legs_triv</span> <span class="o">=</span> <span class="p">[</span><span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_trivial</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sites</span><span class="p">]</span>
+                <span class="n">legs_triv</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">sites</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">leg</span>  <span class="c1"># except on site i</span>
+                <span class="n">chinfo</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">chinfo</span>
+                <span class="n">leg</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_add_charge</span><span class="p">(</span><span class="n">legs_triv</span><span class="p">,</span> <span class="n">chinfo</span><span class="p">)</span> <span class="c1"># combine the charges</span>
+                <span class="n">legs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">leg</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unknown option for `charges`: &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">charges</span><span class="p">))</span>
-        <span class="k">assert</span> <span class="n">site0</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span> <span class="o">==</span> <span class="n">site1</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span>  <span class="c1"># check for compatibility</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">site0</span> <span class="o">=</span> <span class="n">site0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">site1</span> <span class="o">=</span> <span class="n">site1</span>
-        <span class="n">pipe</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegPipe</span><span class="p">([</span><span class="n">site0</span><span class="o">.</span><span class="n">leg</span><span class="p">,</span> <span class="n">site1</span><span class="o">.</span><span class="n">leg</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">charges</span> <span class="o">!=</span> <span class="s1">&#39;same&#39;</span><span class="p">:</span>
+            <span class="n">sites</span> <span class="o">=</span> <span class="p">[</span><span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sites</span><span class="p">]</span> <span class="c1"># avoid modifying the existing sites.</span>
+            <span class="c1"># sort legs</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_sites</span><span class="p">):</span>
+                <span class="n">perm_qind</span><span class="p">,</span> <span class="n">leg_s</span> <span class="o">=</span> <span class="n">legs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+                <span class="n">sites</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">change_charge</span><span class="p">(</span><span class="n">leg_s</span><span class="p">,</span> <span class="n">legs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">perm_flat_from_perm_qind</span><span class="p">(</span><span class="n">perm_qind</span><span class="p">))</span>
+        <span class="n">chinfo</span> <span class="o">=</span> <span class="n">sites</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sites</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+            <span class="k">assert</span> <span class="n">s</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">chinfo</span> <span class="o">==</span> <span class="n">chinfo</span>  <span class="c1"># check for compatibility</span>
+        <span class="n">legs</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">leg</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sites</span><span class="p">]</span>
+        <span class="n">pipe</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">LegPipe</span><span class="p">(</span><span class="n">legs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">leg</span> <span class="o">=</span> <span class="n">pipe</span>  <span class="c1"># needed in kroneckerproduct</span>
-        <span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">pipe</span><span class="o">.</span><span class="n">ind_len</span>
-        <span class="k">for</span> <span class="n">st0</span> <span class="ow">in</span> <span class="n">site0</span><span class="o">.</span><span class="n">state_labels</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">st1</span> <span class="ow">in</span> <span class="n">site1</span><span class="o">.</span><span class="n">state_labels</span><span class="p">:</span>
-                <span class="n">ind_pipe</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">map_incoming_flat</span><span class="p">(</span>
-                    <span class="p">[</span><span class="n">site0</span><span class="o">.</span><span class="n">state_labels</span><span class="p">[</span><span class="n">st0</span><span class="p">],</span> <span class="n">site1</span><span class="o">.</span><span class="n">state_labels</span><span class="p">[</span><span class="n">st1</span><span class="p">]])</span>
-                <span class="n">states</span><span class="p">[</span><span class="n">ind_pipe</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">st0</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="n">label0</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">st1</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="n">label1</span><span class="p">])</span>
-        <span class="n">JW0</span> <span class="o">=</span> <span class="n">site0</span><span class="o">.</span><span class="n">JW</span>
-        <span class="n">JW1</span> <span class="o">=</span> <span class="n">site1</span><span class="o">.</span><span class="n">JW</span>
-        <span class="n">JW_both</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kroneckerproduct</span><span class="p">(</span><span class="n">JW0</span><span class="p">,</span> <span class="n">JW1</span><span class="p">)</span>
-        <span class="n">Site</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pipe</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">JW</span><span class="o">=</span><span class="n">JW_both</span><span class="p">)</span>
+        <span class="n">JW_all</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kroneckerproduct</span><span class="p">([</span><span class="n">s</span><span class="o">.</span><span class="n">JW</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sites</span><span class="p">])</span>
+
+        <span class="c1"># initialize Site</span>
+        <span class="n">Site</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pipe</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">JW</span><span class="o">=</span><span class="n">JW_all</span><span class="p">)</span>
+
+        <span class="c1"># set state labels</span>
+        <span class="k">for</span> <span class="n">states_labels</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">state_labels</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sites</span><span class="p">]):</span>
+            <span class="n">inds</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">states_labels</span><span class="p">]</span> <span class="c1"># values of the dictionaries</span>
+            <span class="n">ind_pipe</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">map_incoming_flat</span><span class="p">(</span><span class="n">inds</span><span class="p">)</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">st</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">lbl</span> <span class="k">for</span> <span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">idx</span><span class="p">),</span> <span class="n">lbl</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">states_labels</span><span class="p">,</span> <span class="n">labels</span><span class="p">)])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">state_labels</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">ind_pipe</span>
         <span class="c1"># add remaining operators</span>
-        <span class="n">Id1</span> <span class="o">=</span> <span class="n">site1</span><span class="o">.</span><span class="n">Id</span>
-        <span class="k">for</span> <span class="n">opname</span><span class="p">,</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">site0</span><span class="o">.</span><span class="n">onsite_ops</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">if</span> <span class="n">opname</span> <span class="o">!=</span> <span class="s1">&#39;Id&#39;</span><span class="p">:</span>
-                <span class="n">need_JW</span> <span class="o">=</span> <span class="n">opname</span> <span class="ow">in</span> <span class="n">site0</span><span class="o">.</span><span class="n">need_JW_string</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">add_op</span><span class="p">(</span><span class="n">opname</span> <span class="o">+</span> <span class="n">label0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">kroneckerproduct</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">Id1</span><span class="p">),</span> <span class="n">need_JW</span><span class="p">)</span>
-        <span class="n">Id0</span> <span class="o">=</span> <span class="n">site0</span><span class="o">.</span><span class="n">Id</span>
-        <span class="k">for</span> <span class="n">opname</span><span class="p">,</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">site1</span><span class="o">.</span><span class="n">onsite_ops</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">if</span> <span class="n">opname</span> <span class="o">!=</span> <span class="s1">&#39;Id&#39;</span><span class="p">:</span>
-                <span class="n">need_JW</span> <span class="o">=</span> <span class="n">opname</span> <span class="ow">in</span> <span class="n">site1</span><span class="o">.</span><span class="n">need_JW_string</span>
-                <span class="n">op0</span> <span class="o">=</span> <span class="n">JW0</span> <span class="k">if</span> <span class="n">need_JW</span> <span class="k">else</span> <span class="n">Id0</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">add_op</span><span class="p">(</span><span class="n">opname</span> <span class="o">+</span> <span class="n">label1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">kroneckerproduct</span><span class="p">(</span><span class="n">op0</span><span class="p">,</span> <span class="n">op</span><span class="p">),</span> <span class="n">need_JW</span><span class="p">)</span>
+        <span class="n">Ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">Id</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sites</span><span class="p">]</span>
+        <span class="n">JW_Ids</span> <span class="o">=</span> <span class="n">Ids</span><span class="p">[:]</span> <span class="c1"># in the following loop equivalent to [JW, JW, ... , Id, Id, ...]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_sites</span><span class="p">):</span>
+            <span class="n">site</span> <span class="o">=</span> <span class="n">sites</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">opname</span><span class="p">,</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">site</span><span class="o">.</span><span class="n">onsite_ops</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">opname</span> <span class="o">==</span> <span class="s1">&#39;Id&#39;</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">need_JW</span> <span class="o">=</span> <span class="n">opname</span> <span class="ow">in</span> <span class="n">site</span><span class="o">.</span><span class="n">need_JW_string</span>
+                <span class="n">ops</span> <span class="o">=</span> <span class="n">JW_Ids</span> <span class="k">if</span> <span class="n">need_JW</span> <span class="k">else</span> <span class="n">Ids</span>
+                <span class="n">ops</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">op</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_op</span><span class="p">(</span><span class="n">opname</span> <span class="o">+</span> <span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">kroneckerproduct</span><span class="p">(</span><span class="n">ops</span><span class="p">),</span> <span class="n">need_JW</span><span class="p">)</span>
+                <span class="n">Ids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">site</span><span class="o">.</span><span class="n">Id</span>
+                <span class="n">JW_Ids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">site</span><span class="o">.</span><span class="n">JW</span>
         <span class="c1"># done</span>
 
-<div class="viewcode-block" id="DoubleSite.kroneckerproduct"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.DoubleSite.kroneckerproduct">[docs]</a>    <span class="k">def</span> <span class="nf">kroneckerproduct</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op0</span><span class="p">,</span> <span class="n">op1</span><span class="p">):</span>
+<div class="viewcode-block" id="GroupedSite.kroneckerproduct"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.GroupedSite.kroneckerproduct">[docs]</a>    <span class="k">def</span> <span class="nf">kroneckerproduct</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ops</span><span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Return the Kronecker product :math:`op0 \otimes op1` of local operators.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        op0, op1 : :class:`~tenpy.linalg.np_conserved.Array`</span>
-<span class="sd">            Onsite operators on `site0` and `site1`, respectively.</span>
-<span class="sd">            Should have labels ``[&#39;p&#39;, &#39;p*&#39;]``.</span>
+<span class="sd">        ops : list of :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            One operator (or operator name) on each of the ungrouped sites.</span>
+<span class="sd">            Each operator should have labels ``[&#39;p&#39;, &#39;p*&#39;]``.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        prod : :class:`~tenpy.linalg.np_conserved.Array`</span>
-<span class="sd">            Kronecker product :math:`op0 \otimes op1`, with labels ``[&#39;p&#39;, &#39;p*&#39;]``.</span>
+<span class="sd">            Kronecker product :math:`ops[0] \otimes ops[1] \otimes \cdots`,</span>
+<span class="sd">            with labels ``[&#39;p&#39;, &#39;p*&#39;]``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sites</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sites</span>
+        <span class="n">op</span> <span class="o">=</span> <span class="n">ops</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">op2</span> <span class="ow">in</span> <span class="n">ops</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+            <span class="n">op</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">op2</span><span class="o">.</span><span class="n">transpose</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">]))</span>
+        <span class="n">combine</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">n_sites</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)),</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">n_sites</span><span class="p">,</span> <span class="mi">2</span><span class="p">))]</span>
         <span class="n">pipe</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">leg</span>
-        <span class="n">op</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">op0</span><span class="o">.</span><span class="n">transpose</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">]),</span> <span class="n">op1</span><span class="o">.</span><span class="n">transpose</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">]))</span>
-        <span class="n">op</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">]],</span> <span class="n">qconj</span><span class="o">=</span><span class="p">[</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">pipes</span><span class="o">=</span><span class="p">[</span><span class="n">pipe</span><span class="p">,</span> <span class="n">pipe</span><span class="o">.</span><span class="n">conj</span><span class="p">()])</span>
+        <span class="n">op</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">(</span><span class="n">combine</span><span class="p">,</span> <span class="n">qconj</span><span class="o">=</span><span class="p">[</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">pipes</span><span class="o">=</span><span class="p">[</span><span class="n">pipe</span><span class="p">,</span> <span class="n">pipe</span><span class="o">.</span><span class="n">conj</span><span class="p">()])</span>
         <span class="k">return</span> <span class="n">op</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">])</span></div></div>
+
+
+<div class="viewcode-block" id="group_sites"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.group_sites">[docs]</a><span class="k">def</span> <span class="nf">group_sites</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">charges</span><span class="o">=</span><span class="s1">&#39;same&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Given a list of sites, group each `n` sites together.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sites : list of :class:`Site`</span>
+<span class="sd">        The sites to be grouped together.</span>
+<span class="sd">    n : int</span>
+<span class="sd">        We group each `n` consecutive sites from `sites` together in a :class:`GroupedSite`.</span>
+<span class="sd">    labels, charges :</span>
+<span class="sd">        See :class:`GroupedSites`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    grouped_sites : list of :class:`GroupedSite`</span>
+<span class="sd">        The grouped sites. Has length ``(len(sites)-1)//n + 1``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">grouped_sites</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">labels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">sites</span><span class="p">),</span> <span class="n">n</span><span class="p">):</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">sites</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="n">n</span><span class="p">]</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">GroupedSite</span><span class="p">(</span><span class="n">group</span><span class="p">,</span> <span class="n">labels</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">group</span><span class="p">)],</span> <span class="n">charges</span><span class="p">)</span>
+        <span class="n">grouped_sites</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">grouped_sites</span></div>
 
 
 <div class="viewcode-block" id="multi_sites_combine_charges"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.html#tenpy.networks.site.multi_sites_combine_charges">[docs]</a><span class="k">def</span> <span class="nf">multi_sites_combine_charges</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="n">same_charges</span><span class="o">=</span><span class="p">[]):</span>

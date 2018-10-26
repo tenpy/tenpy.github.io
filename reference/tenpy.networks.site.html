@@ -275,7 +275,8 @@ we multiply them together to a single on-site operator
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
 <dt><strong>op</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#module-tenpy.linalg.np_conserved" title="tenpy.linalg.np_conserved"><code class="xref py py-class docutils literal notranslate"><span class="pre">np_conserved</span></code></a></span></dt>
-<dd><p class="first last">The operator given by <cite>name</cite>, with labels <code class="docutils literal notranslate"><span class="pre">'p',</span> <span class="pre">'p*'</span></code>.</p>
+<dd><p class="first last">The operator given by <cite>name</cite>, with labels <code class="docutils literal notranslate"><span class="pre">'p',</span> <span class="pre">'p*'</span></code>.
+If name already was an npc Array, it’s directly returned.</p>
 </dd>
 </dl>
 </td>
@@ -301,10 +302,7 @@ we multiply them together to a single on-site operator
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
 <dt><strong>name</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
-<dd><p class="first last">The name of the operator, as in <a class="reference internal" href="#tenpy.networks.site.Site.get_op" title="tenpy.networks.site.Site.get_op"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_op()</span></code></a>.
-In case of multiple operator names separated by whitespace,
-we multiply them together to a single on-site operator
-(with the one on the right acting first).</p>
+<dd><p class="first last">The name of the operator, as in <a class="reference internal" href="#tenpy.networks.site.Site.get_op" title="tenpy.networks.site.Site.get_op"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_op()</span></code></a>.</p>
 </dd>
 </dl>
 </td>
@@ -429,10 +427,10 @@ indicating that they should  be multiplied together.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="tenpy.networks.site.DoubleSite">
-<em class="property">class </em><code class="descclassname">tenpy.networks.site.</code><code class="descname">DoubleSite</code><span class="sig-paren">(</span><em>site0</em>, <em>site1</em>, <em>label0='0'</em>, <em>label1='1'</em>, <em>charges='drop'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/site.html#DoubleSite"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.site.DoubleSite" title="Permalink to this definition">¶</a></dt>
+<dt id="tenpy.networks.site.GroupedSite">
+<em class="property">class </em><code class="descclassname">tenpy.networks.site.</code><code class="descname">GroupedSite</code><span class="sig-paren">(</span><em>sites</em>, <em>labels=None</em>, <em>charges='same'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/site.html#GroupedSite"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.site.GroupedSite" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.networks.site.Site</span></code></a></p>
-<p>Group two <a class="reference internal" href="#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a> into a larger one.</p>
+<p>Group two or more <a class="reference internal" href="#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a> into a larger one.</p>
 <p>A typical use-case is that you want a NearestNeigborModel for TEBD although you have
 next-nearest neighbor interactions: you just double your local Hilbertspace to consist of
 two original sites.
@@ -449,37 +447,36 @@ expected commutation relations. See also <a class="reference internal" href="../
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>site0</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a></span></dt>
-<dd><p class="first last">The first site to be included.</p>
+<dt><strong>sites</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <a class="reference internal" href="#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a></span></dt>
+<dd><p class="first last">The individual sites being grouped together. Copied before use if <code class="docutils literal notranslate"><span class="pre">charges!='same'</span></code>.</p>
 </dd>
-<dt><strong>site1</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a></span></dt>
-<dd><p class="first last">The second site to be included.</p>
+<dt><strong>labels :</strong></dt>
+<dd><p class="first last">Include the Kronecker product of the each onsite operator <cite>op</cite> on <code class="docutils literal notranslate"><span class="pre">sites[i]</span></code> and
+identities on other sites with the name <code class="docutils literal notranslate"><span class="pre">opname+labels[i]</span></code>.
+Similarly, set state labels for <code class="docutils literal notranslate"><span class="pre">'</span> <span class="pre">'.join(state[i]+'_'+labels[i])</span></code>.
+Defaults to <code class="docutils literal notranslate"><span class="pre">[str(i)</span> <span class="pre">for</span> <span class="pre">i</span> <span class="pre">in</span> <span class="pre">range(n_sites)]</span></code>, which for example grouping two SpinSites
+gives operators name like <code class="docutils literal notranslate"><span class="pre">&quot;Sz0&quot;</span></code> and sites labels like <code class="docutils literal notranslate"><span class="pre">'up_0</span> <span class="pre">down_1'</span></code>.</p>
 </dd>
-<dt><strong>label0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
-<dd><p class="first last">Include the Kronecker product of <code class="docutils literal notranslate"><span class="pre">[op,</span> <span class="pre">Id]</span></code> as onsite operators with name
-<code class="docutils literal notranslate"><span class="pre">opname+label0</span></code> for each of the operators <cite>op</cite> in <cite>site0</cite> (with name <cite>opname</cite>).</p>
-</dd>
-<dt><strong>label1</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
-<dd><p class="first last">Include the Kronecker product of <code class="docutils literal notranslate"><span class="pre">[Id,</span> <span class="pre">op]</span></code> as onsite operators with name
-<code class="docutils literal notranslate"><span class="pre">opname+label1</span></code> for each of the operators <cite>op</cite> in <cite>site1</cite> (with name <cite>opname</cite>).</p>
-</dd>
-<dt><strong>charges</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">'same'</span></code> | <code class="docutils literal notranslate"><span class="pre">'independent'</span> <span class="pre">|</span> <span class="pre">'drop'</span></code></span></dt>
-<dd><p class="first last">How to handle charges, defaults to ‘drop’.
-<code class="docutils literal notranslate"><span class="pre">'same'</span></code> means that <cite>site0</cite> and <cite>site1</cite> have the same <cite>ChargeInfo</cite>, and the total charge
-is the sum of the charges on <cite>site0</cite> and <cite>site1</cite>.
-<code class="docutils literal notranslate"><span class="pre">'independent'</span></code> means that <cite>site0</cite> and <cite>site1</cite> have possibly different <cite>ChargeInfo</cite>,
-and the charges are conserved separately, i.e., we have two conserved charges.
+<dt><strong>charges</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">'same'</span> <span class="pre">|</span> <span class="pre">'drop'</span> <span class="pre">|</span> <span class="pre">'independent'</span></code></span></dt>
+<dd><p class="first last">How to handle charges, defaults to ‘same’.
+<code class="docutils literal notranslate"><span class="pre">'same'</span></code> means that all <cite>sites</cite> have the same <cite>ChargeInfo</cite>, and the total charge
+is the sum of the charges on the individual <cite>sites</cite>.
+<code class="docutils literal notranslate"><span class="pre">'independent'</span></code> means that the <cite>sites</cite> have possibly different <cite>ChargeInfo</cite>,
+and the charges are conserved separately, i.e., we have <cite>n_sites</cite> conserved charges.
 For <code class="docutils literal notranslate"><span class="pre">'drop'</span></code>, we drop any charges, such that the remaining legcharges are trivial.</p>
 </dd>
 </dl>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>site0, site1</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a></span></dt>
-<dd><p class="first last">The sites from which this is build.</p>
+<dt><strong>n_sites</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">The number of sites grouped together, i.e. <code class="docutils literal notranslate"><span class="pre">len(sites)</span></code>.</p>
 </dd>
-<dt><strong>label0, label1</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
-<dd><p class="first last">The labels which are added to the single-site operators during construction.</p>
+<dt><strong>sites</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <a class="reference internal" href="#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a></span></dt>
+<dd><p class="first last">The sites grouped together into self.</p>
+</dd>
+<dt><strong>labels: list of str</strong></dt>
+<dd><p class="first last">The labels using which the single-site operators are added during construction.</p>
 </dd>
 </dl>
 </td>
@@ -502,7 +499,7 @@ For <code class="docutils literal notranslate"><span class="pre">'drop'</span></
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_op</span></code>(name)</td>
 <td>Return operator of given name.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.networks.site.DoubleSite.kroneckerproduct" title="tenpy.networks.site.DoubleSite.kroneckerproduct"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kroneckerproduct</span></code></a>(op0,&nbsp;op1)</td>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.networks.site.GroupedSite.kroneckerproduct" title="tenpy.networks.site.GroupedSite.kroneckerproduct"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kroneckerproduct</span></code></a>(ops)</td>
 <td>Return the Kronecker product <span class="math notranslate nohighlight">\(op0 \otimes op1\)</span> of local operators.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">op_needs_JW</span></code>(name)</td>
@@ -529,24 +526,25 @@ For <code class="docutils literal notranslate"><span class="pre">'drop'</span></
 </tbody>
 </table>
 <dl class="method">
-<dt id="tenpy.networks.site.DoubleSite.kroneckerproduct">
-<code class="descname">kroneckerproduct</code><span class="sig-paren">(</span><em>op0</em>, <em>op1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/site.html#DoubleSite.kroneckerproduct"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.site.DoubleSite.kroneckerproduct" title="Permalink to this definition">¶</a></dt>
+<dt id="tenpy.networks.site.GroupedSite.kroneckerproduct">
+<code class="descname">kroneckerproduct</code><span class="sig-paren">(</span><em>ops</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/site.html#GroupedSite.kroneckerproduct"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.site.GroupedSite.kroneckerproduct" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the Kronecker product <span class="math notranslate nohighlight">\(op0 \otimes op1\)</span> of local operators.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>op0, op1</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
-<dd><p class="first last">Onsite operators on <cite>site0</cite> and <cite>site1</cite>, respectively.
-Should have labels <code class="docutils literal notranslate"><span class="pre">['p',</span> <span class="pre">'p*']</span></code>.</p>
+<dt><strong>ops</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">One operator (or operator name) on each of the ungrouped sites.
+Each operator should have labels <code class="docutils literal notranslate"><span class="pre">['p',</span> <span class="pre">'p*']</span></code>.</p>
 </dd>
 </dl>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
 <dt><strong>prod</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
-<dd><p class="first last">Kronecker product <span class="math notranslate nohighlight">\(op0 \otimes op1\)</span>, with labels <code class="docutils literal notranslate"><span class="pre">['p',</span> <span class="pre">'p*']</span></code>.</p>
+<dd><p class="first last">Kronecker product <span class="math notranslate nohighlight">\(ops[0] \otimes ops[1] \otimes \cdots\)</span>,
+with labels <code class="docutils literal notranslate"><span class="pre">['p',</span> <span class="pre">'p*']</span></code>.</p>
 </dd>
 </dl>
 </td>
@@ -555,6 +553,38 @@ Should have labels <code class="docutils literal notranslate"><span class="pre">
 </table>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="function">
+<dt id="tenpy.networks.site.group_sites">
+<code class="descclassname">tenpy.networks.site.</code><code class="descname">group_sites</code><span class="sig-paren">(</span><em>sites</em>, <em>n=2</em>, <em>labels=None</em>, <em>charges='same'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/site.html#group_sites"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.site.group_sites" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a list of sites, group each <cite>n</cite> sites together.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>sites</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <a class="reference internal" href="#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a></span></dt>
+<dd><p class="first last">The sites to be grouped together.</p>
+</dd>
+<dt><strong>n</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">We group each <cite>n</cite> consecutive sites from <cite>sites</cite> together in a <a class="reference internal" href="#tenpy.networks.site.GroupedSite" title="tenpy.networks.site.GroupedSite"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroupedSite</span></code></a>.</p>
+</dd>
+<dt><strong>labels, charges :</strong></dt>
+<dd><p class="first last">See <code class="xref py py-class docutils literal notranslate"><span class="pre">GroupedSites</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>grouped_sites</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <a class="reference internal" href="#tenpy.networks.site.GroupedSite" title="tenpy.networks.site.GroupedSite"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroupedSite</span></code></a></span></dt>
+<dd><p class="first last">The grouped sites. Has length <code class="docutils literal notranslate"><span class="pre">(len(sites)-1)//n</span> <span class="pre">+</span> <span class="pre">1</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">

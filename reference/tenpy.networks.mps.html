@@ -218,6 +218,9 @@ For <code class="docutils literal notranslate"><span class="pre">form</span> <sp
 <dd><p class="first last">The norm of the state, i.e. <code class="docutils literal notranslate"><span class="pre">sqrt(&lt;psi|psi&gt;)</span></code>.
 Ignored for (normalized) <a class="reference internal" href="#tenpy.networks.mps.MPS.expectation_value" title="tenpy.networks.mps.MPS.expectation_value"><code class="xref py py-meth docutils literal notranslate"><span class="pre">expectation_value()</span></code></a>, but important for <a class="reference internal" href="#tenpy.networks.mps.MPS.overlap" title="tenpy.networks.mps.MPS.overlap"><code class="xref py py-meth docutils literal notranslate"><span class="pre">overlap()</span></code></a>.</p>
 </dd>
+<dt><strong>grouped</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Number of sites grouped together, see <a class="reference internal" href="#tenpy.networks.mps.MPS.group_sites" title="tenpy.networks.mps.MPS.group_sites"><code class="xref py py-meth docutils literal notranslate"><span class="pre">group_sites()</span></code></a>.</p>
+</dd>
 <dt><strong>_B</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <code class="xref py py-class docutils literal notranslate"><span class="pre">npc.Array</span></code></span></dt>
 <dd><p class="first last">The ‘matrices’ of the MPS. Labels are <code class="docutils literal notranslate"><span class="pre">vL,</span> <span class="pre">vR,</span> <span class="pre">p</span></code> (in any order).
 We recommend using <a class="reference internal" href="#tenpy.networks.mps.MPS.get_B" title="tenpy.networks.mps.MPS.get_B"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_B()</span></code></a> and <a class="reference internal" href="#tenpy.networks.mps.MPS.set_B" title="tenpy.networks.mps.MPS.set_B"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_B()</span></code></a>, which will take care of the different
@@ -324,6 +327,12 @@ Important if the state develops a near-degeneracy.</p>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#tenpy.networks.mps.MPS.get_theta" title="tenpy.networks.mps.MPS.get_theta"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_theta</span></code></a>(i[,&nbsp;n,&nbsp;cutoff,&nbsp;formL,&nbsp;formR])</td>
 <td>Calculates the <cite>n</cite>-site wavefunction on <code class="docutils literal notranslate"><span class="pre">sites[i:i+n]</span></code>.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.networks.mps.MPS.group_sites" title="tenpy.networks.mps.MPS.group_sites"><code class="xref py py-obj docutils literal notranslate"><span class="pre">group_sites</span></code></a>([n,&nbsp;grouped_sites])</td>
+<td>Modify <cite>self</cite> inplace to group sites.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.networks.mps.MPS.group_split" title="tenpy.networks.mps.MPS.group_split"><code class="xref py py-obj docutils literal notranslate"><span class="pre">group_split</span></code></a>([trunc_par])</td>
+<td>Modify <cite>self</cite> inplace to split previously grouped sites.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.networks.mps.MPS.mutinf_two_site" title="tenpy.networks.mps.MPS.mutinf_two_site"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mutinf_two_site</span></code></a>([max_range,&nbsp;n])</td>
 <td>Calculate the two-site mutual information <span class="math notranslate nohighlight">\(I(i:j)\)</span>.</td>
@@ -1337,6 +1346,71 @@ In Vidal’s notation (with s=lambda, G=Gamma):
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.mps.MPS.group_sites">
+<code class="descname">group_sites</code><span class="sig-paren">(</span><em>n=2</em>, <em>grouped_sites=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mps.html#MPS.group_sites"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mps.MPS.group_sites" title="Permalink to this definition">¶</a></dt>
+<dd><p>Modify <cite>self</cite> inplace to group sites.</p>
+<p>Group each <cite>n</cite> sites together using the <a class="reference internal" href="tenpy.networks.site.html#tenpy.networks.site.GroupedSite" title="tenpy.networks.site.GroupedSite"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroupedSite</span></code></a>.
+This might allow to do TEBD with a Trotter decomposition,
+or help the convergence of DMRG (in case of too long range interactions).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>n</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Number of sites to be grouped together.</p>
+</dd>
+<dt><strong>grouped_sites</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None | list of <a class="reference internal" href="tenpy.networks.site.html#tenpy.networks.site.GroupedSite" title="tenpy.networks.site.GroupedSite"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroupedSite</span></code></a></span></dt>
+<dd><p class="first last">The sites grouped together.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<dl class="last docutils">
+<dt><a class="reference internal" href="#tenpy.networks.mps.MPS.group_split" title="tenpy.networks.mps.MPS.group_split"><code class="xref py py-meth docutils literal notranslate"><span class="pre">group_split()</span></code></a></dt>
+<dd>Reverts the grouping.</dd>
+</dl>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.mps.MPS.group_split">
+<code class="descname">group_split</code><span class="sig-paren">(</span><em>trunc_par={}</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mps.html#MPS.group_split"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mps.MPS.group_split" title="Permalink to this definition">¶</a></dt>
+<dd><p>Modify <cite>self</cite> inplace to split previously grouped sites.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>trunc_par</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
+<dd><p class="first last">Parameters for truncation, see <a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.truncate" title="tenpy.algorithms.truncation.truncate"><code class="xref py py-func docutils literal notranslate"><span class="pre">truncate()</span></code></a>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>trunc_err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
+<dd><p class="first last">The error introduced by the truncation for the splitting.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<dl class="last docutils">
+<dt><a class="reference internal" href="#tenpy.networks.mps.MPS.group_sites" title="tenpy.networks.mps.MPS.group_sites"><code class="xref py py-meth docutils literal notranslate"><span class="pre">group_sites()</span></code></a></dt>
+<dd>Should have been used before to combine sites.</dd>
+</dl>
+</div>
 </dd></dl>
 
 <dl class="method">

@@ -113,13 +113,14 @@
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">reduce</span>
 <span class="kn">import</span> <span class="nn">scipy.sparse.linalg.eigen.arpack</span>
 
 <span class="kn">from</span> <span class="nn">..linalg</span> <span class="k">import</span> <span class="n">np_conserved</span> <span class="k">as</span> <span class="n">npc</span>
 <span class="kn">from</span> <span class="nn">..linalg</span> <span class="k">import</span> <span class="n">sparse</span>
+<span class="kn">from</span> <span class="nn">.site</span> <span class="k">import</span> <span class="n">GroupedSite</span><span class="p">,</span> <span class="n">group_sites</span>
 <span class="kn">from</span> <span class="nn">..tools.misc</span> <span class="k">import</span> <span class="n">to_iterable</span><span class="p">,</span> <span class="n">argsort</span>
 <span class="kn">from</span> <span class="nn">..tools.math</span> <span class="k">import</span> <span class="n">lcm</span><span class="p">,</span> <span class="n">speigs</span><span class="p">,</span> <span class="n">entropy</span>
-<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">reduce</span>
 <span class="kn">from</span> <span class="nn">..algorithms.truncation</span> <span class="k">import</span> <span class="n">TruncationError</span><span class="p">,</span> <span class="n">svd_theta</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;MPS&#39;</span><span class="p">,</span> <span class="s1">&#39;MPSEnvironment&#39;</span><span class="p">,</span> <span class="s1">&#39;TransferMatrix&#39;</span><span class="p">]</span>
@@ -165,6 +166,8 @@
 <span class="sd">    norm : float</span>
 <span class="sd">        The norm of the state, i.e. ``sqrt(&lt;psi|psi&gt;)``.</span>
 <span class="sd">        Ignored for (normalized) :meth:`expectation_value`, but important for :meth:`overlap`.</span>
+<span class="sd">    grouped : int</span>
+<span class="sd">        Number of sites grouped together, see :meth:`group_sites`.</span>
 <span class="sd">    _B : list of :class:`npc.Array`</span>
 <span class="sd">        The &#39;matrices&#39; of the MPS. Labels are ``vL, vR, p`` (in any order).</span>
 <span class="sd">        We recommend using :meth:`get_B` and :meth:`set_B`, which will take care of the different</span>
@@ -206,6 +209,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">form</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_form</span><span class="p">(</span><span class="n">form</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="o">=</span> <span class="n">bc</span>  <span class="c1"># one of ``&#39;finite&#39;, &#39;periodic&#39;, &#39;segment&#39;``.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">=</span> <span class="n">norm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grouped</span> <span class="o">=</span> <span class="mi">1</span>
 
         <span class="c1"># make copies of Bs and SVs</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_B</span> <span class="o">=</span> <span class="p">[</span><span class="n">B</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">for</span> <span class="n">B</span> <span class="ow">in</span> <span class="n">Bs</span><span class="p">]</span>
@@ -587,6 +591,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># __init__ makes deep copies of B, S</span>
         <span class="n">cp</span> <span class="o">=</span> <span class="n">MPS</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_B</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_S</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">form</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">)</span>
+        <span class="n">cp</span><span class="o">.</span><span class="n">grouped</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grouped</span>
         <span class="n">cp</span><span class="o">.</span><span class="n">_transfermatrix_keep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transfermatrix_keep</span>
         <span class="k">return</span> <span class="n">cp</span></div>
 
@@ -809,6 +814,108 @@
             <span class="n">new_B</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_B</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="n">form</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># calculates the desired form.</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">set_B</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">new_B</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="n">form</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="MPS.group_sites"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.html#tenpy.networks.mps.MPS.group_sites">[docs]</a>    <span class="k">def</span> <span class="nf">group_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">grouped_sites</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Modify `self` inplace to group sites.</span>
+
+<span class="sd">        Group each `n` sites together using the :class:`~tenpy.networks.site.GroupedSite`.</span>
+<span class="sd">        This might allow to do TEBD with a Trotter decomposition,</span>
+<span class="sd">        or help the convergence of DMRG (in case of too long range interactions).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        n : int</span>
+<span class="sd">            Number of sites to be grouped together.</span>
+<span class="sd">        grouped_sites : None | list of :class:`~tenpy.networks.site.GroupedSite`</span>
+<span class="sd">            The sites grouped together.</span>
+
+<span class="sd">        See also</span>
+<span class="sd">        --------</span>
+<span class="sd">        :meth:`group_split` : Reverts the grouping.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">convert_form</span><span class="p">(</span><span class="s1">&#39;B&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">grouped_sites</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">grouped_sites</span> <span class="o">=</span> <span class="n">group_sites</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">charges</span><span class="o">=</span><span class="s1">&#39;same&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">grouped_sites</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">n_sites</span> <span class="o">==</span> <span class="n">n</span>
+        <span class="n">Bs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">Ss</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">gs</span> <span class="ow">in</span> <span class="n">grouped_sites</span><span class="p">:</span>
+            <span class="n">new_B</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_B</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">itranspose</span><span class="p">([</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">gs</span><span class="o">.</span><span class="n">n_sites</span><span class="p">):</span>
+                <span class="n">B</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_B</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="n">j</span><span class="p">)</span><span class="o">.</span><span class="n">itranspose</span><span class="p">([</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">])</span>
+                <span class="n">new_B</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">new_B</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+            <span class="n">new_B</span> <span class="o">=</span> <span class="n">new_B</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">gs</span><span class="o">.</span><span class="n">n_sites</span><span class="o">+</span><span class="mi">1</span><span class="p">)),</span> <span class="n">pipes</span><span class="o">=</span><span class="n">gs</span><span class="o">.</span><span class="n">leg</span><span class="p">,</span> <span class="n">qconj</span><span class="o">=+</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">Bs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_B</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">]))</span>
+            <span class="n">Ss</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_S</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="n">gs</span><span class="o">.</span><span class="n">n_sites</span>
+        <span class="n">Ss</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_S</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>  <span class="c1"># right-most singular values: need L+1 entries</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_B</span> <span class="o">=</span> <span class="n">Bs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_S</span> <span class="o">=</span> <span class="n">Ss</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sites</span> <span class="o">=</span> <span class="n">grouped_sites</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">form</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_valid_forms</span><span class="p">[</span><span class="s1">&#39;B&#39;</span><span class="p">]]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">grouped_sites</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grouped</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grouped</span> <span class="o">*</span> <span class="n">n</span></div>
+
+<div class="viewcode-block" id="MPS.group_split"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.html#tenpy.networks.mps.MPS.group_split">[docs]</a>    <span class="k">def</span> <span class="nf">group_split</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trunc_par</span><span class="o">=</span><span class="p">{}):</span>
+        <span class="sd">&quot;&quot;&quot;Modify `self` inplace to split previously grouped sites.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        trunc_par : dict</span>
+<span class="sd">            Parameters for truncation, see :func:`~tenpy.algorithms.truncation.truncate`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        trunc_err : :class:`~tenpy.algorithms.truncation.TruncationError`</span>
+<span class="sd">            The error introduced by the truncation for the splitting.</span>
+
+<span class="sd">        See also</span>
+<span class="sd">        --------</span>
+<span class="sd">        :meth:`group_sites` : Should have been used before to combine sites.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">convert_form</span><span class="p">(</span><span class="s1">&#39;B&#39;</span><span class="p">)</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">sites</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">Bs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">Ss</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">trunc_err</span> <span class="o">=</span> <span class="n">TruncationError</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">gs</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">):</span>
+            <span class="n">sites</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">gs</span><span class="o">.</span><span class="n">sites</span><span class="p">)</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="n">gs</span><span class="o">.</span><span class="n">n_sites</span>
+            <span class="n">Ss_new</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">Bs_new</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">B_gr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_B</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">([</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">])</span>
+            <span class="k">del</span> <span class="n">B_gr</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s1">&#39;p&#39;</span><span class="p">]</span>  <span class="c1"># avoid warning that we split a label with out &#39;(...)&#39;</span>
+            <span class="n">B_gr</span> <span class="o">=</span> <span class="n">B_gr</span><span class="o">.</span><span class="n">split_legs</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_theta</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">itranspose</span><span class="p">([</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">])</span>
+            <span class="k">del</span> <span class="n">theta</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s1">&#39;p0&#39;</span><span class="p">]</span>  <span class="c1"># avoid warning</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">split_legs</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="c1"># B_gr and theta have legs vL p0 p1 ... p{n-1} vR</span>
+            <span class="n">combine</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)),</span> <span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+                <span class="c1"># split off the right-most physical leg and vR from theta</span>
+                <span class="c1"># theta: vL p0 ... pj vR</span>
+                <span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">(</span><span class="n">combine</span><span class="p">,</span> <span class="n">qconj</span><span class="o">=</span><span class="p">[</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">err</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">svd_theta</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">trunc_par</span><span class="p">,</span> <span class="n">inner_labels</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">])</span>
+                <span class="n">Ss_new</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+                <span class="n">trunc_err</span> <span class="o">+=</span> <span class="n">err</span>
+                <span class="n">theta</span> <span class="o">=</span> <span class="n">U</span><span class="o">.</span><span class="n">split_legs</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="c1"># vL p0 ... pj-1 vR</span>
+                <span class="n">combine</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+                <span class="n">B</span> <span class="o">=</span> <span class="n">V</span><span class="o">.</span><span class="n">split_legs</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">])</span>
+                <span class="n">B_gr</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">B_gr</span><span class="p">,</span> <span class="n">B</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]])</span> <span class="c1"># vL p0 ... pj-1 vR</span>
+                <span class="n">Bs_new</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">B</span><span class="p">)</span>
+            <span class="n">Bs_new</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">B_gr</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">]))</span>  <span class="c1"># inversion free :)</span>
+            <span class="n">Ss_new</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_SL</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+            <span class="n">Bs</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">Bs_new</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">Ss</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">Ss_new</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">Ss</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_S</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sites</span> <span class="o">=</span> <span class="n">sites</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_B</span> <span class="o">=</span> <span class="n">Bs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_S</span> <span class="o">=</span> <span class="n">Ss</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grouped</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grouped</span> <span class="o">//</span> <span class="n">n</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">form</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_valid_forms</span><span class="p">[</span><span class="s1">&#39;B&#39;</span><span class="p">]]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">sites</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">trunc_err</span></div>
+
 <div class="viewcode-block" id="MPS.entanglement_entropy"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.html#tenpy.networks.mps.MPS.entanglement_entropy">[docs]</a>    <span class="k">def</span> <span class="nf">entanglement_entropy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bonds</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">for_matrix_S</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculate the (half-chain) entanglement entropy for all nontrivial bonds.</span>
 
@@ -1009,7 +1116,7 @@
 <span class="sd">            sites ``i, j = coords[k]``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1">#  Basically the code of get_rho_segment and entanglement_entropy,</span>
-        <span class="c1">#  but optimized to run in O(L^2)</span>
+        <span class="c1">#  but optimized to run in O(L*max_range)</span>
         <span class="k">if</span> <span class="n">max_range</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">max_range</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
         <span class="n">S_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">entanglement_entropy_segment</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>  <span class="c1"># single-site entropy</span>
