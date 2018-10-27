@@ -48,32 +48,62 @@
             
   <div class="section" id="module-tenpy.models.model">
 <span id="tenpy-models-model-module"></span><h1>tenpy.models.model module<a class="headerlink" href="#module-tenpy.models.model" title="Permalink to this headline">¶</a></h1>
-<p>This module contains some base classes for a model.</p>
+<p>This module contains some base classes for models.</p>
 <p>A ‘model’ is supposed to represent a Hamiltonian in a generalized way.
-Beside a <a class="reference internal" href="tenpy.models.lattice.html#tenpy.models.lattice.Lattice" title="tenpy.models.lattice.Lattice"><code class="xref py py-class docutils literal notranslate"><span class="pre">Lattice</span></code></a> specifying the geometry and
-underlying Hilbert space, it thus needs some way to represent the different terms
-of the Hamiltonian.</p>
+The <a class="reference internal" href="tenpy.models.lattice.html#tenpy.models.lattice.Lattice" title="tenpy.models.lattice.Lattice"><code class="xref py py-class docutils literal notranslate"><span class="pre">Lattice</span></code></a> specifies the geometry and
+underlying Hilbert space, and is thus common to all models.
+It is needed to intialize the common base class <a class="reference internal" href="#tenpy.models.model.Model" title="tenpy.models.model.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">Model</span></code></a> of all models.</p>
 <p>Different algorithms require different representations of the Hamiltonian.
-For example, if you only want to do DRMG, it is enough to specify the Hamiltonian
-as an MPO with a <a class="reference internal" href="#tenpy.models.model.MPOModel" title="tenpy.models.model.MPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPOModel</span></code></a>.
-On the other hand, TEBD needs the model to be ‘nearest neighbor’ and thus
-a representation by nearest-neighbor terms.</p>
+For example for DMRG, the Hamiltonian needs to be given as an MPO,
+while TEBD needs the Hamiltonian to be represented by ‘nearest neighbor’ bond terms.
+This module contains the base classes defining these possible representations,
+namley the <a class="reference internal" href="#tenpy.models.model.MPOModel" title="tenpy.models.model.MPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPOModel</span></code></a> and <code class="xref py py-class docutils literal notranslate"><span class="pre">NearestNeigborModel</span></code>.</p>
+<p>A particular model like the <code class="xref py py-class docutils literal notranslate"><span class="pre">XXZ_chain</span></code> should then
+yet another class derived from these classes. In it’s __init__, it needs to explicitly call
+the <code class="docutils literal notranslate"><span class="pre">MPOModel.__init__(self,</span> <span class="pre">lattice,</span> <span class="pre">H_MPO)</span></code>, providing an MPO representation of H,
+and also the <code class="docutils literal notranslate"><span class="pre">NearestNeigborModel.__init__(self,</span> <span class="pre">lattice,</span> <span class="pre">H_bond)</span></code>,
+providing a representation of H by bond terms <cite>H_bond</cite>.</p>
 <p>The <a class="reference internal" href="#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></a> is the attempt to generalize the representation of <cite>H</cite>
-by explicitly specifying the couplings of onsite-terms, and providing functionality
-for converting the specified couplings into an MPO or nearest-neighbor bonds.
-This allows to quickly generate new model classes for a broad class of Hamiltonians.
-For simplicity, the <a class="reference internal" href="#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></a> is limited to interactions involving only two sites.
-However, we also provide the <a class="reference internal" href="#tenpy.models.model.MultiCouplingModel" title="tenpy.models.model.MultiCouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">MultiCouplingModel</span></code></a> to generate Models for Hamiltonians
+by explicitly specifying the couplings in a general way, and providing functionality
+for converting them into <cite>H_MPO</cite> and <cite>H_bond</cite>.
+This allows to quickly generate new model classes for a very broad class of Hamiltonians.</p>
+<p>For simplicity, the <a class="reference internal" href="#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></a> is limited to interactions involving only two sites.
+Yet, we also provide the <a class="reference internal" href="#tenpy.models.model.MultiCouplingModel" title="tenpy.models.model.MultiCouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">MultiCouplingModel</span></code></a> to generate Models for Hamiltonians
 involving couplings between multiple sites.</p>
-<p>For other cases (e.g. exponentially decaying long-range interactions in 1D),
-it might be simpler to just specify the MPO explicitly.</p>
-<p>Of course, we also provide ways to transform a <a class="reference internal" href="#tenpy.models.model.NearestNeighborModel" title="tenpy.models.model.NearestNeighborModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NearestNeighborModel</span></code></a> into a
-<a class="reference internal" href="#tenpy.models.model.MPOModel" title="tenpy.models.model.MPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPOModel</span></code></a> and vice versa, as far as this is possible.</p>
-<p>See also the introduction <a class="reference internal" href="../intro_model.html"><span class="doc">Introduction to models</span></a>.</p>
+<p>See also the introduction in <a class="reference internal" href="../intro_model.html"><span class="doc">Introduction to models</span></a>.</p>
+<dl class="class">
+<dt id="tenpy.models.model.Model">
+<em class="property">class </em><code class="descclassname">tenpy.models.model.</code><code class="descname">Model</code><span class="sig-paren">(</span><em>lattice</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#Model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.Model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Base class for all models.</p>
+<p>The common base to all models is the underlying Hilbert space and geometry, specified by a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Lattice</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>lattice</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">Lattice</span></code></span></dt>
+<dd><p class="first last">The lattice defining the geometry and the local Hilbert space(s).</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>lat</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">Lattice</span></code></span></dt>
+<dd><p class="first last">The lattice defining the geometry and the local Hilbert space(s).</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="class">
 <dt id="tenpy.models.model.CouplingModel">
 <em class="property">class </em><code class="descclassname">tenpy.models.model.</code><code class="descname">CouplingModel</code><span class="sig-paren">(</span><em>lattice</em>, <em>bc_coupling=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#CouplingModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.CouplingModel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#tenpy.models.model.Model" title="tenpy.models.model.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.Model</span></code></a></p>
 <p>Base class for a general model of a Hamiltonian consisting of two-site couplings.</p>
 <p>In this class, the terms of the Hamiltonian are specified explicitly as onsite or coupling
 terms.</p>
@@ -100,9 +130,6 @@ when going around the boundary along this direction.</p>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>lat</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">Lattice</span></code></span></dt>
-<dd><p class="first last">The lattice defining the geometry and the local Hilbert space(s).</p>
-</dd>
 <dt><strong>onsite_terms</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of dict</span></dt>
 <dd><p class="first last">Filled by <a class="reference internal" href="#tenpy.models.model.CouplingModel.add_onsite" title="tenpy.models.model.CouplingModel.add_onsite"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_onsite()</span></code></a>.
 For each MPS index <cite>i</cite> a dictionary <code class="docutils literal notranslate"><span class="pre">{'opname':</span> <span class="pre">strength}</span></code> defining the onsite terms.</p>
@@ -572,10 +599,17 @@ e.g., op_string[0] is inserted between <cite>i</cite> and <cite>j</cite>.</p>
 
 <dl class="class">
 <dt id="tenpy.models.model.NearestNeighborModel">
-<em class="property">class </em><code class="descclassname">tenpy.models.model.</code><code class="descname">NearestNeighborModel</code><span class="sig-paren">(</span><em>lat</em>, <em>H_bond</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#NearestNeighborModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.NearestNeighborModel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>Base class for a model of nearest neigbor interactions (w.r.t. the MPS index).</p>
-<p>Suitable for TEBD.</p>
+<em class="property">class </em><code class="descclassname">tenpy.models.model.</code><code class="descname">NearestNeighborModel</code><span class="sig-paren">(</span><em>lattice</em>, <em>H_bond</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#NearestNeighborModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.NearestNeighborModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tenpy.models.model.Model" title="tenpy.models.model.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.Model</span></code></a></p>
+<p>Base class for a model of nearest neigbor interactions w.r.t. the MPS index.</p>
+<p>In this class, the Hamiltonian <span class="math notranslate nohighlight">\(H = \sum_{i} H_{i,i+1}\)</span> is represented by
+“bond terms” <span class="math notranslate nohighlight">\(H_{i,i+1}\)</span> acting only on two neighboring sites <cite>i</cite> and <cite>i+1</cite>,
+where <cite>i</cite> is an integer.
+Instances of this class are suitable for <a class="reference internal" href="tenpy.algorithms.tebd.html#module-tenpy.algorithms.tebd" title="tenpy.algorithms.tebd"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tebd</span></code></a>.</p>
+<p>Note that the “nearest-neighbor” in the name referst to the MPS index, not the lattice.
+In short, this works only for 1-dimensional (1D) nearest-neighbor models:
+A 2D lattice is internally mapped to a 1D MPS “snake”, and even a nearest-neighbor coupling
+in 2D becomes long-range in the MPS chain.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -592,9 +626,6 @@ e.g., op_string[0] is inserted between <cite>i</cite> and <cite>j</cite>.</p>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>lat</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.model.lattice.Lattice</span></code></span></dt>
-<dd><p class="first last">The lattice defining the geometry and the local Hilbert space(s).</p>
-</dd>
 <dt><strong>H_bond</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <code class="xref py py-class docutils literal notranslate"><span class="pre">npc.Array</span></code></span></dt>
 <dd><p class="first last">The Hamiltonian rewritten as <code class="docutils literal notranslate"><span class="pre">sum_i</span> <span class="pre">H_bond[i]</span></code> for MPS indices <code class="docutils literal notranslate"><span class="pre">i</span></code>.
 <code class="docutils literal notranslate"><span class="pre">H_bond[i]</span></code> acts on sites <code class="docutils literal notranslate"><span class="pre">(i-1,</span> <span class="pre">i)</span></code>.</p>
@@ -673,13 +704,15 @@ for infinite bc <code class="docutils literal notranslate"><span class="pre">E_b
 
 <dl class="class">
 <dt id="tenpy.models.model.MPOModel">
-<em class="property">class </em><code class="descclassname">tenpy.models.model.</code><code class="descname">MPOModel</code><span class="sig-paren">(</span><em>lat</em>, <em>H_MPO</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#MPOModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.MPOModel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<em class="property">class </em><code class="descclassname">tenpy.models.model.</code><code class="descname">MPOModel</code><span class="sig-paren">(</span><em>lattice</em>, <em>H_MPO</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#MPOModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.MPOModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tenpy.models.model.Model" title="tenpy.models.model.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.Model</span></code></a></p>
 <p>Base class for a model with an MPO representation of the Hamiltonian.</p>
-<p>Suitable for MPO-based algorithms, e.g. DMRG and MPO time evolution.</p>
+<p>In this class, the Hamiltonian gets represented by an <a class="reference internal" href="tenpy.networks.mpo.html#tenpy.networks.mpo.MPO" title="tenpy.networks.mpo.MPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPO</span></code></a>.
+Thus, instances of this class are suitable for MPO-based algorithms like DMRG
+<a class="reference internal" href="tenpy.algorithms.dmrg.html#module-tenpy.algorithms.dmrg" title="tenpy.algorithms.dmrg"><code class="xref py py-mod docutils literal notranslate"><span class="pre">dmrg</span></code></a> and MPO time evolution.</p>
 <div class="admonition-todo admonition" id="index-0">
 <p class="first admonition-title">Todo</p>
-<p class="last">implement: provide (function to calculate) the MPO for time evolution.
+<p class="last">implement MPO for time evolution…
 Also, provide function to get H_MPO from H_bond</p>
 </div>
 <table class="docutils field-list" frame="void" rules="none">
@@ -687,9 +720,6 @@ Also, provide function to get H_MPO from H_bond</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>lattice</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.model.lattice.Lattice</span></code></span></dt>
-<dd><p class="first last">The lattice defining the geometry and the local Hilbert space(s).</p>
-</dd>
 <dt><strong>H_MPO</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.networks.mpo.html#tenpy.networks.mpo.MPO" title="tenpy.networks.mpo.MPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPO</span></code></a></span></dt>
 <dd><p class="first last">The Hamiltonian rewritten as an MPO.</p>
 </dd>
@@ -697,10 +727,7 @@ Also, provide function to get H_MPO from H_bond</p>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>lat</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.model.lattice.Lattice</span></code></span></dt>
-<dd><p class="first last">The lattice defining the geometry and the local Hilbert space(s).</p>
-</dd>
-<dt><strong>H_MPO</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.tn.mpo.MPO</span></code></span></dt>
+<dt><strong>H_MPO</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.networks.mpo.html#tenpy.networks.mpo.MPO" title="tenpy.networks.mpo.MPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.networks.mpo.MPO</span></code></a></span></dt>
 <dd><p class="first last">MPO representation of the Hamiltonian.</p>
 </dd>
 </dl>

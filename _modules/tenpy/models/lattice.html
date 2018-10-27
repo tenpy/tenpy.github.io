@@ -967,6 +967,29 @@
         <span class="n">Lattice</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="p">[</span><span class="n">Lx</span><span class="p">,</span> <span class="n">Ly</span><span class="p">],</span> <span class="n">sites</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
+<span class="k">def</span> <span class="nf">get_lattice</span><span class="p">(</span><span class="n">lattice_name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Given the name of a :class:`Lattice` class, create an instance of it with gi.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    lattice_name : str</span>
+<span class="sd">        Name of a :class:`Lattice` class defined in the module :mod:`~tenpy.models.lattice`,</span>
+<span class="sd">        for example ``&quot;Chain&quot;, &quot;Square&quot;, &quot;Honeycomb&quot;, ...``.</span>
+<span class="sd">    *args, **kwargs</span>
+<span class="sd">        Arguments and keyword-arguments for the initialization of the specified lattice class.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    lat : Lattice instance</span>
+<span class="sd">        An instance of the lattice class specified by `name`, initialized with</span>
+<span class="sd">        ``LatticeClass(*args, **kwargs)``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">LatticeClass</span> <span class="o">=</span> <span class="nb">globals</span><span class="p">()[</span><span class="n">lattice_name</span><span class="p">]</span>
+    <span class="n">lat</span> <span class="o">=</span> <span class="n">LatticeClass</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lat</span><span class="p">,</span> <span class="n">Lattice</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">lat</span>
+
+
 <div class="viewcode-block" id="get_order"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.get_order">[docs]</a><span class="k">def</span> <span class="nf">get_order</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">snake_winding</span><span class="p">,</span> <span class="n">priority</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Built the :attr:`Lattice.order` in (Snake-) C-Style for a given lattice shape.</span>
 

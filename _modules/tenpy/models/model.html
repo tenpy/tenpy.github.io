@@ -38,34 +38,35 @@
           <div class="body" role="main">
             
   <h1>Source code for tenpy.models.model</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;This module contains some base classes for a model.</span>
+<span></span><span class="sd">&quot;&quot;&quot;This module contains some base classes for models.</span>
 
 <span class="sd">A &#39;model&#39; is supposed to represent a Hamiltonian in a generalized way.</span>
-<span class="sd">Beside a :class:`~tenpy.models.lattice.Lattice` specifying the geometry and</span>
-<span class="sd">underlying Hilbert space, it thus needs some way to represent the different terms</span>
-<span class="sd">of the Hamiltonian.</span>
+<span class="sd">The :class:`~tenpy.models.lattice.Lattice` specifies the geometry and</span>
+<span class="sd">underlying Hilbert space, and is thus common to all models.</span>
+<span class="sd">It is needed to intialize the common base class :class:`Model` of all models.</span>
 
 <span class="sd">Different algorithms require different representations of the Hamiltonian.</span>
-<span class="sd">For example, if you only want to do DRMG, it is enough to specify the Hamiltonian</span>
-<span class="sd">as an MPO with a :class:`MPOModel`.</span>
-<span class="sd">On the other hand, TEBD needs the model to be &#39;nearest neighbor&#39; and thus</span>
-<span class="sd">a representation by nearest-neighbor terms.</span>
+<span class="sd">For example for DMRG, the Hamiltonian needs to be given as an MPO,</span>
+<span class="sd">while TEBD needs the Hamiltonian to be represented by &#39;nearest neighbor&#39; bond terms.</span>
+<span class="sd">This module contains the base classes defining these possible representations,</span>
+<span class="sd">namley the :class:`MPOModel` and :class:`NearestNeigborModel`.</span>
+
+<span class="sd">A particular model like the :class:`~tenpy.models.models.xxz_chain.XXZ_chain` should then</span>
+<span class="sd">yet another class derived from these classes. In it&#39;s __init__, it needs to explicitly call</span>
+<span class="sd">the ``MPOModel.__init__(self, lattice, H_MPO)``, providing an MPO representation of H,</span>
+<span class="sd">and also the ``NearestNeigborModel.__init__(self, lattice, H_bond)``,</span>
+<span class="sd">providing a representation of H by bond terms `H_bond`.</span>
 
 <span class="sd">The :class:`CouplingModel` is the attempt to generalize the representation of `H`</span>
-<span class="sd">by explicitly specifying the couplings of onsite-terms, and providing functionality</span>
-<span class="sd">for converting the specified couplings into an MPO or nearest-neighbor bonds.</span>
-<span class="sd">This allows to quickly generate new model classes for a broad class of Hamiltonians.</span>
+<span class="sd">by explicitly specifying the couplings in a general way, and providing functionality</span>
+<span class="sd">for converting them into `H_MPO` and `H_bond`.</span>
+<span class="sd">This allows to quickly generate new model classes for a very broad class of Hamiltonians.</span>
+
 <span class="sd">For simplicity, the :class:`CouplingModel` is limited to interactions involving only two sites.</span>
-<span class="sd">However, we also provide the :class:`MultiCouplingModel` to generate Models for Hamiltonians</span>
+<span class="sd">Yet, we also provide the :class:`MultiCouplingModel` to generate Models for Hamiltonians</span>
 <span class="sd">involving couplings between multiple sites.</span>
 
-<span class="sd">For other cases (e.g. exponentially decaying long-range interactions in 1D),</span>
-<span class="sd">it might be simpler to just specify the MPO explicitly.</span>
-
-<span class="sd">Of course, we also provide ways to transform a :class:`NearestNeighborModel` into a</span>
-<span class="sd">:class:`MPOModel` and vice versa, as far as this is possible.</span>
-
-<span class="sd">See also the introduction :doc:`/intro_model`.</span>
+<span class="sd">See also the introduction in :doc:`/intro_model`.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="c1"># Copyright 2018 TeNPy Developers</span>
 
@@ -76,10 +77,39 @@
 <span class="kn">from</span> <span class="nn">..tools.misc</span> <span class="k">import</span> <span class="n">to_array</span>
 <span class="kn">from</span> <span class="nn">..networks</span> <span class="k">import</span> <span class="n">mpo</span>  <span class="c1"># used to construct the Hamiltonian as MPO</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;CouplingModel&#39;</span><span class="p">,</span> <span class="s1">&#39;MultiCouplingModel&#39;</span><span class="p">,</span> <span class="s1">&#39;NearestNeighborModel&#39;</span><span class="p">,</span> <span class="s1">&#39;MPOModel&#39;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Model&#39;</span><span class="p">,</span> <span class="s1">&#39;CouplingModel&#39;</span><span class="p">,</span> <span class="s1">&#39;MultiCouplingModel&#39;</span><span class="p">,</span> <span class="s1">&#39;NearestNeighborModel&#39;</span><span class="p">,</span> <span class="s1">&#39;MPOModel&#39;</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="CouplingModel"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.CouplingModel">[docs]</a><span class="k">class</span> <span class="nc">CouplingModel</span><span class="p">:</span>
+<div class="viewcode-block" id="Model"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.Model">[docs]</a><span class="k">class</span> <span class="nc">Model</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Base class for all models.</span>
+
+<span class="sd">    The common base to all models is the underlying Hilbert space and geometry, specified by a</span>
+<span class="sd">    :class:`~tenpy.model.lattice.Lattice`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    lattice : :class:`~tenpy.model.lattice.Lattice`</span>
+<span class="sd">        The lattice defining the geometry and the local Hilbert space(s).</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    lat : :class:`~tenpy.model.lattice.Lattice`</span>
+<span class="sd">        The lattice defining the geometry and the local Hilbert space(s).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">):</span>
+        <span class="c1"># NOTE: every subclass like CouplingModel, MPOModel, NearestNeigborModel calls this</span>
+        <span class="c1"># __init__, so it get&#39;s called multiple times when a user implements e.g. a</span>
+        <span class="c1"># class MyModel(CouplingModel, NearestNeigborModel, MPOModel).</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;lat&#39;</span><span class="p">):</span>
+            <span class="c1"># first call: initialize everything</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lat</span> <span class="o">=</span> <span class="n">lattice</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Model.__init__() got called before</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">lattice</span><span class="p">:</span>  <span class="c1"># expect the *same instance*!</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Model.__init__() called with different lattice instances.&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="CouplingModel"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.CouplingModel">[docs]</a><span class="k">class</span> <span class="nc">CouplingModel</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Base class for a general model of a Hamiltonian consisting of two-site couplings.</span>
 
 <span class="sd">    In this class, the terms of the Hamiltonian are specified explicitly as onsite or coupling</span>
@@ -102,8 +132,6 @@
 
 <span class="sd">    Attributes</span>
 <span class="sd">    ----------</span>
-<span class="sd">    lat : :class:`~tenpy.model.lattice.Lattice`</span>
-<span class="sd">        The lattice defining the geometry and the local Hilbert space(s).</span>
 <span class="sd">    onsite_terms : list of dict</span>
 <span class="sd">        Filled by :meth:`add_onsite`.</span>
 <span class="sd">        For each MPS index `i` a dictionary ``{&#39;opname&#39;: strength}`` defining the onsite terms.</span>
@@ -119,7 +147,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">,</span> <span class="n">bc_coupling</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">lat</span> <span class="o">=</span> <span class="n">lattice</span>
+        <span class="n">Model</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">bc_coupling</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;`bc_coupling` in CouplingModel: use `bc` in Lattice instead&quot;</span><span class="p">,</span>
                           <span class="ne">FutureWarning</span><span class="p">)</span>
@@ -768,10 +796,18 @@
         <span class="c1"># done</span>
 
 
-<div class="viewcode-block" id="NearestNeighborModel"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel">[docs]</a><span class="k">class</span> <span class="nc">NearestNeighborModel</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Base class for a model of nearest neigbor interactions (w.r.t. the MPS index).</span>
+<div class="viewcode-block" id="NearestNeighborModel"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel">[docs]</a><span class="k">class</span> <span class="nc">NearestNeighborModel</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base class for a model of nearest neigbor interactions w.r.t. the MPS index.</span>
 
-<span class="sd">    Suitable for TEBD.</span>
+<span class="sd">    In this class, the Hamiltonian :math:`H = \sum_{i} H_{i,i+1}` is represented by</span>
+<span class="sd">    &quot;bond terms&quot; :math:`H_{i,i+1}` acting only on two neighboring sites `i` and `i+1`,</span>
+<span class="sd">    where `i` is an integer.</span>
+<span class="sd">    Instances of this class are suitable for :mod:`~tenpy.algorithms.tebd`.</span>
+
+<span class="sd">    Note that the &quot;nearest-neighbor&quot; in the name referst to the MPS index, not the lattice.</span>
+<span class="sd">    In short, this works only for 1-dimensional (1D) nearest-neighbor models:</span>
+<span class="sd">    A 2D lattice is internally mapped to a 1D MPS &quot;snake&quot;, and even a nearest-neighbor coupling</span>
+<span class="sd">    in 2D becomes long-range in the MPS chain.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -783,18 +819,16 @@
 
 <span class="sd">    Attributes</span>
 <span class="sd">    ----------</span>
-<span class="sd">    lat : :class:`tenpy.model.lattice.Lattice`</span>
-<span class="sd">        The lattice defining the geometry and the local Hilbert space(s).</span>
 <span class="sd">    H_bond : list of :class:`npc.Array`</span>
 <span class="sd">        The Hamiltonian rewritten as ``sum_i H_bond[i]`` for MPS indices ``i``.</span>
 <span class="sd">        ``H_bond[i]`` acts on sites ``(i-1, i)``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">H_bond</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">lat</span> <span class="o">=</span> <span class="n">lat</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">,</span> <span class="n">H_bond</span><span class="p">):</span>
+        <span class="n">Model</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">H_bond</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">bc_MPS</span> <span class="o">!=</span> <span class="s1">&#39;infinite&#39;</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span>
         <span class="n">NearestNeighborModel</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="c1"># like self.test_sanity(), but use the version defined below even for derived class</span>
 
@@ -828,32 +862,30 @@
         <span class="k">return</span> <span class="n">psi</span><span class="o">.</span><span class="n">expectation_value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">]))</span></div></div>
 
 
-<div class="viewcode-block" id="MPOModel"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.MPOModel">[docs]</a><span class="k">class</span> <span class="nc">MPOModel</span><span class="p">:</span>
+<div class="viewcode-block" id="MPOModel"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.MPOModel">[docs]</a><span class="k">class</span> <span class="nc">MPOModel</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Base class for a model with an MPO representation of the Hamiltonian.</span>
 
-<span class="sd">    Suitable for MPO-based algorithms, e.g. DMRG and MPO time evolution.</span>
+<span class="sd">    In this class, the Hamiltonian gets represented by an :class:`~tenpy.networks.mpo.MPO`.</span>
+<span class="sd">    Thus, instances of this class are suitable for MPO-based algorithms like DMRG</span>
+<span class="sd">    :mod:`~tenpy.algorithms.dmrg` and MPO time evolution.</span>
 
 <span class="sd">    .. todo ::</span>
-<span class="sd">        implement: provide (function to calculate) the MPO for time evolution.</span>
+<span class="sd">        implement MPO for time evolution...</span>
 <span class="sd">        Also, provide function to get H_MPO from H_bond</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    lattice : :class:`tenpy.model.lattice.Lattice`</span>
-<span class="sd">        The lattice defining the geometry and the local Hilbert space(s).</span>
 <span class="sd">    H_MPO : :class:`~tenpy.networks.mpo.MPO`</span>
 <span class="sd">        The Hamiltonian rewritten as an MPO.</span>
 
 <span class="sd">    Attributes</span>
 <span class="sd">    ----------</span>
-<span class="sd">    lat : :class:`tenpy.model.lattice.Lattice`</span>
-<span class="sd">        The lattice defining the geometry and the local Hilbert space(s).</span>
-<span class="sd">    H_MPO : :class:`tenpy.tn.mpo.MPO`</span>
+<span class="sd">    H_MPO : :class:`tenpy.networks.mpo.MPO`</span>
 <span class="sd">        MPO representation of the Hamiltonian.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">H_MPO</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">lat</span> <span class="o">=</span> <span class="n">lat</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">,</span> <span class="n">H_MPO</span><span class="p">):</span>
+        <span class="n">Model</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">H_MPO</span> <span class="o">=</span> <span class="n">H_MPO</span>
         <span class="n">MPOModel</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="c1"># like self.test_sanity(), but use the version defined below even for derived class</span>

@@ -63,19 +63,23 @@ The “chain” suggests open boundaries, which are in most cases preferable for
 <li>The range of <cite>i</cite>: How many sites do we consider (for a 2D system: in each direction)?</li>
 </ul>
 <p>Obviously, these things need to be specified in TeNPy in one way or another, if we want to define a model.</p>
-<p>Ultimately, our goal is to run some algorithm. Each algorithm requires the model to be specified in a particular form.
+<p>Ultimately, our goal is to run some algorithm. Each algorithm requires the model and Hamiltonian to be specified in a particular form.
+We have one class for each such required form.
 For example <a class="reference internal" href="reference/tenpy.algorithms.dmrg.html#module-tenpy.algorithms.dmrg" title="tenpy.algorithms.dmrg"><code class="xref py py-mod docutils literal notranslate"><span class="pre">dmrg</span></code></a> requires an <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.MPOModel" title="tenpy.models.model.MPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPOModel</span></code></a>,
 which contains the Hamiltonian written as an <a class="reference internal" href="reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPO" title="tenpy.networks.mpo.MPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPO</span></code></a>.
 On the other hand, if we want to evolve a state with <a class="reference internal" href="reference/tenpy.algorithms.tebd.html#module-tenpy.algorithms.tebd" title="tenpy.algorithms.tebd"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tebd</span></code></a>
 we need a <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel" title="tenpy.models.model.NearestNeighborModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NearestNeighborModel</span></code></a>, in which the Hamiltonian is written in terms of
 two-site bond-terms to allow a Suzuki-Trotter decomposition of the time-evolution operator.</p>
+<p>Implmenting you own model ultimatley means to get an instance of <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.MPOModel" title="tenpy.models.model.MPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPOModel</span></code></a> or <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel" title="tenpy.models.model.NearestNeighborModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NearestNeighborModel</span></code></a>.
+The predefined classes in the other modules under <a class="reference internal" href="reference/tenpy.models.html#module-tenpy.models" title="tenpy.models"><code class="xref py py-mod docutils literal notranslate"><span class="pre">models</span></code></a> are subclasses of at least one of those,
+you will see examples later down below.</p>
 </div>
 <div class="section" id="the-hilbert-space">
 <h2>The Hilbert space<a class="headerlink" href="#the-hilbert-space" title="Permalink to this headline">¶</a></h2>
 <p>The <strong>local Hilbert</strong> space is represented by a <a class="reference internal" href="reference/tenpy.networks.site.html#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a> (read its doc-string!).
 In particular, the <cite>Site</cite> contains the local <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge" title="tenpy.linalg.charges.LegCharge"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegCharge</span></code></a> and hence the meaning of each
 basis state needs to be defined.
-Beside that, the site contains the local operators, which in some sense just defines the meaning of the local basis.
+Beside that, the site contains the local operators - those give the real meaning to the local basis.
 Having the local operators in the site is very convenient, because it makes them available by name for example when you want to calculate expectation values.
 The most common sites (e.g. for spins, spin-less or spin-full fermions, or bosons) are predefined
 in the module <a class="reference internal" href="reference/tenpy.networks.site.html#module-tenpy.networks.site" title="tenpy.networks.site"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tenpy.networks.site</span></code></a>, but if necessary you can easily extend them
@@ -87,10 +91,17 @@ by adding further local operators or completely write your own subclasses of <a 
 <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.ChargeInfo" title="tenpy.linalg.np_conserved.ChargeInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChargeInfo</span></code></a> in order to allow the contraction of tensors acting on the various sites.
 This can be ensured with the function <a class="reference internal" href="reference/tenpy.networks.site.html#tenpy.networks.site.multi_sites_combine_charges" title="tenpy.networks.site.multi_sites_combine_charges"><code class="xref py py-func docutils literal notranslate"><span class="pre">multi_sites_combine_charges()</span></code></a>.</p>
 </div>
-<p>(If you are not familiar with the charges, read the <a class="reference internal" href="intro_npc.html"><span class="doc">Introduction to np_conserved</span></a>)
-An example where <a class="reference internal" href="reference/tenpy.networks.site.html#tenpy.networks.site.multi_sites_combine_charges" title="tenpy.networks.site.multi_sites_combine_charges"><code class="xref py py-func docutils literal notranslate"><span class="pre">multi_sites_combine_charges()</span></code></a> is needed would be a coupling of different
+<p>An example where <a class="reference internal" href="reference/tenpy.networks.site.html#tenpy.networks.site.multi_sites_combine_charges" title="tenpy.networks.site.multi_sites_combine_charges"><code class="xref py py-func docutils literal notranslate"><span class="pre">multi_sites_combine_charges()</span></code></a> is needed would be a coupling of different
 types of sites, e.g., when a tight binding chain of fermions is coupled to some local spin degrees of freedom.
 Another use case of this function would be a model with a $U(1)$ symmetry involving only half the sites, say <span class="math notranslate nohighlight">\(\sum_{i=0}^{L/2} n_{2i}\)</span>.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">If you don’t know about the charges and <cite>np_conserved</cite> yet, but want to get started with models right away,
+you can set <code class="docutils literal notranslate"><span class="pre">conserve=None</span></code> in the existing sites or use
+<code class="docutils literal notranslate"><span class="pre">leg</span> <span class="pre">=</span> <span class="pre">tenpy.linalg.np_conserved.LegCharge.from_trivial(d)</span></code> for an implementation of your custom site,
+where <cite>d</cite> is the dimension of the local Hilbert space.
+Alternatively, you can find some introduction to the charges in the <a class="reference internal" href="intro_npc.html"><span class="doc">Introduction to np_conserved</span></a>.</p>
+</div>
 </div>
 <div class="section" id="the-geometry-lattices">
 <h2>The geometry : lattices<a class="headerlink" href="#the-geometry-lattices" title="Permalink to this headline">¶</a></h2>
@@ -151,26 +162,72 @@ orderings.</p>
 Therefore, we have automated this mapping in TeNPy as explained in the next section.
 (Nevertheless it’s a good exercise you should do at least once in your life to understand how it works!)</p>
 </div>
+<div class="section" id="implementing-you-own-model">
+<h2>Implementing you own model<a class="headerlink" href="#implementing-you-own-model" title="Permalink to this headline">¶</a></h2>
+<p>When you want to simulate a model not provided in <a class="reference internal" href="reference/tenpy.models.html#module-tenpy.models" title="tenpy.models"><code class="xref py py-mod docutils literal notranslate"><span class="pre">models</span></code></a>, you need to implement your own model class,
+lets call it <code class="docutils literal notranslate"><span class="pre">MyNewModel</span></code>.
+The idea is that you define a new subclass of one or multiple of the model base classes.
+For example, when you plan to do DMRG, you have to provide an MPO in a <code class="xref py py-class docutils literal notranslate"><span class="pre">MPOModel</span></code>,
+so your model class should look like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">MyNewModel</span><span class="p">(</span><span class="n">MPOModel</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;General strucutre for a model suitable for DMRG.</span>
+
+<span class="sd">    Here is a good place to document the represented Hamiltonian and parameters.</span>
+
+<span class="sd">    In the models of TeNPy, we usually take a single dictionary `model_params`</span>
+<span class="sd">    containing all parameters, and read values out with ``tenpy.tools.params.get_parameter(...)``,</span>
+<span class="sd">    The model needs to provide default values if the parameters was not specified.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">):</span>
+        <span class="c1"># some code here to read out model parameters and generate H_MPO</span>
+        <span class="n">lattice</span> <span class="o">=</span> <span class="n">somehow_generate_lattice</span><span class="p">(</span><span class="n">model_params</span><span class="p">)</span>
+        <span class="n">H_MPO</span> <span class="o">=</span> <span class="n">somehow_generate_MPO</span><span class="p">(</span><span class="n">lattice</span><span class="p">,</span> <span class="n">model_params</span><span class="p">)</span>
+        <span class="c1"># initialize MPOModel</span>
+        <span class="n">MPOModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">,</span> <span class="n">H_MPO</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>TEBD requires another representation of H in terms of bond terms <cite>H_bond</cite> given to a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">NearestNeighborModel</span></code>, so in this case it would look so like this instead:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">MyNewModel2</span><span class="p">(</span><span class="n">NearestNeighborModel</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;General strucutre for a model suitable for TEBD.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">):</span>
+        <span class="c1"># some code here to read out model parameters and generate H_bond</span>
+        <span class="n">lattice</span> <span class="o">=</span> <span class="n">somehow_generate_lattice</span><span class="p">(</span><span class="n">model_params</span><span class="p">)</span>
+        <span class="n">H_bond</span> <span class="o">=</span> <span class="n">somehow_generate_H_bond</span><span class="p">(</span><span class="n">lattice</span><span class="p">,</span> <span class="n">model_params</span><span class="p">)</span>
+        <span class="c1"># initialize MPOModel</span>
+        <span class="n">NearestNeighborModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">,</span> <span class="n">H_bond</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Of course, the difficult part in these examples is to generate the <code class="docutils literal notranslate"><span class="pre">H_MPO</span></code> and <code class="docutils literal notranslate"><span class="pre">H_bond</span></code>.
+Moreover, it’s quite annoying to write every model multiple times,
+just because we need different representations of the same Hamiltonian.
+Luckily, there is a way out in TeNPy: the CouplingModel!</p>
+</div>
 <div class="section" id="the-easy-way-to-new-models-the-multi-couplingmodel">
 <h2>The easy way to new models: the (Multi)CouplingModel<a class="headerlink" href="#the-easy-way-to-new-models-the-multi-couplingmodel" title="Permalink to this headline">¶</a></h2>
-<p>The <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></a> provides a general, more abstract way to specify a Hamiltonian
+<p>The <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></a> provides a general, quite abstract way to specify a Hamiltonian
 of two-site couplings on a given lattice.
-Once initialized with the lattice, its methods <code class="xref py py-meth docutils literal notranslate"><span class="pre">add_onsite()</span></code> and <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingModel.add_coupling" title="tenpy.models.model.CouplingModel.add_coupling"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_coupling()</span></code></a> allow to add onsite and coupling terms repeated over the different
+Once initialized, its methods <code class="xref py py-meth docutils literal notranslate"><span class="pre">add_onsite()</span></code> and
+<a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingModel.add_coupling" title="tenpy.models.model.CouplingModel.add_coupling"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_coupling()</span></code></a> allow to add onsite and coupling terms repeated over the different
 unit cells of the lattice.
-In that way, it basically allows a straight-forward translation of the Hamiltonian into a new model.
-The basic idea is to define a new class, which is a subclass of the <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></a>
-and the model of the desired representations (<a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.MPOModel" title="tenpy.models.model.MPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPOModel</span></code></a> and <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel" title="tenpy.models.model.NearestNeighborModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NearestNeighborModel</span></code></a>).
-In the initialization method <code class="docutils literal notranslate"><span class="pre">__init__(self,</span> <span class="pre">...)</span></code> of this class you can then follow these basic steps:</p>
+In that way, it basically allows a straight-forward translation of the Hamiltonian given as a math forumla
+<span class="math notranslate nohighlight">\(H = \sum_{i} A_i B_{i+dx} + ...\)</span> with onsite operators <cite>A</cite>, <cite>B</cite>,… into a model class.</p>
+<p>To use this model, you</p>
+<p>In the initialization method <code class="docutils literal notranslate"><span class="pre">__init__(self,</span> <span class="pre">...)</span></code> of this class you can then follow these basic steps:</p>
 <ol class="arabic" start="0">
-<li><p class="first">Read out the parameters</p>
+<li><p class="first">Read out the parameters.</p>
 </li>
 <li><p class="first">Given the parameters, determine the charges to be conserved.
 Initialize the <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge" title="tenpy.linalg.charges.LegCharge"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegCharge</span></code></a> of the local sites accordingly.</p>
 </li>
 <li><p class="first">Define (additional) local operators needed.</p>
 </li>
-<li><p class="first">Initialize the needed <a class="reference internal" href="reference/tenpy.networks.site.html#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a>.
-Using pre-defined sites can replace steps 1-3.</p>
+<li><p class="first">Initialize the needed <a class="reference internal" href="reference/tenpy.networks.site.html#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a>.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Using pre-defined sites like the <a class="reference internal" href="reference/tenpy.networks.site.html#tenpy.networks.site.SpinHalfSite" title="tenpy.networks.site.SpinHalfSite"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinHalfSite</span></code></a> is recommended and
+can replace steps 1-3.</p>
+</div>
 </li>
 <li><p class="first">Initialize the lattice (or if you got the lattice as a parameter, set the sites in the unit cell).</p>
 </li>
@@ -189,7 +246,7 @@ to add all terms of the Hamiltonian. Here, the <code class="xref py py-attr docu
 <p class="last">The method <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingModel.add_coupling" title="tenpy.models.model.CouplingModel.add_coupling"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_coupling()</span></code></a> adds the coupling only in one direction, i.e.
 not switching <cite>i</cite> and <cite>j</cite> in a <span class="math notranslate nohighlight">\(\sum_{\langle i, j\rangle}\)</span>.
 If you have terms like <span class="math notranslate nohighlight">\(c^\dagger_i c_j\)</span> in your Hamiltonian, you <em>need</em> to add it in both directions to get
-a hermitian hamiltonian! Simply add another line <code class="docutils literal notranslate"><span class="pre">self.add_coupling(J,</span> <span class="pre">u1,</span> <span class="pre">'Sz',</span> <span class="pre">u2,</span> <span class="pre">'Sz',</span> <span class="pre">-dx)</span></code>.</p>
+a hermitian Hamiltonian! Simply add another line <code class="docutils literal notranslate"><span class="pre">self.add_coupling(J,</span> <span class="pre">u1,</span> <span class="pre">'Sz',</span> <span class="pre">u2,</span> <span class="pre">'Sz',</span> <span class="pre">-dx)</span></code>.</p>
 </div>
 <p>Note that the <cite>strength</cite> arguments of these functions can be (numpy) arrays for site-dependent couplings.
 If you need to add or multipliy some parameters of the model for the <cite>strength</cite> of certain terms,
@@ -202,13 +259,15 @@ as <code class="docutils literal notranslate"><span class="pre">MPOModel.__init_
 <li><p class="first">Similarly, if you derived from the <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel" title="tenpy.models.model.NearestNeighborModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NearestNeighborModel</span></code></a>, you can call
 <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingModel.calc_H_MPO" title="tenpy.models.model.CouplingModel.calc_H_MPO"><code class="xref py py-meth docutils literal notranslate"><span class="pre">calc_H_MPO()</span></code></a> to initialze it
 as <code class="docutils literal notranslate"><span class="pre">NearestNeighborModel.__init__(self,</span> <span class="pre">lat,</span> <span class="pre">self.calc_H_bond())</span></code>.
-Obviously, this will fail for models which are not nearest-neighbors (with respect to the MPS ordering),
+Calling <code class="docutils literal notranslate"><span class="pre">self.calc_H_bond()</span></code> will fail for models which are not nearest-neighbors (with respect to the MPS ordering),
 so you should only subclass the <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel" title="tenpy.models.model.NearestNeighborModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NearestNeighborModel</span></code></a> if the lattice is a simple
 <a class="reference internal" href="reference/tenpy.models.lattice.html#tenpy.models.lattice.Chain" title="tenpy.models.lattice.Chain"><code class="xref py py-class docutils literal notranslate"><span class="pre">Chain</span></code></a>.</p>
 </li>
 </ol>
-<p>The generalization <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.MultiCouplingModel" title="tenpy.models.model.MultiCouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">MultiCouplingModel</span></code></a> of the CouplingModel can be used for Hamlitonians with
-coupling terms acting on more than 2 sites at once. A prototypical example for such a model is the exactly solvable <code class="xref py py-class docutils literal notranslate"><span class="pre">ToricCode</span></code>.</p>
+<p>The <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></a> works for Hamiltonians which are a sum of terms involving at most two sites.
+The generalization <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.MultiCouplingModel" title="tenpy.models.model.MultiCouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">MultiCouplingModel</span></code></a> can be used for Hamlitonians with
+coupling terms acting on more than 2 sites at once.
+A prototypical example is the exactly solvable <a class="reference internal" href="reference/tenpy.models.toric_code.html#tenpy.models.toric_code.ToricCode" title="tenpy.models.toric_code.ToricCode"><code class="xref py py-class docutils literal notranslate"><span class="pre">ToricCode</span></code></a>.</p>
 </div>
 <div class="section" id="some-final-remarks">
 <h2>Some final remarks<a class="headerlink" href="#some-final-remarks" title="Permalink to this headline">¶</a></h2>
@@ -216,10 +275,11 @@ coupling terms acting on more than 2 sites at once. A prototypical example for s
 <li>Needless to say that we have also various predefined models under <a class="reference internal" href="reference/tenpy.models.html#module-tenpy.models" title="tenpy.models"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tenpy.models</span></code></a>.</li>
 <li>Of course, an MPO is all you need to initialize a <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.MPOModel" title="tenpy.models.model.MPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPOModel</span></code></a> to be used for DMRG; you don’t have to use the <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></a>.
 For example an exponentially decaying long-range interactions are not supported by the coupling model but straight-forward to include to an MPO, as demonstrated in the example <code class="docutils literal notranslate"><span class="pre">examples/mpo_exponentially_decaying.py</span></code>.</li>
-<li>If the model you’re interested in contains Fermions, you should read the user-guide to <a class="reference internal" href="intro_JordanWigner.html"><span class="doc">Fermions and the Jordan-Wigner transformation</span></a>.</li>
+<li>If the model you’re interested in contains Fermions, you should read the <a class="reference internal" href="intro_JordanWigner.html"><span class="doc">Fermions and the Jordan-Wigner transformation</span></a>.</li>
 <li>We suggest writing the model to take a single parameter dicitionary for the initialization, which is to be read out
 inside the class with <a class="reference internal" href="reference/tenpy.tools.params.html#tenpy.tools.params.get_parameter" title="tenpy.tools.params.get_parameter"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_parameter()</span></code></a>.
-Read the doc-string of this function for more details on why this is a good idea.</li>
+Read the doc-string of this function for more details on why this is a good idea.
+Calling <a class="reference internal" href="reference/tenpy.tools.params.html#tenpy.tools.params.unused_parameters" title="tenpy.tools.params.unused_parameters"><code class="xref py py-func docutils literal notranslate"><span class="pre">unused_parameters()</span></code></a> is usefull to avoid typos in the specified parameters.</li>
 <li>When you write a model and want to include a test that it can be at least constructed,
 take a look at <code class="docutils literal notranslate"><span class="pre">tests/test_model.py</span></code>.</li>
 </ul>
@@ -488,6 +548,7 @@ in one dimension on a chain, or any of the predefined lattice in two dimensions,
 <li><a class="reference internal" href="#what-is-a-model">What is a model?</a></li>
 <li><a class="reference internal" href="#the-hilbert-space">The Hilbert space</a></li>
 <li><a class="reference internal" href="#the-geometry-lattices">The geometry : lattices</a></li>
+<li><a class="reference internal" href="#implementing-you-own-model">Implementing you own model</a></li>
 <li><a class="reference internal" href="#the-easy-way-to-new-models-the-multi-couplingmodel">The easy way to new models: the (Multi)CouplingModel</a></li>
 <li><a class="reference internal" href="#some-final-remarks">Some final remarks</a></li>
 <li><a class="reference internal" href="#full-examples">Full examples</a></li>
