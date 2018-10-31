@@ -58,7 +58,7 @@ The second one is preferable for pure DMRG calculations.</p>
 <dl class="class">
 <dt id="tenpy.models.spins_nnn.SpinChainNNN">
 <em class="property">class </em><code class="descclassname">tenpy.models.spins_nnn.</code><code class="descname">SpinChainNNN</code><span class="sig-paren">(</span><em>model_param</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/spins_nnn.html#SpinChainNNN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.spins_nnn.SpinChainNNN" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.CouplingModel</span></code></a>, <a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.MPOModel" title="tenpy.models.model.MPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.MPOModel</span></code></a>, <a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.NearestNeighborModel" title="tenpy.models.model.NearestNeighborModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.NearestNeighborModel</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.CouplingMPOModel" title="tenpy.models.model.CouplingMPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.CouplingMPOModel</span></code></a>, <a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.NearestNeighborModel" title="tenpy.models.model.NearestNeighborModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.NearestNeighborModel</span></code></a></p>
 <p>Spin-S sites coupled by (next-)nearest neighbour interactions on a <cite>GroupedSite</cite>.</p>
 <p>The Hamiltonian reads:</p>
 <div class="math notranslate nohighlight">
@@ -129,20 +129,78 @@ i.e. we have <code class="docutils literal notranslate"><span class="pre">2*L</s
 <tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_onsite</span></code>([tol_zero])</td>
 <td>Calculate <cite>H_onsite</cite> from <cite>self.onsite_terms</cite>.</td>
 </tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">init_lattice</span></code>(model_param)</td>
+<td>Initialize a lattice for the given model parameters.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
 <td>Sanity check.</td>
 </tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">trivial_like_NNModel</span></code>()</td>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">trivial_like_NNModel</span></code>()</td>
 <td>Return a NearestNeighborModel with same lattice, but trivial (H=0) bonds.</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="58%" />
+<col width="42%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>init_sites</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>init_terms</strong></td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="tenpy.models.spins_nnn.SpinChainNNN.init_sites">
+<code class="descname">init_sites</code><span class="sig-paren">(</span><em>model_param</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/spins_nnn.html#SpinChainNNN.init_sites"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.spins_nnn.SpinChainNNN.init_sites" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define the local Hilbert space and operators; needs to be implemented in subclasses.</p>
+<p>This function gets called by <code class="xref py py-meth docutils literal notranslate"><span class="pre">init_lattice()</span></code> to get the
+<a class="reference internal" href="tenpy.networks.site.html#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a> for the lattice unit cell.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Initializing the sites requires to define the conserved quantum numbers.
+All pre-defined sites accept <code class="docutils literal notranslate"><span class="pre">conserve=None</span></code> to disable using quantum numbers.
+Many models in TeNPy read out the <cite>conserve</cite> model parameter, which can be set
+to <code class="docutils literal notranslate"><span class="pre">&quot;best&quot;</span></code> to indicate the optimal parameters.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>model_param</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
+<dd><p class="first last">The model parameters given to <code class="docutils literal notranslate"><span class="pre">__init__</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>sites</strong> <span class="classifier-delimiter">:</span> <span class="classifier">(tuple of) :class:<a href="#id1"><span class="problematic" id="id2">`</span></a>~tenpy.networks.site.Site.</span></dt>
+<dd><p class="first last">The local sites of the lattice, defining the local basis states and operators.</p>
+</dd>
+</dl>
+</td>
 </tr>
 </tbody>
 </table>
 </dd></dl>
 
+<dl class="method">
+<dt id="tenpy.models.spins_nnn.SpinChainNNN.init_terms">
+<code class="descname">init_terms</code><span class="sig-paren">(</span><em>model_param</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/spins_nnn.html#SpinChainNNN.init_terms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.spins_nnn.SpinChainNNN.init_terms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add the onsite and coupling terms to the model; subclasses should implement this.</p>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="class">
 <dt id="tenpy.models.spins_nnn.SpinChainNNN2">
 <em class="property">class </em><code class="descclassname">tenpy.models.spins_nnn.</code><code class="descname">SpinChainNNN2</code><span class="sig-paren">(</span><em>model_param</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/spins_nnn.html#SpinChainNNN2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.spins_nnn.SpinChainNNN2" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.CouplingModel</span></code></a>, <a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.MPOModel" title="tenpy.models.model.MPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.MPOModel</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.CouplingMPOModel" title="tenpy.models.model.CouplingMPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.CouplingMPOModel</span></code></a></p>
 <p>Spin-S sites coupled by next-nearest neighbour interactions.</p>
 <p>The Hamiltonian reads:</p>
 <div class="math notranslate nohighlight">
@@ -161,20 +219,43 @@ All parameters are collected in a single dictionary <cite>model_param</cite> and
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>L</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd><p class="first last">Length of the chain</p>
-</dd>
 <dt><strong>S</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{0.5, 1, 1.5, 2, …}</span></dt>
 <dd><p class="first last">The 2S+1 local states range from m = -S, -S+1, … +S.</p>
 </dd>
 <dt><strong>conserve</strong> <span class="classifier-delimiter">:</span> <span class="classifier">‘best’ | ‘Sz’ | ‘parity’ | None</span></dt>
-<dd><p class="first last">What should be conserved. See <code class="xref py py-class docutils literal notranslate"><span class="pre">SpinSite</span></code>.</p>
+<dd><p class="first last">What should be conserved. See <code class="xref py py-class docutils literal notranslate"><span class="pre">SpinSite</span></code>.
+For <code class="docutils literal notranslate"><span class="pre">'best'</span></code>, we check the parameters what can be preserved.</p>
 </dd>
 <dt><strong>Jx, Jy, Jz, Jxp, Jyp, Jzp, hx, hy, hz</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float | array</span></dt>
 <dd><p class="first last">Couplings as defined for the Hamiltonian above.</p>
 </dd>
+<dt><strong>lattice</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str | <a class="reference internal" href="tenpy.models.lattice.html#tenpy.models.lattice.Lattice" title="tenpy.models.lattice.Lattice"><code class="xref py py-class docutils literal notranslate"><span class="pre">Lattice</span></code></a></span></dt>
+<dd><p class="first last">Instance of a lattice class for the underlaying geometry.
+Alternatively a string being the name of one of the Lattices defined in
+<a class="reference internal" href="tenpy.models.lattice.html#module-tenpy.models.lattice" title="tenpy.models.lattice"><code class="xref py py-mod docutils literal notranslate"><span class="pre">lattice</span></code></a>, e.g. <code class="docutils literal notranslate"><span class="pre">&quot;Chain&quot;,</span> <span class="pre">&quot;Square&quot;,</span> <span class="pre">&quot;HoneyComb&quot;,</span> <span class="pre">...</span></code>.</p>
+</dd>
 <dt><strong>bc_MPS</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{‘finite’ | ‘infinte’}</span></dt>
-<dd><p class="first last">MPS boundary conditions. Coupling boundary conditions are chosen appropriately.</p>
+<dd><p class="first last">MPS boundary conditions along the x-direction.
+For ‘infinite’ boundary conditions, repeat the unit cell in x-direction.
+Coupling boundary conditions in x-direction are chosen accordingly.
+Only used if <cite>lattice</cite> is a string.</p>
+</dd>
+<dt><strong>order</strong> <span class="classifier-delimiter">:</span> <span class="classifier">string</span></dt>
+<dd><p class="first last">Ordering of the sites in the MPS, e.g. ‘default’, ‘snake’;
+see <a class="reference internal" href="tenpy.models.lattice.html#tenpy.models.lattice.Lattice.ordering" title="tenpy.models.lattice.Lattice.ordering"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ordering()</span></code></a>.
+Only used if <cite>lattice</cite> is a string.</p>
+</dd>
+<dt><strong>L</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Lenght of the lattice.
+Only used if <cite>lattice</cite> is the name of a 1D Lattice.</p>
+</dd>
+<dt><strong>Lx, Ly</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Length of the lattice in x- and y-direction.
+Only used if <cite>lattice</cite> is the name of a 2D Lattice.</p>
+</dd>
+<dt><strong>bc_y</strong> <span class="classifier-delimiter">:</span> <span class="classifier">‘ladder’ | ‘cylinder’</span></dt>
+<dd><p class="first last">Boundary conditions in y-direction.
+Only used if <cite>lattice</cite> is the name of a 2D Lattice.</p>
 </dd>
 </dl>
 </td>
@@ -209,11 +290,69 @@ All parameters are collected in a single dictionary <cite>model_param</cite> and
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_onsite</span></code>([tol_zero])</td>
 <td>Calculate <cite>H_onsite</cite> from <cite>self.onsite_terms</cite>.</td>
 </tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">init_lattice</span></code>(model_param)</td>
+<td>Initialize a lattice for the given model parameters.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
 <td>Sanity check.</td>
 </tr>
 </tbody>
 </table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="58%" />
+<col width="42%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>init_sites</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>init_terms</strong></td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="tenpy.models.spins_nnn.SpinChainNNN2.init_sites">
+<code class="descname">init_sites</code><span class="sig-paren">(</span><em>model_param</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/spins_nnn.html#SpinChainNNN2.init_sites"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.spins_nnn.SpinChainNNN2.init_sites" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define the local Hilbert space and operators; needs to be implemented in subclasses.</p>
+<p>This function gets called by <code class="xref py py-meth docutils literal notranslate"><span class="pre">init_lattice()</span></code> to get the
+<a class="reference internal" href="tenpy.networks.site.html#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a> for the lattice unit cell.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Initializing the sites requires to define the conserved quantum numbers.
+All pre-defined sites accept <code class="docutils literal notranslate"><span class="pre">conserve=None</span></code> to disable using quantum numbers.
+Many models in TeNPy read out the <cite>conserve</cite> model parameter, which can be set
+to <code class="docutils literal notranslate"><span class="pre">&quot;best&quot;</span></code> to indicate the optimal parameters.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>model_param</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
+<dd><p class="first last">The model parameters given to <code class="docutils literal notranslate"><span class="pre">__init__</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>sites</strong> <span class="classifier-delimiter">:</span> <span class="classifier">(tuple of) :class:<a href="#id3"><span class="problematic" id="id4">`</span></a>~tenpy.networks.site.Site.</span></dt>
+<dd><p class="first last">The local sites of the lattice, defining the local basis states and operators.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.models.spins_nnn.SpinChainNNN2.init_terms">
+<code class="descname">init_terms</code><span class="sig-paren">(</span><em>model_param</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/spins_nnn.html#SpinChainNNN2.init_terms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.spins_nnn.SpinChainNNN2.init_terms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add the onsite and coupling terms to the model; subclasses should implement this.</p>
+</dd></dl>
+
 </dd></dl>
 
 </div>

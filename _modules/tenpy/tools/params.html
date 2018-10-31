@@ -45,11 +45,12 @@
 <span class="c1"># Copyright 2018 TeNPy Developers</span>
 
 <span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;get_parameter&quot;</span><span class="p">,</span> <span class="s2">&quot;unused_parameters&quot;</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="get_parameter"><a class="viewcode-back" href="../../../reference/tenpy.tools.params.html#tenpy.tools.params.get_parameter">[docs]</a><span class="k">def</span> <span class="nf">get_parameter</span><span class="p">(</span><span class="n">par_dict</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">,</span> <span class="n">descr</span><span class="p">):</span>
+<div class="viewcode-block" id="get_parameter"><a class="viewcode-back" href="../../../reference/tenpy.tools.params.html#tenpy.tools.params.get_parameter">[docs]</a><span class="k">def</span> <span class="nf">get_parameter</span><span class="p">(</span><span class="n">par_dict</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">,</span> <span class="n">descr</span><span class="p">,</span> <span class="n">asarray</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Read out a parameter from the dictionary and/or provide default values.</span>
 
 <span class="sd">    This function provides a similar functionality as ``par_dict.get(key, default)``.</span>
@@ -80,11 +81,14 @@
 <span class="sd">        The default value for the parameter.</span>
 <span class="sd">    descr : str</span>
 <span class="sd">        A short description for verbose output, like &#39;TEBD&#39;, &#39;XXZ_model&#39;, &#39;truncation&#39;.</span>
+<span class="sd">    asarray : bool</span>
+<span class="sd">        If True, convert the result to a numpy array with ``np.asarray(...)`` before returning.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    value :</span>
 <span class="sd">        ``par_dict[key]`` if the key is in par_dict, otherwise `default`.</span>
+<span class="sd">        Converted to a numpy array, if `asarray`.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
@@ -120,8 +124,9 @@
     <span class="k">if</span> <span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">100</span> <span class="ow">or</span> <span class="p">(</span><span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">used</span> <span class="ow">and</span> <span class="n">verbose</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;parameter </span><span class="si">{key!r}</span><span class="s2">=</span><span class="si">{val!r}</span><span class="s2"> </span><span class="si">{defaultstring}</span><span class="s2">for </span><span class="si">{descr!s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
             <span class="n">descr</span><span class="o">=</span><span class="n">descr</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">val</span><span class="p">,</span> <span class="n">defaultstring</span><span class="o">=</span><span class="n">defaultstring</span><span class="p">))</span>
-    <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">used</span><span class="p">:</span>
-        <span class="n">used</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="n">used</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>  <span class="c1"># (does nothing if already present)</span>
+    <span class="k">if</span> <span class="n">asarray</span><span class="p">:</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">val</span></div>
 
 

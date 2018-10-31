@@ -73,11 +73,14 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 
+<span class="kn">from</span> <span class="nn">.lattice</span> <span class="k">import</span> <span class="n">get_lattice</span><span class="p">,</span> <span class="n">Lattice</span>
 <span class="kn">from</span> <span class="nn">..linalg</span> <span class="k">import</span> <span class="n">np_conserved</span> <span class="k">as</span> <span class="n">npc</span>
 <span class="kn">from</span> <span class="nn">..tools.misc</span> <span class="k">import</span> <span class="n">to_array</span>
+<span class="kn">from</span> <span class="nn">..tools.params</span> <span class="k">import</span> <span class="n">get_parameter</span><span class="p">,</span> <span class="n">unused_parameters</span>
 <span class="kn">from</span> <span class="nn">..networks</span> <span class="k">import</span> <span class="n">mpo</span>  <span class="c1"># used to construct the Hamiltonian as MPO</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Model&#39;</span><span class="p">,</span> <span class="s1">&#39;CouplingModel&#39;</span><span class="p">,</span> <span class="s1">&#39;MultiCouplingModel&#39;</span><span class="p">,</span> <span class="s1">&#39;NearestNeighborModel&#39;</span><span class="p">,</span> <span class="s1">&#39;MPOModel&#39;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Model&#39;</span><span class="p">,</span> <span class="s1">&#39;NearestNeighborModel&#39;</span><span class="p">,</span> <span class="s1">&#39;MPOModel&#39;</span><span class="p">,</span> <span class="s1">&#39;CouplingModel&#39;</span><span class="p">,</span> <span class="s1">&#39;MultiCouplingModel&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;CouplingMPOModel&#39;</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="Model"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.Model">[docs]</a><span class="k">class</span> <span class="nc">Model</span><span class="p">:</span>
@@ -107,6 +110,105 @@
             <span class="c1"># Model.__init__() got called before</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">lattice</span><span class="p">:</span>  <span class="c1"># expect the *same instance*!</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Model.__init__() called with different lattice instances.&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NearestNeighborModel"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel">[docs]</a><span class="k">class</span> <span class="nc">NearestNeighborModel</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base class for a model of nearest neigbor interactions w.r.t. the MPS index.</span>
+
+<span class="sd">    In this class, the Hamiltonian :math:`H = \sum_{i} H_{i,i+1}` is represented by</span>
+<span class="sd">    &quot;bond terms&quot; :math:`H_{i,i+1}` acting only on two neighboring sites `i` and `i+1`,</span>
+<span class="sd">    where `i` is an integer.</span>
+<span class="sd">    Instances of this class are suitable for :mod:`~tenpy.algorithms.tebd`.</span>
+
+<span class="sd">    Note that the &quot;nearest-neighbor&quot; in the name referst to the MPS index, not the lattice.</span>
+<span class="sd">    In short, this works only for 1-dimensional (1D) nearest-neighbor models:</span>
+<span class="sd">    A 2D lattice is internally mapped to a 1D MPS &quot;snake&quot;, and even a nearest-neighbor coupling</span>
+<span class="sd">    in 2D becomes long-range in the MPS chain.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    lattice : :class:`tenpy.model.lattice.Lattice`</span>
+<span class="sd">        The lattice defining the geometry and the local Hilbert space(s).</span>
+<span class="sd">    H_bond : list of :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">        The Hamiltonian rewritten as ``sum_i H_bond[i]`` for MPS indices ``i``.</span>
+<span class="sd">        ``H_bond[i]`` acts on sites ``(i-1, i)``; we require ``len(H_bond) == lat.N_sites``.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    H_bond : list of :class:`npc.Array`</span>
+<span class="sd">        The Hamiltonian rewritten as ``sum_i H_bond[i]`` for MPS indices ``i``.</span>
+<span class="sd">        ``H_bond[i]`` acts on sites ``(i-1, i)``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">,</span> <span class="n">H_bond</span><span class="p">):</span>
+        <span class="n">Model</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">H_bond</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">bc_MPS</span> <span class="o">!=</span> <span class="s1">&#39;infinite&#39;</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="n">NearestNeighborModel</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="c1"># like self.test_sanity(), but use the version defined below even for derived class</span>
+
+<div class="viewcode-block" id="NearestNeighborModel.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">N_sites</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;wrong len of H_bond&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NearestNeighborModel.trivial_like_NNModel"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel.trivial_like_NNModel">[docs]</a>    <span class="k">def</span> <span class="nf">trivial_like_NNModel</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a NearestNeighborModel with same lattice, but trivial (H=0) bonds.&quot;&quot;&quot;</span>
+        <span class="n">triv_H</span> <span class="o">=</span> <span class="p">[</span><span class="n">H</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">()</span> <span class="k">if</span> <span class="n">H</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">H</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">NearestNeighborModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span> <span class="n">triv_H</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NearestNeighborModel.bond_energies"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel.bond_energies">[docs]</a>    <span class="k">def</span> <span class="nf">bond_energies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">psi</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate bond energies &lt;psi|H_bond|psi&gt;.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        psi : :class:`~tenpy.networks.mps.MPS`</span>
+<span class="sd">            The MPS for which the bond energies should be calculated.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        E_bond : 1D ndarray</span>
+<span class="sd">            List of bond energies: for finite bc, ``E_Bond[i]`` is the energy of bond ``i, i+1``.</span>
+<span class="sd">            (i.e. we omit bond 0 between sites L-1 and 0);</span>
+<span class="sd">            for infinite bc ``E_bond[i]`` is the energy of bond ``i-1, i``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">bc_MPS</span> <span class="o">==</span> <span class="s1">&#39;infinite&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">psi</span><span class="o">.</span><span class="n">expectation_value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">]))</span>
+        <span class="c1"># else</span>
+        <span class="k">return</span> <span class="n">psi</span><span class="o">.</span><span class="n">expectation_value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">]))</span></div></div>
+
+
+<div class="viewcode-block" id="MPOModel"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.MPOModel">[docs]</a><span class="k">class</span> <span class="nc">MPOModel</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base class for a model with an MPO representation of the Hamiltonian.</span>
+
+<span class="sd">    In this class, the Hamiltonian gets represented by an :class:`~tenpy.networks.mpo.MPO`.</span>
+<span class="sd">    Thus, instances of this class are suitable for MPO-based algorithms like DMRG</span>
+<span class="sd">    :mod:`~tenpy.algorithms.dmrg` and MPO time evolution.</span>
+
+<span class="sd">    .. todo ::</span>
+<span class="sd">        implement MPO for time evolution...</span>
+<span class="sd">        Also, provide function to get H_MPO from H_bond</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    H_MPO : :class:`~tenpy.networks.mpo.MPO`</span>
+<span class="sd">        The Hamiltonian rewritten as an MPO.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    H_MPO : :class:`tenpy.networks.mpo.MPO`</span>
+<span class="sd">        MPO representation of the Hamiltonian.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">,</span> <span class="n">H_MPO</span><span class="p">):</span>
+        <span class="n">Model</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">H_MPO</span> <span class="o">=</span> <span class="n">H_MPO</span>
+        <span class="n">MPOModel</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="c1"># like self.test_sanity(), but use the version defined below even for derived class</span>
+
+<div class="viewcode-block" id="MPOModel.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.MPOModel.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_MPO</span><span class="o">.</span><span class="n">sites</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">mps_sites</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;lattice incompatible with H_MPO.sites&quot;</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="CouplingModel"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.CouplingModel">[docs]</a><span class="k">class</span> <span class="nc">CouplingModel</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
@@ -796,103 +898,173 @@
         <span class="c1"># done</span>
 
 
-<div class="viewcode-block" id="NearestNeighborModel"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel">[docs]</a><span class="k">class</span> <span class="nc">NearestNeighborModel</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Base class for a model of nearest neigbor interactions w.r.t. the MPS index.</span>
+<div class="viewcode-block" id="CouplingMPOModel"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.CouplingMPOModel">[docs]</a><span class="k">class</span> <span class="nc">CouplingMPOModel</span><span class="p">(</span><span class="n">CouplingModel</span><span class="p">,</span><span class="n">MPOModel</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Combination of the CouplingModel and MPOModel.</span>
 
-<span class="sd">    In this class, the Hamiltonian :math:`H = \sum_{i} H_{i,i+1}` is represented by</span>
-<span class="sd">    &quot;bond terms&quot; :math:`H_{i,i+1}` acting only on two neighboring sites `i` and `i+1`,</span>
-<span class="sd">    where `i` is an integer.</span>
-<span class="sd">    Instances of this class are suitable for :mod:`~tenpy.algorithms.tebd`.</span>
+<span class="sd">    This class provides the interface for most of the model classes in `tenpy`.</span>
+<span class="sd">    Examples based on this class are given in :mod:`~tenpy.models.xxz_chain`</span>
+<span class="sd">    and :mod:`~tenpy.models.tf_ising`.</span>
 
-<span class="sd">    Note that the &quot;nearest-neighbor&quot; in the name referst to the MPS index, not the lattice.</span>
-<span class="sd">    In short, this works only for 1-dimensional (1D) nearest-neighbor models:</span>
-<span class="sd">    A 2D lattice is internally mapped to a 1D MPS &quot;snake&quot;, and even a nearest-neighbor coupling</span>
-<span class="sd">    in 2D becomes long-range in the MPS chain.</span>
+<span class="sd">    The ``__init__`` of this function performs the standard initialization explained</span>
+<span class="sd">    in :doc:`/intro_model`, by calling the methods :meth:`init_lattice` (step 1-4)</span>
+<span class="sd">    to initialize a lattice (which in turn calls :meth:`init_sites`) and</span>
+<span class="sd">    :meth:`init_terms`. The latter should be overwritten by subclasses to add the</span>
+<span class="sd">    desired terms.</span>
+
+<span class="sd">    As shown in :mod:`~tenpy.models.tf_ising`, you can get a 1D version suitable</span>
+<span class="sd">    for TEBD from a general-lattice model by subclassing it once more, only</span>
+<span class="sd">    redefining the ``__init__`` as follows::</span>
+
+<span class="sd">        def __init__(self, model_params):</span>
+<span class="sd">            CouplingMPOModel.__init__(self, model_params)</span>
+
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    lattice : :class:`tenpy.model.lattice.Lattice`</span>
-<span class="sd">        The lattice defining the geometry and the local Hilbert space(s).</span>
-<span class="sd">    H_bond : list of :class:`~tenpy.linalg.np_conserved.Array`</span>
-<span class="sd">        The Hamiltonian rewritten as ``sum_i H_bond[i]`` for MPS indices ``i``.</span>
-<span class="sd">        ``H_bond[i]`` acts on sites ``(i-1, i)``; we require ``len(H_bond) == lat.N_sites``.</span>
+<span class="sd">    model_param : dict</span>
+<span class="sd">        A dictionary with all the model parameters.</span>
+<span class="sd">        These parameters are given to the different ``init_...()`` methods, and</span>
+<span class="sd">        should be read out using :func:`~tenpy.tools.params.get_parameter`.</span>
+<span class="sd">        This may happen in any of the ``init_...()`` methods.</span>
+<span class="sd">        The parameter ``&#39;verbose&#39;`` is read out in the `__init__` of this function</span>
+<span class="sd">        and specifies how much status information should be printed during initialization.</span>
 
 <span class="sd">    Attributes</span>
 <span class="sd">    ----------</span>
-<span class="sd">    H_bond : list of :class:`npc.Array`</span>
-<span class="sd">        The Hamiltonian rewritten as ``sum_i H_bond[i]`` for MPS indices ``i``.</span>
-<span class="sd">        ``H_bond[i]`` acts on sites ``(i-1, i)``.</span>
+<span class="sd">    name : str</span>
+<span class="sd">        The name of the model, e.g. ``&quot;XXZChain&quot; or ``&quot;SpinModel&quot;``.</span>
+<span class="sd">    verbose : int</span>
+<span class="sd">        Level of verbosity (i.e. how much status information to print); higher=more output.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_called_CouplingMPOModel_init&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="c1"># If we ignore this, the same terms get added to self multiple times.</span>
+            <span class="c1"># In the best case, this would just rescale the energy;</span>
+            <span class="c1"># in the worst case we get the wrong Hamiltonian.</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Called CouplingMPOModel.__init__(...) multiple times.&quot;</span><span class="p">)</span>
+            <span class="c1"># To fix this problem, follow the instructions for subclassing in :doc:`/intro_model`.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_called_CouplingMPOModel_init</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="c1"># 1-4) iniitalize lattice</span>
+        <span class="n">lat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_lattice</span><span class="p">(</span><span class="n">model_param</span><span class="p">)</span>
+        <span class="c1"># 5) initialize CouplingModel</span>
+        <span class="n">CouplingModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">)</span>
+        <span class="c1"># 6) add terms of the Hamiltonian</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_terms</span><span class="p">(</span><span class="n">model_param</span><span class="p">)</span>
+        <span class="c1"># 7) initialize H_MPO</span>
+        <span class="n">MPOModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_H_MPO</span><span class="p">())</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">NearestNeighborModel</span><span class="p">):</span>
+            <span class="c1"># 8) initialize H_bonds</span>
+            <span class="n">NearestNeighborModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_H_bond</span><span class="p">())</span>
+        <span class="c1"># checks for misspelled parameters</span>
+        <span class="n">unused_parameters</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">,</span> <span class="n">H_bond</span><span class="p">):</span>
-        <span class="n">Model</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">H_bond</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">bc_MPS</span> <span class="o">!=</span> <span class="s1">&#39;infinite&#39;</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span>
-        <span class="n">NearestNeighborModel</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="c1"># like self.test_sanity(), but use the version defined below even for derived class</span>
+<div class="viewcode-block" id="CouplingMPOModel.init_lattice"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.CouplingMPOModel.init_lattice">[docs]</a>    <span class="k">def</span> <span class="nf">init_lattice</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize a lattice for the given model parameters.</span>
 
-<div class="viewcode-block" id="NearestNeighborModel.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">N_sites</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;wrong len of H_bond&quot;</span><span class="p">)</span></div>
+<span class="sd">        This function reads out the model parameter `lattice`.</span>
+<span class="sd">        This can be a full :class:`~tenpy.models.lattice.Lattice` instance,</span>
+<span class="sd">        in which case it is just returned without further action.</span>
+<span class="sd">        Alternatively, the `lattice` parameter can be a string giving the name</span>
+<span class="sd">        of one of the predefined lattices, which then gets initialized.</span>
+<span class="sd">        Depending on the dimensionality of the lattice, this requires different model parameters.</span>
 
-<div class="viewcode-block" id="NearestNeighborModel.trivial_like_NNModel"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel.trivial_like_NNModel">[docs]</a>    <span class="k">def</span> <span class="nf">trivial_like_NNModel</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return a NearestNeighborModel with same lattice, but trivial (H=0) bonds.&quot;&quot;&quot;</span>
-        <span class="n">triv_H</span> <span class="o">=</span> <span class="p">[</span><span class="n">H</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">()</span> <span class="k">if</span> <span class="n">H</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">H</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">NearestNeighborModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span> <span class="n">triv_H</span><span class="p">)</span></div>
+<span class="sd">        The following model parameters get read out.</span>
 
-<div class="viewcode-block" id="NearestNeighborModel.bond_energies"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel.bond_energies">[docs]</a>    <span class="k">def</span> <span class="nf">bond_energies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">psi</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate bond energies &lt;psi|H_bond|psi&gt;.</span>
+<span class="sd">        ============== ========= ===============================================================</span>
+<span class="sd">        key            type      description</span>
+<span class="sd">        ============== ========= ===============================================================</span>
+<span class="sd">        lattice        str |     The name of a lattice pre-defined in TeNPy to be initialized.</span>
+<span class="sd">                       Lattice   Alternatively, a (possibly self-defined) Lattice instance.</span>
+<span class="sd">                                 In the latter case, no further parameters are read out.</span>
+<span class="sd">        -------------- --------- ---------------------------------------------------------------</span>
+<span class="sd">        bc_MPS         str       Boundary conditions for the MPS</span>
+<span class="sd">        -------------- --------- ---------------------------------------------------------------</span>
+<span class="sd">        order          str       The order of sites within the lattice for non-trivial lattices.</span>
+<span class="sd">        -------------- --------- ---------------------------------------------------------------</span>
+<span class="sd">        L              int       The length in x-direction (or lenght of the unit cell for</span>
+<span class="sd">                                 infinite systems).</span>
+<span class="sd">                                 Only read out for 1D lattices.</span>
+<span class="sd">        -------------- --------- ---------------------------------------------------------------</span>
+<span class="sd">        Lx, Ly         int       The length in x- and y-direction.</span>
+<span class="sd">                                 For ``&quot;infinite&quot;`` `bc_MPS`, the system is infinite in</span>
+<span class="sd">                                 x-direction and `Lx` is the number of &quot;rings&quot; in the infinite</span>
+<span class="sd">                                 MPS unit cell, while `Ly` gives the circumference around the</span>
+<span class="sd">                                 cylinder or width of th the rung for a ladder (depending on</span>
+<span class="sd">                                 `bc_y`.</span>
+<span class="sd">                                 Only read out for 2D lattices.</span>
+<span class="sd">        -------------- --------- ---------------------------------------------------------------</span>
+<span class="sd">        bc_y           str       ``&quot;cylinder&quot; | &quot;ladder&quot;``.</span>
+<span class="sd">                                 The boundary conditions in y-direction.</span>
+<span class="sd">                                 Only read out for 2D lattices.</span>
+<span class="sd">        ============== ========= ===============================================================</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        psi : :class:`~tenpy.networks.mps.MPS`</span>
-<span class="sd">            The MPS for which the bond energies should be calculated.</span>
+<span class="sd">        model_param : dict</span>
+<span class="sd">            The model parameters given to ``__init__``.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
-<span class="sd">        E_bond : 1D ndarray</span>
-<span class="sd">            List of bond energies: for finite bc, ``E_Bond[i]`` is the energy of bond ``i, i+1``.</span>
-<span class="sd">            (i.e. we omit bond 0 between sites L-1 and 0);</span>
-<span class="sd">            for infinite bc ``E_bond[i]`` is the energy of bond ``i-1, i``.</span>
+<span class="sd">        lat : :class:`~tenpy.models.lattice.Lattice`</span>
+<span class="sd">            An initialized lattice.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">bc_MPS</span> <span class="o">==</span> <span class="s1">&#39;infinite&#39;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">psi</span><span class="o">.</span><span class="n">expectation_value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">]))</span>
-        <span class="c1"># else</span>
-        <span class="k">return</span> <span class="n">psi</span><span class="o">.</span><span class="n">expectation_value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">]))</span></div></div>
+        <span class="n">lat</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;lattice&#39;</span><span class="p">,</span> <span class="s2">&quot;Chain&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lat</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">LatticeClass</span> <span class="o">=</span> <span class="n">get_lattice</span><span class="p">(</span><span class="n">lattice_name</span><span class="o">=</span><span class="n">lat</span><span class="p">)</span>
+            <span class="n">bc_MPS</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;bc_MPS&#39;</span><span class="p">,</span> <span class="s1">&#39;finite&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">order</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;order&#39;</span><span class="p">,</span> <span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">sites</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_sites</span><span class="p">(</span><span class="n">model_param</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">LatticeClass</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># 1D lattice</span>
+                <span class="n">L</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;L&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="c1"># 4) lattice</span>
+                <span class="n">bc</span> <span class="o">=</span> <span class="s1">&#39;periodic&#39;</span> <span class="k">if</span> <span class="n">bc_MPS</span> <span class="o">==</span> <span class="s1">&#39;infinite&#39;</span> <span class="k">else</span> <span class="s1">&#39;open&#39;</span>
+                <span class="n">lat</span> <span class="o">=</span> <span class="n">LatticeClass</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">sites</span><span class="p">,</span> <span class="n">bc</span><span class="o">=</span><span class="n">bc</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="n">bc_MPS</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">LatticeClass</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>   <span class="c1"># 2D lattice</span>
+                <span class="n">Lx</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;Lx&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="n">Ly</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;Ly&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="n">bc_y</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;bc_y&#39;</span><span class="p">,</span> <span class="s1">&#39;cylinder&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="k">assert</span> <span class="n">bc_y</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;cylinder&#39;</span><span class="p">,</span> <span class="s1">&#39;ladder&#39;</span><span class="p">]</span>
+                <span class="n">bc_x</span> <span class="o">=</span> <span class="s1">&#39;periodic&#39;</span> <span class="k">if</span> <span class="n">bc_MPS</span> <span class="o">==</span> <span class="s1">&#39;infinite&#39;</span> <span class="k">else</span> <span class="s1">&#39;open&#39;</span>
+                <span class="n">bc_y</span> <span class="o">=</span> <span class="s1">&#39;periodic&#39;</span> <span class="k">if</span> <span class="n">bc_y</span> <span class="o">==</span> <span class="s1">&#39;cylinder&#39;</span> <span class="k">else</span> <span class="s1">&#39;open&#39;</span>
+                <span class="n">lat</span> <span class="o">=</span> <span class="n">LatticeClass</span><span class="p">(</span><span class="n">Lx</span><span class="p">,</span> <span class="n">Ly</span><span class="p">,</span> <span class="n">sites</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">,</span> <span class="n">bc</span><span class="o">=</span><span class="p">[</span><span class="n">bc_x</span><span class="p">,</span> <span class="n">bc_y</span><span class="p">],</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="n">bc_MPS</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t auto-determine parameters for the lattice. &quot;</span>
+                                 <span class="s2">&quot;Overwrite the `init_lattice` in your model!&quot;</span><span class="p">)</span>
+            <span class="c1"># now, `lat` is an instance of the LatticeClass called `lattice_name`.</span>
+        <span class="c1"># else: a lattice was already provided</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lat</span><span class="p">,</span> <span class="n">Lattice</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">lat</span></div>
 
+<div class="viewcode-block" id="CouplingMPOModel.init_sites"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.CouplingMPOModel.init_sites">[docs]</a>    <span class="k">def</span> <span class="nf">init_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Define the local Hilbert space and operators; needs to be implemented in subclasses.</span>
 
-<div class="viewcode-block" id="MPOModel"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.MPOModel">[docs]</a><span class="k">class</span> <span class="nc">MPOModel</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Base class for a model with an MPO representation of the Hamiltonian.</span>
+<span class="sd">        This function gets called by :meth:`init_lattice` to get the</span>
+<span class="sd">        :class:`~tenpy.networks.site.Site` for the lattice unit cell.</span>
 
-<span class="sd">    In this class, the Hamiltonian gets represented by an :class:`~tenpy.networks.mpo.MPO`.</span>
-<span class="sd">    Thus, instances of this class are suitable for MPO-based algorithms like DMRG</span>
-<span class="sd">    :mod:`~tenpy.algorithms.dmrg` and MPO time evolution.</span>
+<span class="sd">        .. note ::</span>
+<span class="sd">            Initializing the sites requires to define the conserved quantum numbers.</span>
+<span class="sd">            All pre-defined sites accept ``conserve=None`` to disable using quantum numbers.</span>
+<span class="sd">            Many models in TeNPy read out the `conserve` model parameter, which can be set</span>
+<span class="sd">            to ``&quot;best&quot;`` to indicate the optimal parameters.</span>
 
-<span class="sd">    .. todo ::</span>
-<span class="sd">        implement MPO for time evolution...</span>
-<span class="sd">        Also, provide function to get H_MPO from H_bond</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model_param : dict</span>
+<span class="sd">            The model parameters given to ``__init__``.</span>
 
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    H_MPO : :class:`~tenpy.networks.mpo.MPO`</span>
-<span class="sd">        The Hamiltonian rewritten as an MPO.</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        sites : (tuple of) :class:`~tenpy.networks.site.Site.</span>
+<span class="sd">            The local sites of the lattice, defining the local basis states and operators.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Subclasses should implement `init_sites`&quot;</span><span class="p">)</span></div>
+        <span class="c1"># or at least redefine the lattice</span>
 
-<span class="sd">    Attributes</span>
-<span class="sd">    ----------</span>
-<span class="sd">    H_MPO : :class:`tenpy.networks.mpo.MPO`</span>
-<span class="sd">        MPO representation of the Hamiltonian.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">,</span> <span class="n">H_MPO</span><span class="p">):</span>
-        <span class="n">Model</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">H_MPO</span> <span class="o">=</span> <span class="n">H_MPO</span>
-        <span class="n">MPOModel</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="c1"># like self.test_sanity(), but use the version defined below even for derived class</span>
-
-<div class="viewcode-block" id="MPOModel.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.MPOModel.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_MPO</span><span class="o">.</span><span class="n">sites</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">mps_sites</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;lattice incompatible with H_MPO.sites&quot;</span><span class="p">)</span></div></div>
+<div class="viewcode-block" id="CouplingMPOModel.init_terms"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.CouplingMPOModel.init_terms">[docs]</a>    <span class="k">def</span> <span class="nf">init_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add the onsite and coupling terms to the model; subclasses should implement this.&quot;&quot;&quot;</span>
+        <span class="k">pass</span>  <span class="c1"># Do nothing. This allows to super().init_terms(model_params) in subclasses.</span></div></div>
 
 
 <span class="k">def</span> <span class="nf">_multi_coupling_group_handle_JW</span><span class="p">(</span><span class="n">ijkl</span><span class="p">,</span> <span class="n">ops</span><span class="p">,</span> <span class="n">ops_need_JW</span><span class="p">,</span> <span class="n">op_string</span><span class="p">,</span> <span class="n">N_sites</span><span class="p">):</span>

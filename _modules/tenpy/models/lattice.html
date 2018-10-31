@@ -205,6 +205,7 @@
 
 <div class="viewcode-block" id="Lattice.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Lattice.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Sanity check. Raises ValueErrors, if something is wrong.&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Ls</span><span class="p">)</span>
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">Ls</span> <span class="o">+</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">),</span> <span class="p">)</span>
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_cells</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Ls</span><span class="p">)</span>
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_sites</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
@@ -786,6 +787,7 @@
 <span class="sd">        the `snake_winding` and `priority` should only be specified for the spatial directions.</span>
 <span class="sd">        Similarly, `positions` can be specified as a single vector.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dim</span> <span class="o">=</span> <span class="mi">1</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;nearest_neighbors&#39;</span><span class="p">,</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,]))])</span>
@@ -811,8 +813,9 @@
 <span class="sd">        Additional keyword arguments given to the :class:`Lattice`.</span>
 <span class="sd">        `basis`, `pos` and `[[next_]next_]nearest_neighbors` are set accordingly.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dim</span> <span class="o">=</span> <span class="mi">1</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Lx</span><span class="p">,</span> <span class="n">sites</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">sites</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="n">sites</span> <span class="o">=</span> <span class="n">_parse_sites</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
         <span class="n">basis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]])</span>
         <span class="n">pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">]])</span>
@@ -824,7 +827,7 @@
         <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;nearest_neighbors&#39;</span><span class="p">,</span> <span class="n">NN</span><span class="p">)</span>
         <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;next_nearest_neighbors&#39;</span><span class="p">,</span> <span class="n">nNN</span><span class="p">)</span>
         <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;next_next_nearest_neighbors&#39;</span><span class="p">,</span> <span class="n">nnNN</span><span class="p">)</span>
-        <span class="n">Lattice</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="p">[</span><span class="n">Lx</span><span class="p">],</span> <span class="n">sites</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+        <span class="n">Lattice</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="p">[</span><span class="n">L</span><span class="p">],</span> <span class="n">sites</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Square"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Square">[docs]</a><span class="k">class</span> <span class="nc">Square</span><span class="p">(</span><span class="n">SimpleLattice</span><span class="p">):</span>
@@ -845,6 +848,7 @@
 <span class="sd">        the `snake_winding` and `priority` should only be specified for the spatial directions.</span>
 <span class="sd">        Similarly, `positions` can be specified as a single vector.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dim</span> <span class="o">=</span> <span class="mi">2</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Lx</span><span class="p">,</span> <span class="n">Ly</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="n">NN</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]))]</span>
@@ -872,6 +876,7 @@
 <span class="sd">        Additional keyword arguments given to the :class:`Lattice`.</span>
 <span class="sd">        `basis`, `pos` and `[[next_]next_]nearest_neighbors` are set accordingly.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dim</span> <span class="o">=</span> <span class="mi">2</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Lx</span><span class="p">,</span> <span class="n">Ly</span><span class="p">,</span> <span class="n">sites</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="n">sites</span> <span class="o">=</span> <span class="n">_parse_sites</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
@@ -930,6 +935,7 @@
 <span class="sd">        Additional keyword arguments given to the :class:`Lattice`.</span>
 <span class="sd">        `basis`, `pos` and `[[next_]next_]nearest_neighbors` are set accordingly.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dim</span> <span class="o">=</span> <span class="mi">2</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Lx</span><span class="p">,</span> <span class="n">Ly</span><span class="p">,</span> <span class="n">sites</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="n">sites</span> <span class="o">=</span> <span class="n">_parse_sites</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
         <span class="c1">#     2</span>
@@ -967,7 +973,7 @@
         <span class="n">Lattice</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="p">[</span><span class="n">Lx</span><span class="p">,</span> <span class="n">Ly</span><span class="p">],</span> <span class="n">sites</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">get_lattice</span><span class="p">(</span><span class="n">lattice_name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">get_lattice</span><span class="p">(</span><span class="n">lattice_name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Given the name of a :class:`Lattice` class, create an instance of it with gi.</span>
 
 <span class="sd">    Parameters</span>
@@ -980,14 +986,12 @@
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    lat : Lattice instance</span>
-<span class="sd">        An instance of the lattice class specified by `name`, initialized with</span>
-<span class="sd">        ``LatticeClass(*args, **kwargs)``.</span>
+<span class="sd">    LatticeClass : (subclass of) :class:`Lattice`</span>
+<span class="sd">        An instance of the lattice class specified by `lattice_name`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">LatticeClass</span> <span class="o">=</span> <span class="nb">globals</span><span class="p">()[</span><span class="n">lattice_name</span><span class="p">]</span>
-    <span class="n">lat</span> <span class="o">=</span> <span class="n">LatticeClass</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lat</span><span class="p">,</span> <span class="n">Lattice</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">lat</span>
+    <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">LatticeClass</span><span class="p">,</span> <span class="n">Lattice</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">LatticeClass</span>
 
 
 <div class="viewcode-block" id="get_order"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.get_order">[docs]</a><span class="k">def</span> <span class="nf">get_order</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">snake_winding</span><span class="p">,</span> <span class="n">priority</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>

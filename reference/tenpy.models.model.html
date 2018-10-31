@@ -101,6 +101,163 @@ involving couplings between multiple sites.</p>
 </dd></dl>
 
 <dl class="class">
+<dt id="tenpy.models.model.NearestNeighborModel">
+<em class="property">class </em><code class="descclassname">tenpy.models.model.</code><code class="descname">NearestNeighborModel</code><span class="sig-paren">(</span><em>lattice</em>, <em>H_bond</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#NearestNeighborModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.NearestNeighborModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tenpy.models.model.Model" title="tenpy.models.model.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.Model</span></code></a></p>
+<p>Base class for a model of nearest neigbor interactions w.r.t. the MPS index.</p>
+<p>In this class, the Hamiltonian <span class="math notranslate nohighlight">\(H = \sum_{i} H_{i,i+1}\)</span> is represented by
+“bond terms” <span class="math notranslate nohighlight">\(H_{i,i+1}\)</span> acting only on two neighboring sites <cite>i</cite> and <cite>i+1</cite>,
+where <cite>i</cite> is an integer.
+Instances of this class are suitable for <a class="reference internal" href="tenpy.algorithms.tebd.html#module-tenpy.algorithms.tebd" title="tenpy.algorithms.tebd"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tebd</span></code></a>.</p>
+<p>Note that the “nearest-neighbor” in the name referst to the MPS index, not the lattice.
+In short, this works only for 1-dimensional (1D) nearest-neighbor models:
+A 2D lattice is internally mapped to a 1D MPS “snake”, and even a nearest-neighbor coupling
+in 2D becomes long-range in the MPS chain.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>lattice</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.model.lattice.Lattice</span></code></span></dt>
+<dd><p class="first last">The lattice defining the geometry and the local Hilbert space(s).</p>
+</dd>
+<dt><strong>H_bond</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">The Hamiltonian rewritten as <code class="docutils literal notranslate"><span class="pre">sum_i</span> <span class="pre">H_bond[i]</span></code> for MPS indices <code class="docutils literal notranslate"><span class="pre">i</span></code>.
+<code class="docutils literal notranslate"><span class="pre">H_bond[i]</span></code> acts on sites <code class="docutils literal notranslate"><span class="pre">(i-1,</span> <span class="pre">i)</span></code>; we require <code class="docutils literal notranslate"><span class="pre">len(H_bond)</span> <span class="pre">==</span> <span class="pre">lat.N_sites</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>H_bond</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <code class="xref py py-class docutils literal notranslate"><span class="pre">npc.Array</span></code></span></dt>
+<dd><p class="first last">The Hamiltonian rewritten as <code class="docutils literal notranslate"><span class="pre">sum_i</span> <span class="pre">H_bond[i]</span></code> for MPS indices <code class="docutils literal notranslate"><span class="pre">i</span></code>.
+<code class="docutils literal notranslate"><span class="pre">H_bond[i]</span></code> acts on sites <code class="docutils literal notranslate"><span class="pre">(i-1,</span> <span class="pre">i)</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.NearestNeighborModel.bond_energies" title="tenpy.models.model.NearestNeighborModel.bond_energies"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bond_energies</span></code></a>(psi)</td>
+<td>Calculate bond energies &lt;psi|H_bond|psi&gt;.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.NearestNeighborModel.trivial_like_NNModel" title="tenpy.models.model.NearestNeighborModel.trivial_like_NNModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">trivial_like_NNModel</span></code></a>()</td>
+<td>Return a NearestNeighborModel with same lattice, but trivial (H=0) bonds.</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="60%" />
+<col width="40%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>test_sanity</strong></td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="tenpy.models.model.NearestNeighborModel.bond_energies">
+<code class="descname">bond_energies</code><span class="sig-paren">(</span><em>psi</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#NearestNeighborModel.bond_energies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.NearestNeighborModel.bond_energies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate bond energies &lt;psi|H_bond|psi&gt;.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>psi</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.networks.mps.html#tenpy.networks.mps.MPS" title="tenpy.networks.mps.MPS"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPS</span></code></a></span></dt>
+<dd><p class="first last">The MPS for which the bond energies should be calculated.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>E_bond</strong> <span class="classifier-delimiter">:</span> <span class="classifier">1D ndarray</span></dt>
+<dd><p class="first last">List of bond energies: for finite bc, <code class="docutils literal notranslate"><span class="pre">E_Bond[i]</span></code> is the energy of bond <code class="docutils literal notranslate"><span class="pre">i,</span> <span class="pre">i+1</span></code>.
+(i.e. we omit bond 0 between sites L-1 and 0);
+for infinite bc <code class="docutils literal notranslate"><span class="pre">E_bond[i]</span></code> is the energy of bond <code class="docutils literal notranslate"><span class="pre">i-1,</span> <span class="pre">i</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.models.model.NearestNeighborModel.test_sanity">
+<code class="descname">test_sanity</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#NearestNeighborModel.test_sanity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.NearestNeighborModel.test_sanity" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tenpy.models.model.NearestNeighborModel.trivial_like_NNModel">
+<code class="descname">trivial_like_NNModel</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#NearestNeighborModel.trivial_like_NNModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.NearestNeighborModel.trivial_like_NNModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a NearestNeighborModel with same lattice, but trivial (H=0) bonds.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tenpy.models.model.MPOModel">
+<em class="property">class </em><code class="descclassname">tenpy.models.model.</code><code class="descname">MPOModel</code><span class="sig-paren">(</span><em>lattice</em>, <em>H_MPO</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#MPOModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.MPOModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tenpy.models.model.Model" title="tenpy.models.model.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.Model</span></code></a></p>
+<p>Base class for a model with an MPO representation of the Hamiltonian.</p>
+<p>In this class, the Hamiltonian gets represented by an <a class="reference internal" href="tenpy.networks.mpo.html#tenpy.networks.mpo.MPO" title="tenpy.networks.mpo.MPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPO</span></code></a>.
+Thus, instances of this class are suitable for MPO-based algorithms like DMRG
+<a class="reference internal" href="tenpy.algorithms.dmrg.html#module-tenpy.algorithms.dmrg" title="tenpy.algorithms.dmrg"><code class="xref py py-mod docutils literal notranslate"><span class="pre">dmrg</span></code></a> and MPO time evolution.</p>
+<div class="admonition-todo admonition" id="index-0">
+<p class="first admonition-title">Todo</p>
+<p class="last">implement MPO for time evolution…
+Also, provide function to get H_MPO from H_bond</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>H_MPO</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.networks.mpo.html#tenpy.networks.mpo.MPO" title="tenpy.networks.mpo.MPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPO</span></code></a></span></dt>
+<dd><p class="first last">The Hamiltonian rewritten as an MPO.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>H_MPO</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.networks.mpo.html#tenpy.networks.mpo.MPO" title="tenpy.networks.mpo.MPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.networks.mpo.MPO</span></code></a></span></dt>
+<dd><p class="first last">MPO representation of the Hamiltonian.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="60%" />
+<col width="40%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>test_sanity</strong></td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="tenpy.models.model.MPOModel.test_sanity">
+<code class="descname">test_sanity</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#MPOModel.test_sanity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.MPOModel.test_sanity" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="tenpy.models.model.CouplingModel">
 <em class="property">class </em><code class="descclassname">tenpy.models.model.</code><code class="descname">CouplingModel</code><span class="sig-paren">(</span><em>lattice</em>, <em>bc_coupling=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#CouplingModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.CouplingModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#tenpy.models.model.Model" title="tenpy.models.model.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.Model</span></code></a></p>
@@ -598,37 +755,47 @@ e.g., op_string[0] is inserted between <cite>i</cite> and <cite>j</cite>.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="tenpy.models.model.NearestNeighborModel">
-<em class="property">class </em><code class="descclassname">tenpy.models.model.</code><code class="descname">NearestNeighborModel</code><span class="sig-paren">(</span><em>lattice</em>, <em>H_bond</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#NearestNeighborModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.NearestNeighborModel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#tenpy.models.model.Model" title="tenpy.models.model.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.Model</span></code></a></p>
-<p>Base class for a model of nearest neigbor interactions w.r.t. the MPS index.</p>
-<p>In this class, the Hamiltonian <span class="math notranslate nohighlight">\(H = \sum_{i} H_{i,i+1}\)</span> is represented by
-“bond terms” <span class="math notranslate nohighlight">\(H_{i,i+1}\)</span> acting only on two neighboring sites <cite>i</cite> and <cite>i+1</cite>,
-where <cite>i</cite> is an integer.
-Instances of this class are suitable for <a class="reference internal" href="tenpy.algorithms.tebd.html#module-tenpy.algorithms.tebd" title="tenpy.algorithms.tebd"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tebd</span></code></a>.</p>
-<p>Note that the “nearest-neighbor” in the name referst to the MPS index, not the lattice.
-In short, this works only for 1-dimensional (1D) nearest-neighbor models:
-A 2D lattice is internally mapped to a 1D MPS “snake”, and even a nearest-neighbor coupling
-in 2D becomes long-range in the MPS chain.</p>
+<dt id="tenpy.models.model.CouplingMPOModel">
+<em class="property">class </em><code class="descclassname">tenpy.models.model.</code><code class="descname">CouplingMPOModel</code><span class="sig-paren">(</span><em>model_param</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#CouplingMPOModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.CouplingMPOModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.CouplingModel</span></code></a>, <a class="reference internal" href="#tenpy.models.model.MPOModel" title="tenpy.models.model.MPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.MPOModel</span></code></a></p>
+<p>Combination of the CouplingModel and MPOModel.</p>
+<p>This class provides the interface for most of the model classes in <cite>tenpy</cite>.
+Examples based on this class are given in <a class="reference internal" href="tenpy.models.xxz_chain.html#module-tenpy.models.xxz_chain" title="tenpy.models.xxz_chain"><code class="xref py py-mod docutils literal notranslate"><span class="pre">xxz_chain</span></code></a>
+and <a class="reference internal" href="tenpy.models.tf_ising.html#module-tenpy.models.tf_ising" title="tenpy.models.tf_ising"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tf_ising</span></code></a>.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">__init__</span></code> of this function performs the standard initialization explained
+in <a class="reference internal" href="../intro_model.html"><span class="doc">Introduction to models</span></a>, by calling the methods <a class="reference internal" href="#tenpy.models.model.CouplingMPOModel.init_lattice" title="tenpy.models.model.CouplingMPOModel.init_lattice"><code class="xref py py-meth docutils literal notranslate"><span class="pre">init_lattice()</span></code></a> (step 1-4)
+to initialize a lattice (which in turn calls <a class="reference internal" href="#tenpy.models.model.CouplingMPOModel.init_sites" title="tenpy.models.model.CouplingMPOModel.init_sites"><code class="xref py py-meth docutils literal notranslate"><span class="pre">init_sites()</span></code></a>) and
+<a class="reference internal" href="#tenpy.models.model.CouplingMPOModel.init_terms" title="tenpy.models.model.CouplingMPOModel.init_terms"><code class="xref py py-meth docutils literal notranslate"><span class="pre">init_terms()</span></code></a>. The latter should be overwritten by subclasses to add the
+desired terms.</p>
+<p>As shown in <a class="reference internal" href="tenpy.models.tf_ising.html#module-tenpy.models.tf_ising" title="tenpy.models.tf_ising"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tf_ising</span></code></a>, you can get a 1D version suitable
+for TEBD from a general-lattice model by subclassing it once more, only
+redefining the <code class="docutils literal notranslate"><span class="pre">__init__</span></code> as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">):</span>
+    <span class="n">CouplingMPOModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">)</span>
+</pre></div>
+</div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>lattice</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.model.lattice.Lattice</span></code></span></dt>
-<dd><p class="first last">The lattice defining the geometry and the local Hilbert space(s).</p>
-</dd>
-<dt><strong>H_bond</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
-<dd><p class="first last">The Hamiltonian rewritten as <code class="docutils literal notranslate"><span class="pre">sum_i</span> <span class="pre">H_bond[i]</span></code> for MPS indices <code class="docutils literal notranslate"><span class="pre">i</span></code>.
-<code class="docutils literal notranslate"><span class="pre">H_bond[i]</span></code> acts on sites <code class="docutils literal notranslate"><span class="pre">(i-1,</span> <span class="pre">i)</span></code>; we require <code class="docutils literal notranslate"><span class="pre">len(H_bond)</span> <span class="pre">==</span> <span class="pre">lat.N_sites</span></code>.</p>
+<dt><strong>model_param</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
+<dd><p class="first last">A dictionary with all the model parameters.
+These parameters are given to the different <code class="docutils literal notranslate"><span class="pre">init_...()</span></code> methods, and
+should be read out using <a class="reference internal" href="tenpy.tools.params.html#tenpy.tools.params.get_parameter" title="tenpy.tools.params.get_parameter"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_parameter()</span></code></a>.
+This may happen in any of the <code class="docutils literal notranslate"><span class="pre">init_...()</span></code> methods.
+The parameter <code class="docutils literal notranslate"><span class="pre">'verbose'</span></code> is read out in the <cite>__init__</cite> of this function
+and specifies how much status information should be printed during initialization.</p>
 </dd>
 </dl>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>H_bond</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <code class="xref py py-class docutils literal notranslate"><span class="pre">npc.Array</span></code></span></dt>
-<dd><p class="first last">The Hamiltonian rewritten as <code class="docutils literal notranslate"><span class="pre">sum_i</span> <span class="pre">H_bond[i]</span></code> for MPS indices <code class="docutils literal notranslate"><span class="pre">i</span></code>.
-<code class="docutils literal notranslate"><span class="pre">H_bond[i]</span></code> acts on sites <code class="docutils literal notranslate"><span class="pre">(i-1,</span> <span class="pre">i)</span></code>.</p>
+<dt><strong>name</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">The name of the model, e.g. <code class="docutils literal notranslate"><span class="pre">&quot;XXZChain&quot;</span> <span class="pre">or</span> <span class="pre">``&quot;SpinModel&quot;</span></code>.</p>
+</dd>
+<dt><strong>verbose</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Level of verbosity (i.e. how much status information to print); higher=more output.</p>
 </dd>
 </dl>
 </td>
@@ -642,45 +809,118 @@ in 2D becomes long-range in the MPS chain.</p>
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.NearestNeighborModel.bond_energies" title="tenpy.models.model.NearestNeighborModel.bond_energies"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bond_energies</span></code></a>(psi)</td>
-<td>Calculate bond energies &lt;psi|H_bond|psi&gt;.</td>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_coupling</span></code>(strength,&nbsp;u1,&nbsp;op1,&nbsp;u2,&nbsp;op2,&nbsp;dx)</td>
+<td>Add twosite coupling terms to the Hamiltonian, summing over lattice sites.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.NearestNeighborModel.trivial_like_NNModel" title="tenpy.models.model.NearestNeighborModel.trivial_like_NNModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">trivial_like_NNModel</span></code></a>()</td>
-<td>Return a NearestNeighborModel with same lattice, but trivial (H=0) bonds.</td>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_coupling_term</span></code>(strength,&nbsp;i,&nbsp;j,&nbsp;op_i,&nbsp;op_j)</td>
+<td>Add a two-site coupling term on given MPS sites.</td>
 </tr>
-</tbody>
-</table>
-<table border="1" class="docutils">
-<colgroup>
-<col width="60%" />
-<col width="40%" />
-</colgroup>
-<tbody valign="top">
-<tr class="row-odd"><td><strong>test_sanity</strong></td>
-<td>&#160;</td>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite</span></code>(strength,&nbsp;u,&nbsp;opname)</td>
+<td>Add onsite terms to self.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite_term</span></code>(strength,&nbsp;i,&nbsp;op)</td>
+<td>Add a onsite term on a given MPS site.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_MPO</span></code>([tol_zero])</td>
+<td>Calculate MPO representation of the Hamiltonian.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_bond</span></code>([tol_zero])</td>
+<td>calculate <cite>H_bond</cite> from <cite>self.coupling_terms</cite> and <cite>self.H_onsite</cite>.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_onsite</span></code>([tol_zero])</td>
+<td>Calculate <cite>H_onsite</cite> from <cite>self.onsite_terms</cite>.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingMPOModel.init_lattice" title="tenpy.models.model.CouplingMPOModel.init_lattice"><code class="xref py py-obj docutils literal notranslate"><span class="pre">init_lattice</span></code></a>(model_param)</td>
+<td>Initialize a lattice for the given model parameters.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.CouplingMPOModel.init_sites" title="tenpy.models.model.CouplingMPOModel.init_sites"><code class="xref py py-obj docutils literal notranslate"><span class="pre">init_sites</span></code></a>(model_param)</td>
+<td>Define the local Hilbert space and operators; needs to be implemented in subclasses.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingMPOModel.init_terms" title="tenpy.models.model.CouplingMPOModel.init_terms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">init_terms</span></code></a>(model_param)</td>
+<td>Add the onsite and coupling terms to the model; subclasses should implement this.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
+<td>Sanity check.</td>
 </tr>
 </tbody>
 </table>
 <dl class="method">
-<dt id="tenpy.models.model.NearestNeighborModel.bond_energies">
-<code class="descname">bond_energies</code><span class="sig-paren">(</span><em>psi</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#NearestNeighborModel.bond_energies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.NearestNeighborModel.bond_energies" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculate bond energies &lt;psi|H_bond|psi&gt;.</p>
+<dt id="tenpy.models.model.CouplingMPOModel.init_lattice">
+<code class="descname">init_lattice</code><span class="sig-paren">(</span><em>model_param</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#CouplingMPOModel.init_lattice"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.CouplingMPOModel.init_lattice" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize a lattice for the given model parameters.</p>
+<p>This function reads out the model parameter <cite>lattice</cite>.
+This can be a full <a class="reference internal" href="tenpy.models.lattice.html#tenpy.models.lattice.Lattice" title="tenpy.models.lattice.Lattice"><code class="xref py py-class docutils literal notranslate"><span class="pre">Lattice</span></code></a> instance,
+in which case it is just returned without further action.
+Alternatively, the <cite>lattice</cite> parameter can be a string giving the name
+of one of the predefined lattices, which then gets initialized.
+Depending on the dimensionality of the lattice, this requires different model parameters.</p>
+<p>The following model parameters get read out.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="16%" />
+<col width="10%" />
+<col width="73%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">key</th>
+<th class="head">type</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>lattice</td>
+<td>str |
+Lattice</td>
+<td>The name of a lattice pre-defined in TeNPy to be initialized.
+Alternatively, a (possibly self-defined) Lattice instance.
+In the latter case, no further parameters are read out.</td>
+</tr>
+<tr class="row-odd"><td>bc_MPS</td>
+<td>str</td>
+<td>Boundary conditions for the MPS</td>
+</tr>
+<tr class="row-even"><td>order</td>
+<td>str</td>
+<td>The order of sites within the lattice for non-trivial lattices.</td>
+</tr>
+<tr class="row-odd"><td>L</td>
+<td>int</td>
+<td>The length in x-direction (or lenght of the unit cell for
+infinite systems).
+Only read out for 1D lattices.</td>
+</tr>
+<tr class="row-even"><td>Lx, Ly</td>
+<td>int</td>
+<td>The length in x- and y-direction.
+For <code class="docutils literal notranslate"><span class="pre">&quot;infinite&quot;</span></code> <cite>bc_MPS</cite>, the system is infinite in
+x-direction and <cite>Lx</cite> is the number of “rings” in the infinite
+MPS unit cell, while <cite>Ly</cite> gives the circumference around the
+cylinder or width of th the rung for a ladder (depending on
+<cite>bc_y</cite>.
+Only read out for 2D lattices.</td>
+</tr>
+<tr class="row-odd"><td>bc_y</td>
+<td>str</td>
+<td><code class="docutils literal notranslate"><span class="pre">&quot;cylinder&quot;</span> <span class="pre">|</span> <span class="pre">&quot;ladder&quot;</span></code>.
+The boundary conditions in y-direction.
+Only read out for 2D lattices.</td>
+</tr>
+</tbody>
+</table>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>psi</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.networks.mps.html#tenpy.networks.mps.MPS" title="tenpy.networks.mps.MPS"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPS</span></code></a></span></dt>
-<dd><p class="first last">The MPS for which the bond energies should be calculated.</p>
+<dt><strong>model_param</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
+<dd><p class="first last">The model parameters given to <code class="docutils literal notranslate"><span class="pre">__init__</span></code>.</p>
 </dd>
 </dl>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>E_bond</strong> <span class="classifier-delimiter">:</span> <span class="classifier">1D ndarray</span></dt>
-<dd><p class="first last">List of bond energies: for finite bc, <code class="docutils literal notranslate"><span class="pre">E_Bond[i]</span></code> is the energy of bond <code class="docutils literal notranslate"><span class="pre">i,</span> <span class="pre">i+1</span></code>.
-(i.e. we omit bond 0 between sites L-1 and 0);
-for infinite bc <code class="docutils literal notranslate"><span class="pre">E_bond[i]</span></code> is the energy of bond <code class="docutils literal notranslate"><span class="pre">i-1,</span> <span class="pre">i</span></code>.</p>
+<dt><strong>lat</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.models.lattice.html#tenpy.models.lattice.Lattice" title="tenpy.models.lattice.Lattice"><code class="xref py py-class docutils literal notranslate"><span class="pre">Lattice</span></code></a></span></dt>
+<dd><p class="first last">An initialized lattice.</p>
 </dd>
 </dl>
 </td>
@@ -690,67 +930,45 @@ for infinite bc <code class="docutils literal notranslate"><span class="pre">E_b
 </dd></dl>
 
 <dl class="method">
-<dt id="tenpy.models.model.NearestNeighborModel.test_sanity">
-<code class="descname">test_sanity</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#NearestNeighborModel.test_sanity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.NearestNeighborModel.test_sanity" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="tenpy.models.model.NearestNeighborModel.trivial_like_NNModel">
-<code class="descname">trivial_like_NNModel</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#NearestNeighborModel.trivial_like_NNModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.NearestNeighborModel.trivial_like_NNModel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a NearestNeighborModel with same lattice, but trivial (H=0) bonds.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="tenpy.models.model.MPOModel">
-<em class="property">class </em><code class="descclassname">tenpy.models.model.</code><code class="descname">MPOModel</code><span class="sig-paren">(</span><em>lattice</em>, <em>H_MPO</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#MPOModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.MPOModel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#tenpy.models.model.Model" title="tenpy.models.model.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.Model</span></code></a></p>
-<p>Base class for a model with an MPO representation of the Hamiltonian.</p>
-<p>In this class, the Hamiltonian gets represented by an <a class="reference internal" href="tenpy.networks.mpo.html#tenpy.networks.mpo.MPO" title="tenpy.networks.mpo.MPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPO</span></code></a>.
-Thus, instances of this class are suitable for MPO-based algorithms like DMRG
-<a class="reference internal" href="tenpy.algorithms.dmrg.html#module-tenpy.algorithms.dmrg" title="tenpy.algorithms.dmrg"><code class="xref py py-mod docutils literal notranslate"><span class="pre">dmrg</span></code></a> and MPO time evolution.</p>
-<div class="admonition-todo admonition" id="index-0">
-<p class="first admonition-title">Todo</p>
-<p class="last">implement MPO for time evolution…
-Also, provide function to get H_MPO from H_bond</p>
+<dt id="tenpy.models.model.CouplingMPOModel.init_sites">
+<code class="descname">init_sites</code><span class="sig-paren">(</span><em>model_param</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#CouplingMPOModel.init_sites"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.CouplingMPOModel.init_sites" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define the local Hilbert space and operators; needs to be implemented in subclasses.</p>
+<p>This function gets called by <a class="reference internal" href="#tenpy.models.model.CouplingMPOModel.init_lattice" title="tenpy.models.model.CouplingMPOModel.init_lattice"><code class="xref py py-meth docutils literal notranslate"><span class="pre">init_lattice()</span></code></a> to get the
+<a class="reference internal" href="tenpy.networks.site.html#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a> for the lattice unit cell.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Initializing the sites requires to define the conserved quantum numbers.
+All pre-defined sites accept <code class="docutils literal notranslate"><span class="pre">conserve=None</span></code> to disable using quantum numbers.
+Many models in TeNPy read out the <cite>conserve</cite> model parameter, which can be set
+to <code class="docutils literal notranslate"><span class="pre">&quot;best&quot;</span></code> to indicate the optimal parameters.</p>
 </div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>H_MPO</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.networks.mpo.html#tenpy.networks.mpo.MPO" title="tenpy.networks.mpo.MPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPO</span></code></a></span></dt>
-<dd><p class="first last">The Hamiltonian rewritten as an MPO.</p>
+<dt><strong>model_param</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
+<dd><p class="first last">The model parameters given to <code class="docutils literal notranslate"><span class="pre">__init__</span></code>.</p>
 </dd>
 </dl>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>H_MPO</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.networks.mpo.html#tenpy.networks.mpo.MPO" title="tenpy.networks.mpo.MPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.networks.mpo.MPO</span></code></a></span></dt>
-<dd><p class="first last">MPO representation of the Hamiltonian.</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>sites</strong> <span class="classifier-delimiter">:</span> <span class="classifier">(tuple of) :class:<a href="#id1"><span class="problematic" id="id2">`</span></a>~tenpy.networks.site.Site.</span></dt>
+<dd><p class="first last">The local sites of the lattice, defining the local basis states and operators.</p>
 </dd>
 </dl>
 </td>
 </tr>
 </tbody>
 </table>
-<p class="rubric">Methods</p>
-<table border="1" class="docutils">
-<colgroup>
-<col width="60%" />
-<col width="40%" />
-</colgroup>
-<tbody valign="top">
-<tr class="row-odd"><td><strong>test_sanity</strong></td>
-<td>&#160;</td>
-</tr>
-</tbody>
-</table>
+</dd></dl>
+
 <dl class="method">
-<dt id="tenpy.models.model.MPOModel.test_sanity">
-<code class="descname">test_sanity</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#MPOModel.test_sanity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.MPOModel.test_sanity" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt id="tenpy.models.model.CouplingMPOModel.init_terms">
+<code class="descname">init_terms</code><span class="sig-paren">(</span><em>model_param</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#CouplingMPOModel.init_terms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.CouplingMPOModel.init_terms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add the onsite and coupling terms to the model; subclasses should implement this.</p>
+</dd></dl>
 
 </dd></dl>
 

@@ -40,87 +40,105 @@
   <h1>Source code for tenpy.models.bose_hubbard_chain</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;Simple Bose-Hubbard chain model.</span>
 
-<span class="sd">.. todo::</span>
+<span class="sd">.. todo ::</span>
 <span class="sd">    Work in checks for common errors and raise some exceptions?</span>
 <span class="sd">    Run some tests, and perhaps benchmarks comparing to old TenPy?</span>
 <span class="sd">    Write example simulation code?</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="c1"># Copyright 2018 TeNPy Developers</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-
-<span class="kn">from</span> <span class="nn">.lattice</span> <span class="k">import</span> <span class="n">Chain</span>
 <span class="kn">from</span> <span class="nn">..networks.site</span> <span class="k">import</span> <span class="n">BosonSite</span>
-<span class="kn">from</span> <span class="nn">.model</span> <span class="k">import</span> <span class="n">CouplingModel</span><span class="p">,</span> <span class="n">NearestNeighborModel</span><span class="p">,</span> <span class="n">MPOModel</span>
-<span class="kn">from</span> <span class="nn">..tools.params</span> <span class="k">import</span> <span class="n">get_parameter</span><span class="p">,</span> <span class="n">unused_parameters</span>
-<span class="kn">from</span> <span class="nn">..tools.misc</span> <span class="k">import</span> <span class="n">any_nonzero</span>
+<span class="kn">from</span> <span class="nn">.model</span> <span class="k">import</span> <span class="n">CouplingMPOModel</span><span class="p">,</span> <span class="n">NearestNeighborModel</span>
+<span class="kn">from</span> <span class="nn">..tools.params</span> <span class="k">import</span> <span class="n">get_parameter</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;BoseHubbardModel&quot;</span><span class="p">,</span> <span class="s2">&quot;BoseHubbardChain&quot;</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="BoseHubbardChain"><a class="viewcode-back" href="../../../reference/tenpy.models.bose_hubbard_chain.html#tenpy.models.bose_hubbard_chain.BoseHubbardChain">[docs]</a><span class="k">class</span> <span class="nc">BoseHubbardChain</span><span class="p">(</span><span class="n">CouplingModel</span><span class="p">,</span> <span class="n">MPOModel</span><span class="p">,</span> <span class="n">NearestNeighborModel</span><span class="p">):</span>
+<div class="viewcode-block" id="BoseHubbardModel"><a class="viewcode-back" href="../../../reference/tenpy.models.bose_hubbard_chain.html#tenpy.models.bose_hubbard_chain.BoseHubbardModel">[docs]</a><span class="k">class</span> <span class="nc">BoseHubbardModel</span><span class="p">(</span><span class="n">CouplingMPOModel</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Spinless Bose-Hubbard model on a chain.</span>
 
 <span class="sd">    The Hamiltonian is:</span>
 
 <span class="sd">    .. math ::</span>
-<span class="sd">        H = t \sum_i (b_i^{\dagger} b_{i+1} + b_{i+1}^{\dagger} b_i)</span>
+<span class="sd">        H = t \sum_{\langle i, j \rangle, i &lt; j} (b_i^{\dagger} b_j + b_j^{\dagger} b_i)</span>
 <span class="sd">            + \frac{U}{2} \sum_i n_i (n_i - 1) + \mu \sum_i n_i</span>
 
 <span class="sd">    Note that the signs of all parameters as defined in the Hamiltonian are positive.</span>
 
+<span class="sd">    Here, :math:`\langle i,j \rangle, i&lt; j` denotes nearest neighbor pairs.</span>
 <span class="sd">    All parameters are collected in a single dictionary `model_param` and read out with</span>
 <span class="sd">    :func:`~tenpy.tools.params.get_parameter`.</span>
 
+
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    L : int</span>
-<span class="sd">        Length of the chain</span>
 <span class="sd">    n_max : int</span>
 <span class="sd">        Maximum number of bosons per site.</span>
 <span class="sd">    filling : float</span>
 <span class="sd">        Average filling.</span>
-<span class="sd">    conserve: {&#39;N&#39; | &#39;parity&#39; | None}</span>
+<span class="sd">    conserve: {&#39;best&#39; | &#39;N&#39; | &#39;parity&#39; | None}</span>
 <span class="sd">        What should be conserved. See :class:`~tenpy.networks.Site.BosonSite`.</span>
-<span class="sd">    t, U, Mu : float | array</span>
+<span class="sd">    t, U, mu : float | array</span>
 <span class="sd">        Couplings as defined in the Hamiltonian above.</span>
+<span class="sd">    lattice : str | :class:`~tenpy.models.lattice.Lattice`</span>
+<span class="sd">        Instance of a lattice class for the underlaying geometry.</span>
+<span class="sd">        Alternatively a string being the name of one of the Lattices defined in</span>
+<span class="sd">        :mod:`~tenpy.models.lattice`, e.g. ``&quot;Chain&quot;, &quot;Square&quot;, &quot;HoneyComb&quot;, ...``.</span>
 <span class="sd">    bc_MPS : {&#39;finite&#39; | &#39;infinte&#39;}</span>
-<span class="sd">        MPS boundary conditions. Coupling boundary conditions are chosen appropriately.</span>
-<span class="sd">    verbose : int</span>
-<span class="sd">        Level of verbosity</span>
+<span class="sd">        MPS boundary conditions along the x-direction.</span>
+<span class="sd">        For &#39;infinite&#39; boundary conditions, repeat the unit cell in x-direction.</span>
+<span class="sd">        Coupling boundary conditions in x-direction are chosen accordingly.</span>
+<span class="sd">        Only used if `lattice` is a string.</span>
+<span class="sd">    order : string</span>
+<span class="sd">        Ordering of the sites in the MPS, e.g. &#39;default&#39;, &#39;snake&#39;;</span>
+<span class="sd">        see :meth:`~tenpy.models.lattice.Lattice.ordering`.</span>
+<span class="sd">        Only used if `lattice` is a string.</span>
+<span class="sd">    L : int</span>
+<span class="sd">        Lenght of the lattice.</span>
+<span class="sd">        Only used if `lattice` is the name of a 1D Lattice.</span>
+<span class="sd">    Lx, Ly : int</span>
+<span class="sd">        Length of the lattice in x- and y-direction.</span>
+<span class="sd">        Only used if `lattice` is the name of a 2D Lattice.</span>
+<span class="sd">    bc_y : &#39;ladder&#39; | &#39;cylinder&#39;</span>
+<span class="sd">        Boundary conditions in y-direction.</span>
+<span class="sd">        Only used if `lattice` is the name of a 2D Lattice.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">):</span>
-        <span class="c1"># 0) Read and set parameters.</span>
-        <span class="n">verbose</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
-        <span class="n">L</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;L&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__class_</span><span class="p">)</span>
+        <span class="n">CouplingMPOModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BoseHubbardModel.init_sites"><a class="viewcode-back" href="../../../reference/tenpy.models.bose_hubbard_chain.html#tenpy.models.bose_hubbard_chain.BoseHubbardModel.init_sites">[docs]</a>    <span class="k">def</span> <span class="nf">init_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">):</span>
         <span class="n">n_max</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;n_max&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
         <span class="n">filling</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;filling&#39;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
-        <span class="n">bc_MPS</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;bc_MPS&#39;</span><span class="p">,</span> <span class="s1">&#39;finite&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
-        <span class="n">t</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
-        <span class="n">U</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;U&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
-        <span class="n">mu</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;mu&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
-        <span class="n">conserve</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;conserve&#39;</span><span class="p">,</span> <span class="s1">&#39;N&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
-        <span class="n">unused_parameters</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
-
-        <span class="c1"># 1) Sites and lattice.</span>
+        <span class="n">conserve</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;conserve&#39;</span><span class="p">,</span> <span class="s1">&#39;N&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">conserve</span> <span class="o">==</span> <span class="s1">&#39;best&#39;</span><span class="p">:</span>
+            <span class="n">conserve</span> <span class="o">=</span> <span class="s1">&#39;N&#39;</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mf">1.</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;: set conserve to&quot;</span><span class="p">,</span> <span class="n">conserve</span><span class="p">)</span>
         <span class="n">site</span> <span class="o">=</span> <span class="n">BosonSite</span><span class="p">(</span><span class="n">Nmax</span><span class="o">=</span><span class="n">n_max</span><span class="p">,</span> <span class="n">conserve</span><span class="o">=</span><span class="n">conserve</span><span class="p">,</span> <span class="n">filling</span><span class="o">=</span><span class="n">filling</span><span class="p">)</span>
-        <span class="n">bc</span> <span class="o">=</span> <span class="s1">&#39;periodic&#39;</span> <span class="k">if</span> <span class="n">bc_MPS</span> <span class="o">==</span> <span class="s1">&#39;infinite&#39;</span> <span class="k">else</span> <span class="s1">&#39;open&#39;</span>
-        <span class="n">lat</span> <span class="o">=</span> <span class="n">Chain</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">bc</span><span class="o">=</span><span class="n">bc</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="n">bc_MPS</span><span class="p">)</span>
-        <span class="c1"># 2) Initialize CouplingModel</span>
-        <span class="n">CouplingModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">site</span></div>
 
-        <span class="c1"># 3) Build the Hamiltonian.</span>
-        <span class="c1"># 3a) on-site terms.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">add_onsite</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;N&#39;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">add_onsite</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;NN&#39;</span><span class="p">)</span>
+<div class="viewcode-block" id="BoseHubbardModel.init_terms"><a class="viewcode-back" href="../../../reference/tenpy.models.bose_hubbard_chain.html#tenpy.models.bose_hubbard_chain.BoseHubbardModel.init_terms">[docs]</a>    <span class="k">def</span> <span class="nf">init_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">):</span>
+        <span class="c1"># 0) Read and set parameters.</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="n">U</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;U&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="n">mu</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;mu&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_onsite</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="s1">&#39;N&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_onsite</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="s1">&#39;NN&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">u1</span><span class="p">,</span> <span class="n">u2</span><span class="p">,</span> <span class="n">dx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">nearest_neighbors</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">u1</span><span class="p">,</span> <span class="s1">&#39;Bd&#39;</span><span class="p">,</span> <span class="n">u2</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">,</span> <span class="n">dx</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">u1</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">,</span> <span class="n">u2</span><span class="p">,</span> <span class="s1">&#39;Bd&#39;</span><span class="p">,</span> <span class="n">dx</span><span class="p">)</span>  <span class="c1"># h.c.</span></div></div>
 
-        <span class="c1"># 3b) coupling terms.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Bd&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Bd&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
-        <span class="c1"># 4) Initialize MPO</span>
-        <span class="n">MPOModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_H_MPO</span><span class="p">())</span>
-        <span class="c1"># 5) Initialize H bond  # LS: what does this mean?</span>
-        <span class="n">NearestNeighborModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_H_bond</span><span class="p">())</span></div>
+<div class="viewcode-block" id="BoseHubbardChain"><a class="viewcode-back" href="../../../reference/tenpy.models.bose_hubbard_chain.html#tenpy.models.bose_hubbard_chain.BoseHubbardChain">[docs]</a><span class="k">class</span> <span class="nc">BoseHubbardChain</span><span class="p">(</span><span class="n">BoseHubbardModel</span><span class="p">,</span><span class="n">NearestNeighborModel</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The :class:`BoseHubbardModel` on a Chain, suitable for TEBD.</span>
+
+<span class="sd">    See the :class:`BoseHubbardModel` for the documentation of parameters.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">):</span>
+        <span class="n">model_param</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;lattice&#39;</span><span class="p">,</span> <span class="s2">&quot;Chain&quot;</span><span class="p">)</span>
+        <span class="n">CouplingMPOModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">)</span></div>
 </pre></div>
 
           </div>

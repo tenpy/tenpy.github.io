@@ -41,81 +41,107 @@
 <span></span><span class="sd">&quot;&quot;&quot;Fermionic Hubbard model: (spin-full fermions with interactions).</span>
 
 <span class="sd">.. todo ::</span>
-<span class="sd">    Work in checks for common errors and raise some exceptions?</span>
+<span class="sd">    Should we redefine the hopping to have a negative prefactor by default if t = 1?</span>
+<span class="sd">    How to notify users of the class???</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="c1"># Copyright 2018 TeNPy Developers</span>
 
-<span class="kn">from</span> <span class="nn">.lattice</span> <span class="k">import</span> <span class="n">Chain</span>
-<span class="kn">from</span> <span class="nn">.model</span> <span class="k">import</span> <span class="n">CouplingModel</span><span class="p">,</span> <span class="n">NearestNeighborModel</span><span class="p">,</span> <span class="n">MPOModel</span>
-<span class="kn">from</span> <span class="nn">..tools.params</span> <span class="k">import</span> <span class="n">get_parameter</span><span class="p">,</span> <span class="n">unused_parameters</span>
-<span class="kn">from</span> <span class="nn">tenpy.networks.site</span> <span class="k">import</span> <span class="n">SpinHalfFermionSite</span>
+<span class="kn">from</span> <span class="nn">.model</span> <span class="k">import</span> <span class="n">CouplingMPOModel</span><span class="p">,</span> <span class="n">NearestNeighborModel</span>
+<span class="kn">from</span> <span class="nn">..tools.params</span> <span class="k">import</span> <span class="n">get_parameter</span>
+<span class="kn">from</span> <span class="nn">..networks.site</span> <span class="k">import</span> <span class="n">SpinHalfFermionSite</span>
 
 
-<div class="viewcode-block" id="FermionicHubbardChain"><a class="viewcode-back" href="../../../reference/tenpy.models.fermions_hubbard.html#tenpy.models.fermions_hubbard.FermionicHubbardChain">[docs]</a><span class="k">class</span> <span class="nc">FermionicHubbardChain</span><span class="p">(</span><span class="n">CouplingModel</span><span class="p">,</span> <span class="n">NearestNeighborModel</span><span class="p">,</span> <span class="n">MPOModel</span><span class="p">):</span>
+<div class="viewcode-block" id="FermionicHubbardModel"><a class="viewcode-back" href="../../../reference/tenpy.models.fermions_hubbard.html#tenpy.models.fermions_hubbard.FermionicHubbardModel">[docs]</a><span class="k">class</span> <span class="nc">FermionicHubbardModel</span><span class="p">(</span><span class="n">CouplingMPOModel</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Spin-1/2 fermionic Hubbard model in 1D.</span>
 
 <span class="sd">    The Hamiltonian reads:</span>
 
 <span class="sd">    .. math ::</span>
-<span class="sd">        H = \sum_{\langle i, j \rangle, \sigma} t (c^{\dagger}_{\sigma, i} c_{\sigma j} + h.c.)</span>
+<span class="sd">        H = \sum_{\langle i, j \rangle, i &lt; j, \sigma} t (c^{\dagger}_{\sigma, i} c_{\sigma j} + h.c.)</span>
 <span class="sd">            + \sum_i U n_{\uparrow, i} n_{\downarrow, i}</span>
 <span class="sd">            + \sum_i \mu ( n_{\uparrow, i} + n_{\downarrow, i} )</span>
-<span class="sd">            +  \sum_{\langle i, j \rangle, \sigma} V</span>
+<span class="sd">            +  \sum_{\langle i, j \rangle, i&lt; j, \sigma} V</span>
 <span class="sd">                       (n_{\uparrow,i} + n_{\downarrow,i})(n_{\uparrow,j} + n_{\downarrow,j})</span>
 
 
+<span class="sd">    Here, :math:`\langle i,j \rangle, i&lt; j` denotes nearest neighbor pairs.</span>
 <span class="sd">    All parameters are collected in a single dictionary `model_param` and read out with</span>
 <span class="sd">    :func:`~tenpy.tools.params.get_parameter`.</span>
 
+<span class="sd">    .. warning ::</span>
+<span class="sd">        Using the Jordan-Wigner string (``JW``) is crucial to get correct results!</span>
+<span class="sd">        See :doc:`/intro_JordanWigner` for details.</span>
+
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    L : int</span>
-<span class="sd">        Length of the chain</span>
-<span class="sd">    t, U, mu : float | array</span>
-<span class="sd">        Parameters as defined for the Hamiltonian above</span>
 <span class="sd">    cons_N : {&#39;N&#39; | &#39;parity&#39; | None}</span>
 <span class="sd">        Whether particle number is conserved,</span>
 <span class="sd">        see :class:`~tenpy.networks.site.SpinHalfFermionSite` for details.</span>
 <span class="sd">    cons_Sz : {&#39;Sz&#39; | &#39;parity&#39; | None}</span>
 <span class="sd">        Whether spin is conserved,</span>
 <span class="sd">        see :class:`~tenpy.networks.site.SpinHalfFermionSite` for details.</span>
+<span class="sd">    t, U, mu : float | array</span>
+<span class="sd">        Parameters as defined for the Hamiltonian above</span>
+<span class="sd">    lattice : str | :class:`~tenpy.models.lattice.Lattice`</span>
+<span class="sd">        Instance of a lattice class for the underlaying geometry.</span>
+<span class="sd">        Alternatively a string being the name of one of the Lattices defined in</span>
+<span class="sd">        :mod:`~tenpy.models.lattice`, e.g. ``&quot;Chain&quot;, &quot;Square&quot;, &quot;HoneyComb&quot;, ...``.</span>
 <span class="sd">    bc_MPS : {&#39;finite&#39; | &#39;infinte&#39;}</span>
-<span class="sd">        MPS boundary conditions. Coupling boundary conditions are chosen appropriately.</span>
+<span class="sd">        MPS boundary conditions along the x-direction.</span>
+<span class="sd">        For &#39;infinite&#39; boundary conditions, repeat the unit cell in x-direction.</span>
+<span class="sd">        Coupling boundary conditions in x-direction are chosen accordingly.</span>
+<span class="sd">        Only used if `lattice` is a string.</span>
+<span class="sd">    order : string</span>
+<span class="sd">        Ordering of the sites in the MPS, e.g. &#39;default&#39;, &#39;snake&#39;;</span>
+<span class="sd">        see :meth:`~tenpy.models.lattice.Lattice.ordering`.</span>
+<span class="sd">        Only used if `lattice` is a string.</span>
+<span class="sd">    L : int</span>
+<span class="sd">        Lenght of the lattice.</span>
+<span class="sd">        Only used if `lattice` is the name of a 1D Lattice.</span>
+<span class="sd">    Lx, Ly : int</span>
+<span class="sd">        Length of the lattice in x- and y-direction.</span>
+<span class="sd">        Only used if `lattice` is the name of a 2D Lattice.</span>
+<span class="sd">    bc_y : &#39;ladder&#39; | &#39;cylinder&#39;</span>
+<span class="sd">        Boundary conditions in y-direction.</span>
+<span class="sd">        Only used if `lattice` is the name of a 2D Lattice.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">):</span>
-        <span class="c1"># 0) Read out/set default parameters.</span>
-        <span class="n">L</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;L&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
-        <span class="n">t</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
-        <span class="n">U</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;U&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
-        <span class="n">V</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;V&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
-        <span class="n">mu</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;mu&#39;</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
-        <span class="n">bc_MPS</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;bc_MPS&#39;</span><span class="p">,</span> <span class="s1">&#39;finite&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
-        <span class="n">cons_N</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;cons_N&#39;</span><span class="p">,</span> <span class="s1">&#39;N&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
-        <span class="n">cons_Sz</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;cons_Sz&#39;</span><span class="p">,</span> <span class="s1">&#39;Sz&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
-        <span class="n">unused_parameters</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">CouplingMPOModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">)</span>
 
-        <span class="c1"># 1) Define the site and the lattice.</span>
+<div class="viewcode-block" id="FermionicHubbardModel.init_sites"><a class="viewcode-back" href="../../../reference/tenpy.models.fermions_hubbard.html#tenpy.models.fermions_hubbard.FermionicHubbardModel.init_sites">[docs]</a>    <span class="k">def</span> <span class="nf">init_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">):</span>
+        <span class="n">cons_N</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;cons_N&#39;</span><span class="p">,</span> <span class="s1">&#39;N&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">cons_Sz</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;cons_Sz&#39;</span><span class="p">,</span> <span class="s1">&#39;Sz&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
         <span class="n">site</span> <span class="o">=</span> <span class="n">SpinHalfFermionSite</span><span class="p">(</span><span class="n">cons_N</span><span class="o">=</span><span class="n">cons_N</span><span class="p">,</span> <span class="n">cons_Sz</span><span class="o">=</span><span class="n">cons_Sz</span><span class="p">)</span>
-        <span class="n">bc</span> <span class="o">=</span> <span class="s1">&#39;periodic&#39;</span> <span class="k">if</span> <span class="n">bc_MPS</span> <span class="o">==</span> <span class="s1">&#39;infinite&#39;</span> <span class="k">else</span> <span class="s1">&#39;open&#39;</span>
-        <span class="n">lat</span> <span class="o">=</span> <span class="n">Chain</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">bc</span><span class="o">=</span><span class="n">bc</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="n">bc_MPS</span><span class="p">)</span>
-        <span class="c1"># 2) Initialize CouplingModel</span>
-        <span class="n">CouplingModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">site</span></div>
 
-        <span class="c1"># 3) Add terms of the hamiltonian.</span>
-        <span class="c1"># 3a) On-site terms</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">add_onsite</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Ntot&#39;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">add_onsite</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;NuNd&#39;</span><span class="p">)</span>
+<div class="viewcode-block" id="FermionicHubbardModel.init_terms"><a class="viewcode-back" href="../../../reference/tenpy.models.fermions_hubbard.html#tenpy.models.fermions_hubbard.FermionicHubbardModel.init_terms">[docs]</a>    <span class="k">def</span> <span class="nf">init_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">):</span>
+        <span class="c1"># 0) Read out/set default parameters.</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;L&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">U</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;U&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">V</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;V&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">mu</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;mu&#39;</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
-        <span class="c1"># 3b) Coupling terms</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Cdu&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Cu&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;JW&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Cdu&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Cu&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;JW&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Cdd&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Cd&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;JW&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Cdd&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Cd&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;JW&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Ntot&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Ntot&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="c1"># 4) Initialize MPO and bonds (order does not matter).</span>
-        <span class="n">MPOModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_H_MPO</span><span class="p">())</span>
-        <span class="n">NearestNeighborModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_H_bond</span><span class="p">())</span></div>
+        <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_onsite</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Ntot&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_onsite</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;NuNd&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">u1</span><span class="p">,</span> <span class="n">u2</span><span class="p">,</span> <span class="n">dx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">nearest_neighbors</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">u1</span><span class="p">,</span> <span class="s1">&#39;Cdu&#39;</span><span class="p">,</span> <span class="n">u2</span><span class="p">,</span> <span class="s1">&#39;Cu&#39;</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="s1">&#39;JW&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">u1</span><span class="p">,</span> <span class="s1">&#39;Cdu&#39;</span><span class="p">,</span> <span class="n">u2</span><span class="p">,</span> <span class="s1">&#39;Cu&#39;</span><span class="p">,</span> <span class="o">-</span><span class="n">dx</span><span class="p">,</span> <span class="s1">&#39;JW&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>  <span class="c1"># h.c.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">u1</span><span class="p">,</span> <span class="s1">&#39;Cdd&#39;</span><span class="p">,</span> <span class="n">u2</span><span class="p">,</span> <span class="s1">&#39;Cd&#39;</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="s1">&#39;JW&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">u1</span><span class="p">,</span> <span class="s1">&#39;Cdd&#39;</span><span class="p">,</span> <span class="n">u2</span><span class="p">,</span> <span class="s1">&#39;Cd&#39;</span><span class="p">,</span> <span class="o">-</span><span class="n">dx</span><span class="p">,</span> <span class="s1">&#39;JW&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>  <span class="c1"># h.c.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">u1</span><span class="p">,</span> <span class="s1">&#39;Ntot&#39;</span><span class="p">,</span> <span class="n">u2</span><span class="p">,</span> <span class="s1">&#39;Ntot&#39;</span><span class="p">,</span> <span class="n">dx</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="FermionicHubbardChain"><a class="viewcode-back" href="../../../reference/tenpy.models.fermions_hubbard.html#tenpy.models.fermions_hubbard.FermionicHubbardChain">[docs]</a><span class="k">class</span> <span class="nc">FermionicHubbardChain</span><span class="p">(</span><span class="n">FermionicHubbardModel</span><span class="p">,</span><span class="n">NearestNeighborModel</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The :class:`FermionicHubbardModel` on a Chain, suitable for TEBD.</span>
+
+<span class="sd">    See the :class:`FermionicHubbardModel` for the documentation of parameters.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">):</span>
+        <span class="n">model_param</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;lattice&#39;</span><span class="p">,</span> <span class="s2">&quot;Chain&quot;</span><span class="p">)</span>
+        <span class="n">CouplingMPOModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">)</span></div>
 </pre></div>
 
           </div>

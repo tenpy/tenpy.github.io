@@ -45,8 +45,8 @@
 <span class="kn">from</span> <span class="nn">.optimization</span> <span class="k">import</span> <span class="n">bottleneck</span>
 
 <span class="nb">all</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="s1">&#39;to_iterable&#39;</span><span class="p">,</span> <span class="s1">&#39;to_ndarray&#39;</span><span class="p">,</span> <span class="s1">&#39;anynan&#39;</span><span class="p">,</span> <span class="s1">&#39;argsort&#39;</span><span class="p">,</span> <span class="s1">&#39;inverse_permutation&#39;</span><span class="p">,</span> <span class="s1">&#39;list_to_dict_list&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;atleast_2d_pad&#39;</span><span class="p">,</span> <span class="s1">&#39;transpose_list_list&#39;</span><span class="p">,</span> <span class="s1">&#39;zero_if_close&#39;</span><span class="p">,</span> <span class="s1">&#39;pad&#39;</span>
+    <span class="s1">&#39;to_iterable&#39;</span><span class="p">,</span> <span class="s1">&#39;to_array&#39;</span><span class="p">,</span> <span class="s1">&#39;anynan&#39;</span><span class="p">,</span> <span class="s1">&#39;argsort&#39;</span><span class="p">,</span> <span class="s1">&#39;inverse_permutation&#39;</span><span class="p">,</span> <span class="s1">&#39;list_to_dict_list&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;atleast_2d_pad&#39;</span><span class="p">,</span> <span class="s1">&#39;transpose_list_list&#39;</span><span class="p">,</span> <span class="s1">&#39;zero_if_close&#39;</span><span class="p">,</span> <span class="s1">&#39;pad&#39;</span><span class="p">,</span> <span class="s1">&#39;any_nonzero&#39;</span>
 <span class="p">]</span>
 
 
@@ -352,7 +352,7 @@
 <span class="sd">        A dictionary of parameters.</span>
 <span class="sd">    keys : list of {key | tuple of keys}</span>
 <span class="sd">        For a single key, check ``params[key]`` for non-zero entries.</span>
-<span class="sd">        For a tuple of keys, all the ``params[key]`` have to be equal.</span>
+<span class="sd">        For a tuple of keys, all the ``params[key]`` have to be equal (as numpy arrays).</span>
 <span class="sd">    verbose_msg : None | str</span>
 <span class="sd">        If params[&#39;verbose&#39;] &gt;= 1, we print `verbose_msg` before checking,</span>
 <span class="sd">        and a short notice with the `key`, if a non-zero entry is found.</span>
@@ -369,9 +369,9 @@
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
             <span class="c1"># check equality</span>
-            <span class="n">val</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="kc">None</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">k1</span> <span class="ow">in</span> <span class="n">k</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">val</span> <span class="o">==</span> <span class="n">params</span><span class="p">[</span><span class="n">k1</span><span class="p">]):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k1</span><span class="p">,</span> <span class="kc">None</span><span class="p">)):</span>
                     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
                         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{k0!r}</span><span class="s2"> and </span><span class="si">{k1!r}</span><span class="s2"> have different entries.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k0</span><span class="o">=</span><span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">k1</span><span class="o">=</span><span class="n">k1</span><span class="p">))</span>
                     <span class="k">return</span> <span class="kc">True</span>

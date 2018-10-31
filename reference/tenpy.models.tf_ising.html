@@ -17,7 +17,7 @@
     <link rel="shortcut icon" href="../_static/logo.ico"/>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="tenpy.models.xxz_chain module" href="tenpy.models.xxz_chain.html" />
+    <link rel="next" title="tenpy.models.toric_code module" href="tenpy.models.toric_code.html" />
     <link rel="prev" title="tenpy.models.spins_nnn module" href="tenpy.models.spins_nnn.html" /> 
   </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
@@ -30,7 +30,7 @@
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="tenpy.models.xxz_chain.html" title="tenpy.models.xxz_chain module"
+          <a href="tenpy.models.toric_code.html" title="tenpy.models.toric_code module"
              accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="tenpy.models.spins_nnn.html" title="tenpy.models.spins_nnn module"
@@ -54,88 +54,14 @@
 the idea is more to serve as a pedagogical example for a ‘model’.
 Choosing the field along z allow to preserve parity, if desired, at the expense of a larger MPO
 bond dimension for the Hamiltion.</p>
-<p>The <a class="reference internal" href="#tenpy.models.tf_ising.TFIModel2D" title="tenpy.models.tf_ising.TFIModel2D"><code class="xref py py-class docutils literal notranslate"><span class="pre">TFIModel2D</span></code></a> contains the same couplings but on a square lattice in 2D
+<p>The <code class="xref py py-class docutils literal notranslate"><span class="pre">TFIModel2D</span></code> contains the same couplings but on a square lattice in 2D
 (with chooseable boundary conditions).
 As such, it illustrates the correct usage of the <a class="reference internal" href="tenpy.models.lattice.html#tenpy.models.lattice.Lattice" title="tenpy.models.lattice.Lattice"><code class="xref py py-class docutils literal notranslate"><span class="pre">Lattice</span></code></a> classes.</p>
 <dl class="class">
-<dt id="tenpy.models.tf_ising.TFIChain">
-<em class="property">class </em><code class="descclassname">tenpy.models.tf_ising.</code><code class="descname">TFIChain</code><span class="sig-paren">(</span><em>model_param</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/tf_ising.html#TFIChain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.tf_ising.TFIChain" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.CouplingModel</span></code></a>, <a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.NearestNeighborModel" title="tenpy.models.model.NearestNeighborModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.NearestNeighborModel</span></code></a>, <a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.MPOModel" title="tenpy.models.model.MPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.MPOModel</span></code></a></p>
-<p>Transverse field Ising chain.</p>
-<p>The Hamiltonian reads:</p>
-<div class="math notranslate nohighlight">
-\[H = - \sum_{i} \mathtt{J} \sigma^x_i \sigma^x_{i+1}
-    - \sum_{i} \mathtt{g} \sigma^z_i\]</div>
-<p>All parameters are collected in a single dictionary <cite>model_param</cite> and read out with
-<a class="reference internal" href="tenpy.tools.params.html#tenpy.tools.params.get_parameter" title="tenpy.tools.params.get_parameter"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_parameter()</span></code></a>.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>L</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd><p class="first last">Length of the chain</p>
-</dd>
-<dt><strong>J, g</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float | array</span></dt>
-<dd><p class="first last">Couplings as defined for the Hamiltonian above.</p>
-</dd>
-<dt><strong>bc_MPS</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{‘finite’ | ‘infinte’}</span></dt>
-<dd><p class="first last">MPS boundary conditions. Coupling boundary conditions are chosen appropriately.</p>
-</dd>
-<dt><strong>conserve</strong> <span class="classifier-delimiter">:</span> <span class="classifier">‘parity’ | None</span></dt>
-<dd><p class="first last">What should be conserved. See <code class="xref py py-class docutils literal notranslate"><span class="pre">SpinSite</span></code>.</p>
-</dd>
-</dl>
-</td>
-</tr>
-</tbody>
-</table>
-<p class="rubric">Methods</p>
-<table border="1" class="longtable docutils">
-<colgroup>
-<col width="10%" />
-<col width="90%" />
-</colgroup>
-<tbody valign="top">
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_coupling</span></code>(strength,&nbsp;u1,&nbsp;op1,&nbsp;u2,&nbsp;op2,&nbsp;dx)</td>
-<td>Add twosite coupling terms to the Hamiltonian, summing over lattice sites.</td>
-</tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_coupling_term</span></code>(strength,&nbsp;i,&nbsp;j,&nbsp;op_i,&nbsp;op_j)</td>
-<td>Add a two-site coupling term on given MPS sites.</td>
-</tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite</span></code>(strength,&nbsp;u,&nbsp;opname)</td>
-<td>Add onsite terms to self.</td>
-</tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite_term</span></code>(strength,&nbsp;i,&nbsp;op)</td>
-<td>Add a onsite term on a given MPS site.</td>
-</tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">bond_energies</span></code>(psi)</td>
-<td>Calculate bond energies &lt;psi|H_bond|psi&gt;.</td>
-</tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_MPO</span></code>([tol_zero])</td>
-<td>Calculate MPO representation of the Hamiltonian.</td>
-</tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_bond</span></code>([tol_zero])</td>
-<td>calculate <cite>H_bond</cite> from <cite>self.coupling_terms</cite> and <cite>self.H_onsite</cite>.</td>
-</tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_onsite</span></code>([tol_zero])</td>
-<td>Calculate <cite>H_onsite</cite> from <cite>self.onsite_terms</cite>.</td>
-</tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
-<td>Sanity check.</td>
-</tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">trivial_like_NNModel</span></code>()</td>
-<td>Return a NearestNeighborModel with same lattice, but trivial (H=0) bonds.</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="class">
-<dt id="tenpy.models.tf_ising.TFIModel2D">
-<em class="property">class </em><code class="descclassname">tenpy.models.tf_ising.</code><code class="descname">TFIModel2D</code><span class="sig-paren">(</span><em>model_param</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/tf_ising.html#TFIModel2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.tf_ising.TFIModel2D" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.CouplingModel</span></code></a>, <a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.MPOModel" title="tenpy.models.model.MPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.MPOModel</span></code></a></p>
-<p>Transverse field Ising model on a square lattice.</p>
+<dt id="tenpy.models.tf_ising.TFIModel">
+<em class="property">class </em><code class="descclassname">tenpy.models.tf_ising.</code><code class="descname">TFIModel</code><span class="sig-paren">(</span><em>model_param</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/tf_ising.html#TFIModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.tf_ising.TFIModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.CouplingMPOModel" title="tenpy.models.model.CouplingMPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.CouplingMPOModel</span></code></a></p>
+<p>Transverse field Ising model on a general lattice.</p>
 <p>The Hamiltonian reads:</p>
 <div class="math notranslate nohighlight">
 \[H = - \sum_{\langle i,j\rangle, i &lt; j} \mathtt{J} \sigma^x_i \sigma^x_{j}
@@ -149,30 +75,39 @@ All parameters are collected in a single dictionary <cite>model_param</cite> and
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>lattice</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str | <a class="reference internal" href="tenpy.models.lattice.html#tenpy.models.lattice.Lattice" title="tenpy.models.lattice.Lattice"><code class="xref py py-class docutils literal notranslate"><span class="pre">Lattice</span></code></a></span></dt>
-<dd><p class="first last">The lattice class for the underlaying geometry. A string should be one of the lattices
-defined in th <a class="reference internal" href="tenpy.models.lattice.html#module-tenpy.models.lattice" title="tenpy.models.lattice"><code class="xref py py-mod docutils literal notranslate"><span class="pre">lattice</span></code></a>.</p>
-</dd>
-<dt><strong>Lx, Ly</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd><p class="first last">Length of the lattice in x- and y-direction.</p>
+<dt><strong>conserve</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None | ‘parity’</span></dt>
+<dd><p class="first last">What should be conserved. See <code class="xref py py-class docutils literal notranslate"><span class="pre">SpinHalfSite</span></code>.</p>
 </dd>
 <dt><strong>J, g</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float | array</span></dt>
 <dd><p class="first last">Couplings as defined for the Hamiltonian above.</p>
 </dd>
+<dt><strong>lattice</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str | <a class="reference internal" href="tenpy.models.lattice.html#tenpy.models.lattice.Lattice" title="tenpy.models.lattice.Lattice"><code class="xref py py-class docutils literal notranslate"><span class="pre">Lattice</span></code></a></span></dt>
+<dd><p class="first last">Instance of a lattice class for the underlaying geometry.
+Alternatively a string being the name of one of the Lattices defined in
+<a class="reference internal" href="tenpy.models.lattice.html#module-tenpy.models.lattice" title="tenpy.models.lattice"><code class="xref py py-mod docutils literal notranslate"><span class="pre">lattice</span></code></a>, e.g. <code class="docutils literal notranslate"><span class="pre">&quot;Chain&quot;,</span> <span class="pre">&quot;Square&quot;,</span> <span class="pre">&quot;HoneyComb&quot;,</span> <span class="pre">...</span></code>.</p>
+</dd>
 <dt><strong>bc_MPS</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{‘finite’ | ‘infinte’}</span></dt>
 <dd><p class="first last">MPS boundary conditions along the x-direction.
 For ‘infinite’ boundary conditions, repeat the unit cell in x-direction.
-Coupling boundary conditions in x-direction are chosen accordingly.</p>
-</dd>
-<dt><strong>bc_y</strong> <span class="classifier-delimiter">:</span> <span class="classifier">‘ladder’ | ‘cylinder’</span></dt>
-<dd><p class="first last">Boundary conditions in y-direction.</p>
-</dd>
-<dt><strong>conserve</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None | ‘parity’</span></dt>
-<dd><p class="first last">What should be conserved. See <code class="xref py py-class docutils literal notranslate"><span class="pre">SpinSite</span></code>.</p>
+Coupling boundary conditions in x-direction are chosen accordingly.
+Only used if <cite>lattice</cite> is a string.</p>
 </dd>
 <dt><strong>order</strong> <span class="classifier-delimiter">:</span> <span class="classifier">string</span></dt>
 <dd><p class="first last">Ordering of the sites in the MPS, e.g. ‘default’, ‘snake’;
-see <a class="reference internal" href="tenpy.models.lattice.html#tenpy.models.lattice.Lattice.ordering" title="tenpy.models.lattice.Lattice.ordering"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ordering()</span></code></a>.</p>
+see <a class="reference internal" href="tenpy.models.lattice.html#tenpy.models.lattice.Lattice.ordering" title="tenpy.models.lattice.Lattice.ordering"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ordering()</span></code></a>.
+Only used if <cite>lattice</cite> is a string.</p>
+</dd>
+<dt><strong>L</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Lenght of the lattice.
+Only used if <cite>lattice</cite> is the name of a 1D Lattice.</p>
+</dd>
+<dt><strong>Lx, Ly</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Length of the lattice in x- and y-direction.
+Only used if <cite>lattice</cite> is the name of a 2D Lattice.</p>
+</dd>
+<dt><strong>bc_y</strong> <span class="classifier-delimiter">:</span> <span class="classifier">‘ladder’ | ‘cylinder’</span></dt>
+<dd><p class="first last">Boundary conditions in y-direction.
+Only used if <cite>lattice</cite> is the name of a 2D Lattice.</p>
 </dd>
 </dl>
 </td>
@@ -207,8 +142,130 @@ see <a class="reference internal" href="tenpy.models.lattice.html#tenpy.models.l
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_onsite</span></code>([tol_zero])</td>
 <td>Calculate <cite>H_onsite</cite> from <cite>self.onsite_terms</cite>.</td>
 </tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">init_lattice</span></code>(model_param)</td>
+<td>Initialize a lattice for the given model parameters.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
+<td>Sanity check.</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="58%" />
+<col width="42%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>init_sites</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>init_terms</strong></td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="tenpy.models.tf_ising.TFIModel.init_sites">
+<code class="descname">init_sites</code><span class="sig-paren">(</span><em>model_param</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/tf_ising.html#TFIModel.init_sites"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.tf_ising.TFIModel.init_sites" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define the local Hilbert space and operators; needs to be implemented in subclasses.</p>
+<p>This function gets called by <code class="xref py py-meth docutils literal notranslate"><span class="pre">init_lattice()</span></code> to get the
+<a class="reference internal" href="tenpy.networks.site.html#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a> for the lattice unit cell.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Initializing the sites requires to define the conserved quantum numbers.
+All pre-defined sites accept <code class="docutils literal notranslate"><span class="pre">conserve=None</span></code> to disable using quantum numbers.
+Many models in TeNPy read out the <cite>conserve</cite> model parameter, which can be set
+to <code class="docutils literal notranslate"><span class="pre">&quot;best&quot;</span></code> to indicate the optimal parameters.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>model_param</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
+<dd><p class="first last">The model parameters given to <code class="docutils literal notranslate"><span class="pre">__init__</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>sites</strong> <span class="classifier-delimiter">:</span> <span class="classifier">(tuple of) :class:<a href="#id1"><span class="problematic" id="id2">`</span></a>~tenpy.networks.site.Site.</span></dt>
+<dd><p class="first last">The local sites of the lattice, defining the local basis states and operators.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.models.tf_ising.TFIModel.init_terms">
+<code class="descname">init_terms</code><span class="sig-paren">(</span><em>model_param</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/tf_ising.html#TFIModel.init_terms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.tf_ising.TFIModel.init_terms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add the onsite and coupling terms to the model; subclasses should implement this.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tenpy.models.tf_ising.TFIChain">
+<em class="property">class </em><code class="descclassname">tenpy.models.tf_ising.</code><code class="descname">TFIChain</code><span class="sig-paren">(</span><em>model_param</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/tf_ising.html#TFIChain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.tf_ising.TFIChain" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tenpy.models.tf_ising.TFIModel" title="tenpy.models.tf_ising.TFIModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.tf_ising.TFIModel</span></code></a>, <a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.NearestNeighborModel" title="tenpy.models.model.NearestNeighborModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.NearestNeighborModel</span></code></a></p>
+<p>The <a class="reference internal" href="#tenpy.models.tf_ising.TFIModel" title="tenpy.models.tf_ising.TFIModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">TFIModel</span></code></a> on a Chain, suitable for TEBD.</p>
+<p>See the <a class="reference internal" href="#tenpy.models.tf_ising.TFIModel" title="tenpy.models.tf_ising.TFIModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">TFIModel</span></code></a> for the documentation of parameters.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_coupling</span></code>(strength,&nbsp;u1,&nbsp;op1,&nbsp;u2,&nbsp;op2,&nbsp;dx)</td>
+<td>Add twosite coupling terms to the Hamiltonian, summing over lattice sites.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_coupling_term</span></code>(strength,&nbsp;i,&nbsp;j,&nbsp;op_i,&nbsp;op_j)</td>
+<td>Add a two-site coupling term on given MPS sites.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite</span></code>(strength,&nbsp;u,&nbsp;opname)</td>
+<td>Add onsite terms to self.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite_term</span></code>(strength,&nbsp;i,&nbsp;op)</td>
+<td>Add a onsite term on a given MPS site.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">bond_energies</span></code>(psi)</td>
+<td>Calculate bond energies &lt;psi|H_bond|psi&gt;.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_MPO</span></code>([tol_zero])</td>
+<td>Calculate MPO representation of the Hamiltonian.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_bond</span></code>([tol_zero])</td>
+<td>calculate <cite>H_bond</cite> from <cite>self.coupling_terms</cite> and <cite>self.H_onsite</cite>.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_onsite</span></code>([tol_zero])</td>
+<td>Calculate <cite>H_onsite</cite> from <cite>self.onsite_terms</cite>.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">init_lattice</span></code>(model_param)</td>
+<td>Initialize a lattice for the given model parameters.</td>
+</tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code>()</td>
 <td>Sanity check.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">trivial_like_NNModel</span></code>()</td>
+<td>Return a NearestNeighborModel with same lattice, but trivial (H=0) bonds.</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="58%" />
+<col width="42%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>init_sites</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>init_terms</strong></td>
+<td>&#160;</td>
 </tr>
 </tbody>
 </table>
@@ -229,8 +286,8 @@ see <a class="reference internal" href="tenpy.models.lattice.html#tenpy.models.l
   <p class="topless"><a href="tenpy.models.spins_nnn.html"
                         title="previous chapter">tenpy.models.spins_nnn module</a></p>
   <h4>Next topic</h4>
-  <p class="topless"><a href="tenpy.models.xxz_chain.html"
-                        title="next chapter">tenpy.models.xxz_chain module</a></p>
+  <p class="topless"><a href="tenpy.models.toric_code.html"
+                        title="next chapter">tenpy.models.toric_code module</a></p>
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
     <div class="searchformwrapper">
@@ -268,7 +325,7 @@ see <a class="reference internal" href="tenpy.models.lattice.html#tenpy.models.l
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="tenpy.models.xxz_chain.html" title="tenpy.models.xxz_chain module"
+          <a href="tenpy.models.toric_code.html" title="tenpy.models.toric_code module"
              >next</a> |</li>
         <li class="right" >
           <a href="tenpy.models.spins_nnn.html" title="tenpy.models.spins_nnn module"
