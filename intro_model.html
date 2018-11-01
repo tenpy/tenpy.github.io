@@ -212,7 +212,12 @@ Once initialized, its methods <code class="xref py py-meth docutils literal notr
 unit cells of the lattice.
 In that way, it basically allows a straight-forward translation of the Hamiltonian given as a math forumla
 <span class="math notranslate nohighlight">\(H = \sum_{i} A_i B_{i+dx} + ...\)</span> with onsite operators <cite>A</cite>, <cite>B</cite>,… into a model class.</p>
-<p>To use this model, you</p>
+<p>The general structure for a new model based on the <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></a> is then:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">MyNewModel3</span><span class="p">(</span><span class="n">CouplingModel</span><span class="p">,</span><span class="n">MPOModel</span><span class="p">,</span><span class="n">NearestNeighborModel</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>
+        <span class="o">...</span>  <span class="c1"># follow the basic steps explained below</span>
+</pre></div>
+</div>
 <p>In the initialization method <code class="docutils literal notranslate"><span class="pre">__init__(self,</span> <span class="pre">...)</span></code> of this class you can then follow these basic steps:</p>
 <ol class="arabic" start="0">
 <li><p class="first">Read out the parameters.</p>
@@ -266,29 +271,15 @@ so you should only subclass the <a class="reference internal" href="reference/te
 </ol>
 <p>The <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></a> works for Hamiltonians which are a sum of terms involving at most two sites.
 The generalization <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.MultiCouplingModel" title="tenpy.models.model.MultiCouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">MultiCouplingModel</span></code></a> can be used for Hamlitonians with
-coupling terms acting on more than 2 sites at once.
+coupling terms acting on more than 2 sites at once. Follow the exact same steps in the initialization, and just use the
+<a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.MultiCouplingModel.add_multi_coupling" title="tenpy.models.model.MultiCouplingModel.add_multi_coupling"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_multi_coupling()</span></code></a> instead or in addition to the
+<a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingModel.add_coupling" title="tenpy.models.model.CouplingModel.add_coupling"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_coupling()</span></code></a>.
 A prototypical example is the exactly solvable <a class="reference internal" href="reference/tenpy.models.toric_code.html#tenpy.models.toric_code.ToricCode" title="tenpy.models.toric_code.ToricCode"><code class="xref py py-class docutils literal notranslate"><span class="pre">ToricCode</span></code></a>.</p>
-</div>
-<div class="section" id="some-final-remarks">
-<h2>Some final remarks<a class="headerlink" href="#some-final-remarks" title="Permalink to this headline">¶</a></h2>
-<ul class="simple">
-<li>Needless to say that we have also various predefined models under <a class="reference internal" href="reference/tenpy.models.html#module-tenpy.models" title="tenpy.models"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tenpy.models</span></code></a>.</li>
-<li>Of course, an MPO is all you need to initialize a <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.MPOModel" title="tenpy.models.model.MPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPOModel</span></code></a> to be used for DMRG; you don’t have to use the <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></a>.
-For example an exponentially decaying long-range interactions are not supported by the coupling model but straight-forward to include to an MPO, as demonstrated in the example <code class="docutils literal notranslate"><span class="pre">examples/mpo_exponentially_decaying.py</span></code>.</li>
-<li>If the model you’re interested in contains Fermions, you should read the <a class="reference internal" href="intro_JordanWigner.html"><span class="doc">Fermions and the Jordan-Wigner transformation</span></a>.</li>
-<li>We suggest writing the model to take a single parameter dicitionary for the initialization, which is to be read out
-inside the class with <a class="reference internal" href="reference/tenpy.tools.params.html#tenpy.tools.params.get_parameter" title="tenpy.tools.params.get_parameter"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_parameter()</span></code></a>.
-Read the doc-string of this function for more details on why this is a good idea.
-Calling <a class="reference internal" href="reference/tenpy.tools.params.html#tenpy.tools.params.unused_parameters" title="tenpy.tools.params.unused_parameters"><code class="xref py py-func docutils literal notranslate"><span class="pre">unused_parameters()</span></code></a> is usefull to avoid typos in the specified parameters.</li>
-<li>When you write a model and want to include a test that it can be at least constructed,
-take a look at <code class="docutils literal notranslate"><span class="pre">tests/test_model.py</span></code>.</li>
-</ul>
-</div>
-<div class="section" id="full-examples">
-<h2>Full examples<a class="headerlink" href="#full-examples" title="Permalink to this headline">¶</a></h2>
-<p>The <a class="reference internal" href="reference/tenpy.models.xxz_chain.html#tenpy.models.xxz_chain.XXZChain" title="tenpy.models.xxz_chain.XXZChain"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.xxz_chain.XXZChain</span></code></a> demonstrates nicely how a new model can be defined using the <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></a>.
-The complete source code for this model is included in the following and should be straight-forward to understand and
-generalize.</p>
+<p>The code of the module <a class="reference internal" href="reference/tenpy.models.xxz_chain.html#module-tenpy.models.xxz_chain" title="tenpy.models.xxz_chain"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tenpy.models.xxz_chain</span></code></a> is included below as an illustrative example how to implemnet a
+Model. The implementation of the <a class="reference internal" href="reference/tenpy.models.xxz_chain.html#tenpy.models.xxz_chain.XXZChain" title="tenpy.models.xxz_chain.XXZChain"><code class="xref py py-class docutils literal notranslate"><span class="pre">XXZChain</span></code></a> directly follows the steps
+outline above.
+The <code class="xref py py-class docutils literal notranslate"><span class="pre">XXZChain2</span></code> implements the very same model, but based on the
+<a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingMPOModel" title="tenpy.models.model.CouplingMPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingMPOModel</span></code></a> explained in the next section.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;Prototypical example of a 1D quantum model: the spin-1/2 XXZ chain.</span>
 
 <span class="sd">The XXZ chain is contained in the more general :class:`~tenpy.models.spins.SpinChain`;</span>
@@ -397,8 +388,54 @@ generalize.</p>
             <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">Jz</span><span class="p">,</span> <span class="n">u1</span><span class="p">,</span> <span class="s1">&#39;Sz&#39;</span><span class="p">,</span> <span class="n">u2</span><span class="p">,</span> <span class="s1">&#39;Sz&#39;</span><span class="p">,</span> <span class="n">dx</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Another standard example is the transverse field Ising model. Below, it is defined
-in one dimension on a chain, or any of the predefined lattice in two dimensions, illustrating how easily geometries can be changed in TeNPy.</p>
+</div>
+<div class="section" id="the-easy-easy-way-the-couplingmpomodel">
+<h2>The easy easy way: the CouplingMPOModel<a class="headerlink" href="#the-easy-easy-way-the-couplingmpomodel" title="Permalink to this headline">¶</a></h2>
+<p>Since many of the basic steps above are always the same, we don’t need to repeat them all the time.
+So we have yet another class helping to structure the initialization of models: the <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingMPOModel" title="tenpy.models.model.CouplingMPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingMPOModel</span></code></a>.
+The general structure of the  class is like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">CouplingMPOModel</span><span class="p">(</span><span class="n">CouplingModel</span><span class="p">,</span><span class="n">MPOModel</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">):</span>
+        <span class="c1"># ... follow the basic steps 1-8 using the methods</span>
+        <span class="n">lat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_lattice</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">)</span>  <span class="c1"># for step 4</span>
+        <span class="c1"># ...</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">)</span> <span class="c1"># for step 6</span>
+        <span class="c1"># ...</span>
+
+    <span class="k">def</span> <span class="nf">init_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">):</span>
+        <span class="c1"># You should overwrite this</span>
+
+    <span class="k">def</span> <span class="nf">init_lattice</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">):</span>
+        <span class="n">sites</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">)</span> <span class="c1"># for steps 1-3</span>
+        <span class="c1"># initialize an arbitrary pre-defined lattice</span>
+        <span class="c1"># using model_params[&#39;lattice&#39;]</span>
+
+    <span class="k">def</span> <span class="nf">init_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">):</span>
+        <span class="c1"># does nothing.</span>
+        <span class="c1"># You should overwrite this</span>
+</pre></div>
+</div>
+<p>The <code class="xref py py-class docutils literal notranslate"><span class="pre">XXZChain2</span></code> included above illustrates, how it can be used.
+You need to implement steps 1-3) by overwriting the method <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingMPOModel.init_sites" title="tenpy.models.model.CouplingMPOModel.init_sites"><code class="xref py py-meth docutils literal notranslate"><span class="pre">init_sites()</span></code></a>
+Step 4) is performed in the method <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingMPOModel.init_lattice" title="tenpy.models.model.CouplingMPOModel.init_lattice"><code class="xref py py-meth docutils literal notranslate"><span class="pre">init_lattice()</span></code></a>, which initializes arbitrary 1D or 2D
+lattices; by default a simple 1D chain.
+If your model only works for specific lattices, you can overwrite this method in your own class.
+Step 6) should be done by overwriting the method <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingMPOModel.init_terms" title="tenpy.models.model.CouplingMPOModel.init_terms"><code class="xref py py-meth docutils literal notranslate"><span class="pre">init_terms()</span></code></a>.
+Steps 5,7,8 and calls to the <cite>init_…</cite> methods for the other steps are done automatically if you just call the
+<code class="docutils literal notranslate"><span class="pre">CouplingMPOModel.__init__(self,</span> <span class="pre">model_param)</span></code>.</p>
+<p>The <code class="xref py py-class docutils literal notranslate"><span class="pre">XXZChain</span></code> and <code class="xref py py-class docutils literal notranslate"><span class="pre">XXZChain2</span></code> work only with the
+<a class="reference internal" href="reference/tenpy.models.lattice.html#tenpy.models.lattice.Chain" title="tenpy.models.lattice.Chain"><code class="xref py py-class docutils literal notranslate"><span class="pre">Chain</span></code></a> as lattice, since they are derived from the <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel" title="tenpy.models.model.NearestNeighborModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NearestNeighborModel</span></code></a>.
+This allows to use them for TEBD in 1D (yeah!), but we can’t get the MPO for DMRG on a e.g. a <a class="reference internal" href="reference/tenpy.models.lattice.html#tenpy.models.lattice.Square" title="tenpy.models.lattice.Square"><code class="xref py py-class docutils literal notranslate"><span class="pre">Square</span></code></a>
+lattice cylinder - although it’s intuitively clear, what the hamiltonian there should be: just put the nearest-neighbor
+coupling on each bond of the 2D lattice.</p>
+<p>It’s not possible to generalize a <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel" title="tenpy.models.model.NearestNeighborModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NearestNeighborModel</span></code></a> to an arbitrary lattice where it’s
+no longer nearest Neigbors in the MPS sense, but we can go the other way around:
+first write the model on an arbitrary 2D lattice and then restrict it to a 1D chain to make it a <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel" title="tenpy.models.model.NearestNeighborModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NearestNeighborModel</span></code></a>.</p>
+<p>Let me illustrate this with another standard example model: the transverse field Ising model, imlemented in the module
+<a class="reference internal" href="reference/tenpy.models.tf_ising.html#module-tenpy.models.tf_ising" title="tenpy.models.tf_ising"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tenpy.models.tf_ising</span></code></a> included below.
+The <code class="xref py py-class docutils literal notranslate"><span class="pre">TFIsingModel</span></code> works for arbitrary 1D or 2D lattices.
+The <code class="xref py py-class docutils literal notranslate"><span class="pre">TFIsingCHain</span></code> is then taking the exact same model making a <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel" title="tenpy.models.model.NearestNeighborModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NearestNeighborModel</span></code></a>,
+which only works for the 1D chain.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;Prototypical example of a quantum model: the transverse field Ising model.</span>
 
 <span class="sd">Like the :class:`~tenpy.models.xxz_chain.XXZChain`, the transverse field ising chain</span>
@@ -497,6 +534,22 @@ in one dimension on a chain, or any of the predefined lattice in two dimensions,
 </pre></div>
 </div>
 </div>
+<div class="section" id="some-final-remarks">
+<h2>Some final remarks<a class="headerlink" href="#some-final-remarks" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Needless to say that we have also various predefined models under <a class="reference internal" href="reference/tenpy.models.html#module-tenpy.models" title="tenpy.models"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tenpy.models</span></code></a>.</li>
+<li>Of course, an MPO is all you need to initialize a <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.MPOModel" title="tenpy.models.model.MPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPOModel</span></code></a> to be used for DMRG; you don’t have to use the <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></a>
+or <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingMPOModel" title="tenpy.models.model.CouplingMPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingMPOModel</span></code></a>.
+For example an exponentially decaying long-range interactions are not supported by the coupling model but straight-forward to include to an MPO, as demonstrated in the example <code class="docutils literal notranslate"><span class="pre">examples/mpo_exponentially_decaying.py</span></code>.</li>
+<li>If the model of your interest contains Fermions, you should read the <a class="reference internal" href="intro_JordanWigner.html"><span class="doc">Fermions and the Jordan-Wigner transformation</span></a>.</li>
+<li>We suggest writing the model to take a single parameter dicitionary for the initialization, which is to be read out
+inside the class with <a class="reference internal" href="reference/tenpy.tools.params.html#tenpy.tools.params.get_parameter" title="tenpy.tools.params.get_parameter"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_parameter()</span></code></a>.
+Read the doc-string of this function for more details on why this is a good idea.
+Th <cite>CouplingMPOModel.__init__()</cite> calls <a class="reference internal" href="reference/tenpy.tools.params.html#tenpy.tools.params.unused_parameters" title="tenpy.tools.params.unused_parameters"><code class="xref py py-func docutils literal notranslate"><span class="pre">unused_parameters()</span></code></a>, helping to avoid typos in the specified parameters.</li>
+<li>When you write a model and want to include a test that it can be at least constructed,
+take a look at <code class="docutils literal notranslate"><span class="pre">tests/test_model.py</span></code>.</li>
+</ul>
+</div>
 </div>
 
 
@@ -516,8 +569,8 @@ in one dimension on a chain, or any of the predefined lattice in two dimensions,
 <li><a class="reference internal" href="#the-geometry-lattices">The geometry : lattices</a></li>
 <li><a class="reference internal" href="#implementing-you-own-model">Implementing you own model</a></li>
 <li><a class="reference internal" href="#the-easy-way-to-new-models-the-multi-couplingmodel">The easy way to new models: the (Multi)CouplingModel</a></li>
+<li><a class="reference internal" href="#the-easy-easy-way-the-couplingmpomodel">The easy easy way: the CouplingMPOModel</a></li>
 <li><a class="reference internal" href="#some-final-remarks">Some final remarks</a></li>
-<li><a class="reference internal" href="#full-examples">Full examples</a></li>
 </ul>
 </li>
 </ul>
