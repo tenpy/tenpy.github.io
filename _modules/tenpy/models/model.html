@@ -924,7 +924,7 @@
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    model_param : dict</span>
+<span class="sd">    model_params : dict</span>
 <span class="sd">        A dictionary with all the model parameters.</span>
 <span class="sd">        These parameters are given to the different ``init_...()`` methods, and</span>
 <span class="sd">        should be read out using :func:`~tenpy.tools.params.get_parameter`.</span>
@@ -939,7 +939,7 @@
 <span class="sd">    verbose : int</span>
 <span class="sd">        Level of verbosity (i.e. how much status information to print); higher=more output.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_called_CouplingMPOModel_init&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
             <span class="c1"># If we ignore this, the same terms get added to self multiple times.</span>
             <span class="c1"># In the best case, this would just rescale the energy;</span>
@@ -948,22 +948,22 @@
             <span class="c1"># To fix this problem, follow the instructions for subclassing in :doc:`/intro_model`.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_called_CouplingMPOModel_init</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
         <span class="c1"># 1-4) iniitalize lattice</span>
-        <span class="n">lat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_lattice</span><span class="p">(</span><span class="n">model_param</span><span class="p">)</span>
+        <span class="n">lat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_lattice</span><span class="p">(</span><span class="n">model_params</span><span class="p">)</span>
         <span class="c1"># 5) initialize CouplingModel</span>
         <span class="n">CouplingModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">)</span>
         <span class="c1"># 6) add terms of the Hamiltonian</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">init_terms</span><span class="p">(</span><span class="n">model_param</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_terms</span><span class="p">(</span><span class="n">model_params</span><span class="p">)</span>
         <span class="c1"># 7) initialize H_MPO</span>
         <span class="n">MPOModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_H_MPO</span><span class="p">())</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">NearestNeighborModel</span><span class="p">):</span>
             <span class="c1"># 8) initialize H_bonds</span>
             <span class="n">NearestNeighborModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_H_bond</span><span class="p">())</span>
         <span class="c1"># checks for misspelled parameters</span>
-        <span class="n">unused_parameters</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">unused_parameters</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
-<div class="viewcode-block" id="CouplingMPOModel.init_lattice"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.CouplingMPOModel.init_lattice">[docs]</a>    <span class="k">def</span> <span class="nf">init_lattice</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">):</span>
+<div class="viewcode-block" id="CouplingMPOModel.init_lattice"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.CouplingMPOModel.init_lattice">[docs]</a>    <span class="k">def</span> <span class="nf">init_lattice</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize a lattice for the given model parameters.</span>
 
 <span class="sd">        This function reads out the model parameter `lattice`.</span>
@@ -1005,7 +1005,7 @@
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        model_param : dict</span>
+<span class="sd">        model_params : dict</span>
 <span class="sd">            The model parameters given to ``__init__``.</span>
 
 <span class="sd">        Returns</span>
@@ -1013,21 +1013,21 @@
 <span class="sd">        lat : :class:`~tenpy.models.lattice.Lattice`</span>
 <span class="sd">            An initialized lattice.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">lat</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;lattice&#39;</span><span class="p">,</span> <span class="s2">&quot;Chain&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">lat</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;lattice&#39;</span><span class="p">,</span> <span class="s2">&quot;Chain&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lat</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="n">LatticeClass</span> <span class="o">=</span> <span class="n">get_lattice</span><span class="p">(</span><span class="n">lattice_name</span><span class="o">=</span><span class="n">lat</span><span class="p">)</span>
-            <span class="n">bc_MPS</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;bc_MPS&#39;</span><span class="p">,</span> <span class="s1">&#39;finite&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-            <span class="n">order</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;order&#39;</span><span class="p">,</span> <span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-            <span class="n">sites</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_sites</span><span class="p">(</span><span class="n">model_param</span><span class="p">)</span>
+            <span class="n">bc_MPS</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;bc_MPS&#39;</span><span class="p">,</span> <span class="s1">&#39;finite&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">order</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;order&#39;</span><span class="p">,</span> <span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">sites</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_sites</span><span class="p">(</span><span class="n">model_params</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">LatticeClass</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># 1D lattice</span>
-                <span class="n">L</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;L&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="n">L</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;L&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
                 <span class="c1"># 4) lattice</span>
                 <span class="n">bc</span> <span class="o">=</span> <span class="s1">&#39;periodic&#39;</span> <span class="k">if</span> <span class="n">bc_MPS</span> <span class="o">==</span> <span class="s1">&#39;infinite&#39;</span> <span class="k">else</span> <span class="s1">&#39;open&#39;</span>
                 <span class="n">lat</span> <span class="o">=</span> <span class="n">LatticeClass</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">sites</span><span class="p">,</span> <span class="n">bc</span><span class="o">=</span><span class="n">bc</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="n">bc_MPS</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">LatticeClass</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>   <span class="c1"># 2D lattice</span>
-                <span class="n">Lx</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;Lx&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-                <span class="n">Ly</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;Ly&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-                <span class="n">bc_y</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;bc_y&#39;</span><span class="p">,</span> <span class="s1">&#39;cylinder&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="n">Lx</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;Lx&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="n">Ly</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;Ly&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="n">bc_y</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;bc_y&#39;</span><span class="p">,</span> <span class="s1">&#39;cylinder&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
                 <span class="k">assert</span> <span class="n">bc_y</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;cylinder&#39;</span><span class="p">,</span> <span class="s1">&#39;ladder&#39;</span><span class="p">]</span>
                 <span class="n">bc_x</span> <span class="o">=</span> <span class="s1">&#39;periodic&#39;</span> <span class="k">if</span> <span class="n">bc_MPS</span> <span class="o">==</span> <span class="s1">&#39;infinite&#39;</span> <span class="k">else</span> <span class="s1">&#39;open&#39;</span>
                 <span class="n">bc_y</span> <span class="o">=</span> <span class="s1">&#39;periodic&#39;</span> <span class="k">if</span> <span class="n">bc_y</span> <span class="o">==</span> <span class="s1">&#39;cylinder&#39;</span> <span class="k">else</span> <span class="s1">&#39;open&#39;</span>
@@ -1040,7 +1040,7 @@
         <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lat</span><span class="p">,</span> <span class="n">Lattice</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">lat</span></div>
 
-<div class="viewcode-block" id="CouplingMPOModel.init_sites"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.CouplingMPOModel.init_sites">[docs]</a>    <span class="k">def</span> <span class="nf">init_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">):</span>
+<div class="viewcode-block" id="CouplingMPOModel.init_sites"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.CouplingMPOModel.init_sites">[docs]</a>    <span class="k">def</span> <span class="nf">init_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Define the local Hilbert space and operators; needs to be implemented in subclasses.</span>
 
 <span class="sd">        This function gets called by :meth:`init_lattice` to get the</span>
@@ -1054,18 +1054,18 @@
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        model_param : dict</span>
+<span class="sd">        model_params : dict</span>
 <span class="sd">            The model parameters given to ``__init__``.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
-<span class="sd">        sites : (tuple of) :class:`~tenpy.networks.site.Site.</span>
+<span class="sd">        sites : (tuple of) :class:`~tenpy.networks.site.Site`</span>
 <span class="sd">            The local sites of the lattice, defining the local basis states and operators.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Subclasses should implement `init_sites`&quot;</span><span class="p">)</span></div>
         <span class="c1"># or at least redefine the lattice</span>
 
-<div class="viewcode-block" id="CouplingMPOModel.init_terms"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.CouplingMPOModel.init_terms">[docs]</a>    <span class="k">def</span> <span class="nf">init_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">):</span>
+<div class="viewcode-block" id="CouplingMPOModel.init_terms"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.CouplingMPOModel.init_terms">[docs]</a>    <span class="k">def</span> <span class="nf">init_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Add the onsite and coupling terms to the model; subclasses should implement this.&quot;&quot;&quot;</span>
         <span class="k">pass</span>  <span class="c1"># Do nothing. This allows to super().init_terms(model_params) in subclasses.</span></div></div>
 
