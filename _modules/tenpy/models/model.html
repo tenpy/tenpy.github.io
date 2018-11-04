@@ -76,11 +76,12 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 
-<span class="kn">from</span> <span class="nn">.lattice</span> <span class="k">import</span> <span class="n">get_lattice</span><span class="p">,</span> <span class="n">Lattice</span>
+<span class="kn">from</span> <span class="nn">.lattice</span> <span class="k">import</span> <span class="n">get_lattice</span><span class="p">,</span> <span class="n">Lattice</span><span class="p">,</span> <span class="n">TrivialLattice</span>
 <span class="kn">from</span> <span class="nn">..linalg</span> <span class="k">import</span> <span class="n">np_conserved</span> <span class="k">as</span> <span class="n">npc</span>
 <span class="kn">from</span> <span class="nn">..tools.misc</span> <span class="k">import</span> <span class="n">to_array</span>
 <span class="kn">from</span> <span class="nn">..tools.params</span> <span class="k">import</span> <span class="n">get_parameter</span><span class="p">,</span> <span class="n">unused_parameters</span>
 <span class="kn">from</span> <span class="nn">..networks</span> <span class="k">import</span> <span class="n">mpo</span>  <span class="c1"># used to construct the Hamiltonian as MPO</span>
+<span class="kn">from</span> <span class="nn">..networks.site</span> <span class="k">import</span> <span class="n">group_sites</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Model&#39;</span><span class="p">,</span> <span class="s1">&#39;NearestNeighborModel&#39;</span><span class="p">,</span> <span class="s1">&#39;MPOModel&#39;</span><span class="p">,</span> <span class="s1">&#39;CouplingModel&#39;</span><span class="p">,</span> <span class="s1">&#39;MultiCouplingModel&#39;</span><span class="p">,</span>
            <span class="s1">&#39;CouplingMPOModel&#39;</span><span class="p">]</span>
@@ -112,7 +113,35 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># Model.__init__() got called before</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">lattice</span><span class="p">:</span>  <span class="c1"># expect the *same instance*!</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Model.__init__() called with different lattice instances.&quot;</span><span class="p">)</span></div>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Model.__init__() called with different lattice instances.&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Model.group_sites"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.Model.group_sites">[docs]</a>    <span class="k">def</span> <span class="nf">group_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">grouped_sites</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Modify `self` in place to group sites.</span>
+
+<span class="sd">        Group each `n` sites together using the :class:`~tenpy.networks.site.GroupedSite`.</span>
+<span class="sd">        This might allow to do TEBD with a Trotter decomposition,</span>
+<span class="sd">        or help the convergence of DMRG (in case of too long range interactions).</span>
+
+<span class="sd">        This has to be done after finishing initialization and can not be reverted.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        n : int</span>
+<span class="sd">            Number of sites to be grouped together.</span>
+<span class="sd">        grouped_sites : None | list of :class:`~tenpy.networks.site.GroupedSite`</span>
+<span class="sd">            The sites grouped together.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        grouped_sites : list of :class:`~tenpy.networks.site.GroupedSite`</span>
+<span class="sd">            The sites grouped together.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">grouped_sites</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">grouped_sites</span> <span class="o">=</span> <span class="n">group_sites</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">mps_sites</span><span class="p">(),</span> <span class="n">n</span><span class="p">,</span> <span class="n">charges</span><span class="o">=</span><span class="s1">&#39;same&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">grouped_sites</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">n_sites</span> <span class="o">==</span> <span class="n">n</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lat</span> <span class="o">=</span> <span class="n">TrivialLattice</span><span class="p">(</span><span class="n">grouped_sites</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">bc_MPS</span><span class="p">,</span> <span class="n">bc</span><span class="o">=</span><span class="s1">&#39;periodic&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">grouped_sites</span></div></div>
 
 
 <div class="viewcode-block" id="NearestNeighborModel"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel">[docs]</a><span class="k">class</span> <span class="nc">NearestNeighborModel</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
@@ -178,7 +207,110 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">bc_MPS</span> <span class="o">==</span> <span class="s1">&#39;infinite&#39;</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">psi</span><span class="o">.</span><span class="n">expectation_value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">]))</span>
         <span class="c1"># else</span>
-        <span class="k">return</span> <span class="n">psi</span><span class="o">.</span><span class="n">expectation_value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">]))</span></div></div>
+        <span class="k">return</span> <span class="n">psi</span><span class="o">.</span><span class="n">expectation_value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">]))</span></div>
+
+<div class="viewcode-block" id="NearestNeighborModel.group_sites"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.NearestNeighborModel.group_sites">[docs]</a>    <span class="k">def</span> <span class="nf">group_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">grouped_sites</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Modify `self` in place to group sites.</span>
+
+<span class="sd">        Group each `n` sites together using the :class:`~tenpy.networks.site.GroupedSite`.</span>
+<span class="sd">        This might allow to do TEBD with a Trotter decomposition,</span>
+<span class="sd">        or help the convergence of DMRG (in case of too long range interactions).</span>
+
+<span class="sd">        This has to be done after finishing initialization and can not be reverted.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        n : int</span>
+<span class="sd">            Number of sites to be grouped together.</span>
+<span class="sd">        grouped_sites : None | list of :class:`~tenpy.networks.site.GroupedSite`</span>
+<span class="sd">            The sites grouped together.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        grouped_sites : list of :class:`~tenpy.networks.site.GroupedSite`</span>
+<span class="sd">            The sites grouped together.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">grouped_sites</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">group_sites</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">grouped_sites</span><span class="p">)</span>
+        <span class="n">old_L</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span><span class="p">)</span>
+        <span class="n">new_L</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">grouped_sites</span><span class="p">)</span>
+        <span class="n">finite</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="n">H_bond</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">new_L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># old index</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">gs</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">grouped_sites</span><span class="p">):</span>
+            <span class="c1"># calculate new_Hb on bond (k, k+1)</span>
+            <span class="n">next_gs</span> <span class="o">=</span> <span class="n">grouped_sites</span><span class="p">[(</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">new_L</span><span class="p">]</span>
+            <span class="n">new_H_onsite</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># collect old H_bond terms inside `gs`</span>
+            <span class="k">if</span> <span class="n">gs</span><span class="o">.</span><span class="n">n_sites</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">gs</span><span class="o">.</span><span class="n">n_sites</span><span class="p">):</span>
+                    <span class="n">old_Hb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span><span class="p">[(</span><span class="n">i</span><span class="o">+</span><span class="n">j</span><span class="p">)</span> <span class="o">%</span> <span class="n">old_L</span><span class="p">]</span>
+                    <span class="n">add_H_onsite</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_group_sites_Hb_to_onsite</span><span class="p">(</span><span class="n">gs</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">old_Hb</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">new_H_onsite</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">new_H_onsite</span> <span class="o">=</span> <span class="n">add_H_onsite</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">new_H_onsite</span> <span class="o">=</span> <span class="n">new_H_onsite</span> <span class="o">+</span> <span class="n">add_H_onsite</span>
+            <span class="n">old_Hb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span><span class="p">[(</span><span class="n">i</span><span class="o">+</span><span class="n">gs</span><span class="o">.</span><span class="n">n_sites</span><span class="p">)</span> <span class="o">%</span> <span class="n">old_L</span><span class="p">]</span>
+            <span class="n">new_Hb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_group_sites_Hb_to_bond</span><span class="p">(</span><span class="n">gs</span><span class="p">,</span> <span class="n">next_gs</span><span class="p">,</span> <span class="n">old_Hb</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">new_H_onsite</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">!=</span> <span class="n">new_L</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">finite</span><span class="p">:</span>
+                    <span class="c1"># infinite or in the bulk: add new_H_onsite to new_Hb</span>
+                    <span class="n">add_Hb</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">new_H_onsite</span><span class="p">,</span> <span class="n">next_gs</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">transpose</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">]))</span>
+                    <span class="k">if</span> <span class="n">new_Hb</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">new_Hb</span> <span class="o">=</span> <span class="n">add_Hb</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">new_Hb</span> <span class="o">=</span> <span class="n">new_Hb</span> <span class="o">+</span> <span class="n">add_Hb</span>
+                <span class="k">else</span><span class="p">:</span> <span class="c1"># finite and k = new_L - 1</span>
+                    <span class="c1"># the new_H_onsite needs to be added to the right-most Hb</span>
+                    <span class="n">add_Hb</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">prev_gs</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">transpose</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">]),</span> <span class="n">new_H_onsite</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">H_bond</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">H_bond</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">add_Hb</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">H_bond</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_Hb</span> <span class="o">+</span> <span class="n">add_Hb</span>
+            <span class="n">k2</span> <span class="o">=</span> <span class="p">(</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">new_L</span>
+            <span class="k">if</span> <span class="n">H_bond</span><span class="p">[</span><span class="n">k2</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">H_bond</span><span class="p">[</span><span class="n">k2</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_Hb</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">H_bond</span><span class="p">[</span><span class="n">k2</span><span class="p">]</span> <span class="o">=</span> <span class="n">H_bond</span><span class="p">[</span><span class="n">k2</span><span class="p">]</span> <span class="o">+</span> <span class="n">new_Hb</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="n">gs</span><span class="o">.</span><span class="n">n_sites</span>
+        <span class="k">for</span> <span class="n">Hb</span> <span class="ow">in</span> <span class="n">H_bond</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">Hb</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">Hb</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">itranspose</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span> <span class="o">=</span> <span class="n">H_bond</span>
+        <span class="k">return</span> <span class="n">grouped_sites</span></div>
+
+    <span class="k">def</span> <span class="nf">_group_sites_Hb_to_onsite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gr_site</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">old_Hb</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;kroneckerproduct for H_bond term within a GroupedSite.</span>
+
+<span class="sd">        `old_Hb` acts on sites (j-1, j) of `gr_sites`.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">old_Hb</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">old_Hb</span> <span class="o">=</span> <span class="n">old_Hb</span><span class="o">.</span><span class="n">transpose</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">])</span>
+        <span class="n">ops</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">Id</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">gr_site</span><span class="o">.</span><span class="n">sites</span><span class="p">[:</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span> <span class="o">+</span> <span class="p">[</span><span class="n">old_Hb</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">Id</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">gr_site</span><span class="o">.</span><span class="n">sites</span><span class="p">[</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">:]]</span>
+        <span class="n">Hb</span> <span class="o">=</span> <span class="n">ops</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">ops</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+            <span class="n">Hb</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">Hb</span><span class="p">,</span> <span class="n">op</span><span class="p">)</span>
+        <span class="n">combine</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">gr_site</span><span class="o">.</span><span class="n">n_sites</span><span class="p">,</span> <span class="mi">2</span><span class="p">)),</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">gr_site</span><span class="o">.</span><span class="n">n_sites</span><span class="p">,</span> <span class="mi">2</span><span class="p">))]</span>
+        <span class="n">pipe</span> <span class="o">=</span> <span class="n">gr_site</span><span class="o">.</span><span class="n">leg</span>
+        <span class="n">Hb</span> <span class="o">=</span> <span class="n">Hb</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">(</span><span class="n">combine</span><span class="p">,</span> <span class="n">pipes</span><span class="o">=</span><span class="p">[</span><span class="n">pipe</span><span class="p">,</span> <span class="n">pipe</span><span class="o">.</span><span class="n">conj</span><span class="p">()])</span>
+        <span class="k">return</span> <span class="n">Hb</span>  <span class="c1"># labels would be &#39;p&#39;, &#39;p*&#39; w.r.t. gr_site.</span>
+
+    <span class="k">def</span> <span class="nf">_group_sites_Hb_to_bond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gr_site_L</span><span class="p">,</span> <span class="n">gr_site_R</span><span class="p">,</span> <span class="n">old_Hb</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Kroneckerproduct for H_bond term acting on two GroupedSites.</span>
+
+<span class="sd">        `old_Hb` acts on the right-most site of `gr_site_L` and left-most site of `gr_site_R`.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">old_Hb</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">old_Hb</span> <span class="o">=</span> <span class="n">old_Hb</span><span class="o">.</span><span class="n">transpose</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">])</span>
+        <span class="n">ops</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">Id</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">gr_site_L</span><span class="o">.</span><span class="n">sites</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span> <span class="o">+</span> <span class="p">[</span><span class="n">old_Hb</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">Id</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">gr_site_R</span><span class="o">.</span><span class="n">sites</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span>
+        <span class="n">Hb</span> <span class="o">=</span> <span class="n">ops</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">ops</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+            <span class="n">Hb</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">Hb</span><span class="p">,</span> <span class="n">op</span><span class="p">)</span>
+        <span class="n">NL</span><span class="p">,</span> <span class="n">NR</span> <span class="o">=</span> <span class="n">gr_site_L</span><span class="o">.</span><span class="n">n_sites</span><span class="p">,</span> <span class="n">gr_site_R</span><span class="o">.</span><span class="n">n_sites</span>
+        <span class="n">pipeL</span><span class="p">,</span> <span class="n">pipeR</span> <span class="o">=</span> <span class="n">gr_site_L</span><span class="o">.</span><span class="n">leg</span><span class="p">,</span> <span class="n">gr_site_R</span><span class="o">.</span><span class="n">leg</span>
+        <span class="n">combine</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">NL</span><span class="p">,</span> <span class="mi">2</span><span class="p">)),</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">NL</span><span class="p">,</span> <span class="mi">2</span><span class="p">)),</span>
+                   <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">NL</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">NL</span><span class="o">+</span><span class="n">NR</span><span class="p">),</span> <span class="mi">2</span><span class="p">)),</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">NL</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">NL</span><span class="o">+</span><span class="n">NR</span><span class="p">),</span> <span class="mi">2</span><span class="p">))]</span>
+        <span class="n">Hb</span> <span class="o">=</span> <span class="n">Hb</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">(</span><span class="n">combine</span><span class="p">,</span> <span class="n">pipes</span><span class="o">=</span><span class="p">[</span><span class="n">pipeL</span><span class="p">,</span> <span class="n">pipeL</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">pipeR</span><span class="p">,</span> <span class="n">pipeR</span><span class="o">.</span><span class="n">conj</span><span class="p">()])</span>
+        <span class="k">return</span> <span class="n">Hb</span>  <span class="c1"># labels would be &#39;p0&#39;, &#39;p0*&#39;, &#39;p1&#39;, &#39;p1*&#39; w.r.t. gr_site_{L,R}</span></div>
 
 
 <div class="viewcode-block" id="MPOModel"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.MPOModel">[docs]</a><span class="k">class</span> <span class="nc">MPOModel</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
@@ -211,7 +343,32 @@
 
 <div class="viewcode-block" id="MPOModel.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.MPOModel.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_MPO</span><span class="o">.</span><span class="n">sites</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">mps_sites</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;lattice incompatible with H_MPO.sites&quot;</span><span class="p">)</span></div></div>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;lattice incompatible with H_MPO.sites&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MPOModel.group_sites"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.MPOModel.group_sites">[docs]</a>    <span class="k">def</span> <span class="nf">group_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">grouped_sites</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Modify `self` in place to group sites.</span>
+
+<span class="sd">        Group each `n` sites together using the :class:`~tenpy.networks.site.GroupedSite`.</span>
+<span class="sd">        This might allow to do TEBD with a Trotter decomposition,</span>
+<span class="sd">        or help the convergence of DMRG (in case of too long range interactions).</span>
+
+<span class="sd">        This has to be done after finishing initialization and can not be reverted.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        n : int</span>
+<span class="sd">            Number of sites to be grouped together.</span>
+<span class="sd">        grouped_sites : None | list of :class:`~tenpy.networks.site.GroupedSite`</span>
+<span class="sd">            The sites grouped together.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        grouped_sites : list of :class:`~tenpy.networks.site.GroupedSite`</span>
+<span class="sd">            The sites grouped together.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">grouped_sites</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">group_sites</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">grouped_sites</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">H_MPO</span><span class="o">.</span><span class="n">group_sites</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">grouped_sites</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">grouped_sites</span></div></div>
 
 
 <div class="viewcode-block" id="CouplingModel"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.CouplingModel">[docs]</a><span class="k">class</span> <span class="nc">CouplingModel</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
@@ -221,8 +378,8 @@
 <span class="sd">    terms.</span>
 
 <span class="sd">    .. deprecated:: 0.4.0</span>
-<span class="sd">        `bc_coupling` will be removed in 1.0.0. To specify the full geometry in the lattice, it</span>
-<span class="sd">        is the `bc` parameter of the :class:`~tenpy.model.latttice.Lattice`.</span>
+<span class="sd">        `bc_coupling` will be removed in 1.0.0. To specify the full geometry in the lattice,</span>
+<span class="sd">        use the `bc` parameter of the :class:`~tenpy.model.latttice.Lattice`.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -531,18 +688,24 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">H_onsite</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_H_onsite</span><span class="p">(</span><span class="n">tol_zero</span><span class="p">)</span>
         <span class="n">finite</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">bc_MPS</span> <span class="o">!=</span> <span class="s1">&#39;infinite&#39;</span><span class="p">)</span>
         <span class="n">N_sites</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">N_sites</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">N_sites</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">d1</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">j</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">N_sites</span>
-            <span class="n">d1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">N_sites</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N_sites</span><span class="p">):</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">N_sites</span>
             <span class="n">site_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">site</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
             <span class="n">site_j</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">site</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
             <span class="n">strength_i</span> <span class="o">=</span> <span class="mf">1.</span> <span class="k">if</span> <span class="n">finite</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.5</span>
-            <span class="n">strength_j</span> <span class="o">=</span> <span class="mf">1.</span> <span class="k">if</span> <span class="n">finite</span> <span class="ow">and</span> <span class="n">j</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">N_sites</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">else</span> <span class="mf">0.5</span>
+            <span class="n">strength_j</span> <span class="o">=</span> <span class="mf">1.</span> <span class="k">if</span> <span class="n">finite</span> <span class="ow">and</span> <span class="n">j</span> <span class="o">==</span> <span class="n">N_sites</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">else</span> <span class="mf">0.5</span>
             <span class="k">if</span> <span class="n">finite</span> <span class="ow">and</span> <span class="n">j</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># over the boundary</span>
                 <span class="n">strength_i</span><span class="p">,</span> <span class="n">strength_j</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span>  <span class="c1"># just to make the assert below happy</span>
             <span class="n">H</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">strength_i</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_onsite</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">site_j</span><span class="o">.</span><span class="n">Id</span><span class="p">)</span>
             <span class="n">H</span> <span class="o">=</span> <span class="n">H</span> <span class="o">+</span> <span class="n">npc</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">site_i</span><span class="o">.</span><span class="n">Id</span><span class="p">,</span> <span class="n">strength_j</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_onsite</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+            <span class="n">res</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">H</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">d1</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">N_sites</span>
+            <span class="n">d1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">site_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">site</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="n">site_j</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">site</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+            <span class="n">H</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
             <span class="k">for</span> <span class="p">(</span><span class="n">op1</span><span class="p">,</span> <span class="n">op_str</span><span class="p">),</span> <span class="n">d2</span> <span class="ow">in</span> <span class="n">d1</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                 <span class="k">for</span> <span class="n">j2</span><span class="p">,</span> <span class="n">d3</span> <span class="ow">in</span> <span class="n">d2</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">j2</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
@@ -554,9 +717,10 @@
                         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="n">j2</span><span class="p">))</span>
                     <span class="k">for</span> <span class="n">op2</span><span class="p">,</span> <span class="n">strength</span> <span class="ow">in</span> <span class="n">d3</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                         <span class="n">H</span> <span class="o">=</span> <span class="n">H</span> <span class="o">+</span> <span class="n">strength</span> <span class="o">*</span> <span class="n">npc</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">site_i</span><span class="o">.</span><span class="n">get_op</span><span class="p">(</span><span class="n">op1</span><span class="p">),</span> <span class="n">site_j</span><span class="o">.</span><span class="n">get_op</span><span class="p">(</span><span class="n">op2</span><span class="p">))</span>
-            <span class="n">H</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">])</span>
             <span class="n">res</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">H</span>
-        <span class="k">if</span> <span class="n">finite</span> <span class="ow">and</span> <span class="mi">0</span> <span class="ow">in</span> <span class="n">res</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">H</span> <span class="ow">in</span> <span class="n">res</span><span class="p">:</span>
+            <span class="n">H</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">finite</span><span class="p">:</span>
             <span class="k">assert</span> <span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">tol_zero</span><span class="p">)</span>
             <span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">return</span> <span class="n">res</span></div>

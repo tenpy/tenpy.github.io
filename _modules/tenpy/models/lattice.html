@@ -68,7 +68,7 @@
 
 
 <div class="viewcode-block" id="Lattice"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.Lattice">[docs]</a><span class="k">class</span> <span class="nc">Lattice</span><span class="p">:</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;A general lattice.</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;A general, regular lattice.</span>
 
 <span class="sd">    The lattice consists of a **unit cell** which is repeated in `dim` different directions.</span>
 <span class="sd">    A site of the lattice is thus identified by **lattice indices** ``(x_0, ..., x_{dim-1}, u)``,</span>
@@ -724,6 +724,48 @@
             <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bc_shift</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">bc_shift</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">bc</span><span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">TrivialLattice</span><span class="p">(</span><span class="n">Lattice</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Trivial lattice consisting of a single (possibly large) unit cell in 1D.</span>
+
+<span class="sd">    This is usefull if you need a valid :class:`Lattice` given just the :meth:`mps_sites`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mps_sites : list of :class:`~tenpy.networks.Site`</span>
+<span class="sd">        The sites making up a unit cell of the lattice.</span>
+<span class="sd">    **kwargs :</span>
+<span class="sd">        Further keyword arguments given to :class:`Lattice`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mps_sites</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">Lattice</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">mps_sites</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">IrregularLattice</span><span class="p">(</span><span class="n">Lattice</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A variant of a regular lattice, where we might have extra sites or sites missing.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mps_sites</span><span class="p">,</span> <span class="n">based_on</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">based_on</span> <span class="o">=</span> <span class="n">based_on</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mps_sites</span> <span class="o">=</span> <span class="n">mps_sites</span>
+        <span class="n">Lattice</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">based_on</span><span class="o">.</span><span class="n">Ls</span><span class="p">,</span> <span class="n">based_on</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">,</span>
+                         <span class="n">bc</span><span class="o">=</span><span class="n">based_on</span><span class="o">.</span><span class="n">bc</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="n">based_on</span><span class="o">.</span><span class="n">bc_MPS</span><span class="p">)</span>
+        <span class="c1"># don&#39;t copy nearest_neighbors, basis, positions etc: no longer valid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_sites</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mps_sites</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_order</span> <span class="o">=</span> <span class="n">order</span>
+
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_mps_sites</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">mps_sites</span><span class="p">,</span> <span class="n">based_on</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">based_on</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">based_on</span> <span class="o">=</span> <span class="n">k</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">mps_sites</span><span class="p">,</span> <span class="n">based_on</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_add_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">M</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">mps_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mps_sites</span>
 
 
 <div class="viewcode-block" id="SimpleLattice"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.html#tenpy.models.lattice.SimpleLattice">[docs]</a><span class="k">class</span> <span class="nc">SimpleLattice</span><span class="p">(</span><span class="n">Lattice</span><span class="p">):</span>
