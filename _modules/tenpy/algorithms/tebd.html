@@ -228,10 +228,17 @@
 <span class="sd">            ============== ====== =============================================</span>
 <span class="sd">            key            type   description</span>
 <span class="sd">            ============== ====== =============================================</span>
-<span class="sd">            delta_tau_list list   A list of floats describing</span>
+<span class="sd">            delta_tau_list list   A list of floats: the timesteps to be used.</span>
+<span class="sd">                                  Choosing a large timestep `delta_tau`</span>
+<span class="sd">                                  introduces large (Trotter) erros, but a too</span>
+<span class="sd">                                  small time step requires a lot of steps to</span>
+<span class="sd">                                  reach  ``exp(-tau H) --&gt; |psi0&gt;&lt;psi0|``.</span>
+<span class="sd">                                  Therefore, we start with fairly large time</span>
+<span class="sd">                                  steps for a quick time evolution until</span>
+<span class="sd">                                  convergence, and the gradually decrease the</span>
+<span class="sd">                                  time step.</span>
 <span class="sd">            -------------- ------ ---------------------------------------------</span>
-<span class="sd">            order          int    Order of the algorithm.</span>
-<span class="sd">                                  The total error scales as O(t, dt^order).</span>
+<span class="sd">            order          int    Order of the Suzuki-Trotter decomposition.</span>
 <span class="sd">            -------------- ------ ---------------------------------------------</span>
 <span class="sd">            N_steps        int    Number of steps before measurement can be</span>
 <span class="sd">                                  performed</span>
@@ -264,7 +271,10 @@
             <span class="n">DeltaS</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">max_error_E</span>
             <span class="n">step</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="k">while</span> <span class="p">(</span><span class="n">DeltaE</span> <span class="o">&gt;</span> <span class="n">max_error_E</span><span class="p">):</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">N_steps</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">finite</span> <span class="ow">and</span> <span class="n">TrotterOrder</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">update_imag</span><span class="p">(</span><span class="n">N_steps</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">N_steps</span><span class="p">)</span>
                 <span class="n">step</span> <span class="o">+=</span> <span class="n">N_steps</span>
                 <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">bond_energies</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="p">))</span>
                 <span class="n">DeltaE</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">Eold</span> <span class="o">-</span> <span class="n">E</span><span class="p">)</span>
@@ -552,17 +562,29 @@
         <span class="k">return</span> <span class="n">trunc_err</span></div>
 
 <div class="viewcode-block" id="Engine.update_imag"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.tebd.html#tenpy.algorithms.tebd.Engine.update_imag">[docs]</a>    <span class="k">def</span> <span class="nf">update_imag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N_steps</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;perform an update suitable for imaginary time evolution.</span>
+        <span class="sd">&quot;&quot;&quot;Perform an update suitable for imaginary time evolution.</span>
 
 <span class="sd">        Instead of the even/odd brick structure used for ordinary TEBD,</span>
 <span class="sd">        we &#39;sweep&#39; from left to right and right to left, similar as DMRG.</span>
 <span class="sd">        Thanks to that, we are actually able to preserve the canonical form.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        N_steps : int</span>
+<span class="sd">            The number of steps for which the whole lattice should be updated.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        trunc_err : :class:`~tenpy.algorithms.truncation.TruncationError`</span>
+<span class="sd">            The error of the represented state which is introduced due to the truncation during</span>
+<span class="sd">            this sequence of update steps.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">trunc_err</span> <span class="o">=</span> <span class="n">TruncationError</span><span class="p">()</span>
         <span class="n">order</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_U_param</span><span class="p">[</span><span class="s1">&#39;order&#39;</span><span class="p">]</span>
         <span class="c1"># allow only second order evolution</span>
         <span class="k">if</span> <span class="n">order</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>  <span class="c1"># Would lead to loss of canonical form. What about DMRG?</span>
+            <span class="c1"># Would lead to loss of canonical form. What about DMRG?</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Use DMRG instead...&quot;</span><span class="p">)</span>
         <span class="n">U_idx_dt</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># always with dt=0.5</span>
         <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">suzuki_trotter_time_steps</span><span class="p">(</span><span class="n">order</span><span class="p">)[</span><span class="n">U_idx_dt</span><span class="p">]</span> <span class="o">==</span> <span class="mf">0.5</span><span class="p">)</span>
         <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">finite</span><span class="p">)</span>  <span class="c1"># finite or segment bc</span>
@@ -642,7 +664,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_bond_eig_vals</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_bond_eig_vecs</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">H_bond</span><span class="p">:</span>
-            <span class="c1"># TODO: Check if hermitian?!</span>
             <span class="k">if</span> <span class="n">h</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">w</span> <span class="o">=</span> <span class="n">v</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="k">else</span><span class="p">:</span>
