@@ -170,7 +170,8 @@ in 2D becomes long-range in the MPS chain.</p>
 </dd>
 <dt><strong>H_bond</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
 <dd><p class="first last">The Hamiltonian rewritten as <code class="docutils literal notranslate"><span class="pre">sum_i</span> <span class="pre">H_bond[i]</span></code> for MPS indices <code class="docutils literal notranslate"><span class="pre">i</span></code>.
-<code class="docutils literal notranslate"><span class="pre">H_bond[i]</span></code> acts on sites <code class="docutils literal notranslate"><span class="pre">(i-1,</span> <span class="pre">i)</span></code>; we require <code class="docutils literal notranslate"><span class="pre">len(H_bond)</span> <span class="pre">==</span> <span class="pre">lat.N_sites</span></code>.</p>
+<code class="docutils literal notranslate"><span class="pre">H_bond[i]</span></code> acts on sites <code class="docutils literal notranslate"><span class="pre">(i-1,</span> <span class="pre">i)</span></code>; we require <code class="docutils literal notranslate"><span class="pre">len(H_bond)</span> <span class="pre">==</span> <span class="pre">lat.N_sites</span></code>.
+Legs of each <code class="docutils literal notranslate"><span class="pre">H_bond[i]</span></code> are <code class="docutils literal notranslate"><span class="pre">['p0',</span> <span class="pre">'p0*',</span> <span class="pre">'p1',</span> <span class="pre">'p1*']</span></code>.</p>
 </dd>
 </dl>
 </td>
@@ -178,7 +179,8 @@ in 2D becomes long-range in the MPS chain.</p>
 <tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
 <dt><strong>H_bond</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <code class="xref py py-class docutils literal notranslate"><span class="pre">npc.Array</span></code></span></dt>
 <dd><p class="first last">The Hamiltonian rewritten as <code class="docutils literal notranslate"><span class="pre">sum_i</span> <span class="pre">H_bond[i]</span></code> for MPS indices <code class="docutils literal notranslate"><span class="pre">i</span></code>.
-<code class="docutils literal notranslate"><span class="pre">H_bond[i]</span></code> acts on sites <code class="docutils literal notranslate"><span class="pre">(i-1,</span> <span class="pre">i)</span></code>.</p>
+<code class="docutils literal notranslate"><span class="pre">H_bond[i]</span></code> acts on sites <code class="docutils literal notranslate"><span class="pre">(i-1,</span> <span class="pre">i)</span></code>.
+Legs of each <code class="docutils literal notranslate"><span class="pre">H_bond[i]</span></code> are <code class="docutils literal notranslate"><span class="pre">['p0',</span> <span class="pre">'p0*',</span> <span class="pre">'p1',</span> <span class="pre">'p1*']</span></code>.</p>
 </dd>
 </dl>
 </td>
@@ -195,10 +197,13 @@ in 2D becomes long-range in the MPS chain.</p>
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.NearestNeighborModel.bond_energies" title="tenpy.models.model.NearestNeighborModel.bond_energies"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bond_energies</span></code></a>(psi)</td>
 <td>Calculate bond energies &lt;psi|H_bond|psi&gt;.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.NearestNeighborModel.group_sites" title="tenpy.models.model.NearestNeighborModel.group_sites"><code class="xref py py-obj docutils literal notranslate"><span class="pre">group_sites</span></code></a>([n,&nbsp;grouped_sites])</td>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.NearestNeighborModel.calc_H_MPO_from_bond" title="tenpy.models.model.NearestNeighborModel.calc_H_MPO_from_bond"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_MPO_from_bond</span></code></a>([tol_zero])</td>
+<td>Calculate the MPO Hamiltonian from the bond Hamiltonian.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.NearestNeighborModel.group_sites" title="tenpy.models.model.NearestNeighborModel.group_sites"><code class="xref py py-obj docutils literal notranslate"><span class="pre">group_sites</span></code></a>([n,&nbsp;grouped_sites])</td>
 <td>Modify <cite>self</cite> in place to group sites.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.NearestNeighborModel.trivial_like_NNModel" title="tenpy.models.model.NearestNeighborModel.trivial_like_NNModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">trivial_like_NNModel</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.NearestNeighborModel.trivial_like_NNModel" title="tenpy.models.model.NearestNeighborModel.trivial_like_NNModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">trivial_like_NNModel</span></code></a>()</td>
 <td>Return a NearestNeighborModel with same lattice, but trivial (H=0) bonds.</td>
 </tr>
 </tbody>
@@ -234,6 +239,32 @@ in 2D becomes long-range in the MPS chain.</p>
 <dd><p class="first last">List of bond energies: for finite bc, <code class="docutils literal notranslate"><span class="pre">E_Bond[i]</span></code> is the energy of bond <code class="docutils literal notranslate"><span class="pre">i,</span> <span class="pre">i+1</span></code>.
 (i.e. we omit bond 0 between sites L-1 and 0);
 for infinite bc <code class="docutils literal notranslate"><span class="pre">E_bond[i]</span></code> is the energy of bond <code class="docutils literal notranslate"><span class="pre">i-1,</span> <span class="pre">i</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.models.model.NearestNeighborModel.calc_H_MPO_from_bond">
+<code class="descname">calc_H_MPO_from_bond</code><span class="sig-paren">(</span><em>tol_zero=1e-15</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#NearestNeighborModel.calc_H_MPO_from_bond"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.NearestNeighborModel.calc_H_MPO_from_bond" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the MPO Hamiltonian from the bond Hamiltonian.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>tol_zero</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Arrays with norm &lt; <cite>tol_zero</cite> are considered to be zero.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>H_MPO</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.networks.mpo.html#tenpy.networks.mpo.MPO" title="tenpy.networks.mpo.MPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPO</span></code></a></span></dt>
+<dd><p class="first last">MPO representation of the Hamiltonian.</p>
 </dd>
 </dl>
 </td>
@@ -298,8 +329,7 @@ Thus, instances of this class are suitable for MPO-based algorithms like DMRG
 <a class="reference internal" href="tenpy.algorithms.dmrg.html#module-tenpy.algorithms.dmrg" title="tenpy.algorithms.dmrg"><code class="xref py py-mod docutils literal notranslate"><span class="pre">dmrg</span></code></a> and MPO time evolution.</p>
 <div class="admonition-todo admonition" id="index-0">
 <p class="first admonition-title">Todo</p>
-<p class="last">implement MPO for time evolution…
-Also, provide function to get H_MPO from H_bond</p>
+<p class="last">implement MPO for time evolution…</p>
 </div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -639,7 +669,7 @@ We require <code class="docutils literal notranslate"><span class="pre">0</span>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
 <dt><strong>tol_zero</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd><p class="first last">prefactors with <code class="docutils literal notranslate"><span class="pre">abs(strength)</span> <span class="pre">&lt;</span> <span class="pre">tol_zero</span></code> are considered to be zero.</p>
+<dd><p class="first last">Prefactors with <code class="docutils literal notranslate"><span class="pre">abs(strength)</span> <span class="pre">&lt;</span> <span class="pre">tol_zero</span></code> are considered to be zero.</p>
 </dd>
 </dl>
 </td>
