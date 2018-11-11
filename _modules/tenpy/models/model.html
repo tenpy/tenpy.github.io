@@ -456,7 +456,84 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">grouped_sites</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">group_sites</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">grouped_sites</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">H_MPO</span><span class="o">.</span><span class="n">group_sites</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">grouped_sites</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">grouped_sites</span></div></div>
+        <span class="k">return</span> <span class="n">grouped_sites</span></div>
+
+<div class="viewcode-block" id="MPOModel.calc_H_bond_from_MPO"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.MPOModel.calc_H_bond_from_MPO">[docs]</a>    <span class="k">def</span> <span class="nf">calc_H_bond_from_MPO</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tol_zero</span><span class="o">=</span><span class="mf">1.e-15</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate the bond Hamiltonian from the MPO Hamiltonian.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tol_zero : float</span>
+<span class="sd">            Arrays with norm &lt; `tol_zero` are considered to be zero.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        H_bond : list of :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Bond terms as required by the constructor of :class:`NearestNeighborModel`.</span>
+<span class="sd">            Legs are ``[&#39;p0&#39;, &#39;p0*&#39;, &#39;p1&#39;, &#39;p1*&#39;]``</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError : if the Hamiltonian contains longer-range terms.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">H_MPO</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_MPO</span>
+        <span class="n">sites</span> <span class="o">=</span> <span class="n">H_MPO</span><span class="o">.</span><span class="n">sites</span>
+        <span class="n">finite</span> <span class="o">=</span> <span class="n">H_MPO</span><span class="o">.</span><span class="n">finite</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="n">H_MPO</span><span class="o">.</span><span class="n">L</span>
+        <span class="n">Ws</span> <span class="o">=</span> <span class="p">[</span><span class="n">H_MPO</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">)]</span>
+        <span class="c1"># Copy of Ws: we set everything to zero, which we take out and add to H_bond, such that</span>
+        <span class="c1"># we can check that Ws is zero in the end to ensure that H didn&#39;t have long range couplings</span>
+        <span class="n">H_onsite</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">L</span>
+        <span class="n">H_bond</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">L</span>
+        <span class="c1"># first take out onsite terms and identities</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">W</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">Ws</span><span class="p">):</span>
+            <span class="c1"># bond `a` is left of site i, bond `b` is right</span>
+            <span class="n">IdL_a</span> <span class="o">=</span> <span class="n">H_MPO</span><span class="o">.</span><span class="n">IdL</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">IdR_a</span> <span class="o">=</span> <span class="n">H_MPO</span><span class="o">.</span><span class="n">IdR</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">IdL_b</span> <span class="o">=</span> <span class="n">H_MPO</span><span class="o">.</span><span class="n">IdL</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">IdR_b</span> <span class="o">=</span> <span class="n">H_MPO</span><span class="o">.</span><span class="n">IdR</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">W</span><span class="o">.</span><span class="n">itranspose</span><span class="p">([</span><span class="s1">&#39;wL&#39;</span><span class="p">,</span> <span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">])</span>
+            <span class="n">H_onsite</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">W</span><span class="p">[</span><span class="n">IdL_a</span><span class="p">,</span> <span class="n">IdR_b</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+            <span class="n">W</span><span class="p">[</span><span class="n">IdL_a</span><span class="p">,</span> <span class="n">IdR_b</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">*=</span> <span class="mi">0</span>
+            <span class="c1"># remove Identities</span>
+            <span class="k">if</span> <span class="n">IdR_a</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">W</span><span class="p">[</span><span class="n">IdR_a</span><span class="p">,</span> <span class="n">IdR_b</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">*=</span> <span class="mf">0.</span>
+            <span class="k">if</span> <span class="n">IdL_b</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">W</span><span class="p">[</span><span class="n">IdL_a</span><span class="p">,</span> <span class="n">IdL_b</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">*=</span> <span class="mf">0.</span>
+        <span class="c1"># now multiply together the bonds</span>
+        <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">Wj</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">Ws</span><span class="p">):</span>
+            <span class="c1"># for bond (i, j) == (j-1, j) == (i, i+1)</span>
+            <span class="k">if</span> <span class="n">finite</span> <span class="ow">and</span> <span class="n">j</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="p">(</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">L</span>
+            <span class="n">Wi</span> <span class="o">=</span> <span class="n">Ws</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">IdL_a</span> <span class="o">=</span> <span class="n">H_MPO</span><span class="o">.</span><span class="n">IdL</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">IdR_c</span> <span class="o">=</span> <span class="n">H_MPO</span><span class="o">.</span><span class="n">IdR</span><span class="p">[</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">Hb</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">Wi</span><span class="p">[</span><span class="n">IdL_a</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">Wj</span><span class="p">[:,</span> <span class="n">IdR_c</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">axes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">))</span>
+            <span class="n">Wi</span><span class="p">[</span><span class="n">IdL_a</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">*=</span> <span class="mf">0.</span>
+            <span class="n">Wj</span><span class="p">[:,</span> <span class="n">IdR_c</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">*=</span> <span class="mf">0.</span>
+            <span class="c1"># Hb has legs p0, p0*, p1, p1*</span>
+            <span class="n">H_bond</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">Hb</span>
+        <span class="c1"># check that nothing is left</span>
+        <span class="k">for</span> <span class="n">W</span> <span class="ow">in</span> <span class="n">Ws</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">npc</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">W</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">tol_zero</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Bond couplings didn&#39;t capture everything. &quot;</span>
+                                 <span class="s2">&quot;Either H is long range or IdL/IdR is wrong!&quot;</span><span class="p">)</span>
+        <span class="c1"># now merge the onsite terms to H_bond</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">finite</span> <span class="ow">and</span> <span class="n">j</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="p">(</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">L</span>
+            <span class="n">strength_i</span> <span class="o">=</span> <span class="mf">1.</span> <span class="k">if</span> <span class="n">finite</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.5</span>
+            <span class="n">strength_j</span> <span class="o">=</span> <span class="mf">1.</span> <span class="k">if</span> <span class="n">finite</span> <span class="ow">and</span> <span class="n">j</span> <span class="o">==</span> <span class="n">L</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">else</span> <span class="mf">0.5</span>
+            <span class="n">Hb</span> <span class="o">=</span> <span class="p">(</span><span class="n">npc</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">sites</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">Id</span><span class="p">,</span> <span class="n">strength_j</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_onsite</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="o">+</span>
+                  <span class="n">npc</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">strength_i</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_onsite</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">sites</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">Id</span><span class="p">))</span>
+            <span class="n">Hb</span> <span class="o">=</span> <span class="n">add_with_None_0</span><span class="p">(</span><span class="n">H_bond</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">Hb</span><span class="p">)</span>
+            <span class="n">Hb</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">])</span>
+            <span class="n">H_bond</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">Hb</span>
+        <span class="k">if</span> <span class="n">finite</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">H_bond</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">H_bond</span></div></div>
 
 
 <div class="viewcode-block" id="CouplingModel"><a class="viewcode-back" href="../../../reference/tenpy.models.model.html#tenpy.models.model.CouplingModel">[docs]</a><span class="k">class</span> <span class="nc">CouplingModel</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
