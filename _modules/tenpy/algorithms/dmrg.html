@@ -1463,10 +1463,10 @@
 <span class="sd">        ============== ========= ===============================================================</span>
 <span class="sd">        key            type      description</span>
 <span class="sd">        ============== ========= ===============================================================</span>
-<span class="sd">        amplitude      float     Initial strength of the mixer. (Should be chosen &lt; 1.)</span>
+<span class="sd">        amplitude      float     Initial strength of the mixer. (Should be &lt;= 1.)</span>
 <span class="sd">        -------------- --------- ---------------------------------------------------------------</span>
 <span class="sd">        decay          float     To slowly turn off the mixer, we divide `amplitude` by `decay`</span>
-<span class="sd">                                 after each sweep.</span>
+<span class="sd">                                 after each sweep. (Should be &gt;= 1.)</span>
 <span class="sd">        -------------- --------- ---------------------------------------------------------------</span>
 <span class="sd">        disable_after  int       We disable the mixer completely after this number of sweeps.</span>
 <span class="sd">        ============== ========= ===============================================================</span>
@@ -1485,7 +1485,11 @@
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mixer_params</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">amplitude</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">mixer_params</span><span class="p">,</span> <span class="s1">&#39;amplitude&#39;</span><span class="p">,</span> <span class="mf">1.e-2</span><span class="p">,</span> <span class="s1">&#39;Mixer&#39;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">amplitude</span> <span class="o">&lt;=</span> <span class="mf">1.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">decay</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">mixer_params</span><span class="p">,</span> <span class="s1">&#39;decay&#39;</span><span class="p">,</span> <span class="mf">2.</span><span class="p">,</span> <span class="s1">&#39;Mixer&#39;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">decay</span> <span class="o">&gt;=</span> <span class="mf">1.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">decay</span> <span class="o">==</span> <span class="mf">1.</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Mixer: decay set to 1.&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">disable_after</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">mixer_params</span><span class="p">,</span> <span class="s1">&#39;disable_after&#39;</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="s1">&#39;Mixer&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">mixer_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
