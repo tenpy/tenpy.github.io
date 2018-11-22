@@ -99,9 +99,9 @@ Yet, imaginary TEBD might be usefull for cross-checks and testing.</p>
 <dd><p class="first last">The model representing the Hamiltonian for which we want to find the ground state.</p>
 </dd>
 <dt><strong>TEBD_params</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
-<dd><p class="first last">Further optional parameters as described in the following table.
-Use <code class="docutils literal notranslate"><span class="pre">verbose=1</span></code> to print the used parameters during runtime.
-See <a class="reference internal" href="#tenpy.algorithms.tebd.Engine.run" title="tenpy.algorithms.tebd.Engine.run"><code class="xref py py-func docutils literal notranslate"><span class="pre">run()</span></code></a> and <a class="reference internal" href="#tenpy.algorithms.tebd.Engine.run_GS" title="tenpy.algorithms.tebd.Engine.run_GS"><code class="xref py py-func docutils literal notranslate"><span class="pre">run_GS()</span></code></a> for more details.</p>
+<dd><p class="first last">Further optional parameters as described in the tables in
+<a class="reference internal" href="#tenpy.algorithms.tebd.Engine.run" title="tenpy.algorithms.tebd.Engine.run"><code class="xref py py-func docutils literal notranslate"><span class="pre">run()</span></code></a> and <a class="reference internal" href="#tenpy.algorithms.tebd.Engine.run_GS" title="tenpy.algorithms.tebd.Engine.run_GS"><code class="xref py py-func docutils literal notranslate"><span class="pre">run_GS()</span></code></a> for more details.
+Use <code class="docutils literal notranslate"><span class="pre">verbose=1</span></code> to print the used parameters during runtime.</p>
 </dd>
 </dl>
 </td>
@@ -125,7 +125,7 @@ the sequence of update steps.</p>
 <dd><p class="first last">The model defining the Hamiltonian.</p>
 </dd>
 <dt><strong>TEBD_params: dict</strong></dt>
-<dd><p class="first last">Optional parameters, see above.</p>
+<dd><p class="first last">Optional parameters, see <a class="reference internal" href="#tenpy.algorithms.tebd.Engine.run" title="tenpy.algorithms.tebd.Engine.run"><code class="xref py py-func docutils literal notranslate"><span class="pre">run()</span></code></a> and <a class="reference internal" href="#tenpy.algorithms.tebd.Engine.run_GS" title="tenpy.algorithms.tebd.Engine.run_GS"><code class="xref py py-func docutils literal notranslate"><span class="pre">run_GS()</span></code></a> for more details.</p>
 </dd>
 <dt><strong>_bond_eig_vals</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of 1D ndarray</span></dt>
 <dd><p class="first last">Eigenvalues for each of <cite>model.H_bond</cite>; necessary to calculate <cite>_U</cite>.</p>
@@ -165,7 +165,7 @@ The <cite>i</cite>-th entry is left of site <cite>i</cite>.</p>
 <td>Calculate <code class="docutils literal notranslate"><span class="pre">self.U_bond</span></code> from <code class="docutils literal notranslate"><span class="pre">self.bond_eig_{vals,vecs}</span></code>.</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.tebd.Engine.run" title="tenpy.algorithms.tebd.Engine.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>()</td>
-<td>Time evolution with TEBD (time evolving block decimation).</td>
+<td>(Real-)time evolution with TEBD (time evolving block decimation).</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.tebd.Engine.run_GS" title="tenpy.algorithms.tebd.Engine.run_GS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_GS</span></code></a>()</td>
 <td>TEBD algorithm in imaginary time to find the ground state.</td>
@@ -231,77 +231,22 @@ Higher order requires smaller <cite>dt</cite> steps, as given by <a class="refer
 <dl class="method">
 <dt id="tenpy.algorithms.tebd.Engine.run">
 <code class="descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/tebd.html#Engine.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.tebd.Engine.run" title="Permalink to this definition">¶</a></dt>
-<dd><p>Time evolution with TEBD (time evolving block decimation).</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>TEBD_params</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
-<dd><p class="first">The optional parameters that are used are described in the
-following table.
-Use <code class="docutils literal notranslate"><span class="pre">verbose=1</span></code> to print the used parameters during runtime.</p>
-<table border="1" class="last docutils">
-<colgroup>
-<col width="10%" />
-<col width="9%" />
-<col width="81%" />
-</colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">key</th>
-<th class="head">type</th>
-<th class="head">description</th>
-</tr>
-</thead>
-<tbody valign="top">
-<tr class="row-even"><td>dt</td>
-<td>float</td>
-<td>time step.</td>
-</tr>
-<tr class="row-odd"><td>order</td>
-<td>int</td>
-<td>Order of the algorithm.
-The total error scales as O(t, dt^order).</td>
-</tr>
-<tr class="row-even"><td>N_steps</td>
-<td>int</td>
-<td>Number of steps before measurement can be performed,
-number of steps that are interlinked for all
-Trotter decompositions of order &gt; 1.</td>
-</tr>
-<tr class="row-odd"><td>…</td>
-<td>dict</td>
-<td>Truncation parameters as described in
-<a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.truncate" title="tenpy.algorithms.truncation.truncate"><code class="xref py py-func docutils literal notranslate"><span class="pre">truncate()</span></code></a></td>
-</tr>
-</tbody>
-</table>
-</dd>
-</dl>
-</td>
-</tr>
-</tbody>
-</table>
+<dd><p>(Real-)time evolution with TEBD (time evolving block decimation).</p>
+<p>The following (optional) parameters are read out from the <code class="xref py py-attr docutils literal notranslate"><span class="pre">TEBD_params</span></code>.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="tenpy.algorithms.tebd.Engine.run_GS">
 <code class="descname">run_GS</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/tebd.html#Engine.run_GS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.tebd.Engine.run_GS" title="Permalink to this definition">¶</a></dt>
 <dd><p>TEBD algorithm in imaginary time to find the ground state.</p>
-<p>An algorithm that finds the ground state and its corresponding energy by
-imaginary time TEBD.</p>
-<p>Note that it is almost always more efficient (and hence advisable) to use
-DMRG. It can nonetheless be used quite well as a benchmark!</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>TEBD_params</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
-<dd><p class="first">The optional parameters that are used are described in the
-following table.
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">It is almost always more efficient (and hence advisable) to use DMRG.
+This algorithms can nonetheless be used quite well as a benchmark and for comparison.</p>
+</div>
+<p>The following (optional) parameters are read out from the <code class="xref py py-attr docutils literal notranslate"><span class="pre">TEBD_params</span></code>.
 Use <code class="docutils literal notranslate"><span class="pre">verbose=1</span></code> to print the used parameters during runtime.</p>
-<table border="1" class="last docutils">
+<table border="1" class="docutils">
 <colgroup>
 <col width="22%" />
 <col width="9%" />
@@ -335,16 +280,10 @@ time step.</td>
 <td>Number of steps before measurement can be
 performed</td>
 </tr>
-<tr class="row-odd"><td>…</td>
-<td>&#160;</td>
+<tr class="row-odd"><td>trunc_params</td>
+<td>dict</td>
 <td>Truncation parameters as described in
 <a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.truncate" title="tenpy.algorithms.truncation.truncate"><code class="xref py py-func docutils literal notranslate"><span class="pre">truncate()</span></code></a></td>
-</tr>
-</tbody>
-</table>
-</dd>
-</dl>
-</td>
 </tr>
 </tbody>
 </table>
