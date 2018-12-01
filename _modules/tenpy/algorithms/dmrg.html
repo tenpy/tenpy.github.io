@@ -963,7 +963,7 @@
 <div class="viewcode-block" id="Engine.mixer_activate"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.mixer_activate">[docs]</a>    <span class="k">def</span> <span class="nf">mixer_activate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Set `self.mixer` to the class specified by `DMRG_params[&#39;mixer&#39;]`.&quot;&quot;&quot;</span>
         <span class="n">Mixer_class</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;mixer&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">Mixer_class</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">Mixer_class</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">Mixer_class</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
                 <span class="n">Mixer_class</span> <span class="o">=</span> <span class="n">Mixer</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">Mixer_class</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
@@ -1250,7 +1250,7 @@
 
 <span class="sd">    Due to a different contraction order in :meth:`matvec`, this engine might be faster than</span>
 <span class="sd">    :class:`EngineCombine`, at least for large physical dimensions and if the MPO is sparse.</span>
-<span class="sd">    One :meth:`matvec` is :math:`O(2 \chi^3 d^2 D + 2 \chi^2 d^3 W^2 )`.</span>
+<span class="sd">    One :meth:`matvec` is :math:`O(2 \chi^3 d^2 W + 2 \chi^2 d^3 W^2 )`.</span>
 
 <span class="sd">    Attributes</span>
 <span class="sd">    ----------</span>
@@ -1449,8 +1449,20 @@
 <div class="viewcode-block" id="Mixer"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Mixer">[docs]</a><span class="k">class</span> <span class="nc">Mixer</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Mixer class.</span>
 
-<span class="sd">    .. todo ::</span>
-<span class="sd">        documentation/reference</span>
+<span class="sd">    This Mixer is based on the paper [White2005]_.</span>
+
+<span class="sd">    Since DMRG performs only local updates of the state, it can get stuck in &quot;local minima&quot;,</span>
+<span class="sd">    in particular if the Hamiltonain is long-range -- which is the case if one</span>
+<span class="sd">    maps a 2D system (&quot;infinite cylinder&quot;) to 1D -- or if one wants to do single-site updates</span>
+<span class="sd">    (currently not implemented in TeNPy).</span>
+<span class="sd">    The mixer perturbs the density matrix with the terms of the Hamiltonian</span>
+<span class="sd">    which have contributions in both the &quot;left&quot; and &quot;right&quot; side of the system.</span>
+<span class="sd">    In that way, it adds fluctuation of the quantum numbers and non-zero contributions of the</span>
+<span class="sd">    long-range terms - leading to a significantly improved convergence of DMRG.</span>
+
+<span class="sd">    The strength of the perturbation is given by the `amplitude` of the mixer.</span>
+<span class="sd">    A good strategy is to choose an initially significant amplitude and let it decay until</span>
+<span class="sd">    the perturbation becomes completely irrelevant and the mixer gets disabled.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -1622,6 +1634,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2018, TeNPy Developers.
+      Last updated on Dec 01, 2018.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
     </div>
   </body>

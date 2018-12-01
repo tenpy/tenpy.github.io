@@ -51,7 +51,7 @@
 <p>Time evolving block decimation (TEBD).</p>
 <p>The TEBD algorithm (proposed in <a class="reference internal" href="../literature.html#vidal2004" id="id1">[Vidal2004]</a>) uses a trotter decomposition of the
 Hamiltonian to perform a time evoltion of an MPS. It works only for nearest-neigbor hamiltonians
-(in tenpy given by a <code class="xref py py-class docutils literal notranslate"><span class="pre">NearestNeighborModel</span></code>),
+(in tenpy given by a <a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.NearestNeighborModel" title="tenpy.models.model.NearestNeighborModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NearestNeighborModel</span></code></a>),
 which can be written as <span class="math notranslate nohighlight">\(H = H^{even} + H^{odd}\)</span>,  such that <span class="math notranslate nohighlight">\(H^{even}\)</span> contains the
 the terms on even bonds (and similar <span class="math notranslate nohighlight">\(H^{odd}\)</span> the terms on odd bonds).
 In the simplest case, we apply first <span class="math notranslate nohighlight">\(U=\exp(-i*dt*H^{even})\)</span>,
@@ -95,7 +95,7 @@ Yet, imaginary TEBD might be usefull for cross-checks and testing.</p>
 <dt><strong>psi</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPS</span></code></span></dt>
 <dd><p class="first last">Initial state to be time evolved. Modified in place.</p>
 </dd>
-<dt><strong>model</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">NearestNeighborModel</span></code></span></dt>
+<dt><strong>model</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.NearestNeighborModel" title="tenpy.models.model.NearestNeighborModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NearestNeighborModel</span></code></a></span></dt>
 <dd><p class="first last">The model representing the Hamiltonian for which we want to find the ground state.</p>
 </dd>
 <dt><strong>TEBD_params</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
@@ -233,6 +233,45 @@ Higher order requires smaller <cite>dt</cite> steps, as given by <a class="refer
 <code class="descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/tebd.html#Engine.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.tebd.Engine.run" title="Permalink to this definition">¶</a></dt>
 <dd><p>(Real-)time evolution with TEBD (time evolving block decimation).</p>
 <p>The following (optional) parameters are read out from the <code class="xref py py-attr docutils literal notranslate"><span class="pre">TEBD_params</span></code>.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="19%" />
+<col width="8%" />
+<col width="73%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">key</th>
+<th class="head">type</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>dt</td>
+<td>float</td>
+<td>Time step.</td>
+</tr>
+<tr class="row-odd"><td>order</td>
+<td>int</td>
+<td><dl class="first last docutils">
+<dt>Order of the algorithm.</dt>
+<dd>The total error scales as O(t, dt^order).</dd>
+</dl>
+</td>
+</tr>
+<tr class="row-even"><td>N_steps</td>
+<td>int</td>
+<td>Number of time steps <cite>dt</cite> to evolve.
+(The Trotter decompositions of order &gt; 1 are slightly
+more efficient if more than one step is performed at
+once.)</td>
+</tr>
+<tr class="row-odd"><td>trunc_params</td>
+<td>dict</td>
+<td>Truncation parameters as described in
+<a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.truncate" title="tenpy.algorithms.truncation.truncate"><code class="xref py py-func docutils literal notranslate"><span class="pre">truncate()</span></code></a>.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -562,26 +601,31 @@ See <a class="reference internal" href="#tenpy.algorithms.tebd.RandomUnitaryEvol
 </tbody>
 </table>
 <p class="rubric">Examples</p>
-<p>One can initialize a “random” state with total Sz = L//2 as follows:
-&gt;&gt;&gt; L = 8
-&gt;&gt;&gt; spin_half = SpinHalfSite(conserve=’Sz’)
-&gt;&gt;&gt; psi = MPS.from_product_state([spin_half]*L, [0, 1]*(L//2), bc=’finite’)  # Neel state
-&gt;&gt;&gt; print(psi.chi)
-[1, 1, 1, 1, 1, 1, 1]
-&gt;&gt;&gt; TEBD_params = dict(N_steps=2, trunc_params={‘chi_max’:10})
-&gt;&gt;&gt; eng = RandomUnitaryEvolution(psi, TEBD_params)
-&gt;&gt;&gt; eng.run()
-&gt;&gt;&gt; print(psi.chi)
-[2, 4, 8, 10, 8, 4, 2]</p>
+<p>One can initialize a “random” state with total Sz = L//2 as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">L</span> <span class="o">=</span> <span class="mi">8</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">spin_half</span> <span class="o">=</span> <span class="n">SpinHalfSite</span><span class="p">(</span><span class="n">conserve</span><span class="o">=</span><span class="s1">&#39;Sz&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">psi</span> <span class="o">=</span> <span class="n">MPS</span><span class="o">.</span><span class="n">from_product_state</span><span class="p">([</span><span class="n">spin_half</span><span class="p">]</span><span class="o">*</span><span class="n">L</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">L</span><span class="o">//</span><span class="mi">2</span><span class="p">),</span> <span class="n">bc</span><span class="o">=</span><span class="s1">&#39;finite&#39;</span><span class="p">)</span>  <span class="c1"># Neel state</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">chi</span><span class="p">)</span>
+<span class="go">[1, 1, 1, 1, 1, 1, 1]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">TEBD_params</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">N_steps</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">trunc_params</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;chi_max&#39;</span><span class="p">:</span><span class="mi">10</span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">eng</span> <span class="o">=</span> <span class="n">RandomUnitaryEvolution</span><span class="p">(</span><span class="n">psi</span><span class="p">,</span> <span class="n">TEBD_params</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">eng</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">chi</span><span class="p">)</span>
+<span class="go">[2, 4, 8, 10, 8, 4, 2]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">psi</span><span class="o">.</span><span class="n">canonical_form</span><span class="p">()</span>  <span class="c1"># necessary if you need to truncate (strongly) during the evolution</span>
+</pre></div>
+</div>
 <p>The “random” unitaries preserve the specified charges, e.g. here we have Sz-conservation.
-If you start in a sector of all up spins, the random unitaries can only apply a phase:
-&gt;&gt;&gt; psi2 = MPS.from_product_state([spin_half]*L, [0]*L, bc=’finite’)  # all spins up
-&gt;&gt;&gt; print(psi2.chi)
-[1, 1, 1, 1, 1, 1, 1]
-&gt;&gt;&gt; eng2 = RandomUnitaryEvolution(psi2, TEBD_params)
-&gt;&gt;&gt; eng2.run()  # random unitaries respect Sz conservation -&gt; we stay in all-up sector
-&gt;&gt;&gt; print(psi2.chi)  # still a product state, not really random!!!
-[1, 1, 1, 1, 1, 1, 1]</p>
+If you start in a sector of all up spins, the random unitaries can only apply a phase:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">psi2</span> <span class="o">=</span> <span class="n">MPS</span><span class="o">.</span><span class="n">from_product_state</span><span class="p">([</span><span class="n">spin_half</span><span class="p">]</span><span class="o">*</span><span class="n">L</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">L</span><span class="p">,</span> <span class="n">bc</span><span class="o">=</span><span class="s1">&#39;finite&#39;</span><span class="p">)</span>  <span class="c1"># all spins up</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">psi2</span><span class="o">.</span><span class="n">chi</span><span class="p">)</span>
+<span class="go">[1, 1, 1, 1, 1, 1, 1]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">eng2</span> <span class="o">=</span> <span class="n">RandomUnitaryEvolution</span><span class="p">(</span><span class="n">psi2</span><span class="p">,</span> <span class="n">TEBD_params</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">eng2</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>  <span class="c1"># random unitaries respect Sz conservation -&gt; we stay in all-up sector</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">psi2</span><span class="o">.</span><span class="n">chi</span><span class="p">)</span>  <span class="c1"># still a product state, not really random!!!</span>
+<span class="go">[1, 1, 1, 1, 1, 1, 1]</span>
+</pre></div>
+</div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -767,6 +811,7 @@ this sequence of update steps.</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2018, TeNPy Developers.
+      Last updated on Dec 01, 2018.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
     </div>
   </body>

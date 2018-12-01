@@ -1334,7 +1334,7 @@ c.f. see <code class="xref py py-meth docutils literal notranslate"><span class=
 <p>Engine which keeps the legs separate.</p>
 <p>Due to a different contraction order in <a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.matvec" title="tenpy.algorithms.dmrg.EngineFracture.matvec"><code class="xref py py-meth docutils literal notranslate"><span class="pre">matvec()</span></code></a>, this engine might be faster than
 <a class="reference internal" href="#tenpy.algorithms.dmrg.EngineCombine" title="tenpy.algorithms.dmrg.EngineCombine"><code class="xref py py-class docutils literal notranslate"><span class="pre">EngineCombine</span></code></a>, at least for large physical dimensions and if the MPO is sparse.
-One <a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.matvec" title="tenpy.algorithms.dmrg.EngineFracture.matvec"><code class="xref py py-meth docutils literal notranslate"><span class="pre">matvec()</span></code></a> is <span class="math notranslate nohighlight">\(O(2 \chi^3 d^2 D + 2 \chi^2 d^3 W^2 )\)</span>.</p>
+One <a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.matvec" title="tenpy.algorithms.dmrg.EngineFracture.matvec"><code class="xref py py-meth docutils literal notranslate"><span class="pre">matvec()</span></code></a> is <span class="math notranslate nohighlight">\(O(2 \chi^3 d^2 W + 2 \chi^2 d^3 W^2 )\)</span>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1629,10 +1629,18 @@ c.f. see <code class="xref py py-meth docutils literal notranslate"><span class=
 <em class="property">class </em><code class="descclassname">tenpy.algorithms.dmrg.</code><code class="descname">Mixer</code><span class="sig-paren">(</span><em>mixer_params</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#Mixer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.Mixer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Mixer class.</p>
-<div class="admonition-todo admonition" id="index-1">
-<p class="first admonition-title">Todo</p>
-<p class="last">documentation/reference</p>
-</div>
+<p>This Mixer is based on the paper <a class="reference internal" href="../literature.html#white2005" id="id3">[White2005]</a>.</p>
+<p>Since DMRG performs only local updates of the state, it can get stuck in “local minima”,
+in particular if the Hamiltonain is long-range – which is the case if one
+maps a 2D system (“infinite cylinder”) to 1D – or if one wants to do single-site updates
+(currently not implemented in TeNPy).
+The mixer perturbs the density matrix with the terms of the Hamiltonian
+which have contributions in both the “left” and “right” side of the system.
+In that way, it adds fluctuation of the quantum numbers and non-zero contributions of the
+long-range terms - leading to a significantly improved convergence of DMRG.</p>
+<p>The strength of the perturbation is given by the <cite>amplitude</cite> of the mixer.
+A good strategy is to choose an initially significant amplitude and let it decay until
+the perturbation becomes completely irrelevant and the mixer gets disabled.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1881,6 +1889,7 @@ should be disabled.</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2018, TeNPy Developers.
+      Last updated on Dec 01, 2018.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
     </div>
   </body>

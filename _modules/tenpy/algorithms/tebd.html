@@ -42,7 +42,7 @@
 
 <span class="sd">The TEBD algorithm (proposed in [Vidal2004]_) uses a trotter decomposition of the</span>
 <span class="sd">Hamiltonian to perform a time evoltion of an MPS. It works only for nearest-neigbor hamiltonians</span>
-<span class="sd">(in tenpy given by a :class:`~tenpy.models.NearestNeighborModel`),</span>
+<span class="sd">(in tenpy given by a :class:`~tenpy.models.model.NearestNeighborModel`),</span>
 <span class="sd">which can be written as :math:`H = H^{even} + H^{odd}`,  such that :math:`H^{even}` contains the</span>
 <span class="sd">the terms on even bonds (and similar :math:`H^{odd}` the terms on odd bonds).</span>
 <span class="sd">In the simplest case, we apply first :math:`U=\exp(-i*dt*H^{even})`,</span>
@@ -96,7 +96,7 @@
 <span class="sd">    ----------</span>
 <span class="sd">    psi : :class:`~tenpy.networs.mps.MPS`</span>
 <span class="sd">        Initial state to be time evolved. Modified in place.</span>
-<span class="sd">    model : :class:`~tenpy.models.NearestNeighborModel`</span>
+<span class="sd">    model : :class:`~tenpy.models.model.NearestNeighborModel`</span>
 <span class="sd">        The model representing the Hamiltonian for which we want to find the ground state.</span>
 <span class="sd">    TEBD_params : dict</span>
 <span class="sd">        Further optional parameters as described in the tables in</span>
@@ -169,17 +169,18 @@
 <span class="sd">        ============== ====== ======================================================</span>
 <span class="sd">        key            type   description</span>
 <span class="sd">        ============== ====== ======================================================</span>
-<span class="sd">        dt             float  time step.</span>
+<span class="sd">        dt             float  Time step.</span>
 <span class="sd">        -------------- ------ ------------------------------------------------------</span>
 <span class="sd">        order          int    Order of the algorithm.</span>
 <span class="sd">                                The total error scales as O(t, dt^order).</span>
 <span class="sd">        -------------- ------ ------------------------------------------------------</span>
-<span class="sd">        N_steps        int    Number of steps before measurement can be performed,</span>
-<span class="sd">                        number of steps that are interlinked for all</span>
-<span class="sd">                        Trotter decompositions of order &gt; 1.</span>
+<span class="sd">        N_steps        int    Number of time steps `dt` to evolve.</span>
+<span class="sd">                              (The Trotter decompositions of order &gt; 1 are slightly</span>
+<span class="sd">                              more efficient if more than one step is performed at</span>
+<span class="sd">                              once.)</span>
 <span class="sd">        -------------- ------ ------------------------------------------------------</span>
 <span class="sd">        trunc_params   dict   Truncation parameters as described in</span>
-<span class="sd">                                :func:`~tenpy.algorithms.truncation.truncate`</span>
+<span class="sd">                              :func:`~tenpy.algorithms.truncation.truncate`.</span>
 <span class="sd">        ============== ====== ======================================================</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># initialize parameters</span>
@@ -710,6 +711,7 @@
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
 <span class="sd">    One can initialize a &quot;random&quot; state with total Sz = L//2 as follows:</span>
+
 <span class="sd">    &gt;&gt;&gt; L = 8</span>
 <span class="sd">    &gt;&gt;&gt; spin_half = SpinHalfSite(conserve=&#39;Sz&#39;)</span>
 <span class="sd">    &gt;&gt;&gt; psi = MPS.from_product_state([spin_half]*L, [0, 1]*(L//2), bc=&#39;finite&#39;)  # Neel state</span>
@@ -720,9 +722,11 @@
 <span class="sd">    &gt;&gt;&gt; eng.run()</span>
 <span class="sd">    &gt;&gt;&gt; print(psi.chi)</span>
 <span class="sd">    [2, 4, 8, 10, 8, 4, 2]</span>
+<span class="sd">    &gt;&gt;&gt; psi.canonical_form()  # necessary if you need to truncate (strongly) during the evolution</span>
 
 <span class="sd">    The &quot;random&quot; unitaries preserve the specified charges, e.g. here we have Sz-conservation.</span>
 <span class="sd">    If you start in a sector of all up spins, the random unitaries can only apply a phase:</span>
+
 <span class="sd">    &gt;&gt;&gt; psi2 = MPS.from_product_state([spin_half]*L, [0]*L, bc=&#39;finite&#39;)  # all spins up</span>
 <span class="sd">    &gt;&gt;&gt; print(psi2.chi)</span>
 <span class="sd">    [1, 1, 1, 1, 1, 1, 1]</span>
@@ -858,6 +862,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2018, TeNPy Developers.
+      Last updated on Dec 01, 2018.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
     </div>
   </body>
