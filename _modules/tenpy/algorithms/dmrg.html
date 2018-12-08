@@ -280,6 +280,8 @@
 <span class="sd">        E_total     The total energy before truncation.</span>
 <span class="sd">        ----------- -------------------------------------------------------------------</span>
 <span class="sd">        N_lanczos   Dimension of the Krylov space used in the lanczos diagonalization.</span>
+<span class="sd">        ----------- -------------------------------------------------------------------</span>
+<span class="sd">        time        Wallclock time evolved since :attr:`time0` (in seconds).</span>
 <span class="sd">        =========== ===================================================================</span>
 
 <span class="sd">    sweep_stats : dict</span>
@@ -296,6 +298,8 @@
 <span class="sd">        ------------- -------------------------------------------------------------------</span>
 <span class="sd">        S             Maximum entanglement entropy.</span>
 <span class="sd">        ------------- -------------------------------------------------------------------</span>
+<span class="sd">        time          Wallclock time evolved since :attr:`time0` (in seconds).</span>
+<span class="sd">        ------------- -------------------------------------------------------------------</span>
 <span class="sd">        max_trunc_err The maximum truncation error in the last sweep</span>
 <span class="sd">        ------------- -------------------------------------------------------------------</span>
 <span class="sd">        max_E_trunc   Maximum change or Energy due to truncation in the last sweep.</span>
@@ -304,6 +308,9 @@
 <span class="sd">        ------------- -------------------------------------------------------------------</span>
 <span class="sd">        norm_err      Error of canonical form ``np.linalg.norm(psi.norm_test())``.</span>
 <span class="sd">        ============= ===================================================================</span>
+
+<span class="sd">    time0 : float</span>
+<span class="sd">        Start time of the simulation, set in :meth:`reset_stats`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">DMRG_params</span><span class="p">):</span>
@@ -324,7 +331,7 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">env</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ortho_to_envs</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">init_env</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_env</span><span class="p">(</span><span class="n">model</span><span class="p">)</span> <span class="c1"># calls reset_stats</span>
 
 <div class="viewcode-block" id="Engine.init_env"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.init_env">[docs]</a>    <span class="k">def</span> <span class="nf">init_env</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;(Re-)initialize the environment.</span>
@@ -388,11 +395,12 @@
 <div class="viewcode-block" id="Engine.reset_stats"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.reset_stats">[docs]</a>    <span class="k">def</span> <span class="nf">reset_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Reset the statistics. Useful if you want to start a new DMRG run.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sweeps</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;sweep_0&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">update_stats</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;i0&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;age&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;E_total&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;N_lanczos&#39;</span><span class="p">:</span> <span class="p">[]}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_stats</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;i0&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;age&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;E_total&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;N_lanczos&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;time&#39;</span><span class="p">:</span> <span class="p">[]}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sweep_stats</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s1">&#39;sweep&#39;</span><span class="p">:</span> <span class="p">[],</span>
             <span class="s1">&#39;E&#39;</span><span class="p">:</span> <span class="p">[],</span>
             <span class="s1">&#39;S&#39;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s1">&#39;time&#39;</span><span class="p">:</span> <span class="p">[],</span>
             <span class="s1">&#39;max_trunc_err&#39;</span><span class="p">:</span> <span class="p">[],</span>
             <span class="s1">&#39;max_E_trunc&#39;</span><span class="p">:</span> <span class="p">[],</span>
             <span class="s1">&#39;max_chi&#39;</span><span class="p">:</span> <span class="p">[],</span>
@@ -400,7 +408,8 @@
         <span class="p">}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">shelve</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="n">chi_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi_list</span><span class="p">[</span><span class="nb">max</span><span class="p">([</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi_list</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sweeps</span><span class="p">])]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">[</span><span class="s1">&#39;chi_max&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">chi_max</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">[</span><span class="s1">&#39;chi_max&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">chi_max</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span></div>
 
     <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">DMRG_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DMRG_params</span>
@@ -422,7 +431,7 @@
 <span class="sd">            i.e. just a reference to :attr:`psi`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">DMRG_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DMRG_params</span>
-        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">shelve</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="c1"># parameters for lanczos</span>
         <span class="n">p_tol_to_trunc</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;P_tol_to_trunc&#39;</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
@@ -510,6 +519,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">sweep_stats</span><span class="p">[</span><span class="s1">&#39;sweep&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sweeps</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">sweep_stats</span><span class="p">[</span><span class="s1">&#39;E&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">E</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">sweep_stats</span><span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sweep_stats</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">sweep_stats</span><span class="p">[</span><span class="s1">&#39;max_trunc_err&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">max_trunc_err</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">sweep_stats</span><span class="p">[</span><span class="s1">&#39;max_E_trunc&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">max_E_trunc</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">sweep_stats</span><span class="p">[</span><span class="s1">&#39;max_chi&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">chi</span><span class="p">))</span>
@@ -604,16 +614,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">E_trunc_list</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">trunc_err_list</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="c1"># get schedule</span>
-        <span class="n">L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">L</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
-            <span class="n">schedule_i0</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
-            <span class="n">update_LP_RP</span> <span class="o">=</span> <span class="p">[[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="p">[[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="p">(</span><span class="n">L</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">)</span>
-            <span class="n">schedule_i0</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">L</span><span class="p">))</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
-            <span class="n">update_LP_RP</span> <span class="o">=</span> <span class="p">[[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">]]</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">[[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> \
-                           <span class="p">[[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">]]</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">[[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">schedule_i0</span><span class="p">,</span> <span class="n">update_LP_RP</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_sweep_schedule</span><span class="p">()</span>
 
         <span class="c1"># the actual sweep</span>
         <span class="k">for</span> <span class="n">i0</span><span class="p">,</span> <span class="n">upd_env</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">schedule_i0</span><span class="p">,</span> <span class="n">update_LP_RP</span><span class="p">):</span>
@@ -627,6 +628,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">update_stats</span><span class="p">[</span><span class="s1">&#39;age&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">age</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">update_stats</span><span class="p">[</span><span class="s1">&#39;E_total&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">E_total</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">update_stats</span><span class="p">[</span><span class="s1">&#39;N_lanczos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">N_lanczos</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_stats</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">time0</span><span class="p">)</span>
             <span class="n">E_trunc_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">E_trunc</span><span class="p">)</span>
             <span class="n">trunc_err_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">trunc_err</span><span class="o">.</span><span class="n">eps</span><span class="p">)</span>
 
@@ -637,10 +639,9 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">[</span><span class="s1">&#39;chi_max&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_chi_max</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
                     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Setting chi_max =&quot;</span><span class="p">,</span> <span class="n">new_chi_max</span><span class="p">)</span>
-
-        <span class="c1"># update mixer</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span><span class="o">.</span><span class="n">update_amplitude</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sweeps</span><span class="p">)</span>
+            <span class="c1"># update mixer</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span><span class="o">.</span><span class="n">update_amplitude</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sweeps</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">meas_E_trunc</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">trunc_err_list</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">E_trunc_list</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1031,7 +1032,109 @@
 <span class="sd">        VH : :class:`~tenpy.linalg.np_conserved.Array`</span>
 <span class="sd">            The VH as returned by SVD with combined legs, labels ``&#39;vL&#39;, &#39;(vR.p1)&#39;``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;This function should be implemented in derived classes&quot;</span><span class="p">)</span></div></div>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;This function should be implemented in derived classes&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Engine.plot_update_stats"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.plot_update_stats">[docs]</a>    <span class="k">def</span> <span class="nf">plot_update_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="n">E_exact</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Plot the update statistics to display the convergence during the sweeps.</span>
+
+<span class="sd">        Makes two subplots, showing the energy (left) and number of lanczos iterations (right).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        xaxis : &#39;sweep&#39; | &#39;time&#39; | ...</span>
+<span class="sd">            Key of :attr:`update_stats` to be used for the x-axis of the plots.</span>
+<span class="sd">            ``&#39;sweep&#39;`` is just enumerating the number of bond updates</span>
+<span class="sd">            (including environment sweeps).</span>
+<span class="sd">        E_exact : float</span>
+<span class="sd">            Exact energy (for infinite systems: per site) for comparison.</span>
+<span class="sd">            If given, plot |E-E_exact|/|E_exact| on a log-scale yaxis.</span>
+<span class="sd">        **kwargs :</span>
+<span class="sd">            Further keyword arguments given to ``plt.plot(...)``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+        <span class="n">ax1</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">stats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_stats</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">L</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;marker&#39;</span><span class="p">,</span> <span class="s1">&#39;o&#39;</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;linestyle&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+        <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;E_total&#39;</span><span class="p">])</span>
+        <span class="n">schedule</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_sweep_schedule</span><span class="p">()</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">schedule</span><span class="p">)</span> <span class="c1"># bond updates per sweep</span>
+        <span class="k">if</span> <span class="n">xaxis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">xaxis</span> <span class="o">=</span> <span class="s1">&#39;index&#39;</span>
+            <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">E</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">xaxis</span> <span class="o">==</span> <span class="s1">&#39;sweep&#39;</span><span class="p">:</span>
+            <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">E</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="n">N</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="n">xaxis</span><span class="p">])</span>
+        <span class="n">N_lanczos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;N_lanczos&#39;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
+            <span class="c1"># use energy per site instead of total energy</span>
+            <span class="n">age</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;age&#39;</span><span class="p">])</span>
+            <span class="n">d_age</span> <span class="o">=</span> <span class="n">age</span><span class="p">[</span><span class="n">N</span><span class="p">:]</span> <span class="o">-</span> <span class="n">age</span><span class="p">[:</span><span class="o">-</span><span class="n">N</span><span class="p">]</span>
+            <span class="n">d_E</span> <span class="o">=</span> <span class="n">E</span><span class="p">[</span><span class="n">N</span><span class="p">:]</span> <span class="o">-</span> <span class="n">E</span><span class="p">[:</span><span class="o">-</span><span class="n">N</span><span class="p">]</span>
+            <span class="n">E</span> <span class="o">=</span> <span class="n">d_E</span><span class="o">/</span><span class="n">d_age</span>
+            <span class="n">X</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">N</span><span class="p">:]</span>
+            <span class="n">N_lanczos</span> <span class="o">=</span> <span class="n">N_lanczos</span><span class="p">[</span><span class="n">N</span><span class="p">:]</span>
+        <span class="k">if</span> <span class="n">E_exact</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">E</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">E</span><span class="o">-</span><span class="n">E_exact</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">E_exact</span><span class="p">),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s1">&#39;log&#39;</span><span class="p">)</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">xaxis</span><span class="p">)</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Energy&quot;</span><span class="p">)</span>
+
+        <span class="n">ax2</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">N_lanczos</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">ax2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">xaxis</span><span class="p">)</span>
+        <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$N_</span><span class="si">{lanczos}</span><span class="s1">$&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Engine.plot_sweep_stats"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.plot_sweep_stats">[docs]</a>    <span class="k">def</span> <span class="nf">plot_sweep_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="n">yaxis</span><span class="o">=</span><span class="s1">&#39;E&#39;</span><span class="p">,</span> <span class="n">exact_y_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Plot the sweep statistics to display the convergence with the sweeps.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        axes : matplotlib.Axes</span>
+<span class="sd">            The axes to plot into. Defaults to ``plt.gca()``</span>
+<span class="sd">        xaxis, yaxis : &#39;sweep&#39; | &#39;time&#39; | ...</span>
+<span class="sd">            Key of :attr:`sweep_stats` to be used for the x-axis and y-axis of the plots.</span>
+<span class="sd">        exact_Y_value : float</span>
+<span class="sd">            Exact value for the quantity on the y-axis for comparison.</span>
+<span class="sd">            If given, plot |y-y_exact|/|y_exact| on a log-scale yaxis.</span>
+<span class="sd">        **kwargs :</span>
+<span class="sd">            Further keyword arguments given to ``plt.plot(...)``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">axes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+            <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+        <span class="n">stats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sweep_stats</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">L</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;marker&#39;</span><span class="p">,</span> <span class="s1">&#39;o&#39;</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;linestyle&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="n">xaxis</span><span class="p">])</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="n">yaxis</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">exact_y_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">axes</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">axes</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">y</span><span class="o">-</span><span class="n">exact_y_value</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">exact_y_value</span><span class="p">),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">axes</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s1">&#39;log&#39;</span><span class="p">)</span>
+        <span class="n">axes</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">xaxis</span><span class="p">)</span>
+        <span class="n">axes</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">yaxis</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_get_sweep_schedule</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">L</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
+            <span class="n">schedule_i0</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+            <span class="n">update_LP_RP</span> <span class="o">=</span> <span class="p">[[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="p">[[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="n">L</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">schedule_i0</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">L</span><span class="p">))</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+            <span class="n">update_LP_RP</span> <span class="o">=</span> <span class="p">[[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">]]</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">[[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> \
+                           <span class="p">[[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">]]</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">[[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">schedule_i0</span><span class="p">,</span> <span class="n">update_LP_RP</span></div>
 
 
 <div class="viewcode-block" id="EngineCombine"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.EngineCombine">[docs]</a><span class="k">class</span> <span class="nc">EngineCombine</span><span class="p">(</span><span class="n">Engine</span><span class="p">):</span>
@@ -1520,7 +1623,7 @@
 <span class="sd">            should be disabled.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">amplitude</span> <span class="o">/=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decay</span>
-        <span class="k">if</span> <span class="n">sweeps</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">disable_after</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">amplitude</span> <span class="o">&gt;=</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="s1">&#39;float&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">sweeps</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">disable_after</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">amplitude</span> <span class="o">&lt;=</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="s1">&#39;float&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mf">0.1</span><span class="p">:</span>  <span class="c1"># increased verbosity: the same level as DMRG</span>
                 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;disable mixer&quot;</span><span class="p">)</span>
             <span class="k">return</span> <span class="kc">None</span>  <span class="c1"># disable mixer</span>
@@ -1634,7 +1737,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2018, TeNPy Developers.
-      Last updated on Dec 01, 2018.
+      Last updated on Dec 08, 2018.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
     </div>
   </body>

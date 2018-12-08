@@ -380,6 +380,9 @@ added each time <a class="reference internal" href="#tenpy.algorithms.dmrg.Engin
 <tr class="row-odd"><td>N_lanczos</td>
 <td>Dimension of the Krylov space used in the lanczos diagonalization.</td>
 </tr>
+<tr class="row-even"><td>time</td>
+<td>Wallclock time evolved since <code class="xref py py-attr docutils literal notranslate"><span class="pre">time0</span></code> (in seconds).</td>
+</tr>
 </tbody>
 </table>
 </dd>
@@ -407,20 +410,26 @@ added each time <a class="reference internal" href="#tenpy.algorithms.dmrg.Engin
 <tr class="row-even"><td>S</td>
 <td>Maximum entanglement entropy.</td>
 </tr>
-<tr class="row-odd"><td>max_trunc_err</td>
+<tr class="row-odd"><td>time</td>
+<td>Wallclock time evolved since <code class="xref py py-attr docutils literal notranslate"><span class="pre">time0</span></code> (in seconds).</td>
+</tr>
+<tr class="row-even"><td>max_trunc_err</td>
 <td>The maximum truncation error in the last sweep</td>
 </tr>
-<tr class="row-even"><td>max_E_trunc</td>
+<tr class="row-odd"><td>max_E_trunc</td>
 <td>Maximum change or Energy due to truncation in the last sweep.</td>
 </tr>
-<tr class="row-odd"><td>max_chi</td>
+<tr class="row-even"><td>max_chi</td>
 <td>Maximum bond dimension used.</td>
 </tr>
-<tr class="row-even"><td>norm_err</td>
+<tr class="row-odd"><td>norm_err</td>
 <td>Error of canonical form <code class="docutils literal notranslate"><span class="pre">np.linalg.norm(psi.norm_test())</span></code>.</td>
 </tr>
 </tbody>
 </table>
+</dd>
+<dt><strong>time0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Start time of the simulation, set in <a class="reference internal" href="#tenpy.algorithms.dmrg.Engine.reset_stats" title="tenpy.algorithms.dmrg.Engine.reset_stats"><code class="xref py py-meth docutils literal notranslate"><span class="pre">reset_stats()</span></code></a>.</p>
 </dd>
 </dl>
 </td>
@@ -463,6 +472,12 @@ added each time <a class="reference internal" href="#tenpy.algorithms.dmrg.Engin
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.Engine.mixer_cleanup" title="tenpy.algorithms.dmrg.Engine.mixer_cleanup"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mixer_cleanup</span></code></a>()</td>
 <td>Cleanup the effects of the mixer.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.Engine.plot_sweep_stats" title="tenpy.algorithms.dmrg.Engine.plot_sweep_stats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_sweep_stats</span></code></a>([axes,&nbsp;xaxis,&nbsp;yaxis,&nbsp;…])</td>
+<td>Plot the sweep statistics to display the convergence with the sweeps.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.Engine.plot_update_stats" title="tenpy.algorithms.dmrg.Engine.plot_update_stats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_update_stats</span></code></a>([xaxis,&nbsp;E_exact])</td>
+<td>Plot the update statistics to display the convergence during the sweeps.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.Engine.prepare_diag" title="tenpy.algorithms.dmrg.Engine.prepare_diag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prepare_diag</span></code></a>(i0,&nbsp;update_LP,&nbsp;update_RP)</td>
 <td>Prepare <cite>self</cite> to represent the effective Hamiltonian on sites <code class="docutils literal notranslate"><span class="pre">(i0,</span> <span class="pre">i0+1)</span></code>.</td>
@@ -783,6 +798,64 @@ To recover the originial form, this function simply performs one sweep with disa
 </dd></dl>
 
 <dl class="method">
+<dt id="tenpy.algorithms.dmrg.Engine.plot_sweep_stats">
+<code class="descname">plot_sweep_stats</code><span class="sig-paren">(</span><em>axes=None</em>, <em>xaxis='time'</em>, <em>yaxis='E'</em>, <em>exact_y_value=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#Engine.plot_sweep_stats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.Engine.plot_sweep_stats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the sweep statistics to display the convergence with the sweeps.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>axes</strong> <span class="classifier-delimiter">:</span> <span class="classifier">matplotlib.Axes</span></dt>
+<dd><p class="first last">The axes to plot into. Defaults to <code class="docutils literal notranslate"><span class="pre">plt.gca()</span></code></p>
+</dd>
+<dt><strong>xaxis, yaxis</strong> <span class="classifier-delimiter">:</span> <span class="classifier">‘sweep’ | ‘time’ | …</span></dt>
+<dd><p class="first last">Key of <code class="xref py py-attr docutils literal notranslate"><span class="pre">sweep_stats</span></code> to be used for the x-axis and y-axis of the plots.</p>
+</dd>
+<dt><strong>exact_Y_value</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Exact value for the quantity on the y-axis for comparison.
+If given, plot <a href="#id4"><span class="problematic" id="id5">|y-y_exact|</span></a>/<a href="#id6"><span class="problematic" id="id7">|y_exact|</span></a> on a log-scale yaxis.</p>
+</dd>
+<dt><strong>**kwargs :</strong></dt>
+<dd><p class="first last">Further keyword arguments given to <code class="docutils literal notranslate"><span class="pre">plt.plot(...)</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.Engine.plot_update_stats">
+<code class="descname">plot_update_stats</code><span class="sig-paren">(</span><em>xaxis='time'</em>, <em>E_exact=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#Engine.plot_update_stats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.Engine.plot_update_stats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the update statistics to display the convergence during the sweeps.</p>
+<p>Makes two subplots, showing the energy (left) and number of lanczos iterations (right).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>xaxis</strong> <span class="classifier-delimiter">:</span> <span class="classifier">‘sweep’ | ‘time’ | …</span></dt>
+<dd><p class="first last">Key of <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code> to be used for the x-axis of the plots.
+<code class="docutils literal notranslate"><span class="pre">'sweep'</span></code> is just enumerating the number of bond updates
+(including environment sweeps).</p>
+</dd>
+<dt><strong>E_exact</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Exact energy (for infinite systems: per site) for comparison.
+If given, plot <a href="#id8"><span class="problematic" id="id9">|E-E_exact|</span></a>/<a href="#id10"><span class="problematic" id="id11">|E_exact|</span></a> on a log-scale yaxis.</p>
+</dd>
+<dt><strong>**kwargs :</strong></dt>
+<dd><p class="first last">Further keyword arguments given to <code class="docutils literal notranslate"><span class="pre">plt.plot(...)</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="tenpy.algorithms.dmrg.Engine.prepare_diag">
 <code class="descname">prepare_diag</code><span class="sig-paren">(</span><em>i0</em>, <em>update_LP</em>, <em>update_RP</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#Engine.prepare_diag"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.Engine.prepare_diag" title="Permalink to this definition">¶</a></dt>
 <dd><p>Prepare <cite>self</cite> to represent the effective Hamiltonian on sites <code class="docutils literal notranslate"><span class="pre">(i0,</span> <span class="pre">i0+1)</span></code>.</p>
@@ -1095,6 +1168,12 @@ Labels <code class="docutils literal notranslate"><span class="pre">'(vL.p1*)',<
 <tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">mixer_cleanup</span></code>()</td>
 <td>Cleanup the effects of the mixer.</td>
 </tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_sweep_stats</span></code>([axes,&nbsp;xaxis,&nbsp;yaxis,&nbsp;…])</td>
+<td>Plot the sweep statistics to display the convergence with the sweeps.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_update_stats</span></code>([xaxis,&nbsp;E_exact])</td>
+<td>Plot the update statistics to display the convergence during the sweeps.</td>
+</tr>
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineCombine.prepare_diag" title="tenpy.algorithms.dmrg.EngineCombine.prepare_diag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prepare_diag</span></code></a>(i0,&nbsp;update_LP,&nbsp;update_RP)</td>
 <td>Prepare <cite>self</cite> to represent the effective Hamiltonian on sites <code class="docutils literal notranslate"><span class="pre">(i0,</span> <span class="pre">i0+1)</span></code>.</td>
 </tr>
@@ -1391,6 +1470,12 @@ Labels <code class="docutils literal notranslate"><span class="pre">'wL,</span> 
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">mixer_cleanup</span></code>()</td>
 <td>Cleanup the effects of the mixer.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_sweep_stats</span></code>([axes,&nbsp;xaxis,&nbsp;yaxis,&nbsp;…])</td>
+<td>Plot the sweep statistics to display the convergence with the sweeps.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_update_stats</span></code>([xaxis,&nbsp;E_exact])</td>
+<td>Plot the update statistics to display the convergence during the sweeps.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.prepare_diag" title="tenpy.algorithms.dmrg.EngineFracture.prepare_diag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prepare_diag</span></code></a>(i0,&nbsp;update_LP,&nbsp;update_RP)</td>
 <td>Prepare <cite>self</cite> to represent the effective Hamiltonian on sites <code class="docutils literal notranslate"><span class="pre">(i0,</span> <span class="pre">i0+1)</span></code>.</td>
@@ -1889,7 +1974,7 @@ should be disabled.</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2018, TeNPy Developers.
-      Last updated on Dec 01, 2018.
+      Last updated on Dec 08, 2018.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
     </div>
   </body>
