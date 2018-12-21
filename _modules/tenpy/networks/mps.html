@@ -959,7 +959,7 @@
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">for_matrix_S</span><span class="p">:</span>
                     <span class="c1"># explicitly calculate Schmidt values by diagonalizing (s^dagger s)</span>
-                    <span class="n">s</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">eigvals</span><span class="p">(</span><span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">s</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]))</span>
+                    <span class="n">s</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">eigvalsh</span><span class="p">(</span><span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">s</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]))</span>
                     <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entropy</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;entropy with non-diagonal schmidt values&quot;</span><span class="p">)</span>
@@ -2657,7 +2657,8 @@
 <span class="sd">        The full contraction of the environments gives the overlap ``&lt;bra|ket&gt;``,</span>
 <span class="sd">        taking into account :attr:`MPS.norm` of both `bra` and `ket`.</span>
 <span class="sd">        For this purpose, this function contracts</span>
-<span class="sd">        ``get_LP(i0+1, store=False)`` and ``get_RP(i0, store=False)``.</span>
+<span class="sd">        ``get_LP(i0+1, store=False)`` and ``get_RP(i0, store=False)`` with appropriate singular</span>
+<span class="sd">        values inbetween.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -3087,7 +3088,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2018, TeNPy Developers.
-      Last updated on Dec 14, 2018.
+      Last updated on Dec 21, 2018.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
     </div>
   </body>

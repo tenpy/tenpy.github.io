@@ -706,10 +706,19 @@
                 <span class="n">o_env</span><span class="o">.</span><span class="n">get_RP</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">E_trunc</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">meas_E_trunc</span> <span class="ow">or</span> <span class="n">E0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">E_trunc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">full_contraction</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span><span class="o">.</span><span class="n">real</span>
+            <span class="n">E_trunc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">full_contraction</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span><span class="o">.</span><span class="n">real</span>   <span class="c1"># uses updated LP/RP (if calculated)</span>
             <span class="k">if</span> <span class="n">E0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">E0</span> <span class="o">=</span> <span class="n">E_trunc</span>
             <span class="n">E_trunc</span> <span class="o">=</span> <span class="n">E_trunc</span> <span class="o">-</span> <span class="n">E0</span>
+        <span class="c1"># now we can also remove the LP and RP on outer bonds, which we don&#39;t need any more</span>
+        <span class="k">if</span> <span class="n">update_RP</span><span class="p">:</span>  <span class="c1"># we move to the left -&gt; delete left LP</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">del_LP</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">o_env</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ortho_to_envs</span><span class="p">:</span>
+                <span class="n">o_env</span><span class="o">.</span><span class="n">del_LP</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">update_LP</span><span class="p">:</span>  <span class="c1"># we move to the right -&gt; delete right RP</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">del_RP</span><span class="p">(</span><span class="n">i0</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">o_env</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ortho_to_envs</span><span class="p">:</span>
+                <span class="n">o_env</span><span class="o">.</span><span class="n">del_RP</span><span class="p">(</span><span class="n">i0</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">E0</span><span class="p">,</span> <span class="n">E_trunc</span><span class="p">,</span> <span class="n">err</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">age</span></div>
 
 <div class="viewcode-block" id="Engine.prepare_diag"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.prepare_diag">[docs]</a>    <span class="k">def</span> <span class="nf">prepare_diag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">update_LP</span><span class="p">,</span> <span class="n">update_RP</span><span class="p">):</span>
@@ -1010,6 +1019,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_B</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">B1</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">)</span>  <span class="c1"># right-canonical</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_SR</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span>
         <span class="c1"># the old stored environments are now invalid</span>
+        <span class="c1"># =&gt; delete them to ensure that they get calculated again in :meth:`update_LP` / RP</span>
         <span class="k">for</span> <span class="n">o_env</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ortho_to_envs</span><span class="p">:</span>
             <span class="n">o_env</span><span class="o">.</span><span class="n">del_LP</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
             <span class="n">o_env</span><span class="o">.</span><span class="n">del_RP</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span>
@@ -1053,7 +1063,7 @@
 <span class="sd">            (including environment sweeps).</span>
 <span class="sd">        E_exact : float</span>
 <span class="sd">            Exact energy (for infinite systems: per site) for comparison.</span>
-<span class="sd">            If given, plot |E-E_exact|/|E_exact| on a log-scale yaxis.</span>
+<span class="sd">            If given, plot ``abs((E-E_exact)/E_exact)`` on a log-scale yaxis.</span>
 <span class="sd">        **kwargs :</span>
 <span class="sd">            Further keyword arguments given to ``plt.plot(...)``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -1102,15 +1112,15 @@
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        axes : matplotlib.Axes</span>
+<span class="sd">        axes : :class:`matplotlib.axes.Axes`</span>
 <span class="sd">            The axes to plot into. Defaults to ``plt.gca()``</span>
 <span class="sd">        xaxis, yaxis : &#39;sweep&#39; | &#39;time&#39; | ...</span>
 <span class="sd">            Key of :attr:`sweep_stats` to be used for the x-axis and y-axis of the plots.</span>
 <span class="sd">        exact_Y_value : float</span>
 <span class="sd">            Exact value for the quantity on the y-axis for comparison.</span>
-<span class="sd">            If given, plot |y-y_exact|/|y_exact| on a log-scale yaxis.</span>
+<span class="sd">            If given, plot ``abs((y-y_exact)/y_exact)`` on a log-scale yaxis.</span>
 <span class="sd">        **kwargs :</span>
-<span class="sd">            Further keyword arguments given to ``plt.plot(...)``.</span>
+<span class="sd">            Further keyword arguments given to ``axes.plot(...)``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">axes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
@@ -1743,7 +1753,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2018, TeNPy Developers.
-      Last updated on Dec 14, 2018.
+      Last updated on Dec 21, 2018.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
     </div>
   </body>
