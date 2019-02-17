@@ -9,11 +9,14 @@
     <title>tenpy.algorithms.dmrg &#8212; TeNPy 0.3.0 documentation</title>
     <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
     <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../../_static/doctools.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
     <link rel="shortcut icon" href="../../../_static/logo.ico"/>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
@@ -63,7 +66,6 @@
 <span class="sd">and then slowly turned off in the end.</span>
 
 <span class="sd">.. todo ::</span>
-<span class="sd">    Need function to plot the statistics in the end</span>
 <span class="sd">    Write UserGuide/Example!!!</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="c1"># Copyright 2018 TeNPy Developers</span>
@@ -81,7 +83,8 @@
 <span class="kn">from</span> <span class="nn">..tools.params</span> <span class="k">import</span> <span class="n">get_parameter</span><span class="p">,</span> <span class="n">unused_parameters</span>
 <span class="kn">from</span> <span class="nn">..tools.process</span> <span class="k">import</span> <span class="n">memory_usage</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;run&#39;</span><span class="p">,</span> <span class="s1">&#39;Engine&#39;</span><span class="p">,</span> <span class="s1">&#39;EngineCombine&#39;</span><span class="p">,</span> <span class="s1">&#39;EngineFracture&#39;</span><span class="p">,</span> <span class="s1">&#39;Mixer&#39;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;run&#39;</span><span class="p">,</span> <span class="s1">&#39;Engine&#39;</span><span class="p">,</span> <span class="s1">&#39;EngineCombine&#39;</span><span class="p">,</span> <span class="s1">&#39;EngineFracture&#39;</span><span class="p">,</span> <span class="s1">&#39;Mixer&#39;</span><span class="p">,</span> <span class="s1">&#39;SingleSiteMixer&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;TwoSiteMixer&#39;</span><span class="p">,</span> <span class="s1">&#39;DensityMatrixMixer&#39;</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="run"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.run">[docs]</a><span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="n">psi</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">DMRG_params</span><span class="p">):</span>
@@ -687,7 +690,7 @@
 <span class="sd">            Current size of the DMRG simulation: number of physical sites involved</span>
 <span class="sd">            into the contraction.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">theta</span><span class="p">,</span> <span class="n">theta_ortho</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_diag</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">update_LP</span><span class="p">,</span> <span class="n">update_RP</span><span class="p">)</span>
+        <span class="n">theta</span><span class="p">,</span> <span class="n">theta_ortho</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_diag</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span>
         <span class="n">age</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get_LP_age</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get_RP_age</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">optimize</span><span class="p">:</span>
             <span class="n">E0</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">N</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">theta_ortho</span><span class="p">)</span>
@@ -735,7 +738,7 @@
 <span class="sd">            Current best guess for the ground state, which is to be optimized.</span>
 <span class="sd">        theta_ortho : list of :class:`~tenpy.linalg.np_conserved.Array`</span>
 <span class="sd">            States (with the same tensor structure) to orthogonalize against,</span>
-<span class="sd">            c.f. see :meth:`get_theta_ortho`.</span>
+<span class="sd">            see :meth:`get_theta_ortho`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;This function should be implemented in derived classes&quot;</span><span class="p">)</span></div>
 
@@ -754,7 +757,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">theta_ortho</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">o_env</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ortho_to_envs</span><span class="p">:</span>
-            <span class="n">theta</span> <span class="o">=</span> <span class="n">o_env</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">get_theta</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>   <span class="c1"># the envirionments are of the form &lt;psi|ortho&gt;</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">o_env</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">get_theta</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>   <span class="c1"># the environments are of the form &lt;psi|ortho&gt;</span>
             <span class="n">LP</span> <span class="o">=</span> <span class="n">o_env</span><span class="o">.</span><span class="n">get_LP</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="n">RP</span> <span class="o">=</span> <span class="n">o_env</span><span class="o">.</span><span class="n">get_RP</span><span class="p">(</span><span class="n">i0</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">LP</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">))</span>
@@ -834,10 +837,9 @@
 
 <span class="sd">        Without a mixer, this is done by a simple svd and truncation of Schmidt values.</span>
 
-<span class="sd">        With a mixer, we calculate the left and right reduced density using the mixer</span>
-<span class="sd">        (which might include applications of `H`).</span>
-<span class="sd">        These density matrices are diagonalized and truncated such that we effectively perform</span>
-<span class="sd">        a svd for the case ``mixer.amplitude=0``.</span>
+<span class="sd">        With a mixer, the state is perturbed before the SVD.</span>
+<span class="sd">        The details of the perturbation are defined by the :class:`Mixer` class.</span>
+
 <span class="sd">        Note that the returned `S` is a general (not diagonal) matrix, with labels ``&#39;vL&#39;, &#39;vR&#39;``.</span>
 
 <span class="sd">        Parameters</span>
@@ -864,125 +866,25 @@
 <span class="sd">            The truncation error introduced.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># get qtotal_LR from i0</span>
-        <span class="n">qtotal_i0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_B</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">qtotal</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="c1"># simple case: real svd, defined elsewhere.</span>
+            <span class="n">qtotal_i0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_B</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">qtotal</span>
             <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">VH</span><span class="p">,</span> <span class="n">err</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">svd_theta</span><span class="p">(</span>
                 <span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">,</span> <span class="n">qtotal_LR</span><span class="o">=</span><span class="p">[</span><span class="n">qtotal_i0</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">inner_labels</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">])</span>
             <span class="k">return</span> <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">VH</span><span class="p">,</span> <span class="n">err</span>
-        <span class="n">rho_L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mix_rho_L</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">update_LP</span><span class="p">)</span>
-        <span class="c1"># don&#39;t mix left parts, when we&#39;re going to the right</span>
-        <span class="n">rho_L</span><span class="o">.</span><span class="n">itranspose</span><span class="p">([</span><span class="s1">&#39;(vL.p0)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vL*.p0*)&#39;</span><span class="p">])</span>  <span class="c1"># just to be sure of the order</span>
-        <span class="n">rho_R</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mix_rho_R</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">update_RP</span><span class="p">)</span>
-        <span class="n">rho_R</span><span class="o">.</span><span class="n">itranspose</span><span class="p">([</span><span class="s1">&#39;(vR.p1)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vR*.p1*)&#39;</span><span class="p">])</span>  <span class="c1"># just to be sure of the order</span>
-
-        <span class="c1"># consider the SVD `theta = U S V^H` (with real, diagonal S&gt;0)</span>
-        <span class="c1"># rho_L ~=  theta theta^H = U S V^H V S U^H = U S S U^H  (for mixer -&gt; 0)</span>
-        <span class="c1"># Thus, rho_L U = U S S, i.e. columns of U are the eigenvectors of rho_L,</span>
-        <span class="c1"># eigenvalues are S^2.</span>
-        <span class="n">val_L</span><span class="p">,</span> <span class="n">U</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">rho_L</span><span class="p">)</span>
-        <span class="n">U</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">U</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">to_LegCharge</span><span class="p">()</span>  <span class="c1"># explicit conversion: avoid warning in `iproject`</span>
-        <span class="n">U</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;(vL.p0)&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">])</span>
-        <span class="n">val_L</span><span class="p">[</span><span class="n">val_L</span> <span class="o">&lt;</span> <span class="mf">0.</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>  <span class="c1"># for stability reasons</span>
-        <span class="n">val_L</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">val_L</span><span class="p">)</span>
-        <span class="n">keep_L</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">errL</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">val_L</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">)</span>
-        <span class="n">U</span><span class="o">.</span><span class="n">iproject</span><span class="p">(</span><span class="n">keep_L</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="s1">&#39;vR&#39;</span><span class="p">)</span>  <span class="c1"># in place</span>
-        <span class="n">U</span> <span class="o">=</span> <span class="n">U</span><span class="o">.</span><span class="n">gauge_total_charge</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">qtotal_i0</span><span class="p">)</span>
-        <span class="c1"># rho_R ~=  theta^T theta^* = V^* S U^T U* S V^T = V^* S S V^T  (for mixer -&gt; 0)</span>
-        <span class="c1"># Thus, rho_L V^* = V^* S S, i.e. columns of V^* are eigenvectors of rho_L</span>
-        <span class="n">val_R</span><span class="p">,</span> <span class="n">Vc</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">rho_R</span><span class="p">)</span>
-        <span class="n">Vc</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">Vc</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">to_LegCharge</span><span class="p">()</span>
-        <span class="n">Vc</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;(vR.p1)&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">])</span>
-        <span class="n">VH</span> <span class="o">=</span> <span class="n">Vc</span><span class="o">.</span><span class="n">itranspose</span><span class="p">([</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;(vR.p1)&#39;</span><span class="p">])</span>
-        <span class="n">val_R</span><span class="p">[</span><span class="n">val_R</span> <span class="o">&lt;</span> <span class="mf">0.</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>  <span class="c1"># for stability reasons</span>
-        <span class="n">val_R</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">val_R</span><span class="p">)</span>
-        <span class="n">keep_R</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">err_R</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">val_R</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">)</span>
-        <span class="n">VH</span><span class="o">.</span><span class="n">iproject</span><span class="p">(</span><span class="n">keep_R</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="s1">&#39;vL&#39;</span><span class="p">)</span>
-        <span class="n">VH</span> <span class="o">=</span> <span class="n">VH</span><span class="o">.</span><span class="n">gauge_total_charge</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_B</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">qtotal</span><span class="p">)</span>
-
-        <span class="c1"># calculate S = U^H theta V</span>
-        <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(vL*.p0*)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vL.p0)&#39;</span><span class="p">])</span>  <span class="c1"># axes 0, 0</span>
-        <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">VH</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(vR.p1)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vR*.p1*)&#39;</span><span class="p">])</span>  <span class="c1"># axes 1, 1</span>
-        <span class="n">theta</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="s1">&#39;vL*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">])</span>  <span class="c1"># for left/right</span>
-        <span class="c1"># normalize `S` (as in svd_theta) to avoid blowing up numbers</span>
-        <span class="n">theta</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">npc</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">compute_uv</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
-        <span class="k">return</span> <span class="n">U</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">VH</span><span class="p">,</span> <span class="n">errL</span> <span class="o">+</span> <span class="n">err_R</span></div>
-
-<div class="viewcode-block" id="Engine.mix_rho_L"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.mix_rho_L">[docs]</a>    <span class="k">def</span> <span class="nf">mix_rho_L</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">mix_enabled</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculated mixed reduced density matrix for left site.</span>
-
-<span class="sd">        Pictorially::</span>
-
-<span class="sd">            |     mix_enabled=False           mix_enabled=True</span>
-<span class="sd">            |</span>
-<span class="sd">            |    .---theta---.            .---theta-------.</span>
-<span class="sd">            |    |   |   |   |            |   |   |       |</span>
-<span class="sd">            |            |   |           LP---H0--H1--.   |</span>
-<span class="sd">            |    |   |   |   |            |   |   |   |   |</span>
-<span class="sd">            |    .---theta*--.                    |   xR  |</span>
-<span class="sd">            |                             |   |   |   |   |</span>
-<span class="sd">            |                            LP*--H0*-H1*-.   |</span>
-<span class="sd">            |                             |   |   |       |</span>
-<span class="sd">            |                             .---theta*------.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        theta : :class:`~tenpy.linalg.np_conserved.Array`</span>
-<span class="sd">            Ground state of the effective Hamiltonian, prepared for svd.</span>
-<span class="sd">        i0 : int</span>
-<span class="sd">            Site index; `theta` lives on ``i0, i0+1``.</span>
-<span class="sd">        mix_enabled : bool</span>
-<span class="sd">            Wheter we actually use mix_R or not.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        rho_L : :class:`~tenpy.linalg.np_conserved.Array`</span>
-<span class="sd">            A (hermitian) square array with labels ``&#39;(vL.p0)&#39;, &#39;(vL*.p0*)&#39;``,</span>
-<span class="sd">            Mainly the reduced density matrix of the left part, but with some additional mixing.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;This function should be implemented in derived classes&quot;</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="Engine.mix_rho_R"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.mix_rho_R">[docs]</a>    <span class="k">def</span> <span class="nf">mix_rho_R</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">mix_enabled</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculated mixed reduced density matrix for left site.</span>
-
-<span class="sd">        Pictorially::</span>
-
-<span class="sd">            |     mix_enabled=False           mix_enabled=True</span>
-<span class="sd">            |</span>
-<span class="sd">            |    .---theta---.           .------theta---.</span>
-<span class="sd">            |    |   |   |   |           |      |   |   |</span>
-<span class="sd">            |    |   |                   |   .--H0--H1--RP</span>
-<span class="sd">            |    |   |   |   |           |   |  |   |   |</span>
-<span class="sd">            |    .---theta*--.           |  wL  |</span>
-<span class="sd">            |                            |   |  |   |   |</span>
-<span class="sd">            |                            |   .--H0*-H1*-RP*</span>
-<span class="sd">            |                            |      |   |   |</span>
-<span class="sd">            |                            .------theta*--.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        theta : :class:`~tenpy.linalg.np_conserved.Array`</span>
-<span class="sd">            Ground state of the effective Hamiltonian, prepared for svd.</span>
-<span class="sd">        i0 : int</span>
-<span class="sd">            Site index; `theta` lives on ``i0, i0+1``.</span>
-<span class="sd">        mix_enabled : bool</span>
-<span class="sd">            Wheter to actually use the mixer or not.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        rho_R : :class:`~tenpy.linalg.np_conserved.Array`</span>
-<span class="sd">            A (hermitian) square array with labels ``&#39;(vR.p1)&#39;, &#39;(vR*.p1*)&#39;``.</span>
-<span class="sd">            Mainly the reduced density matrix of the right part, but with some additional mixing.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;This function should be implemented in derived classes&quot;</span><span class="p">)</span></div>
+        <span class="c1"># else: we have a mixer</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span><span class="o">.</span><span class="n">perturb_svd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">update_LP</span><span class="p">,</span> <span class="n">update_RP</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Engine.mixer_activate"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.mixer_activate">[docs]</a>    <span class="k">def</span> <span class="nf">mixer_activate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Set `self.mixer` to the class specified by `DMRG_params[&#39;mixer&#39;]`.&quot;&quot;&quot;</span>
         <span class="n">Mixer_class</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;mixer&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">Mixer_class</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">Mixer_class</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
-                <span class="n">Mixer_class</span> <span class="o">=</span> <span class="n">Mixer</span>
+                <span class="n">Mixer_class</span> <span class="o">=</span> <span class="n">DensityMatrixMixer</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">Mixer_class</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">Mixer_class</span> <span class="o">==</span> <span class="s2">&quot;Mixer&quot;</span><span class="p">:</span>
+                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Depreciation: Use `True` or `&#39;DensityMatrixMixer&#39;` as DMRG parameter&quot;</span><span class="p">)</span>
+                    <span class="n">Mixer</span> <span class="o">=</span> <span class="s2">&quot;DensityMatrixMixer&quot;</span>
                 <span class="n">Mixer_class</span> <span class="o">=</span> <span class="nb">globals</span><span class="p">()[</span><span class="n">Mixer_class</span><span class="p">]</span>
             <span class="n">mixer_params</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;mixer_params&#39;</span><span class="p">,</span> <span class="p">{},</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
             <span class="n">mixer_params</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">/</span> <span class="mi">10</span><span class="p">)</span>  <span class="c1"># reduced verbosity</span>
@@ -1036,7 +938,9 @@
 <span class="sd">        U : :class:`~tenpy.linalg.np_conserved.Array`</span>
 <span class="sd">            The U as returned by SVD with combined legs, labels ``&#39;(vL.p0)&#39;, &#39;vR&#39;``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;This function should be implemented in derived classes&quot;</span><span class="p">)</span></div>
+        <span class="c1"># NB: EngineCombine overwrites this function for a faster implementation</span>
+        <span class="c1"># hence the additional argument `U`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get_LP</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># as implemented directly in the environment</span></div>
 
 <div class="viewcode-block" id="Engine.update_RP"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.update_RP">[docs]</a>    <span class="k">def</span> <span class="nf">update_RP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">VH</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Update right part of the environment.</span>
@@ -1048,7 +952,9 @@
 <span class="sd">        VH : :class:`~tenpy.linalg.np_conserved.Array`</span>
 <span class="sd">            The VH as returned by SVD with combined legs, labels ``&#39;vL&#39;, &#39;(vR.p1)&#39;``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;This function should be implemented in derived classes&quot;</span><span class="p">)</span></div>
+        <span class="c1"># NB: EngineCombine overwrites this function for a faster implementation</span>
+        <span class="c1"># hence the additional argument `VH`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get_RP</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># as implemented directly in the environment</span></div>
 
 <div class="viewcode-block" id="Engine.plot_update_stats"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.plot_update_stats">[docs]</a>    <span class="k">def</span> <span class="nf">plot_update_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="n">E_exact</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Plot the update statistics to display the convergence during the sweeps.</span>
@@ -1170,7 +1076,7 @@
 <span class="sd">        Labels ``&#39;(vL.p1*)&#39;, &#39;wL&#39;, &#39;(vL*.p1)&#39;`` for ket, MPO, bra.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="EngineCombine.prepare_diag"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.EngineCombine.prepare_diag">[docs]</a>    <span class="k">def</span> <span class="nf">prepare_diag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">update_LP</span><span class="p">,</span> <span class="n">update_RP</span><span class="p">):</span>
+<div class="viewcode-block" id="EngineCombine.prepare_diag"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.EngineCombine.prepare_diag">[docs]</a>    <span class="k">def</span> <span class="nf">prepare_diag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i0</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Prepare `self` to represent the effective Hamiltonian on sites ``(i0, i0+1)``.</span>
 
 <span class="sd">        Parameters</span>
@@ -1191,8 +1097,7 @@
         <span class="n">LP</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">get_LP</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># labels &#39;vR*&#39;, &#39;wR&#39;, &#39;vR&#39;</span>
         <span class="n">H1</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">H</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span><span class="o">.</span><span class="n">replace_labels</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">])</span>  <span class="c1"># &#39;wL&#39;, &#39;wR&#39;, &#39;p0&#39;, &#39;p0*&#39;</span>
         <span class="n">RP</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">get_RP</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># labels &#39;vL*&#39;, &#39;wL&#39;, &#39;vL&#39;</span>
-        <span class="n">H2</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">H</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">replace_labels</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">],</span>
-                                                <span class="p">[</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">])</span>  <span class="c1"># (&#39;wL&#39;, &#39;wR&#39;, &#39;p1&#39;, &#39;p1*&#39;)</span>
+        <span class="n">H2</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">H</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">replace_labels</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">])</span>  <span class="c1"># &#39;wL&#39;, &#39;wR&#39;, &#39;p1&#39;, &#39;p1*&#39;</span>
         <span class="c1"># calculate LHeff</span>
         <span class="n">LHeff</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">LP</span><span class="p">,</span> <span class="n">H1</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">])</span>
         <span class="n">pipeL</span> <span class="o">=</span> <span class="n">LHeff</span><span class="o">.</span><span class="n">make_pipe</span><span class="p">([</span><span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">])</span>
@@ -1236,102 +1141,6 @@
 <div class="viewcode-block" id="EngineCombine.prepare_svd"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.EngineCombine.prepare_svd">[docs]</a>    <span class="k">def</span> <span class="nf">prepare_svd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Transform theta into matrix for svd.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">theta</span>  <span class="c1"># For this engine nothing to do.</span></div>
-
-<div class="viewcode-block" id="EngineCombine.mix_rho_L"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.EngineCombine.mix_rho_L">[docs]</a>    <span class="k">def</span> <span class="nf">mix_rho_L</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">mix_enabled</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculated mixed reduced density matrix for left site.</span>
-
-<span class="sd">        Pictorially::</span>
-
-<span class="sd">            |     mix_enabled=False           mix_enabled=True</span>
-<span class="sd">            |</span>
-<span class="sd">            |    .---theta---.            .---theta-------.</span>
-<span class="sd">            |    |   |   |   |            |   |   |       |</span>
-<span class="sd">            |            |   |           LP---H0--H1--.   |</span>
-<span class="sd">            |    |   |   |   |            |   |   |   |   |</span>
-<span class="sd">            |    .---theta*--.                    |   xR  |</span>
-<span class="sd">            |                             |   |   |   |   |</span>
-<span class="sd">            |                            LP*--H0*-H1*-.   |</span>
-<span class="sd">            |                             |   |   |       |</span>
-<span class="sd">            |                             .---theta*------.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        theta : :class:`~tenpy.linalg.np_conserved.Array`</span>
-<span class="sd">            Ground state of the effective Hamiltonian, prepared for svd.</span>
-<span class="sd">        i0 : int</span>
-<span class="sd">            Site index; `theta` lives on ``i0, i0+1``.</span>
-<span class="sd">        mix_enabled : bool</span>
-<span class="sd">            Wheter we actually use mix_R or not.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        rho_L : :class:`~tenpy.linalg.np_conserved.Array`</span>
-<span class="sd">            A (hermitian) square array with labels ``&#39;(vL.p0)&#39;, &#39;(vL*.p0*)&#39;``,</span>
-<span class="sd">            Mainly the reduced density matrix of the left part, but with some additional mixing.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">mix_enabled</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(vR.p1)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vR*.p1*)&#39;</span><span class="p">])</span>
-        <span class="n">H</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">H</span>
-        <span class="n">H1</span> <span class="o">=</span> <span class="n">H</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">replace_labels</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">])</span>
-        <span class="n">mixer_xR</span><span class="p">,</span> <span class="n">add_separate_Id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span><span class="o">.</span><span class="n">get_xR</span><span class="p">(</span>
-            <span class="n">H1</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;wR&#39;</span><span class="p">),</span> <span class="n">H</span><span class="o">.</span><span class="n">get_IdL</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">2</span><span class="p">),</span> <span class="n">H</span><span class="o">.</span><span class="n">get_IdR</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
-        <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">LHeff</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">split_legs</span><span class="p">(</span><span class="s1">&#39;(vR.p1)&#39;</span><span class="p">),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(vR.p0*)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vL.p0)&#39;</span><span class="p">])</span>
-        <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">H1</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;wR&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p1*&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">]])</span>
-        <span class="n">rho_c</span> <span class="o">=</span> <span class="n">rho</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>
-        <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">mixer_xR</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">])</span>
-        <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">rho_c</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;wL*&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p1*&#39;</span><span class="p">,</span> <span class="s1">&#39;wR*&#39;</span><span class="p">,</span> <span class="s1">&#39;vR*&#39;</span><span class="p">]))</span>
-        <span class="n">rho</span> <span class="o">=</span> <span class="n">rho</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;(vR*.p0)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vR.p0*)&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;(vL.p0)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vL*.p0*)&#39;</span><span class="p">])</span>
-        <span class="k">if</span> <span class="n">add_separate_Id</span><span class="p">:</span>
-            <span class="n">rho</span> <span class="o">=</span> <span class="n">rho</span> <span class="o">+</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(vR.p1)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vR*.p1*)&#39;</span><span class="p">])</span>
-        <span class="k">return</span> <span class="n">rho</span></div>
-
-<div class="viewcode-block" id="EngineCombine.mix_rho_R"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.EngineCombine.mix_rho_R">[docs]</a>    <span class="k">def</span> <span class="nf">mix_rho_R</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">mix_enabled</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculated mixed reduced density matrix for left site.</span>
-
-<span class="sd">        Pictorially::</span>
-
-<span class="sd">            |     mix_enabled=False           mix_enabled=True</span>
-<span class="sd">            |</span>
-<span class="sd">            |    .---theta---.           .------theta---.</span>
-<span class="sd">            |    |   |   |   |           |      |   |   |</span>
-<span class="sd">            |    |   |                   |   .--H0--H1--RP</span>
-<span class="sd">            |    |   |   |   |           |   |  |   |   |</span>
-<span class="sd">            |    .---theta*--.           |  wL  |</span>
-<span class="sd">            |                            |   |  |   |   |</span>
-<span class="sd">            |                            |   .--H0*-H1*-RP*</span>
-<span class="sd">            |                            |      |   |   |</span>
-<span class="sd">            |                            .------theta*--.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        theta : :class:`~tenpy.linalg.np_conserved.Array`</span>
-<span class="sd">            Ground state of the effective Hamiltonian, prepared for svd.</span>
-<span class="sd">        i0 : int</span>
-<span class="sd">            Site index; `theta` lives on ``i0, i0+1``.</span>
-<span class="sd">        mix_enabled : bool</span>
-<span class="sd">            Wheter to actually use the mixer or not.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        rho_R : :class:`~tenpy.linalg.np_conserved.Array`</span>
-<span class="sd">            A (hermitian) square array with labels ``&#39;(vR.p1)&#39;, &#39;(vR*.p1*)&#39;``.</span>
-<span class="sd">            Mainly the reduced density matrix of the right part, but with some additional mixing.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">mix_enabled</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(vL.p0)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vL*.p0*)&#39;</span><span class="p">])</span>
-        <span class="n">H</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">H</span>
-        <span class="n">H0</span> <span class="o">=</span> <span class="n">H</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span><span class="o">.</span><span class="n">replace_labels</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">])</span>
-        <span class="n">mixer_xL</span><span class="p">,</span> <span class="n">add_separate_Id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span><span class="o">.</span><span class="n">get_xL</span><span class="p">(</span>
-            <span class="n">H0</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;wL&#39;</span><span class="p">),</span> <span class="n">H</span><span class="o">.</span><span class="n">get_IdL</span><span class="p">(</span><span class="n">i0</span><span class="p">),</span> <span class="n">H</span><span class="o">.</span><span class="n">get_IdR</span><span class="p">(</span><span class="n">i0</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
-        <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">RHeff</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">split_legs</span><span class="p">(</span><span class="s1">&#39;(vL.p0)&#39;</span><span class="p">),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(vL.p1*)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vR.p1)&#39;</span><span class="p">])</span>
-        <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">H0</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;wR&#39;</span><span class="p">]])</span>
-        <span class="n">rho_c</span> <span class="o">=</span> <span class="n">rho</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>
-        <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">mixer_xL</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;wL&#39;</span><span class="p">,</span> <span class="s1">&#39;wR&#39;</span><span class="p">])</span>
-        <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">rho_c</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;wR*&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;wL*&#39;</span><span class="p">,</span> <span class="s1">&#39;vL*&#39;</span><span class="p">]))</span>
-        <span class="n">rho</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;(vL*.p1)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vL.p1*)&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;(vR.p1)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vR*.p1*)&#39;</span><span class="p">])</span>
-        <span class="k">if</span> <span class="n">add_separate_Id</span><span class="p">:</span>
-            <span class="n">rho</span> <span class="o">=</span> <span class="n">rho</span> <span class="o">+</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(vL.p0)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vL*.p0*)&#39;</span><span class="p">])</span>
-        <span class="k">return</span> <span class="n">rho</span></div>
 
 <div class="viewcode-block" id="EngineCombine.update_LP"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.EngineCombine.update_LP">[docs]</a>    <span class="k">def</span> <span class="nf">update_LP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">U</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Update left part of the environment.</span>
@@ -1382,7 +1191,7 @@
 <span class="sd">        Labels ``&#39;wL, &#39;wR&#39;, &#39;p0&#39;, &#39;p0*&#39;`` and ``&#39;wL, &#39;wR&#39;, &#39;p1&#39;, &#39;p1*&#39;``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="EngineFracture.prepare_diag"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.EngineFracture.prepare_diag">[docs]</a>    <span class="k">def</span> <span class="nf">prepare_diag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">update_LP</span><span class="p">,</span> <span class="n">update_RP</span><span class="p">):</span>
+<div class="viewcode-block" id="EngineFracture.prepare_diag"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.EngineFracture.prepare_diag">[docs]</a>    <span class="k">def</span> <span class="nf">prepare_diag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i0</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Prepare `self` to represent the effective Hamiltonian on sites ``(i0, i0+1)``.</span>
 
 <span class="sd">        Parameters</span>
@@ -1442,104 +1251,6 @@
         <span class="sd">&quot;&quot;&quot;Transform theta into matrix for svd.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">theta</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([[</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">]],</span> <span class="n">new_axes</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span></div>
 
-<div class="viewcode-block" id="EngineFracture.mix_rho_L"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.EngineFracture.mix_rho_L">[docs]</a>    <span class="k">def</span> <span class="nf">mix_rho_L</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">mix_enabled</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculated mixed reduced density matrix for left site.</span>
-
-<span class="sd">        Pictorially::</span>
-
-<span class="sd">            |     mix_enabled=False           mix_enabled=True</span>
-<span class="sd">            |</span>
-<span class="sd">            |    .---theta---.            .---theta-------.</span>
-<span class="sd">            |    |   |   |   |            |   |   |       |</span>
-<span class="sd">            |            |   |           LP---H0--H1--.   |</span>
-<span class="sd">            |    |   |   |   |            |   |   |   |   |</span>
-<span class="sd">            |    .---theta*--.                    |   xR  |</span>
-<span class="sd">            |                             |   |   |   |   |</span>
-<span class="sd">            |                            LP*--H0*-H1*-.   |</span>
-<span class="sd">            |                             |   |   |       |</span>
-<span class="sd">            |                             .---theta*------.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        theta : :class:`~tenpy.linalg.np_conserved.Array`</span>
-<span class="sd">            Ground state of the effective Hamiltonian, prepared for svd.</span>
-<span class="sd">        i0 : int</span>
-<span class="sd">            Site index; `theta` lives on ``i0, i0+1``.</span>
-<span class="sd">        mix_enabled : bool</span>
-<span class="sd">            Wheter we actually use mix_R or not.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        rho_L : :class:`~tenpy.linalg.np_conserved.Array`</span>
-<span class="sd">            A (hermitian) square array with labels ``&#39;(vL.p0)&#39;, &#39;(vL*.p0*)&#39;``,</span>
-<span class="sd">            Mainly the reduced density matrix of the left part, but with some additional mixing.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">mix_enabled</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(vR.p1)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vR*.p1*)&#39;</span><span class="p">])</span>
-        <span class="n">H</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">H</span>
-        <span class="n">mixer_xR</span><span class="p">,</span> <span class="n">add_separate_Id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span><span class="o">.</span><span class="n">get_xR</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">H1</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;wR&#39;</span><span class="p">),</span> <span class="n">H</span><span class="o">.</span><span class="n">get_IdL</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">2</span><span class="p">),</span> <span class="n">H</span><span class="o">.</span><span class="n">get_IdR</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
-        <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">LP</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">split_legs</span><span class="p">([</span><span class="s1">&#39;(vL.p0)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vR.p1)&#39;</span><span class="p">]),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">])</span>
-        <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">H0</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;wL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">]])</span>
-        <span class="n">H1m</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">H1</span><span class="p">,</span> <span class="n">mixer_xR</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">])</span>
-        <span class="n">H1m</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">H1m</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">H1</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;wL*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p1*&#39;</span><span class="p">,</span> <span class="s1">&#39;wR*&#39;</span><span class="p">]])</span>
-        <span class="n">rho</span> <span class="o">=</span> <span class="n">rho</span><span class="o">.</span><span class="n">ireplace_label</span><span class="p">(</span><span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">])</span>
-        <span class="n">rho_c</span> <span class="o">=</span> <span class="n">rho</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>
-        <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">H1m</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;wR&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p1*&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">]])</span>
-        <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">rho_c</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;wL*&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p1*&#39;</span><span class="p">,</span> <span class="s1">&#39;wR*&#39;</span><span class="p">,</span> <span class="s1">&#39;vR*&#39;</span><span class="p">]))</span>
-        <span class="k">if</span> <span class="n">add_separate_Id</span><span class="p">:</span>
-            <span class="n">rho</span> <span class="o">=</span> <span class="n">rho</span> <span class="o">+</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(vR.p1)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vR*.p1*)&#39;</span><span class="p">])</span>
-        <span class="k">return</span> <span class="n">rho</span></div>
-
-<div class="viewcode-block" id="EngineFracture.mix_rho_R"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.EngineFracture.mix_rho_R">[docs]</a>    <span class="k">def</span> <span class="nf">mix_rho_R</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">mix_enabled</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculated mixed reduced density matrix for left site.</span>
-
-<span class="sd">        Pictorially::</span>
-
-<span class="sd">            |     mix_enabled=False           mix_enabled=True</span>
-<span class="sd">            |</span>
-<span class="sd">            |    .---theta---.           .------theta---.</span>
-<span class="sd">            |    |   |   |   |           |      |   |   |</span>
-<span class="sd">            |    |   |                   |   .--H0--H1--RP</span>
-<span class="sd">            |    |   |   |   |           |   |  |   |   |</span>
-<span class="sd">            |    .---theta*--.           |  wL  |</span>
-<span class="sd">            |                            |   |  |   |   |</span>
-<span class="sd">            |                            |   .--H0*-H1*-RP*</span>
-<span class="sd">            |                            |      |   |   |</span>
-<span class="sd">            |                            .------theta*--.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        theta : :class:`~tenpy.linalg.np_conserved.Array`</span>
-<span class="sd">            Ground state of the effective Hamiltonian, prepared for svd.</span>
-<span class="sd">        i0 : int</span>
-<span class="sd">            Site index; `theta` lives on ``i0, i0+1``.</span>
-<span class="sd">        mix_enabled : bool</span>
-<span class="sd">            Wheter to actually use the mixer or not.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        rho_R : :class:`~tenpy.linalg.np_conserved.Array`</span>
-<span class="sd">            A (hermitian) square array with labels ``&#39;(vR.p1)&#39;, &#39;(vR*.p1*)&#39;``.</span>
-<span class="sd">            Mainly the reduced density matrix of the right part, but with some additional mixing.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">mix_enabled</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;(vL.p0)&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;(vL*.p0*)&#39;</span><span class="p">]])</span>
-        <span class="n">H</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">H</span>
-        <span class="n">mixer_xL</span><span class="p">,</span> <span class="n">add_separate_Id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span><span class="o">.</span><span class="n">get_xL</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">H0</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;wL&#39;</span><span class="p">),</span> <span class="n">H</span><span class="o">.</span><span class="n">get_IdL</span><span class="p">(</span><span class="n">i0</span><span class="p">),</span> <span class="n">H</span><span class="o">.</span><span class="n">get_IdR</span><span class="p">(</span><span class="n">i0</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
-        <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">split_legs</span><span class="p">([</span><span class="s1">&#39;(vL.p0)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vR.p1)&#39;</span><span class="p">]),</span> <span class="bp">self</span><span class="o">.</span><span class="n">RP</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">])</span>
-        <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">H1</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;wL&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">]])</span>
-        <span class="n">H0m</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">mixer_xL</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">H0</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">])</span>
-        <span class="n">H0m</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">H0m</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">H0</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;wR*&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;wL*&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">]])</span>
-        <span class="n">rho</span> <span class="o">=</span> <span class="n">rho</span><span class="o">.</span><span class="n">ireplace_label</span><span class="p">(</span><span class="s1">&#39;vL*&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">])</span>
-        <span class="n">rho_c</span> <span class="o">=</span> <span class="n">rho</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>
-        <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">H0m</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;wR&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">]])</span>
-        <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">rho_c</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;wR*&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;wL*&#39;</span><span class="p">,</span> <span class="s1">&#39;vL*&#39;</span><span class="p">]))</span>
-        <span class="k">if</span> <span class="n">add_separate_Id</span><span class="p">:</span>
-            <span class="n">rho</span> <span class="o">=</span> <span class="n">rho</span> <span class="o">+</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(vL.p0)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vL*.p0*)&#39;</span><span class="p">])</span>
-        <span class="k">return</span> <span class="n">rho</span></div>
-
 <div class="viewcode-block" id="EngineFracture.update_LP"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.EngineFracture.update_LP">[docs]</a>    <span class="k">def</span> <span class="nf">update_LP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">U</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Update left part of the environment.</span>
 
@@ -1566,15 +1277,13 @@
 
 
 <div class="viewcode-block" id="Mixer"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Mixer">[docs]</a><span class="k">class</span> <span class="nc">Mixer</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Mixer class.</span>
-
-<span class="sd">    This Mixer is based on the paper [White2005]_.</span>
+    <span class="sd">&quot;&quot;&quot;Base class of a general Mixer.</span>
 
 <span class="sd">    Since DMRG performs only local updates of the state, it can get stuck in &quot;local minima&quot;,</span>
 <span class="sd">    in particular if the Hamiltonain is long-range -- which is the case if one</span>
 <span class="sd">    maps a 2D system (&quot;infinite cylinder&quot;) to 1D -- or if one wants to do single-site updates</span>
 <span class="sd">    (currently not implemented in TeNPy).</span>
-<span class="sd">    The mixer perturbs the density matrix with the terms of the Hamiltonian</span>
+<span class="sd">    The idea of the mixer is to perturb the state with the terms of the Hamiltonian</span>
 <span class="sd">    which have contributions in both the &quot;left&quot; and &quot;right&quot; side of the system.</span>
 <span class="sd">    In that way, it adds fluctuation of the quantum numbers and non-zero contributions of the</span>
 <span class="sd">    long-range terms - leading to a significantly improved convergence of DMRG.</span>
@@ -1582,6 +1291,8 @@
 <span class="sd">    The strength of the perturbation is given by the `amplitude` of the mixer.</span>
 <span class="sd">    A good strategy is to choose an initially significant amplitude and let it decay until</span>
 <span class="sd">    the perturbation becomes completely irrelevant and the mixer gets disabled.</span>
+
+<span class="sd">    This original idea of the mixer was introduced in [White2005]_.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -1620,7 +1331,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">decay</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">mixer_params</span><span class="p">,</span> <span class="s1">&#39;decay&#39;</span><span class="p">,</span> <span class="mf">2.</span><span class="p">,</span> <span class="s1">&#39;Mixer&#39;</span><span class="p">)</span>
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">decay</span> <span class="o">&gt;=</span> <span class="mf">1.</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">decay</span> <span class="o">==</span> <span class="mf">1.</span><span class="p">:</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Mixer: decay set to 1.&quot;</span><span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Mixer doesn&#39;t decay&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">disable_after</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">mixer_params</span><span class="p">,</span> <span class="s1">&#39;disable_after&#39;</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="s1">&#39;Mixer&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">mixer_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
@@ -1641,11 +1352,359 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">amplitude</span> <span class="o">/=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decay</span>
         <span class="k">if</span> <span class="n">sweeps</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">disable_after</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">amplitude</span> <span class="o">&lt;=</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="s1">&#39;float&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mf">0.1</span><span class="p">:</span>  <span class="c1"># increased verbosity: the same level as DMRG</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;disable mixer&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;disable mixer after </span><span class="si">{0:d}</span><span class="s2"> sweeps&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sweeps</span><span class="p">))</span>
             <span class="k">return</span> <span class="kc">None</span>  <span class="c1"># disable mixer</span>
         <span class="k">return</span> <span class="bp">self</span></div>
 
-<div class="viewcode-block" id="Mixer.get_xR"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Mixer.get_xR">[docs]</a>    <span class="k">def</span> <span class="nf">get_xR</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wR_leg</span><span class="p">,</span> <span class="n">Id_L</span><span class="p">,</span> <span class="n">Id_R</span><span class="p">):</span>
+<div class="viewcode-block" id="Mixer.perturb_svd"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Mixer.perturb_svd">[docs]</a>    <span class="k">def</span> <span class="nf">perturb_svd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">update_LP</span><span class="p">,</span> <span class="n">update_RP</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Perturb the wave function and perform an SVD with truncation.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        engine : :calss:`Engine`</span>
+<span class="sd">            The DMRG engine calling the mixer.</span>
+<span class="sd">        theta : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            The optimized wave function, prepared for svd.</span>
+<span class="sd">        i0 : int</span>
+<span class="sd">            Site index; `theta` lives on ``i0, i0+1``.</span>
+<span class="sd">        update_LP : bool</span>
+<span class="sd">            Whether to calculate the next ``env.LP[i0+1]``.</span>
+<span class="sd">        update_RP : bool</span>
+<span class="sd">            Whether to calculate the next ``env.RP[i0]``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        U : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Left-canonical part of `theta`. Labels ``&#39;(vL.p0)&#39;, &#39;vR&#39;``.</span>
+<span class="sd">        S : 1D ndarray | 2D :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Without mixer just the singluar values of the array; with mixer it might be a general</span>
+<span class="sd">            matrix; see comment above.</span>
+<span class="sd">        VH : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Right-canonical part of `theta`. Labels ``&#39;vL&#39;, &#39;(vR.p1)&#39;``.</span>
+<span class="sd">        err : :class:`~tenpy.algorithms.truncation.TruncationError`</span>
+<span class="sd">            The truncation error introduced.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;This function should be implemented in derived classes&quot;</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="SingleSiteMixer"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.SingleSiteMixer">[docs]</a><span class="k">class</span> <span class="nc">SingleSiteMixer</span><span class="p">(</span><span class="n">Mixer</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Mixer for single-site DMRG.</span>
+
+<span class="sd">    Perform a subspace expansion following [Hubig2015]_.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="SingleSiteMixer.perturb_svd"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.SingleSiteMixer.perturb_svd">[docs]</a>    <span class="k">def</span> <span class="nf">perturb_svd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">move_right</span><span class="p">,</span> <span class="n">next_B</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Mix extra terms to theta and perform an SVD.</span>
+
+<span class="sd">        We calculate the left and right reduced density using the mixer</span>
+<span class="sd">        (which might include applications of `H`).</span>
+<span class="sd">        These density matrices are diagonalized and truncated such that we effectively perform</span>
+<span class="sd">        a svd for the case ``mixer.amplitude=0``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        engine : :class:`Engine`</span>
+<span class="sd">            The DMRG engine calling the mixer.</span>
+<span class="sd">        theta : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            The optimized wave function, prepared for svd.</span>
+<span class="sd">        i0 : int</span>
+<span class="sd">            The site index where `theta` lives.</span>
+<span class="sd">        move_right : bool</span>
+<span class="sd">            Whether we move to the right (``True``) or left (``False``).</span>
+<span class="sd">        next_B : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            The subspace expansion requires to change the tensor on the next site as well.</span>
+<span class="sd">            If `move_right`, it should correspond to ``engine.psi.get_B(i0+1, form=&#39;B&#39;)``.</span>
+<span class="sd">            If not `move_right`, it should correspond to ``engine.psi.get_B(i0-1, form=&#39;A&#39;)``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        U : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Left-canonical part of `tensordot(theta, next_B)`. Labels ``&#39;(vL.p0)&#39;, &#39;vR&#39;``.</span>
+<span class="sd">        S : 1D ndarray</span>
+<span class="sd">            (Perturbed) singular values on the new bond (between `theta` and `next_B`).</span>
+<span class="sd">        VH : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Right-canonical part of `tensordot(theta, next_B)`. Labels ``&#39;vL&#39;, &#39;(vR.p1)&#39;``.</span>
+<span class="sd">        err : :class:`~tenpy.algorithms.truncation.TruncationError`</span>
+<span class="sd">            The truncation error introduced.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">theta</span><span class="p">,</span> <span class="n">next_B</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subspace_expand</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">move_right</span><span class="p">,</span> <span class="n">next_B</span><span class="p">)</span>
+        <span class="n">qtotal_LR</span> <span class="o">=</span> <span class="p">[</span><span class="n">theta</span><span class="o">.</span><span class="n">qtotal</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="k">if</span> <span class="n">move_right</span> <span class="k">else</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">qtotal</span><span class="p">]</span>
+        <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">VH</span><span class="p">,</span> <span class="n">err</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">svd_theta</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">,</span> <span class="n">qtotal_LR</span><span class="o">=</span><span class="n">qtotal_LR</span><span class="p">,</span>
+                                     <span class="n">inner_labels</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">move_right</span><span class="p">:</span>
+            <span class="n">VH</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">VH</span><span class="p">,</span> <span class="n">next_B</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">U</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">next_B</span><span class="p">,</span> <span class="n">U</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">VH</span><span class="p">,</span> <span class="n">err</span></div>
+
+<div class="viewcode-block" id="SingleSiteMixer.subspace_expand"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.SingleSiteMixer.subspace_expand">[docs]</a>    <span class="k">def</span> <span class="nf">subspace_expand</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">move_right</span><span class="p">,</span> <span class="n">next_B</span><span class="p">):</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">H</span>
+        <span class="k">if</span> <span class="n">move_right</span><span class="p">:</span>
+            <span class="c1"># theta has legs (vL.p), vR</span>
+            <span class="n">LHeff</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">LHeff</span>
+            <span class="n">expand</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">LHeff</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>  <span class="c1"># (vR*.p), (vL.p)</span>
+            <span class="n">expand</span> <span class="o">=</span> <span class="n">expand</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([</span><span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">qconj</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">new_axes</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="c1"># (vR*.p), (wR.vR)</span>
+            <span class="n">expand</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">amplitude</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">theta</span><span class="p">,</span> <span class="n">expand</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">next_B</span> <span class="o">=</span> <span class="n">next_B</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="n">expand</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># move left</span>
+            <span class="n">RHeff</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">RHeff</span>
+            <span class="c1"># TODO XXX: get_W(i0) vs i0+1 for 1-site vs 2-site</span>
+            <span class="c1"># -&gt; need RHeff from engine!!!</span>
+            <span class="n">expand</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">RHeff</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+            <span class="n">expand</span> <span class="o">=</span> <span class="n">expand</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">],</span> <span class="n">qconj</span><span class="o">=+</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">expand</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">amplitude</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">theta</span><span class="p">,</span> <span class="n">expand</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">next_B</span> <span class="o">=</span> <span class="n">next_B</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="n">expand</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">theta</span><span class="p">,</span> <span class="n">next_B</span></div></div>
+
+
+<div class="viewcode-block" id="TwoSiteMixer"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.TwoSiteMixer">[docs]</a><span class="k">class</span> <span class="nc">TwoSiteMixer</span><span class="p">(</span><span class="n">SingleSiteMixer</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Mixer for two-site DMRG.</span>
+
+<span class="sd">    This is the two-site version of the mixer described in [Hubig2015]_.</span>
+<span class="sd">    Equivalent to the :class:`DensityMatrixMixer`, but never construct the full density matrix.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="TwoSiteMixer.perturb_svd"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.TwoSiteMixer.perturb_svd">[docs]</a>    <span class="k">def</span> <span class="nf">perturb_svd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">update_LP</span><span class="p">,</span> <span class="n">update_RP</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Mix extra terms to theta and perform an SVD.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        engine : :class:`Engine`</span>
+<span class="sd">            The DMRG engine calling the mixer.</span>
+<span class="sd">        theta : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            The optimized wave function, prepared for svd.</span>
+<span class="sd">        i0 : int</span>
+<span class="sd">            Site index; `theta` lives on ``i0, i0+1``.</span>
+<span class="sd">        update_LP : bool</span>
+<span class="sd">            Whether to calculate the next ``env.LP[i0+1]``.</span>
+<span class="sd">        update_RP : bool</span>
+<span class="sd">            Whether to calculate the next ``env.RP[i0]``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        U : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Left-canonical part of `theta`. Labels ``&#39;(vL.p0)&#39;, &#39;vR&#39;``.</span>
+<span class="sd">        S : 1D ndarray | 2D :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Without mixer just the singluar values of the array; with mixer it might be a general</span>
+<span class="sd">            matrix; see comment above.</span>
+<span class="sd">        VH : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Right-canonical part of `theta`. Labels ``&#39;vL&#39;, &#39;(vR.p1)&#39;``.</span>
+<span class="sd">        err : :class:`~tenpy.algorithms.truncation.TruncationError`</span>
+<span class="sd">            The truncation error introduced.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># first perform an SVD as if the mixer didn&#39;t exist</span>
+        <span class="n">qtotal_i0</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_B</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">qtotal</span>
+        <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">VH</span><span class="p">,</span> <span class="n">err</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">svd_theta</span><span class="p">(</span>
+            <span class="n">theta</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">,</span> <span class="n">qtotal_LR</span><span class="o">=</span><span class="p">[</span><span class="n">qtotal_i0</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">inner_labels</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">])</span>
+        <span class="n">move_right</span> <span class="o">=</span> <span class="n">update_LP</span> <span class="c1"># TODO: get argument inferred from schedule?</span>
+        <span class="k">if</span> <span class="n">move_right</span><span class="p">:</span>  <span class="c1"># move to the right</span>
+            <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">VH</span><span class="p">,</span> <span class="n">err2</span> <span class="o">=</span> <span class="n">SingleSiteMixer</span><span class="o">.</span><span class="n">perturb_svd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">,</span> <span class="n">U</span><span class="o">.</span><span class="n">iscale_axis</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">i0</span><span class="p">,</span> <span class="n">move_right</span><span class="p">,</span> <span class="n">VH</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span> <span class="c1"># update_RP is True</span>
+            <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">VH</span><span class="p">,</span> <span class="n">err2</span> <span class="o">=</span> <span class="n">SingleSiteMixer</span><span class="o">.</span><span class="n">perturb_svd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">,</span> <span class="n">VH</span><span class="o">.</span><span class="n">iscale_axis</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">i0</span><span class="p">,</span> <span class="n">move_right</span><span class="p">,</span> <span class="n">U</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">VH</span><span class="p">,</span> <span class="n">err</span> <span class="o">+</span> <span class="n">err2</span></div></div>
+
+
+<div class="viewcode-block" id="DensityMatrixMixer"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.DensityMatrixMixer">[docs]</a><span class="k">class</span> <span class="nc">DensityMatrixMixer</span><span class="p">(</span><span class="n">Mixer</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Mixer based on density matrices.</span>
+
+<span class="sd">    This mixer constructs density matrices as described in the original paper [White2005]_.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="DensityMatrixMixer.perturb_svd"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.DensityMatrixMixer.perturb_svd">[docs]</a>    <span class="k">def</span> <span class="nf">perturb_svd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">update_LP</span><span class="p">,</span> <span class="n">update_RP</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Mix extra terms to theta and perform an SVD.</span>
+
+<span class="sd">        We calculate the left and right reduced density using the mixer</span>
+<span class="sd">        (which might include applications of `H`).</span>
+<span class="sd">        These density matrices are diagonalized and truncated such that we effectively perform</span>
+<span class="sd">        a svd for the case ``mixer.amplitude=0``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        engine : :class:`Engine`</span>
+<span class="sd">            The DMRG engine calling the mixer.</span>
+<span class="sd">        theta : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            The optimized wave function, prepared for svd.</span>
+<span class="sd">        i0 : int</span>
+<span class="sd">            Site index; `theta` lives on ``i0, i0+1``.</span>
+<span class="sd">        update_LP : bool</span>
+<span class="sd">            Whether to calculate the next ``env.LP[i0+1]``.</span>
+<span class="sd">        update_RP : bool</span>
+<span class="sd">            Whether to calculate the next ``env.RP[i0]``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        U : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Left-canonical part of `theta`. Labels ``&#39;(vL.p0)&#39;, &#39;vR&#39;``.</span>
+<span class="sd">        S : 1D ndarray | 2D :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Without mixer just the singluar values of the array; with mixer it might be a general</span>
+<span class="sd">            matrix; see comment above.</span>
+<span class="sd">        VH : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Right-canonical part of `theta`. Labels ``&#39;vL&#39;, &#39;(vR.p1)&#39;``.</span>
+<span class="sd">        err : :class:`~tenpy.algorithms.truncation.TruncationError`</span>
+<span class="sd">            The truncation error introduced.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rho_L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mix_rho_L</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">update_LP</span><span class="p">)</span>
+        <span class="c1"># don&#39;t mix left parts, when we&#39;re going to the right</span>
+        <span class="n">rho_L</span><span class="o">.</span><span class="n">itranspose</span><span class="p">([</span><span class="s1">&#39;(vL.p0)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vL*.p0*)&#39;</span><span class="p">])</span>  <span class="c1"># just to be sure of the order</span>
+        <span class="n">rho_R</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mix_rho_R</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">update_RP</span><span class="p">)</span>
+        <span class="n">rho_R</span><span class="o">.</span><span class="n">itranspose</span><span class="p">([</span><span class="s1">&#39;(vR.p1)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vR*.p1*)&#39;</span><span class="p">])</span>  <span class="c1"># just to be sure of the order</span>
+
+        <span class="c1"># consider the SVD `theta = U S V^H` (with real, diagonal S&gt;0)</span>
+        <span class="c1"># rho_L ~=  theta theta^H = U S V^H V S U^H = U S S U^H  (for mixer -&gt; 0)</span>
+        <span class="c1"># Thus, rho_L U = U S S, i.e. columns of U are the eigenvectors of rho_L,</span>
+        <span class="c1"># eigenvalues are S^2.</span>
+        <span class="n">val_L</span><span class="p">,</span> <span class="n">U</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">rho_L</span><span class="p">)</span>
+        <span class="n">U</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">U</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">to_LegCharge</span><span class="p">()</span>  <span class="c1"># explicit conversion: avoid warning in `iproject`</span>
+        <span class="n">U</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;(vL.p0)&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">])</span>
+        <span class="n">val_L</span><span class="p">[</span><span class="n">val_L</span> <span class="o">&lt;</span> <span class="mf">0.</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>  <span class="c1"># for stability reasons</span>
+        <span class="n">val_L</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">val_L</span><span class="p">)</span>
+        <span class="n">keep_L</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">errL</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">val_L</span><span class="p">),</span> <span class="n">engine</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">)</span>
+        <span class="n">U</span><span class="o">.</span><span class="n">iproject</span><span class="p">(</span><span class="n">keep_L</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="s1">&#39;vR&#39;</span><span class="p">)</span>  <span class="c1"># in place</span>
+        <span class="n">U</span> <span class="o">=</span> <span class="n">U</span><span class="o">.</span><span class="n">gauge_total_charge</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_B</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">qtotal</span><span class="p">)</span>
+        <span class="c1"># rho_R ~=  theta^T theta^* = V^* S U^T U* S V^T = V^* S S V^T  (for mixer -&gt; 0)</span>
+        <span class="c1"># Thus, rho_L V^* = V^* S S, i.e. columns of V^* are eigenvectors of rho_L</span>
+        <span class="n">val_R</span><span class="p">,</span> <span class="n">Vc</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">rho_R</span><span class="p">)</span>
+        <span class="n">Vc</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">Vc</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">to_LegCharge</span><span class="p">()</span>
+        <span class="n">Vc</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;(vR.p1)&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">])</span>
+        <span class="n">VH</span> <span class="o">=</span> <span class="n">Vc</span><span class="o">.</span><span class="n">itranspose</span><span class="p">([</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;(vR.p1)&#39;</span><span class="p">])</span>
+        <span class="n">val_R</span><span class="p">[</span><span class="n">val_R</span> <span class="o">&lt;</span> <span class="mf">0.</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>  <span class="c1"># for stability reasons</span>
+        <span class="n">val_R</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">val_R</span><span class="p">)</span>
+        <span class="n">keep_R</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">err_R</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">val_R</span><span class="p">),</span> <span class="n">engine</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">)</span>
+        <span class="n">VH</span><span class="o">.</span><span class="n">iproject</span><span class="p">(</span><span class="n">keep_R</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="s1">&#39;vL&#39;</span><span class="p">)</span>
+        <span class="n">VH</span> <span class="o">=</span> <span class="n">VH</span><span class="o">.</span><span class="n">gauge_total_charge</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_B</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">qtotal</span><span class="p">)</span>
+
+        <span class="c1"># calculate S = U^H theta V</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(vL*.p0*)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vL.p0)&#39;</span><span class="p">])</span>  <span class="c1"># axes 0, 0</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">VH</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(vR.p1)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vR*.p1*)&#39;</span><span class="p">])</span>  <span class="c1"># axes 1, 1</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="s1">&#39;vL*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">])</span>  <span class="c1"># for left/right</span>
+        <span class="c1"># normalize `S` (as in svd_theta) to avoid blowing up numbers</span>
+        <span class="n">theta</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">npc</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">compute_uv</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">U</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">VH</span><span class="p">,</span> <span class="n">errL</span> <span class="o">+</span> <span class="n">err_R</span></div>
+
+<div class="viewcode-block" id="DensityMatrixMixer.mix_rho_L"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.DensityMatrixMixer.mix_rho_L">[docs]</a>    <span class="k">def</span> <span class="nf">mix_rho_L</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">mix_enabled</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculated mixed reduced density matrix for left site.</span>
+
+<span class="sd">        Pictorially::</span>
+
+<span class="sd">            |     mix_enabled=False           mix_enabled=True</span>
+<span class="sd">            |</span>
+<span class="sd">            |    .---theta---.            .---theta-------.</span>
+<span class="sd">            |    |   |   |   |            |   |   |       |</span>
+<span class="sd">            |            |   |           LP---H0--H1--.   |</span>
+<span class="sd">            |    |   |   |   |            |   |   |   |   |</span>
+<span class="sd">            |    .---theta*--.                    |   xR  |</span>
+<span class="sd">            |                             |   |   |   |   |</span>
+<span class="sd">            |                            LP*--H0*-H1*-.   |</span>
+<span class="sd">            |                             |   |   |       |</span>
+<span class="sd">            |                             .---theta*------.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        engine : :class:`Engine`</span>
+<span class="sd">            The DMRG engine calling the mixer.</span>
+<span class="sd">        theta : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Ground state of the effective Hamiltonian, prepared for svd.</span>
+<span class="sd">        i0 : int</span>
+<span class="sd">            Site index; `theta` lives on ``i0, i0+1``.</span>
+<span class="sd">        mix_enabled : bool</span>
+<span class="sd">            Whether we should perturb the density matrix.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        rho_L : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            A (hermitian) square array with labels ``&#39;(vL.p0)&#39;, &#39;(vL*.p0*)&#39;``,</span>
+<span class="sd">            Mainly the reduced density matrix of the left part, but with some additional mixing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">mix_enabled</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(vR.p1)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vR*.p1*)&#39;</span><span class="p">])</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">H</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">LHeff</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">LHeff</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="n">H0</span> <span class="o">=</span> <span class="n">H</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span><span class="o">.</span><span class="n">replace_labels</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">])</span>
+            <span class="n">LP</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get_LP</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">LHeff</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">LP</span><span class="p">,</span> <span class="n">H0</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">])</span>
+            <span class="n">pipeL</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;(vL.p0)&#39;</span><span class="p">)</span>
+            <span class="n">LHeff</span> <span class="o">=</span> <span class="n">LHeff</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([[</span><span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">]],</span> <span class="n">pipes</span><span class="o">=</span><span class="p">[</span><span class="n">pipeL</span><span class="p">,</span> <span class="n">pipeL</span><span class="o">.</span><span class="n">conj</span><span class="p">()],</span>
+                                       <span class="n">new_axes</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">LHeff</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">split_legs</span><span class="p">(</span><span class="s1">&#39;(vR.p1)&#39;</span><span class="p">),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(vR.p0*)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vL.p0)&#39;</span><span class="p">])</span>
+        <span class="n">rho_c</span> <span class="o">=</span> <span class="n">rho</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>
+        <span class="n">H1</span> <span class="o">=</span> <span class="n">H</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">replace_labels</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">])</span>
+        <span class="n">mixer_xR</span><span class="p">,</span> <span class="n">add_separate_Id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_xR</span><span class="p">(</span>
+            <span class="n">H1</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;wR&#39;</span><span class="p">),</span> <span class="n">H</span><span class="o">.</span><span class="n">get_IdL</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">2</span><span class="p">),</span> <span class="n">H</span><span class="o">.</span><span class="n">get_IdR</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">H1m</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">H1</span><span class="p">,</span> <span class="n">mixer_xR</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">])</span>
+        <span class="n">H1m</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">H1m</span><span class="p">,</span> <span class="n">H1</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;wL*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p1*&#39;</span><span class="p">,</span> <span class="s1">&#39;wR*&#39;</span><span class="p">]])</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">H1m</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;wR&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p1*&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">]])</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">rho_c</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;wL*&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p1*&#39;</span><span class="p">,</span> <span class="s1">&#39;wR*&#39;</span><span class="p">,</span> <span class="s1">&#39;vR*&#39;</span><span class="p">]))</span>
+        <span class="n">rho</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;(vR*.p0)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vR.p0*)&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;(vL.p0)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vL*.p0*)&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">add_separate_Id</span><span class="p">:</span>
+            <span class="n">rho</span> <span class="o">=</span> <span class="n">rho</span> <span class="o">+</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(vR.p1)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vR*.p1*)&#39;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">rho</span></div>
+
+<div class="viewcode-block" id="DensityMatrixMixer.mix_rho_R"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.DensityMatrixMixer.mix_rho_R">[docs]</a>    <span class="k">def</span> <span class="nf">mix_rho_R</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">mix_enabled</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculated mixed reduced density matrix for left site.</span>
+
+<span class="sd">        Pictorially::</span>
+
+<span class="sd">            |     mix_enabled=False           mix_enabled=True</span>
+<span class="sd">            |</span>
+<span class="sd">            |    .---theta---.           .------theta---.</span>
+<span class="sd">            |    |   |   |   |           |      |   |   |</span>
+<span class="sd">            |    |   |                   |   .--H0--H1--RP</span>
+<span class="sd">            |    |   |   |   |           |   |  |   |   |</span>
+<span class="sd">            |    .---theta*--.           |  wL  |</span>
+<span class="sd">            |                            |   |  |   |   |</span>
+<span class="sd">            |                            |   .--H0*-H1*-RP*</span>
+<span class="sd">            |                            |      |   |   |</span>
+<span class="sd">            |                            .------theta*--.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        engine : :class:`Engine`</span>
+<span class="sd">            The DMRG engine calling the mixer.</span>
+<span class="sd">        theta : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Ground state of the effective Hamiltonian, prepared for svd.</span>
+<span class="sd">        i0 : int</span>
+<span class="sd">            Site index; `theta` lives on ``i0, i0+1``.</span>
+<span class="sd">        mix_enabled : bool</span>
+<span class="sd">            Whether we should perturb the density matrix.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        rho_R : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            A (hermitian) square array with labels ``&#39;(vR.p1)&#39;, &#39;(vR*.p1*)&#39;``.</span>
+<span class="sd">            Mainly the reduced density matrix of the right part, but with some additional mixing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">mix_enabled</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;(vL.p0)&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;(vL*.p0*)&#39;</span><span class="p">]])</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">H</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">RHeff</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">RHeff</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="n">H1</span> <span class="o">=</span> <span class="n">H</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="n">i0</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">replace_labels</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">])</span>
+            <span class="n">RP</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get_RP</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">RHeff</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">RP</span><span class="p">,</span> <span class="n">H1</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;wL&#39;</span><span class="p">,</span> <span class="s1">&#39;wR&#39;</span><span class="p">])</span>
+            <span class="n">pipeR</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;(vR.p1)&#39;</span><span class="p">)</span>
+            <span class="n">RHeff</span> <span class="o">=</span> <span class="n">RHeff</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([[</span><span class="s1">&#39;vL*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">]],</span> <span class="n">pipes</span><span class="o">=</span><span class="p">[</span><span class="n">pipeR</span><span class="p">,</span> <span class="n">pipeR</span><span class="o">.</span><span class="n">conj</span><span class="p">()],</span>
+                                       <span class="n">new_axes</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+
+        <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">RHeff</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">split_legs</span><span class="p">(</span><span class="s1">&#39;(vL.p0)&#39;</span><span class="p">),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(vL.p1*)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vR.p1)&#39;</span><span class="p">])</span>
+        <span class="n">rho_c</span> <span class="o">=</span> <span class="n">rho</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>
+
+        <span class="n">H0</span> <span class="o">=</span> <span class="n">H</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span><span class="o">.</span><span class="n">replace_labels</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">])</span>
+        <span class="n">mixer_xL</span><span class="p">,</span> <span class="n">add_separate_Id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_xL</span><span class="p">(</span>
+            <span class="n">H0</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;wL&#39;</span><span class="p">),</span> <span class="n">H</span><span class="o">.</span><span class="n">get_IdL</span><span class="p">(</span><span class="n">i0</span><span class="p">),</span> <span class="n">H</span><span class="o">.</span><span class="n">get_IdR</span><span class="p">(</span><span class="n">i0</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">H0m</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">mixer_xL</span><span class="p">,</span> <span class="n">H0</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">])</span>
+        <span class="n">H0m</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">H0m</span><span class="p">,</span> <span class="n">H0</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;wR*&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;wL*&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">]])</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">H0m</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;wR&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">]])</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">rho_c</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;wR*&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;wL*&#39;</span><span class="p">,</span> <span class="s1">&#39;vL*&#39;</span><span class="p">]))</span>
+        <span class="n">rho</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;(vL*.p1)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vL.p1*)&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;(vR.p1)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vR*.p1*)&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">add_separate_Id</span><span class="p">:</span>
+            <span class="n">rho</span> <span class="o">=</span> <span class="n">rho</span> <span class="o">+</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(vL.p0)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vL*.p0*)&#39;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">rho</span></div>
+
+<div class="viewcode-block" id="DensityMatrixMixer.get_xR"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.DensityMatrixMixer.get_xR">[docs]</a>    <span class="k">def</span> <span class="nf">get_xR</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wR_leg</span><span class="p">,</span> <span class="n">Id_L</span><span class="p">,</span> <span class="n">Id_R</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Generate the coupling of the MPO legs for the reduced density matrix.</span>
 
 <span class="sd">        Parameters</span>
@@ -1664,7 +1723,7 @@
 <span class="sd">            Labels ``(&#39;wL&#39;, &#39;wL*&#39;)``.</span>
 <span class="sd">        add_separate_Id : bool</span>
 <span class="sd">            If Id_L is ``None``, we can&#39;t include the identity into `mixed_xR`,</span>
-<span class="sd">            so it has to be added directly in :meth:`Engine.mix_rho_L`.</span>
+<span class="sd">            so it has to be added directly in :meth:`mix_rho_L`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">amplitude</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">wR_leg</span><span class="o">.</span><span class="n">ind_len</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
         <span class="n">separate_Id</span> <span class="o">=</span> <span class="n">Id_L</span> <span class="ow">is</span> <span class="kc">None</span>
@@ -1676,7 +1735,7 @@
         <span class="n">x</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;wL*&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">separate_Id</span></div>
 
-<div class="viewcode-block" id="Mixer.get_xL"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Mixer.get_xL">[docs]</a>    <span class="k">def</span> <span class="nf">get_xL</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wL_leg</span><span class="p">,</span> <span class="n">Id_L</span><span class="p">,</span> <span class="n">Id_R</span><span class="p">):</span>
+<div class="viewcode-block" id="DensityMatrixMixer.get_xL"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.DensityMatrixMixer.get_xL">[docs]</a>    <span class="k">def</span> <span class="nf">get_xL</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wL_leg</span><span class="p">,</span> <span class="n">Id_L</span><span class="p">,</span> <span class="n">Id_R</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Generate the coupling of the MPO legs for the reduced density matrix.</span>
 
 <span class="sd">        Parameters</span>
@@ -1695,7 +1754,7 @@
 <span class="sd">            Labels ``(&#39;wR&#39;, &#39;wR*&#39;)``.</span>
 <span class="sd">        add_separate_Id : bool</span>
 <span class="sd">            If Id_R is ``None``, we can&#39;t include the identity into `mixed_xL`,</span>
-<span class="sd">            so it has to be added directly in :meth:`Engine.mix_rho_R`.</span>
+<span class="sd">            so it has to be added directly in :meth:`mix_rho_R`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">amplitude</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">wL_leg</span><span class="o">.</span><span class="n">ind_len</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
         <span class="n">separate_Id</span> <span class="o">=</span> <span class="n">Id_R</span> <span class="ow">is</span> <span class="kc">None</span>
@@ -1728,7 +1787,7 @@
     </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
-<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<h3><a href="../../../index.html">Table of Contents</a></h3>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../userguide.html">User Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.html">tenpy package</a></li>
@@ -1753,8 +1812,8 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2018, TeNPy Developers.
-      Last updated on Dec 27, 2018.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+      Last updated on Feb 18, 2019.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
     </div>
   </body>
 </html>

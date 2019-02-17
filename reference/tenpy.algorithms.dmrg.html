@@ -9,11 +9,14 @@
     <title>tenpy.algorithms.dmrg module &#8212; TeNPy 0.3.0 documentation</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
     <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
     <link rel="shortcut icon" href="../_static/logo.ico"/>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -68,8 +71,7 @@ The mixer should be used initially to avoid that the algorithm gets stuck in loc
 and then slowly turned off in the end.</p>
 <div class="admonition-todo admonition" id="index-0">
 <p class="first admonition-title">Todo</p>
-<p class="last">Need function to plot the statistics in the end
-Write UserGuide/Example!!!</p>
+<p class="last">Write UserGuide/Example!!!</p>
 </div>
 <dl class="function">
 <dt id="tenpy.algorithms.dmrg.run">
@@ -464,12 +466,6 @@ added each time <a class="reference internal" href="#tenpy.algorithms.dmrg.Engin
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.Engine.matvec" title="tenpy.algorithms.dmrg.Engine.matvec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">matvec</span></code></a>(theta)</td>
 <td>Apply the effective Hamiltonian to <cite>theta</cite>.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.Engine.mix_rho_L" title="tenpy.algorithms.dmrg.Engine.mix_rho_L"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mix_rho_L</span></code></a>(theta,&nbsp;i0,&nbsp;mix_enabled)</td>
-<td>Calculated mixed reduced density matrix for left site.</td>
-</tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.Engine.mix_rho_R" title="tenpy.algorithms.dmrg.Engine.mix_rho_R"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mix_rho_R</span></code></a>(theta,&nbsp;i0,&nbsp;mix_enabled)</td>
-<td>Calculated mixed reduced density matrix for left site.</td>
-</tr>
 <tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.Engine.mixed_svd" title="tenpy.algorithms.dmrg.Engine.mixed_svd"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mixed_svd</span></code></a>(theta,&nbsp;i0,&nbsp;update_LP,&nbsp;update_RP)</td>
 <td>Get (truncated) <cite>B</cite> from the new theta (as returned by diag).</td>
 </tr>
@@ -640,100 +636,6 @@ used for <a class="reference internal" href="tenpy.linalg.lanczos.html#tenpy.lin
 </dd></dl>
 
 <dl class="method">
-<dt id="tenpy.algorithms.dmrg.Engine.mix_rho_L">
-<code class="descname">mix_rho_L</code><span class="sig-paren">(</span><em>theta</em>, <em>i0</em>, <em>mix_enabled</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#Engine.mix_rho_L"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.Engine.mix_rho_L" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculated mixed reduced density matrix for left site.</p>
-<p>Pictorially:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>     <span class="n">mix_enabled</span><span class="o">=</span><span class="kc">False</span>           <span class="n">mix_enabled</span><span class="o">=</span><span class="kc">True</span>
-<span class="o">|</span>
-<span class="o">|</span>    <span class="o">.---</span><span class="n">theta</span><span class="o">---.</span>            <span class="o">.---</span><span class="n">theta</span><span class="o">-------.</span>
-<span class="o">|</span>    <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>            <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>       <span class="o">|</span>
-<span class="o">|</span>            <span class="o">|</span>   <span class="o">|</span>           <span class="n">LP</span><span class="o">---</span><span class="n">H0</span><span class="o">--</span><span class="n">H1</span><span class="o">--.</span>   <span class="o">|</span>
-<span class="o">|</span>    <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>            <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
-<span class="o">|</span>    <span class="o">.---</span><span class="n">theta</span><span class="o">*--.</span>                    <span class="o">|</span>   <span class="n">xR</span>  <span class="o">|</span>
-<span class="o">|</span>                             <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
-<span class="o">|</span>                            <span class="n">LP</span><span class="o">*--</span><span class="n">H0</span><span class="o">*-</span><span class="n">H1</span><span class="o">*-.</span>   <span class="o">|</span>
-<span class="o">|</span>                             <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>       <span class="o">|</span>
-<span class="o">|</span>                             <span class="o">.---</span><span class="n">theta</span><span class="o">*------.</span>
-</pre></div>
-</div>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
-<dd><p class="first last">Ground state of the effective Hamiltonian, prepared for svd.</p>
-</dd>
-<dt><strong>i0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd><p class="first last">Site index; <cite>theta</cite> lives on <code class="docutils literal notranslate"><span class="pre">i0,</span> <span class="pre">i0+1</span></code>.</p>
-</dd>
-<dt><strong>mix_enabled</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
-<dd><p class="first last">Wheter we actually use mix_R or not.</p>
-</dd>
-</dl>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>rho_L</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
-<dd><p class="first last">A (hermitian) square array with labels <code class="docutils literal notranslate"><span class="pre">'(vL.p0)',</span> <span class="pre">'(vL*.p0*)'</span></code>,
-Mainly the reduced density matrix of the left part, but with some additional mixing.</p>
-</dd>
-</dl>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="tenpy.algorithms.dmrg.Engine.mix_rho_R">
-<code class="descname">mix_rho_R</code><span class="sig-paren">(</span><em>theta</em>, <em>i0</em>, <em>mix_enabled</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#Engine.mix_rho_R"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.Engine.mix_rho_R" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculated mixed reduced density matrix for left site.</p>
-<p>Pictorially:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>     <span class="n">mix_enabled</span><span class="o">=</span><span class="kc">False</span>           <span class="n">mix_enabled</span><span class="o">=</span><span class="kc">True</span>
-<span class="o">|</span>
-<span class="o">|</span>    <span class="o">.---</span><span class="n">theta</span><span class="o">---.</span>           <span class="o">.------</span><span class="n">theta</span><span class="o">---.</span>
-<span class="o">|</span>    <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>           <span class="o">|</span>      <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
-<span class="o">|</span>    <span class="o">|</span>   <span class="o">|</span>                   <span class="o">|</span>   <span class="o">.--</span><span class="n">H0</span><span class="o">--</span><span class="n">H1</span><span class="o">--</span><span class="n">RP</span>
-<span class="o">|</span>    <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>           <span class="o">|</span>   <span class="o">|</span>  <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
-<span class="o">|</span>    <span class="o">.---</span><span class="n">theta</span><span class="o">*--.</span>           <span class="o">|</span>  <span class="n">wL</span>  <span class="o">|</span>
-<span class="o">|</span>                            <span class="o">|</span>   <span class="o">|</span>  <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
-<span class="o">|</span>                            <span class="o">|</span>   <span class="o">.--</span><span class="n">H0</span><span class="o">*-</span><span class="n">H1</span><span class="o">*-</span><span class="n">RP</span><span class="o">*</span>
-<span class="o">|</span>                            <span class="o">|</span>      <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
-<span class="o">|</span>                            <span class="o">.------</span><span class="n">theta</span><span class="o">*--.</span>
-</pre></div>
-</div>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
-<dd><p class="first last">Ground state of the effective Hamiltonian, prepared for svd.</p>
-</dd>
-<dt><strong>i0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd><p class="first last">Site index; <cite>theta</cite> lives on <code class="docutils literal notranslate"><span class="pre">i0,</span> <span class="pre">i0+1</span></code>.</p>
-</dd>
-<dt><strong>mix_enabled</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
-<dd><p class="first last">Wheter to actually use the mixer or not.</p>
-</dd>
-</dl>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>rho_R</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
-<dd><p class="first last">A (hermitian) square array with labels <code class="docutils literal notranslate"><span class="pre">'(vR.p1)',</span> <span class="pre">'(vR*.p1*)'</span></code>.
-Mainly the reduced density matrix of the right part, but with some additional mixing.</p>
-</dd>
-</dl>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
 <dt id="tenpy.algorithms.dmrg.Engine.mixed_svd">
 <code class="descname">mixed_svd</code><span class="sig-paren">(</span><em>theta</em>, <em>i0</em>, <em>update_LP</em>, <em>update_RP</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#Engine.mixed_svd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.Engine.mixed_svd" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get (truncated) <cite>B</cite> from the new theta (as returned by diag).</p>
@@ -743,11 +645,9 @@ Mainly the reduced density matrix of the right part, but with some additional mi
 </pre></div>
 </div>
 <p>Without a mixer, this is done by a simple svd and truncation of Schmidt values.</p>
-<p>With a mixer, we calculate the left and right reduced density using the mixer
-(which might include applications of <cite>H</cite>).
-These density matrices are diagonalized and truncated such that we effectively perform
-a svd for the case <code class="docutils literal notranslate"><span class="pre">mixer.amplitude=0</span></code>.
-Note that the returned <cite>S</cite> is a general (not diagonal) matrix, with labels <code class="docutils literal notranslate"><span class="pre">'vL',</span> <span class="pre">'vR'</span></code>.</p>
+<p>With a mixer, the state is perturbed before the SVD.
+The details of the perturbation are defined by the <a class="reference internal" href="#tenpy.algorithms.dmrg.Mixer" title="tenpy.algorithms.dmrg.Mixer"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mixer</span></code></a> class.</p>
+<p>Note that the returned <cite>S</cite> is a general (not diagonal) matrix, with labels <code class="docutils literal notranslate"><span class="pre">'vL',</span> <span class="pre">'vR'</span></code>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -882,7 +782,7 @@ If given, plot <code class="docutils literal notranslate"><span class="pre">abs(
 </dd>
 <dt><strong>theta_ortho</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
 <dd><p class="first last">States (with the same tensor structure) to orthogonalize against,
-c.f. see <a class="reference internal" href="#tenpy.algorithms.dmrg.Engine.get_theta_ortho" title="tenpy.algorithms.dmrg.Engine.get_theta_ortho"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_theta_ortho()</span></code></a>.</p>
+see <a class="reference internal" href="#tenpy.algorithms.dmrg.Engine.get_theta_ortho" title="tenpy.algorithms.dmrg.Engine.get_theta_ortho"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_theta_ortho()</span></code></a>.</p>
 </dd>
 </dl>
 </td>
@@ -1159,12 +1059,6 @@ Labels <code class="docutils literal notranslate"><span class="pre">'(vL.p1*)',<
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineCombine.matvec" title="tenpy.algorithms.dmrg.EngineCombine.matvec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">matvec</span></code></a>(theta)</td>
 <td>Apply the effective Hamiltonian to <cite>theta</cite>.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineCombine.mix_rho_L" title="tenpy.algorithms.dmrg.EngineCombine.mix_rho_L"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mix_rho_L</span></code></a>(theta,&nbsp;i0,&nbsp;mix_enabled)</td>
-<td>Calculated mixed reduced density matrix for left site.</td>
-</tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineCombine.mix_rho_R" title="tenpy.algorithms.dmrg.EngineCombine.mix_rho_R"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mix_rho_R</span></code></a>(theta,&nbsp;i0,&nbsp;mix_enabled)</td>
-<td>Calculated mixed reduced density matrix for left site.</td>
-</tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">mixed_svd</span></code>(theta,&nbsp;i0,&nbsp;update_LP,&nbsp;update_RP)</td>
 <td>Get (truncated) <cite>B</cite> from the new theta (as returned by diag).</td>
 </tr>
@@ -1180,7 +1074,7 @@ Labels <code class="docutils literal notranslate"><span class="pre">'(vL.p1*)',<
 <tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_update_stats</span></code>([xaxis,&nbsp;E_exact])</td>
 <td>Plot the update statistics to display the convergence during the sweeps.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineCombine.prepare_diag" title="tenpy.algorithms.dmrg.EngineCombine.prepare_diag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prepare_diag</span></code></a>(i0,&nbsp;update_LP,&nbsp;update_RP)</td>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineCombine.prepare_diag" title="tenpy.algorithms.dmrg.EngineCombine.prepare_diag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prepare_diag</span></code></a>(i0)</td>
 <td>Prepare <cite>self</cite> to represent the effective Hamiltonian on sites <code class="docutils literal notranslate"><span class="pre">(i0,</span> <span class="pre">i0+1)</span></code>.</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineCombine.prepare_svd" title="tenpy.algorithms.dmrg.EngineCombine.prepare_svd"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prepare_svd</span></code></a>(theta)</td>
@@ -1236,102 +1130,8 @@ Labels <code class="docutils literal notranslate"><span class="pre">'(vL.p1*)',<
 </dd></dl>
 
 <dl class="method">
-<dt id="tenpy.algorithms.dmrg.EngineCombine.mix_rho_L">
-<code class="descname">mix_rho_L</code><span class="sig-paren">(</span><em>theta</em>, <em>i0</em>, <em>mix_enabled</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#EngineCombine.mix_rho_L"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineCombine.mix_rho_L" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculated mixed reduced density matrix for left site.</p>
-<p>Pictorially:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>     <span class="n">mix_enabled</span><span class="o">=</span><span class="kc">False</span>           <span class="n">mix_enabled</span><span class="o">=</span><span class="kc">True</span>
-<span class="o">|</span>
-<span class="o">|</span>    <span class="o">.---</span><span class="n">theta</span><span class="o">---.</span>            <span class="o">.---</span><span class="n">theta</span><span class="o">-------.</span>
-<span class="o">|</span>    <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>            <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>       <span class="o">|</span>
-<span class="o">|</span>            <span class="o">|</span>   <span class="o">|</span>           <span class="n">LP</span><span class="o">---</span><span class="n">H0</span><span class="o">--</span><span class="n">H1</span><span class="o">--.</span>   <span class="o">|</span>
-<span class="o">|</span>    <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>            <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
-<span class="o">|</span>    <span class="o">.---</span><span class="n">theta</span><span class="o">*--.</span>                    <span class="o">|</span>   <span class="n">xR</span>  <span class="o">|</span>
-<span class="o">|</span>                             <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
-<span class="o">|</span>                            <span class="n">LP</span><span class="o">*--</span><span class="n">H0</span><span class="o">*-</span><span class="n">H1</span><span class="o">*-.</span>   <span class="o">|</span>
-<span class="o">|</span>                             <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>       <span class="o">|</span>
-<span class="o">|</span>                             <span class="o">.---</span><span class="n">theta</span><span class="o">*------.</span>
-</pre></div>
-</div>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
-<dd><p class="first last">Ground state of the effective Hamiltonian, prepared for svd.</p>
-</dd>
-<dt><strong>i0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd><p class="first last">Site index; <cite>theta</cite> lives on <code class="docutils literal notranslate"><span class="pre">i0,</span> <span class="pre">i0+1</span></code>.</p>
-</dd>
-<dt><strong>mix_enabled</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
-<dd><p class="first last">Wheter we actually use mix_R or not.</p>
-</dd>
-</dl>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>rho_L</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
-<dd><p class="first last">A (hermitian) square array with labels <code class="docutils literal notranslate"><span class="pre">'(vL.p0)',</span> <span class="pre">'(vL*.p0*)'</span></code>,
-Mainly the reduced density matrix of the left part, but with some additional mixing.</p>
-</dd>
-</dl>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="tenpy.algorithms.dmrg.EngineCombine.mix_rho_R">
-<code class="descname">mix_rho_R</code><span class="sig-paren">(</span><em>theta</em>, <em>i0</em>, <em>mix_enabled</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#EngineCombine.mix_rho_R"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineCombine.mix_rho_R" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculated mixed reduced density matrix for left site.</p>
-<p>Pictorially:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>     <span class="n">mix_enabled</span><span class="o">=</span><span class="kc">False</span>           <span class="n">mix_enabled</span><span class="o">=</span><span class="kc">True</span>
-<span class="o">|</span>
-<span class="o">|</span>    <span class="o">.---</span><span class="n">theta</span><span class="o">---.</span>           <span class="o">.------</span><span class="n">theta</span><span class="o">---.</span>
-<span class="o">|</span>    <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>           <span class="o">|</span>      <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
-<span class="o">|</span>    <span class="o">|</span>   <span class="o">|</span>                   <span class="o">|</span>   <span class="o">.--</span><span class="n">H0</span><span class="o">--</span><span class="n">H1</span><span class="o">--</span><span class="n">RP</span>
-<span class="o">|</span>    <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>           <span class="o">|</span>   <span class="o">|</span>  <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
-<span class="o">|</span>    <span class="o">.---</span><span class="n">theta</span><span class="o">*--.</span>           <span class="o">|</span>  <span class="n">wL</span>  <span class="o">|</span>
-<span class="o">|</span>                            <span class="o">|</span>   <span class="o">|</span>  <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
-<span class="o">|</span>                            <span class="o">|</span>   <span class="o">.--</span><span class="n">H0</span><span class="o">*-</span><span class="n">H1</span><span class="o">*-</span><span class="n">RP</span><span class="o">*</span>
-<span class="o">|</span>                            <span class="o">|</span>      <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
-<span class="o">|</span>                            <span class="o">.------</span><span class="n">theta</span><span class="o">*--.</span>
-</pre></div>
-</div>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
-<dd><p class="first last">Ground state of the effective Hamiltonian, prepared for svd.</p>
-</dd>
-<dt><strong>i0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd><p class="first last">Site index; <cite>theta</cite> lives on <code class="docutils literal notranslate"><span class="pre">i0,</span> <span class="pre">i0+1</span></code>.</p>
-</dd>
-<dt><strong>mix_enabled</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
-<dd><p class="first last">Wheter to actually use the mixer or not.</p>
-</dd>
-</dl>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>rho_R</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
-<dd><p class="first last">A (hermitian) square array with labels <code class="docutils literal notranslate"><span class="pre">'(vR.p1)',</span> <span class="pre">'(vR*.p1*)'</span></code>.
-Mainly the reduced density matrix of the right part, but with some additional mixing.</p>
-</dd>
-</dl>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
 <dt id="tenpy.algorithms.dmrg.EngineCombine.prepare_diag">
-<code class="descname">prepare_diag</code><span class="sig-paren">(</span><em>i0</em>, <em>update_LP</em>, <em>update_RP</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#EngineCombine.prepare_diag"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineCombine.prepare_diag" title="Permalink to this definition">¶</a></dt>
+<code class="descname">prepare_diag</code><span class="sig-paren">(</span><em>i0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#EngineCombine.prepare_diag"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineCombine.prepare_diag" title="Permalink to this definition">¶</a></dt>
 <dd><p>Prepare <cite>self</cite> to represent the effective Hamiltonian on sites <code class="docutils literal notranslate"><span class="pre">(i0,</span> <span class="pre">i0+1)</span></code>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1462,12 +1262,6 @@ Labels <code class="docutils literal notranslate"><span class="pre">'wL,</span> 
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.matvec" title="tenpy.algorithms.dmrg.EngineFracture.matvec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">matvec</span></code></a>(theta)</td>
 <td>Apply the effective Hamiltonian to <cite>theta</cite>.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.mix_rho_L" title="tenpy.algorithms.dmrg.EngineFracture.mix_rho_L"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mix_rho_L</span></code></a>(theta,&nbsp;i0,&nbsp;mix_enabled)</td>
-<td>Calculated mixed reduced density matrix for left site.</td>
-</tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.mix_rho_R" title="tenpy.algorithms.dmrg.EngineFracture.mix_rho_R"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mix_rho_R</span></code></a>(theta,&nbsp;i0,&nbsp;mix_enabled)</td>
-<td>Calculated mixed reduced density matrix for left site.</td>
-</tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">mixed_svd</span></code>(theta,&nbsp;i0,&nbsp;update_LP,&nbsp;update_RP)</td>
 <td>Get (truncated) <cite>B</cite> from the new theta (as returned by diag).</td>
 </tr>
@@ -1483,7 +1277,7 @@ Labels <code class="docutils literal notranslate"><span class="pre">'wL,</span> 
 <tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_update_stats</span></code>([xaxis,&nbsp;E_exact])</td>
 <td>Plot the update statistics to display the convergence during the sweeps.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.prepare_diag" title="tenpy.algorithms.dmrg.EngineFracture.prepare_diag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prepare_diag</span></code></a>(i0,&nbsp;update_LP,&nbsp;update_RP)</td>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.prepare_diag" title="tenpy.algorithms.dmrg.EngineFracture.prepare_diag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prepare_diag</span></code></a>(i0)</td>
 <td>Prepare <cite>self</cite> to represent the effective Hamiltonian on sites <code class="docutils literal notranslate"><span class="pre">(i0,</span> <span class="pre">i0+1)</span></code>.</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.prepare_svd" title="tenpy.algorithms.dmrg.EngineFracture.prepare_svd"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prepare_svd</span></code></a>(theta)</td>
@@ -1539,102 +1333,8 @@ Labels <code class="docutils literal notranslate"><span class="pre">'wL,</span> 
 </dd></dl>
 
 <dl class="method">
-<dt id="tenpy.algorithms.dmrg.EngineFracture.mix_rho_L">
-<code class="descname">mix_rho_L</code><span class="sig-paren">(</span><em>theta</em>, <em>i0</em>, <em>mix_enabled</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#EngineFracture.mix_rho_L"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture.mix_rho_L" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculated mixed reduced density matrix for left site.</p>
-<p>Pictorially:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>     <span class="n">mix_enabled</span><span class="o">=</span><span class="kc">False</span>           <span class="n">mix_enabled</span><span class="o">=</span><span class="kc">True</span>
-<span class="o">|</span>
-<span class="o">|</span>    <span class="o">.---</span><span class="n">theta</span><span class="o">---.</span>            <span class="o">.---</span><span class="n">theta</span><span class="o">-------.</span>
-<span class="o">|</span>    <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>            <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>       <span class="o">|</span>
-<span class="o">|</span>            <span class="o">|</span>   <span class="o">|</span>           <span class="n">LP</span><span class="o">---</span><span class="n">H0</span><span class="o">--</span><span class="n">H1</span><span class="o">--.</span>   <span class="o">|</span>
-<span class="o">|</span>    <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>            <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
-<span class="o">|</span>    <span class="o">.---</span><span class="n">theta</span><span class="o">*--.</span>                    <span class="o">|</span>   <span class="n">xR</span>  <span class="o">|</span>
-<span class="o">|</span>                             <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
-<span class="o">|</span>                            <span class="n">LP</span><span class="o">*--</span><span class="n">H0</span><span class="o">*-</span><span class="n">H1</span><span class="o">*-.</span>   <span class="o">|</span>
-<span class="o">|</span>                             <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>       <span class="o">|</span>
-<span class="o">|</span>                             <span class="o">.---</span><span class="n">theta</span><span class="o">*------.</span>
-</pre></div>
-</div>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
-<dd><p class="first last">Ground state of the effective Hamiltonian, prepared for svd.</p>
-</dd>
-<dt><strong>i0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd><p class="first last">Site index; <cite>theta</cite> lives on <code class="docutils literal notranslate"><span class="pre">i0,</span> <span class="pre">i0+1</span></code>.</p>
-</dd>
-<dt><strong>mix_enabled</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
-<dd><p class="first last">Wheter we actually use mix_R or not.</p>
-</dd>
-</dl>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>rho_L</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
-<dd><p class="first last">A (hermitian) square array with labels <code class="docutils literal notranslate"><span class="pre">'(vL.p0)',</span> <span class="pre">'(vL*.p0*)'</span></code>,
-Mainly the reduced density matrix of the left part, but with some additional mixing.</p>
-</dd>
-</dl>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="tenpy.algorithms.dmrg.EngineFracture.mix_rho_R">
-<code class="descname">mix_rho_R</code><span class="sig-paren">(</span><em>theta</em>, <em>i0</em>, <em>mix_enabled</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#EngineFracture.mix_rho_R"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture.mix_rho_R" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculated mixed reduced density matrix for left site.</p>
-<p>Pictorially:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>     <span class="n">mix_enabled</span><span class="o">=</span><span class="kc">False</span>           <span class="n">mix_enabled</span><span class="o">=</span><span class="kc">True</span>
-<span class="o">|</span>
-<span class="o">|</span>    <span class="o">.---</span><span class="n">theta</span><span class="o">---.</span>           <span class="o">.------</span><span class="n">theta</span><span class="o">---.</span>
-<span class="o">|</span>    <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>           <span class="o">|</span>      <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
-<span class="o">|</span>    <span class="o">|</span>   <span class="o">|</span>                   <span class="o">|</span>   <span class="o">.--</span><span class="n">H0</span><span class="o">--</span><span class="n">H1</span><span class="o">--</span><span class="n">RP</span>
-<span class="o">|</span>    <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>           <span class="o">|</span>   <span class="o">|</span>  <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
-<span class="o">|</span>    <span class="o">.---</span><span class="n">theta</span><span class="o">*--.</span>           <span class="o">|</span>  <span class="n">wL</span>  <span class="o">|</span>
-<span class="o">|</span>                            <span class="o">|</span>   <span class="o">|</span>  <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
-<span class="o">|</span>                            <span class="o">|</span>   <span class="o">.--</span><span class="n">H0</span><span class="o">*-</span><span class="n">H1</span><span class="o">*-</span><span class="n">RP</span><span class="o">*</span>
-<span class="o">|</span>                            <span class="o">|</span>      <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
-<span class="o">|</span>                            <span class="o">.------</span><span class="n">theta</span><span class="o">*--.</span>
-</pre></div>
-</div>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
-<dd><p class="first last">Ground state of the effective Hamiltonian, prepared for svd.</p>
-</dd>
-<dt><strong>i0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd><p class="first last">Site index; <cite>theta</cite> lives on <code class="docutils literal notranslate"><span class="pre">i0,</span> <span class="pre">i0+1</span></code>.</p>
-</dd>
-<dt><strong>mix_enabled</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
-<dd><p class="first last">Wheter to actually use the mixer or not.</p>
-</dd>
-</dl>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>rho_R</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
-<dd><p class="first last">A (hermitian) square array with labels <code class="docutils literal notranslate"><span class="pre">'(vR.p1)',</span> <span class="pre">'(vR*.p1*)'</span></code>.
-Mainly the reduced density matrix of the right part, but with some additional mixing.</p>
-</dd>
-</dl>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
 <dt id="tenpy.algorithms.dmrg.EngineFracture.prepare_diag">
-<code class="descname">prepare_diag</code><span class="sig-paren">(</span><em>i0</em>, <em>update_LP</em>, <em>update_RP</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#EngineFracture.prepare_diag"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture.prepare_diag" title="Permalink to this definition">¶</a></dt>
+<code class="descname">prepare_diag</code><span class="sig-paren">(</span><em>i0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#EngineFracture.prepare_diag"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture.prepare_diag" title="Permalink to this definition">¶</a></dt>
 <dd><p>Prepare <cite>self</cite> to represent the effective Hamiltonian on sites <code class="docutils literal notranslate"><span class="pre">(i0,</span> <span class="pre">i0+1)</span></code>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1719,19 +1419,19 @@ c.f. see <code class="xref py py-meth docutils literal notranslate"><span class=
 <dt id="tenpy.algorithms.dmrg.Mixer">
 <em class="property">class </em><code class="descclassname">tenpy.algorithms.dmrg.</code><code class="descname">Mixer</code><span class="sig-paren">(</span><em>mixer_params</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#Mixer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.Mixer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>Mixer class.</p>
-<p>This Mixer is based on the paper <a class="reference internal" href="../literature.html#white2005" id="id3">[White2005]</a>.</p>
+<p>Base class of a general Mixer.</p>
 <p>Since DMRG performs only local updates of the state, it can get stuck in “local minima”,
 in particular if the Hamiltonain is long-range – which is the case if one
 maps a 2D system (“infinite cylinder”) to 1D – or if one wants to do single-site updates
 (currently not implemented in TeNPy).
-The mixer perturbs the density matrix with the terms of the Hamiltonian
+The idea of the mixer is to perturb the state with the terms of the Hamiltonian
 which have contributions in both the “left” and “right” side of the system.
 In that way, it adds fluctuation of the quantum numbers and non-zero contributions of the
 long-range terms - leading to a significantly improved convergence of DMRG.</p>
 <p>The strength of the perturbation is given by the <cite>amplitude</cite> of the mixer.
 A good strategy is to choose an initially significant amplitude and let it decay until
 the perturbation becomes completely irrelevant and the mixer gets disabled.</p>
+<p>This original idea of the mixer was introduced in <a class="reference internal" href="../literature.html#white2005" id="id3">[White2005]</a>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1800,83 +1500,54 @@ after each sweep. (Should be &gt;= 1.)</td>
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.Mixer.get_xL" title="tenpy.algorithms.dmrg.Mixer.get_xL"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_xL</span></code></a>(wL_leg,&nbsp;Id_L,&nbsp;Id_R)</td>
-<td>Generate the coupling of the MPO legs for the reduced density matrix.</td>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.Mixer.perturb_svd" title="tenpy.algorithms.dmrg.Mixer.perturb_svd"><code class="xref py py-obj docutils literal notranslate"><span class="pre">perturb_svd</span></code></a>(engine,&nbsp;theta,&nbsp;i0,&nbsp;update_LP,&nbsp;…)</td>
+<td>Perturb the wave function and perform an SVD with truncation.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.Mixer.get_xR" title="tenpy.algorithms.dmrg.Mixer.get_xR"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_xR</span></code></a>(wR_leg,&nbsp;Id_L,&nbsp;Id_R)</td>
-<td>Generate the coupling of the MPO legs for the reduced density matrix.</td>
-</tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.Mixer.update_amplitude" title="tenpy.algorithms.dmrg.Mixer.update_amplitude"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_amplitude</span></code></a>(sweeps)</td>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.Mixer.update_amplitude" title="tenpy.algorithms.dmrg.Mixer.update_amplitude"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_amplitude</span></code></a>(sweeps)</td>
 <td>Update the amplitude, possibly disable the mixer.</td>
 </tr>
 </tbody>
 </table>
 <dl class="method">
-<dt id="tenpy.algorithms.dmrg.Mixer.get_xL">
-<code class="descname">get_xL</code><span class="sig-paren">(</span><em>wL_leg</em>, <em>Id_L</em>, <em>Id_R</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#Mixer.get_xL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.Mixer.get_xL" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generate the coupling of the MPO legs for the reduced density matrix.</p>
+<dt id="tenpy.algorithms.dmrg.Mixer.perturb_svd">
+<code class="descname">perturb_svd</code><span class="sig-paren">(</span><em>engine</em>, <em>theta</em>, <em>i0</em>, <em>update_LP</em>, <em>update_RP</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#Mixer.perturb_svd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.Mixer.perturb_svd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perturb the wave function and perform an SVD with truncation.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>wL_leg</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge" title="tenpy.linalg.charges.LegCharge"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegCharge</span></code></a></span></dt>
-<dd><p class="first last">LegCharge to be connected to.</p>
+<dt><strong>engine</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a href="#id4"><span class="problematic" id="id5">:calss:`Engine`</span></a></span></dt>
+<dd><p class="first last">The DMRG engine calling the mixer.</p>
 </dd>
-<dt><strong>Id_L</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int | <code class="docutils literal notranslate"><span class="pre">None</span></code></span></dt>
-<dd><p class="first last">Index within the leg for which the MPO has only identities to the left.</p>
+<dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">The optimized wave function, prepared for svd.</p>
 </dd>
-<dt><strong>Id_R</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int | <code class="docutils literal notranslate"><span class="pre">None</span></code></span></dt>
-<dd><p class="first last">Index within the leg for which the MPO has only identities to the right.</p>
+<dt><strong>i0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Site index; <cite>theta</cite> lives on <code class="docutils literal notranslate"><span class="pre">i0,</span> <span class="pre">i0+1</span></code>.</p>
 </dd>
-</dl>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>mixed_xL</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
-<dd><p class="first last">Connection of the MPOs on the left for the reduced density matrix <cite>rhoR</cite>.
-Labels <code class="docutils literal notranslate"><span class="pre">('wR',</span> <span class="pre">'wR*')</span></code>.</p>
+<dt><strong>update_LP</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">Whether to calculate the next <code class="docutils literal notranslate"><span class="pre">env.LP[i0+1]</span></code>.</p>
 </dd>
-<dt><strong>add_separate_Id</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
-<dd><p class="first last">If Id_R is <code class="docutils literal notranslate"><span class="pre">None</span></code>, we can’t include the identity into <cite>mixed_xL</cite>,
-so it has to be added directly in <a class="reference internal" href="#tenpy.algorithms.dmrg.Engine.mix_rho_R" title="tenpy.algorithms.dmrg.Engine.mix_rho_R"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Engine.mix_rho_R()</span></code></a>.</p>
-</dd>
-</dl>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="tenpy.algorithms.dmrg.Mixer.get_xR">
-<code class="descname">get_xR</code><span class="sig-paren">(</span><em>wR_leg</em>, <em>Id_L</em>, <em>Id_R</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#Mixer.get_xR"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.Mixer.get_xR" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generate the coupling of the MPO legs for the reduced density matrix.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>wR_leg</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge" title="tenpy.linalg.charges.LegCharge"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegCharge</span></code></a></span></dt>
-<dd><p class="first last">LegCharge to be connected to.</p>
-</dd>
-<dt><strong>IdL</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int | <code class="docutils literal notranslate"><span class="pre">None</span></code></span></dt>
-<dd><p class="first last">Index within the leg for which the MPO has only identities to the left.</p>
-</dd>
-<dt><strong>IdR</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int | <code class="docutils literal notranslate"><span class="pre">None</span></code></span></dt>
-<dd><p class="first last">Index within the leg for which the MPO has only identities to the right.</p>
+<dt><strong>update_RP</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">Whether to calculate the next <code class="docutils literal notranslate"><span class="pre">env.RP[i0]</span></code>.</p>
 </dd>
 </dl>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>mixed_xR</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
-<dd><p class="first last">Connection of the MPOs on the right for the reduced density matrix <cite>rhoL</cite>.
-Labels <code class="docutils literal notranslate"><span class="pre">('wL',</span> <span class="pre">'wL*')</span></code>.</p>
+<dt><strong>U</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Left-canonical part of <cite>theta</cite>. Labels <code class="docutils literal notranslate"><span class="pre">'(vL.p0)',</span> <span class="pre">'vR'</span></code>.</p>
 </dd>
-<dt><strong>add_separate_Id</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
-<dd><p class="first last">If Id_L is <code class="docutils literal notranslate"><span class="pre">None</span></code>, we can’t include the identity into <cite>mixed_xR</cite>,
-so it has to be added directly in <a class="reference internal" href="#tenpy.algorithms.dmrg.Engine.mix_rho_L" title="tenpy.algorithms.dmrg.Engine.mix_rho_L"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Engine.mix_rho_L()</span></code></a>.</p>
+<dt><strong>S</strong> <span class="classifier-delimiter">:</span> <span class="classifier">1D ndarray | 2D <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Without mixer just the singluar values of the array; with mixer it might be a general
+matrix; see comment above.</p>
+</dd>
+<dt><strong>VH</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Right-canonical part of <cite>theta</cite>. Labels <code class="docutils literal notranslate"><span class="pre">'vL',</span> <span class="pre">'(vR.p1)'</span></code>.</p>
+</dd>
+<dt><strong>err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
+<dd><p class="first last">The truncation error introduced.</p>
 </dd>
 </dl>
 </td>
@@ -1904,6 +1575,442 @@ so it has to be added directly in <a class="reference internal" href="#tenpy.alg
 <dt><strong>mixer</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="#tenpy.algorithms.dmrg.Mixer" title="tenpy.algorithms.dmrg.Mixer"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mixer</span></code></a> | None</span></dt>
 <dd><p class="first last">Returns <cite>self</cite> if we should continue mixing, or <code class="docutils literal notranslate"><span class="pre">None</span></code>, if the mixer
 should be disabled.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tenpy.algorithms.dmrg.SingleSiteMixer">
+<em class="property">class </em><code class="descclassname">tenpy.algorithms.dmrg.</code><code class="descname">SingleSiteMixer</code><span class="sig-paren">(</span><em>mixer_params</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#SingleSiteMixer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.SingleSiteMixer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tenpy.algorithms.dmrg.Mixer" title="tenpy.algorithms.dmrg.Mixer"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.algorithms.dmrg.Mixer</span></code></a></p>
+<p>Mixer for single-site DMRG.</p>
+<p>Perform a subspace expansion following <a class="reference internal" href="../literature.html#hubig2015" id="id6">[Hubig2015]</a>.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.SingleSiteMixer.perturb_svd" title="tenpy.algorithms.dmrg.SingleSiteMixer.perturb_svd"><code class="xref py py-obj docutils literal notranslate"><span class="pre">perturb_svd</span></code></a>(engine,&nbsp;theta,&nbsp;i0,&nbsp;move_right,&nbsp;…)</td>
+<td>Mix extra terms to theta and perform an SVD.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_amplitude</span></code>(sweeps)</td>
+<td>Update the amplitude, possibly disable the mixer.</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="66%" />
+<col width="34%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>subspace_expand</strong></td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.SingleSiteMixer.perturb_svd">
+<code class="descname">perturb_svd</code><span class="sig-paren">(</span><em>engine</em>, <em>theta</em>, <em>i0</em>, <em>move_right</em>, <em>next_B</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#SingleSiteMixer.perturb_svd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.SingleSiteMixer.perturb_svd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mix extra terms to theta and perform an SVD.</p>
+<p>We calculate the left and right reduced density using the mixer
+(which might include applications of <cite>H</cite>).
+These density matrices are diagonalized and truncated such that we effectively perform
+a svd for the case <code class="docutils literal notranslate"><span class="pre">mixer.amplitude=0</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>engine</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="#tenpy.algorithms.dmrg.Engine" title="tenpy.algorithms.dmrg.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">Engine</span></code></a></span></dt>
+<dd><p class="first last">The DMRG engine calling the mixer.</p>
+</dd>
+<dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">The optimized wave function, prepared for svd.</p>
+</dd>
+<dt><strong>i0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">The site index where <cite>theta</cite> lives.</p>
+</dd>
+<dt><strong>move_right</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">Whether we move to the right (<code class="docutils literal notranslate"><span class="pre">True</span></code>) or left (<code class="docutils literal notranslate"><span class="pre">False</span></code>).</p>
+</dd>
+<dt><strong>next_B</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">The subspace expansion requires to change the tensor on the next site as well.
+If <cite>move_right</cite>, it should correspond to <code class="docutils literal notranslate"><span class="pre">engine.psi.get_B(i0+1,</span> <span class="pre">form='B')</span></code>.
+If not <cite>move_right</cite>, it should correspond to <code class="docutils literal notranslate"><span class="pre">engine.psi.get_B(i0-1,</span> <span class="pre">form='A')</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>U</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Left-canonical part of <cite>tensordot(theta, next_B)</cite>. Labels <code class="docutils literal notranslate"><span class="pre">'(vL.p0)',</span> <span class="pre">'vR'</span></code>.</p>
+</dd>
+<dt><strong>S</strong> <span class="classifier-delimiter">:</span> <span class="classifier">1D ndarray</span></dt>
+<dd><p class="first last">(Perturbed) singular values on the new bond (between <cite>theta</cite> and <cite>next_B</cite>).</p>
+</dd>
+<dt><strong>VH</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Right-canonical part of <cite>tensordot(theta, next_B)</cite>. Labels <code class="docutils literal notranslate"><span class="pre">'vL',</span> <span class="pre">'(vR.p1)'</span></code>.</p>
+</dd>
+<dt><strong>err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
+<dd><p class="first last">The truncation error introduced.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.SingleSiteMixer.subspace_expand">
+<code class="descname">subspace_expand</code><span class="sig-paren">(</span><em>engine</em>, <em>theta</em>, <em>i0</em>, <em>move_right</em>, <em>next_B</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#SingleSiteMixer.subspace_expand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.SingleSiteMixer.subspace_expand" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tenpy.algorithms.dmrg.TwoSiteMixer">
+<em class="property">class </em><code class="descclassname">tenpy.algorithms.dmrg.</code><code class="descname">TwoSiteMixer</code><span class="sig-paren">(</span><em>mixer_params</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#TwoSiteMixer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.TwoSiteMixer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tenpy.algorithms.dmrg.SingleSiteMixer" title="tenpy.algorithms.dmrg.SingleSiteMixer"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.algorithms.dmrg.SingleSiteMixer</span></code></a></p>
+<p>Mixer for two-site DMRG.</p>
+<p>This is the two-site version of the mixer described in <a class="reference internal" href="../literature.html#hubig2015" id="id7">[Hubig2015]</a>.
+Equivalent to the <a class="reference internal" href="#tenpy.algorithms.dmrg.DensityMatrixMixer" title="tenpy.algorithms.dmrg.DensityMatrixMixer"><code class="xref py py-class docutils literal notranslate"><span class="pre">DensityMatrixMixer</span></code></a>, but never construct the full density matrix.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.TwoSiteMixer.perturb_svd" title="tenpy.algorithms.dmrg.TwoSiteMixer.perturb_svd"><code class="xref py py-obj docutils literal notranslate"><span class="pre">perturb_svd</span></code></a>(engine,&nbsp;theta,&nbsp;i0,&nbsp;update_LP,&nbsp;…)</td>
+<td>Mix extra terms to theta and perform an SVD.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_amplitude</span></code>(sweeps)</td>
+<td>Update the amplitude, possibly disable the mixer.</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="66%" />
+<col width="34%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>subspace_expand</strong></td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.TwoSiteMixer.perturb_svd">
+<code class="descname">perturb_svd</code><span class="sig-paren">(</span><em>engine</em>, <em>theta</em>, <em>i0</em>, <em>update_LP</em>, <em>update_RP</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#TwoSiteMixer.perturb_svd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.TwoSiteMixer.perturb_svd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mix extra terms to theta and perform an SVD.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>engine</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="#tenpy.algorithms.dmrg.Engine" title="tenpy.algorithms.dmrg.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">Engine</span></code></a></span></dt>
+<dd><p class="first last">The DMRG engine calling the mixer.</p>
+</dd>
+<dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">The optimized wave function, prepared for svd.</p>
+</dd>
+<dt><strong>i0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Site index; <cite>theta</cite> lives on <code class="docutils literal notranslate"><span class="pre">i0,</span> <span class="pre">i0+1</span></code>.</p>
+</dd>
+<dt><strong>update_LP</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">Whether to calculate the next <code class="docutils literal notranslate"><span class="pre">env.LP[i0+1]</span></code>.</p>
+</dd>
+<dt><strong>update_RP</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">Whether to calculate the next <code class="docutils literal notranslate"><span class="pre">env.RP[i0]</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>U</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Left-canonical part of <cite>theta</cite>. Labels <code class="docutils literal notranslate"><span class="pre">'(vL.p0)',</span> <span class="pre">'vR'</span></code>.</p>
+</dd>
+<dt><strong>S</strong> <span class="classifier-delimiter">:</span> <span class="classifier">1D ndarray | 2D <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Without mixer just the singluar values of the array; with mixer it might be a general
+matrix; see comment above.</p>
+</dd>
+<dt><strong>VH</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Right-canonical part of <cite>theta</cite>. Labels <code class="docutils literal notranslate"><span class="pre">'vL',</span> <span class="pre">'(vR.p1)'</span></code>.</p>
+</dd>
+<dt><strong>err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
+<dd><p class="first last">The truncation error introduced.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tenpy.algorithms.dmrg.DensityMatrixMixer">
+<em class="property">class </em><code class="descclassname">tenpy.algorithms.dmrg.</code><code class="descname">DensityMatrixMixer</code><span class="sig-paren">(</span><em>mixer_params</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#DensityMatrixMixer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.DensityMatrixMixer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tenpy.algorithms.dmrg.Mixer" title="tenpy.algorithms.dmrg.Mixer"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.algorithms.dmrg.Mixer</span></code></a></p>
+<p>Mixer based on density matrices.</p>
+<p>This mixer constructs density matrices as described in the original paper <a class="reference internal" href="../literature.html#white2005" id="id8">[White2005]</a>.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.DensityMatrixMixer.get_xL" title="tenpy.algorithms.dmrg.DensityMatrixMixer.get_xL"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_xL</span></code></a>(wL_leg,&nbsp;Id_L,&nbsp;Id_R)</td>
+<td>Generate the coupling of the MPO legs for the reduced density matrix.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.DensityMatrixMixer.get_xR" title="tenpy.algorithms.dmrg.DensityMatrixMixer.get_xR"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_xR</span></code></a>(wR_leg,&nbsp;Id_L,&nbsp;Id_R)</td>
+<td>Generate the coupling of the MPO legs for the reduced density matrix.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.DensityMatrixMixer.mix_rho_L" title="tenpy.algorithms.dmrg.DensityMatrixMixer.mix_rho_L"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mix_rho_L</span></code></a>(engine,&nbsp;theta,&nbsp;i0,&nbsp;mix_enabled)</td>
+<td>Calculated mixed reduced density matrix for left site.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.DensityMatrixMixer.mix_rho_R" title="tenpy.algorithms.dmrg.DensityMatrixMixer.mix_rho_R"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mix_rho_R</span></code></a>(engine,&nbsp;theta,&nbsp;i0,&nbsp;mix_enabled)</td>
+<td>Calculated mixed reduced density matrix for left site.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.DensityMatrixMixer.perturb_svd" title="tenpy.algorithms.dmrg.DensityMatrixMixer.perturb_svd"><code class="xref py py-obj docutils literal notranslate"><span class="pre">perturb_svd</span></code></a>(engine,&nbsp;theta,&nbsp;i0,&nbsp;update_LP,&nbsp;…)</td>
+<td>Mix extra terms to theta and perform an SVD.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_amplitude</span></code>(sweeps)</td>
+<td>Update the amplitude, possibly disable the mixer.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.DensityMatrixMixer.get_xL">
+<code class="descname">get_xL</code><span class="sig-paren">(</span><em>wL_leg</em>, <em>Id_L</em>, <em>Id_R</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#DensityMatrixMixer.get_xL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.DensityMatrixMixer.get_xL" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate the coupling of the MPO legs for the reduced density matrix.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>wL_leg</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge" title="tenpy.linalg.charges.LegCharge"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegCharge</span></code></a></span></dt>
+<dd><p class="first last">LegCharge to be connected to.</p>
+</dd>
+<dt><strong>Id_L</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int | <code class="docutils literal notranslate"><span class="pre">None</span></code></span></dt>
+<dd><p class="first last">Index within the leg for which the MPO has only identities to the left.</p>
+</dd>
+<dt><strong>Id_R</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int | <code class="docutils literal notranslate"><span class="pre">None</span></code></span></dt>
+<dd><p class="first last">Index within the leg for which the MPO has only identities to the right.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>mixed_xL</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Connection of the MPOs on the left for the reduced density matrix <cite>rhoR</cite>.
+Labels <code class="docutils literal notranslate"><span class="pre">('wR',</span> <span class="pre">'wR*')</span></code>.</p>
+</dd>
+<dt><strong>add_separate_Id</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">If Id_R is <code class="docutils literal notranslate"><span class="pre">None</span></code>, we can’t include the identity into <cite>mixed_xL</cite>,
+so it has to be added directly in <a class="reference internal" href="#tenpy.algorithms.dmrg.DensityMatrixMixer.mix_rho_R" title="tenpy.algorithms.dmrg.DensityMatrixMixer.mix_rho_R"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mix_rho_R()</span></code></a>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.DensityMatrixMixer.get_xR">
+<code class="descname">get_xR</code><span class="sig-paren">(</span><em>wR_leg</em>, <em>Id_L</em>, <em>Id_R</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#DensityMatrixMixer.get_xR"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.DensityMatrixMixer.get_xR" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate the coupling of the MPO legs for the reduced density matrix.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>wR_leg</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge" title="tenpy.linalg.charges.LegCharge"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegCharge</span></code></a></span></dt>
+<dd><p class="first last">LegCharge to be connected to.</p>
+</dd>
+<dt><strong>IdL</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int | <code class="docutils literal notranslate"><span class="pre">None</span></code></span></dt>
+<dd><p class="first last">Index within the leg for which the MPO has only identities to the left.</p>
+</dd>
+<dt><strong>IdR</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int | <code class="docutils literal notranslate"><span class="pre">None</span></code></span></dt>
+<dd><p class="first last">Index within the leg for which the MPO has only identities to the right.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>mixed_xR</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Connection of the MPOs on the right for the reduced density matrix <cite>rhoL</cite>.
+Labels <code class="docutils literal notranslate"><span class="pre">('wL',</span> <span class="pre">'wL*')</span></code>.</p>
+</dd>
+<dt><strong>add_separate_Id</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">If Id_L is <code class="docutils literal notranslate"><span class="pre">None</span></code>, we can’t include the identity into <cite>mixed_xR</cite>,
+so it has to be added directly in <a class="reference internal" href="#tenpy.algorithms.dmrg.DensityMatrixMixer.mix_rho_L" title="tenpy.algorithms.dmrg.DensityMatrixMixer.mix_rho_L"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mix_rho_L()</span></code></a>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.DensityMatrixMixer.mix_rho_L">
+<code class="descname">mix_rho_L</code><span class="sig-paren">(</span><em>engine</em>, <em>theta</em>, <em>i0</em>, <em>mix_enabled</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#DensityMatrixMixer.mix_rho_L"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.DensityMatrixMixer.mix_rho_L" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculated mixed reduced density matrix for left site.</p>
+<p>Pictorially:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>     <span class="n">mix_enabled</span><span class="o">=</span><span class="kc">False</span>           <span class="n">mix_enabled</span><span class="o">=</span><span class="kc">True</span>
+<span class="o">|</span>
+<span class="o">|</span>    <span class="o">.---</span><span class="n">theta</span><span class="o">---.</span>            <span class="o">.---</span><span class="n">theta</span><span class="o">-------.</span>
+<span class="o">|</span>    <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>            <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>       <span class="o">|</span>
+<span class="o">|</span>            <span class="o">|</span>   <span class="o">|</span>           <span class="n">LP</span><span class="o">---</span><span class="n">H0</span><span class="o">--</span><span class="n">H1</span><span class="o">--.</span>   <span class="o">|</span>
+<span class="o">|</span>    <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>            <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
+<span class="o">|</span>    <span class="o">.---</span><span class="n">theta</span><span class="o">*--.</span>                    <span class="o">|</span>   <span class="n">xR</span>  <span class="o">|</span>
+<span class="o">|</span>                             <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
+<span class="o">|</span>                            <span class="n">LP</span><span class="o">*--</span><span class="n">H0</span><span class="o">*-</span><span class="n">H1</span><span class="o">*-.</span>   <span class="o">|</span>
+<span class="o">|</span>                             <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>       <span class="o">|</span>
+<span class="o">|</span>                             <span class="o">.---</span><span class="n">theta</span><span class="o">*------.</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>engine</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="#tenpy.algorithms.dmrg.Engine" title="tenpy.algorithms.dmrg.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">Engine</span></code></a></span></dt>
+<dd><p class="first last">The DMRG engine calling the mixer.</p>
+</dd>
+<dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Ground state of the effective Hamiltonian, prepared for svd.</p>
+</dd>
+<dt><strong>i0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Site index; <cite>theta</cite> lives on <code class="docutils literal notranslate"><span class="pre">i0,</span> <span class="pre">i0+1</span></code>.</p>
+</dd>
+<dt><strong>mix_enabled</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">Whether we should perturb the density matrix.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>rho_L</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">A (hermitian) square array with labels <code class="docutils literal notranslate"><span class="pre">'(vL.p0)',</span> <span class="pre">'(vL*.p0*)'</span></code>,
+Mainly the reduced density matrix of the left part, but with some additional mixing.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.DensityMatrixMixer.mix_rho_R">
+<code class="descname">mix_rho_R</code><span class="sig-paren">(</span><em>engine</em>, <em>theta</em>, <em>i0</em>, <em>mix_enabled</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#DensityMatrixMixer.mix_rho_R"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.DensityMatrixMixer.mix_rho_R" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculated mixed reduced density matrix for left site.</p>
+<p>Pictorially:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>     <span class="n">mix_enabled</span><span class="o">=</span><span class="kc">False</span>           <span class="n">mix_enabled</span><span class="o">=</span><span class="kc">True</span>
+<span class="o">|</span>
+<span class="o">|</span>    <span class="o">.---</span><span class="n">theta</span><span class="o">---.</span>           <span class="o">.------</span><span class="n">theta</span><span class="o">---.</span>
+<span class="o">|</span>    <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>           <span class="o">|</span>      <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
+<span class="o">|</span>    <span class="o">|</span>   <span class="o">|</span>                   <span class="o">|</span>   <span class="o">.--</span><span class="n">H0</span><span class="o">--</span><span class="n">H1</span><span class="o">--</span><span class="n">RP</span>
+<span class="o">|</span>    <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>           <span class="o">|</span>   <span class="o">|</span>  <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
+<span class="o">|</span>    <span class="o">.---</span><span class="n">theta</span><span class="o">*--.</span>           <span class="o">|</span>  <span class="n">wL</span>  <span class="o">|</span>
+<span class="o">|</span>                            <span class="o">|</span>   <span class="o">|</span>  <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
+<span class="o">|</span>                            <span class="o">|</span>   <span class="o">.--</span><span class="n">H0</span><span class="o">*-</span><span class="n">H1</span><span class="o">*-</span><span class="n">RP</span><span class="o">*</span>
+<span class="o">|</span>                            <span class="o">|</span>      <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
+<span class="o">|</span>                            <span class="o">.------</span><span class="n">theta</span><span class="o">*--.</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>engine</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="#tenpy.algorithms.dmrg.Engine" title="tenpy.algorithms.dmrg.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">Engine</span></code></a></span></dt>
+<dd><p class="first last">The DMRG engine calling the mixer.</p>
+</dd>
+<dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Ground state of the effective Hamiltonian, prepared for svd.</p>
+</dd>
+<dt><strong>i0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Site index; <cite>theta</cite> lives on <code class="docutils literal notranslate"><span class="pre">i0,</span> <span class="pre">i0+1</span></code>.</p>
+</dd>
+<dt><strong>mix_enabled</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">Whether we should perturb the density matrix.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>rho_R</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">A (hermitian) square array with labels <code class="docutils literal notranslate"><span class="pre">'(vR.p1)',</span> <span class="pre">'(vR*.p1*)'</span></code>.
+Mainly the reduced density matrix of the right part, but with some additional mixing.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.DensityMatrixMixer.perturb_svd">
+<code class="descname">perturb_svd</code><span class="sig-paren">(</span><em>engine</em>, <em>theta</em>, <em>i0</em>, <em>update_LP</em>, <em>update_RP</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#DensityMatrixMixer.perturb_svd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.DensityMatrixMixer.perturb_svd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mix extra terms to theta and perform an SVD.</p>
+<p>We calculate the left and right reduced density using the mixer
+(which might include applications of <cite>H</cite>).
+These density matrices are diagonalized and truncated such that we effectively perform
+a svd for the case <code class="docutils literal notranslate"><span class="pre">mixer.amplitude=0</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>engine</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="#tenpy.algorithms.dmrg.Engine" title="tenpy.algorithms.dmrg.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">Engine</span></code></a></span></dt>
+<dd><p class="first last">The DMRG engine calling the mixer.</p>
+</dd>
+<dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">The optimized wave function, prepared for svd.</p>
+</dd>
+<dt><strong>i0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Site index; <cite>theta</cite> lives on <code class="docutils literal notranslate"><span class="pre">i0,</span> <span class="pre">i0+1</span></code>.</p>
+</dd>
+<dt><strong>update_LP</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">Whether to calculate the next <code class="docutils literal notranslate"><span class="pre">env.LP[i0+1]</span></code>.</p>
+</dd>
+<dt><strong>update_RP</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">Whether to calculate the next <code class="docutils literal notranslate"><span class="pre">env.RP[i0]</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>U</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Left-canonical part of <cite>theta</cite>. Labels <code class="docutils literal notranslate"><span class="pre">'(vL.p0)',</span> <span class="pre">'vR'</span></code>.</p>
+</dd>
+<dt><strong>S</strong> <span class="classifier-delimiter">:</span> <span class="classifier">1D ndarray | 2D <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Without mixer just the singluar values of the array; with mixer it might be a general
+matrix; see comment above.</p>
+</dd>
+<dt><strong>VH</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Right-canonical part of <cite>theta</cite>. Labels <code class="docutils literal notranslate"><span class="pre">'vL',</span> <span class="pre">'(vR.p1)'</span></code>.</p>
+</dd>
+<dt><strong>err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
+<dd><p class="first last">The truncation error introduced.</p>
 </dd>
 </dl>
 </td>
@@ -1943,7 +2050,7 @@ should be disabled.</p>
     </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
-<h3><a href="../index.html">Table Of Contents</a></h3>
+<h3><a href="../index.html">Table of Contents</a></h3>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../userguide.html">User Guide</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="tenpy.html">tenpy package</a><ul class="current">
@@ -1980,8 +2087,8 @@ should be disabled.</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2018, TeNPy Developers.
-      Last updated on Dec 27, 2018.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+      Last updated on Feb 18, 2019.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
     </div>
   </body>
 </html>

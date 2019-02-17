@@ -9,11 +9,14 @@
     <title>tenpy.linalg.charges &#8212; TeNPy 0.3.0 documentation</title>
     <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
     <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../../_static/doctools.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
     <link rel="shortcut icon" href="../../../_static/logo.ico"/>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
@@ -779,37 +782,35 @@
         <span class="n">cp</span><span class="o">.</span><span class="n">bunched</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_blocked</span><span class="p">()</span>  <span class="c1"># no, it&#39;s not `is_bunched`</span>
         <span class="k">return</span> <span class="n">map_qind</span><span class="p">,</span> <span class="n">block_masks</span><span class="p">,</span> <span class="n">cp</span></div>
 
-<div class="viewcode-block" id="LegCharge.extend"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.extend">[docs]</a>    <span class="k">def</span> <span class="nf">extend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_ind_len</span><span class="p">,</span> <span class="n">charges</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return a new :class:`LegCharge`, which extends self with a new charge block.</span>
+<div class="viewcode-block" id="LegCharge.extend"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.extend">[docs]</a>    <span class="k">def</span> <span class="nf">extend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">extra</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a new :class:`LegCharge`, which extends self with futher charges.</span>
 
 <span class="sd">        This is needed to formally increase the dimension of an Array.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        new_ind_len : int</span>
-<span class="sd">            The `ind_len` for the new :class:`LegCharge`.</span>
-<span class="sd">        charges : array | None</span>
-<span class="sd">            The charge values to be used for the new charge block.</span>
-<span class="sd">            `None` defaults to trivial charges (i.e. 0 values).</span>
+<span class="sd">        extra : :class:`LegCharge` | int</span>
+<span class="sd">            By what to extend, i.e. the charges to be appended to `self`.</span>
+<span class="sd">            An int stands for extending the length of the array by a single new block of that size</span>
+<span class="sd">            and zero charges.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        extended_leg : :class:`LegCharge`</span>
-<span class="sd">            Copy of `self` extended by one additional charge block with the specified `charges`</span>
-<span class="sd">            increasing the `ind_len` to `new_ind_len`.</span>
-<span class="sd">            If `new_ind_len` is not larger than the current `ind_len`, just return `self`.</span>
+<span class="sd">            Copy of `self` extended by the charge blocks of the `extra` leg.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">new_ind_len</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">ind_len</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t reduce the ind_len with extend!&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">new_ind_len</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">ind_len</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span>
-        <span class="n">new_slices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">block_number</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
-        <span class="n">new_slices</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">slices</span>
-        <span class="n">new_slices</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_ind_len</span>
-        <span class="n">new_charges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">block_number</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="o">.</span><span class="n">qnumber</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">QTYPE</span><span class="p">)</span>
-        <span class="n">new_charges</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">charges</span>
-        <span class="k">if</span> <span class="n">charges</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">new_charges</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="o">.</span><span class="n">make_valid</span><span class="p">(</span><span class="n">charges</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">extra</span><span class="p">,</span> <span class="n">LegCharge</span><span class="p">):</span>
+            <span class="n">extra</span> <span class="o">=</span> <span class="n">LegCharge</span><span class="o">.</span><span class="n">from_trivial</span><span class="p">(</span><span class="n">extra</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">qconj</span><span class="p">)</span>
+        <span class="n">bn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_number</span>
+        <span class="n">new_slices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">bn</span> <span class="o">+</span> <span class="n">extra</span><span class="o">.</span><span class="n">block_number</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
+        <span class="n">new_slices</span><span class="p">[:</span><span class="n">bn</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">slices</span>
+        <span class="n">new_slices</span><span class="p">[</span><span class="n">bn</span><span class="p">:]</span> <span class="o">=</span> <span class="n">extra</span><span class="o">.</span><span class="n">slices</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ind_len</span>
+        <span class="n">new_charges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">bn</span> <span class="o">+</span> <span class="n">extra</span><span class="o">.</span><span class="n">block_number</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="o">.</span><span class="n">qnumber</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">QTYPE</span><span class="p">)</span>
+        <span class="n">new_charges</span><span class="p">[:</span><span class="n">bn</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">charges</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">qconj</span> <span class="o">==</span> <span class="n">extra</span><span class="o">.</span><span class="n">qconj</span><span class="p">:</span>
+            <span class="n">new_charges</span><span class="p">[</span><span class="n">bn</span><span class="p">:]</span> <span class="o">=</span> <span class="n">extra</span><span class="o">.</span><span class="n">charges</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">new_charges</span><span class="p">[</span><span class="n">bn</span><span class="p">:]</span> <span class="o">=</span> <span class="o">-</span> <span class="n">extra</span><span class="o">.</span><span class="n">charges</span>
         <span class="k">return</span> <span class="n">LegCharge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="p">,</span> <span class="n">new_slices</span><span class="p">,</span> <span class="n">new_charges</span><span class="p">,</span> <span class="n">qconj</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">qconj</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LegCharge.charge_sectors"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.html#tenpy.linalg.charges.LegCharge.charge_sectors">[docs]</a>    <span class="k">def</span> <span class="nf">charge_sectors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1285,7 +1286,7 @@
     </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
-<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<h3><a href="../../../index.html">Table of Contents</a></h3>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../userguide.html">User Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.html">tenpy package</a></li>
@@ -1310,8 +1311,8 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2018, TeNPy Developers.
-      Last updated on Dec 27, 2018.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+      Last updated on Feb 18, 2019.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
     </div>
   </body>
 </html>

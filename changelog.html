@@ -9,11 +9,14 @@
     <title>CHANGELOG &#8212; TeNPy 0.3.0 documentation</title>
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
     <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
     <link rel="shortcut icon" href="_static/logo.ico"/>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -65,6 +68,12 @@ where the meaning of the p_state argument might have changed.</li>
 to allow for an arbitrary number of sites to be grouped.
 Arguments <code class="docutils literal notranslate"><span class="pre">site0,</span> <span class="pre">site1,</span> <span class="pre">label0,</span> <span class="pre">label1</span></code> of the __init__ can be replaced with <code class="docutils literal notranslate"><span class="pre">[site0,</span> <span class="pre">site1],</span> <span class="pre">[label0,</span> <span class="pre">label1]</span></code>
 and <code class="docutils literal notranslate"><span class="pre">op0,</span> <span class="pre">op1</span></code> of the <cite>kronecker_product</cite> with <code class="docutils literal notranslate"><span class="pre">[op0,</span> <span class="pre">op1]</span></code>; this will recover the functionality of the <cite>DoubleSite</cite>.</li>
+<li>Restructured callstructure of Mixer in DMRG, allowing an implementation of other mixers.
+To enable the mixer, set the DMRG parameter <code class="docutils literal notranslate"><span class="pre">&quot;mixer&quot;</span></code> to <code class="docutils literal notranslate"><span class="pre">True</span></code> or <code class="docutils literal notranslate"><span class="pre">'DensityMatrixMixer'</span></code>
+instead of just <code class="docutils literal notranslate"><span class="pre">'Mixer'</span></code>.</li>
+<li>The interaction parameter in the <code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.bose_hubbbard_chain.BoseHubbardModel</span></code> (and <code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.bose_hubbbard_chain.BoseHubbardChain</span></code>)
+did not correspond to <span class="math notranslate nohighlight">\(U/2 N (N-1)\)</span> as claimed in the Hamiltonian, but to <span class="math notranslate nohighlight">\(U N^2\)</span>. The correcting factor 1/2
+and change in the chemical potential have been fixed.</li>
 </ul>
 </div>
 <div class="section" id="added">
@@ -100,6 +109,8 @@ versa.</li>
 <li>Restructured lanczos into a class, added time evolution calculating exp(A*dt)|psi0&gt;</li>
 <li>Warning for poorly conditioned Lanczos; to overcome this enable the new parameter “reortho”</li>
 <li>By default, make deep copies of npc Arrays.</li>
+<li>Simplified call strucutre of <a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array.extend" title="tenpy.linalg.np_conserved.Array.extend"><code class="xref py py-meth docutils literal notranslate"><span class="pre">extend()</span></code></a>, and
+<a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge.extend" title="tenpy.linalg.charges.LegCharge.extend"><code class="xref py py-meth docutils literal notranslate"><span class="pre">extend()</span></code></a>.</li>
 <li>Restructured <a class="reference internal" href="reference/tenpy.algorithms.dmrg.html#module-tenpy.algorithms.dmrg" title="tenpy.algorithms.dmrg"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tenpy.algorithms.dmrg</span></code></a>:<ul>
 <li><a class="reference internal" href="reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.run" title="tenpy.algorithms.dmrg.run"><code class="xref py py-func docutils literal notranslate"><span class="pre">run()</span></code></a> is now just a wrapper around the new
 <a class="reference internal" href="reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.Engine.run" title="tenpy.algorithms.dmrg.Engine.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a>, <code class="docutils literal notranslate"><span class="pre">run(psi,</span> <span class="pre">model,</span> <span class="pre">pars)</span></code> is roughly equivalent to
@@ -135,6 +146,7 @@ to allow a simple restart of DMRG with slightly different parameters.</li>
 <li>more reasonable traceback in case of wrong labels</li>
 <li>wrong dtype of npc.Array when adding/subtracting/… arrays of different data types</li>
 <li>could get wrong H_bond for completely decoupled chains.</li>
+<li>SVD could return outer indices with different axes</li>
 </ul>
 </div>
 <div class="section" id="removed">
@@ -266,7 +278,7 @@ Similar as the old <cite>models.model.set_var</cite>, but use it also for algori
             <p class="logo"><a href="index.html">
               <img class="logo" src="_static/logo.png" alt="Logo"/>
             </a></p>
-  <h3><a href="index.html">Table Of Contents</a></h3>
+  <h3><a href="index.html">Table of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">CHANGELOG</a><ul>
 <li><a class="reference internal" href="#unreleased">[Unreleased]</a><ul>
@@ -314,7 +326,7 @@ Similar as the old <cite>models.model.set_var</cite>, but use it also for algori
     </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
-<h3><a href="index.html">Table Of Contents</a></h3>
+<h3><a href="index.html">Table of Contents</a></h3>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="userguide.html">User Guide</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="userguide.html#library-overview">Library overview</a></li>
@@ -349,8 +361,8 @@ Similar as the old <cite>models.model.set_var</cite>, but use it also for algori
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2018, TeNPy Developers.
-      Last updated on Dec 21, 2018.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+      Last updated on Feb 18, 2019.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
     </div>
   </body>
 </html>
