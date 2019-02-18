@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>tenpy.models.tf_ising &#8212; TeNPy 0.3.0 documentation</title>
+    <title>tenpy.models.fermions_spinless &#8212; TeNPy 0.3.0 documentation</title>
     <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     
@@ -40,48 +40,48 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <h1>Source code for tenpy.models.tf_ising</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Prototypical example of a quantum model: the transverse field Ising model.</span>
+  <h1>Source code for tenpy.models.fermions_spinless</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Spinless fermions with hopping and interaction.</span>
 
-<span class="sd">Like the :class:`~tenpy.models.xxz_chain.XXZChain`, the transverse field ising chain</span>
-<span class="sd">:class:`TFIChain` is contained in the more general :class:`~tenpy.models.spins.SpinChain`;</span>
-<span class="sd">the idea is more to serve as a pedagogical example for a &#39;model&#39;.</span>
-<span class="sd">Choosing the field along z allow to preserve parity, if desired, at the expense of a larger MPO</span>
-<span class="sd">bond dimension for the Hamiltion.</span>
-
-<span class="sd">The :class:`TFIModel2D` contains the same couplings but on a square lattice in 2D</span>
-<span class="sd">(with chooseable boundary conditions).</span>
-<span class="sd">As such, it illustrates the correct usage of the :class:`~tenpy.models.lattice.Lattice` classes.</span>
+<span class="sd">.. todo ::</span>
+<span class="sd">    add further terms (e.g. c^dagger c^dagger + h.c.) to the Hamiltonian.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="c1"># Copyright 2018 TeNPy Developers</span>
 
 <span class="kn">from</span> <span class="nn">.model</span> <span class="k">import</span> <span class="n">CouplingMPOModel</span><span class="p">,</span> <span class="n">NearestNeighborModel</span>
 <span class="kn">from</span> <span class="nn">..tools.params</span> <span class="k">import</span> <span class="n">get_parameter</span>
-<span class="kn">from</span> <span class="nn">..networks.site</span> <span class="k">import</span> <span class="n">SpinHalfSite</span>
+<span class="kn">from</span> <span class="nn">..networks.site</span> <span class="k">import</span> <span class="n">FermionSite</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;TFIModel&#39;</span><span class="p">,</span> <span class="s1">&#39;TFIChain&#39;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;FermionModel&#39;</span><span class="p">,</span> <span class="s1">&#39;FermionChain&#39;</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="TFIModel"><a class="viewcode-back" href="../../../reference/tenpy.models.tf_ising.html#tenpy.models.tf_ising.TFIModel">[docs]</a><span class="k">class</span> <span class="nc">TFIModel</span><span class="p">(</span><span class="n">CouplingMPOModel</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Transverse field Ising model on a general lattice.</span>
+<div class="viewcode-block" id="FermionModel"><a class="viewcode-back" href="../../../reference/tenpy.models.fermions_spinless.html#tenpy.models.fermions_spinless.FermionModel">[docs]</a><span class="k">class</span> <span class="nc">FermionModel</span><span class="p">(</span><span class="n">CouplingMPOModel</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Spinless fermions with particle number conservation.</span>
 
 <span class="sd">    The Hamiltonian reads:</span>
 
 <span class="sd">    .. math ::</span>
-<span class="sd">        H = - \sum_{\langle i,j\rangle, i &lt; j} \mathtt{J} \sigma^x_i \sigma^x_{j}</span>
-<span class="sd">            - \sum_{i} \mathtt{g} \sigma^z_i</span>
+<span class="sd">        H = \sum_{\langle i,j\rangle, i&lt;j}</span>
+<span class="sd">              - \mathtt{J} (c^{\dagger}_i c_j + c^{\dagger}_j c_i) + \mathtt{V} n_i n_j \\</span>
+<span class="sd">            - \sum_i</span>
+<span class="sd">              \mathtt{mu} n_{i}</span>
 
-<span class="sd">    Here, :math:`\langle i,j \rangle, i&lt; j` denotes nearest neighbor pairs, each pair appearing</span>
-<span class="sd">    exactly once.</span>
+<span class="sd">    Here, :math:`\langle i,j \rangle, i&lt; j` denotes nearest neighbor pairs.</span>
 <span class="sd">    All parameters are collected in a single dictionary `model_params` and read out with</span>
 <span class="sd">    :func:`~tenpy.tools.params.get_parameter`.</span>
 
+<span class="sd">    .. warning ::</span>
+<span class="sd">        Using the Jordan-Wigner string (``JW``) is crucial to get correct results!</span>
+<span class="sd">        See :doc:`/intro_JordanWigner` for details.</span>
+
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    conserve : None | &#39;parity&#39;</span>
-<span class="sd">        What should be conserved. See :class:`~tenpy.networks.Site.SpinHalfSite`.</span>
-<span class="sd">    J, g : float | array</span>
-<span class="sd">        Couplings as defined for the Hamiltonian above.</span>
+<span class="sd">    conserve : &#39;best&#39; | &#39;N&#39; | &#39;parity&#39; | None</span>
+<span class="sd">        What should be conserved. See :class:`~tenpy.networks.Site.FermionSite`.</span>
+<span class="sd">        For ``&#39;best&#39;``, we check the parameters what can be preserved.</span>
+<span class="sd">    J, V, mu : float | array</span>
+<span class="sd">        Hopping, interaction and chemical potential as defined for the</span>
+<span class="sd">        Hamiltonian above.</span>
 <span class="sd">    lattice : str | :class:`~tenpy.models.lattice.Lattice`</span>
 <span class="sd">        Instance of a lattice class for the underlaying geometry.</span>
 <span class="sd">        Alternatively a string being the name of one of the Lattices defined in</span>
@@ -105,33 +105,36 @@
 <span class="sd">        Boundary conditions in y-direction.</span>
 <span class="sd">        Only used if `lattice` is the name of a 2D Lattice.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">):</span>
         <span class="n">CouplingMPOModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">)</span>
 
-<div class="viewcode-block" id="TFIModel.init_sites"><a class="viewcode-back" href="../../../reference/tenpy.models.tf_ising.html#tenpy.models.tf_ising.TFIModel.init_sites">[docs]</a>    <span class="k">def</span> <span class="nf">init_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">):</span>
-        <span class="n">conserve</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;conserve&#39;</span><span class="p">,</span> <span class="s1">&#39;parity&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="n">conserve</span> <span class="o">!=</span> <span class="s1">&#39;Sz&#39;</span>
+<div class="viewcode-block" id="FermionModel.init_sites"><a class="viewcode-back" href="../../../reference/tenpy.models.fermions_spinless.html#tenpy.models.fermions_spinless.FermionModel.init_sites">[docs]</a>    <span class="k">def</span> <span class="nf">init_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">):</span>
+        <span class="n">conserve</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;conserve&#39;</span><span class="p">,</span> <span class="s1">&#39;N&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">conserve</span> <span class="o">==</span> <span class="s1">&#39;best&#39;</span><span class="p">:</span>
-            <span class="n">conserve</span> <span class="o">=</span> <span class="s1">&#39;parity&#39;</span>
+            <span class="n">conserve</span> <span class="o">=</span> <span class="s1">&#39;N&#39;</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mf">1.</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;: set conserve to&quot;</span><span class="p">,</span> <span class="n">conserve</span><span class="p">)</span>
-        <span class="n">site</span> <span class="o">=</span> <span class="n">SpinHalfSite</span><span class="p">(</span><span class="n">conserve</span><span class="o">=</span><span class="n">conserve</span><span class="p">)</span>
+        <span class="n">site</span> <span class="o">=</span> <span class="n">FermionSite</span><span class="p">(</span><span class="n">conserve</span><span class="o">=</span><span class="n">conserve</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">site</span></div>
 
-<div class="viewcode-block" id="TFIModel.init_terms"><a class="viewcode-back" href="../../../reference/tenpy.models.tf_ising.html#tenpy.models.tf_ising.TFIModel.init_terms">[docs]</a>    <span class="k">def</span> <span class="nf">init_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">):</span>
+<div class="viewcode-block" id="FermionModel.init_terms"><a class="viewcode-back" href="../../../reference/tenpy.models.fermions_spinless.html#tenpy.models.fermions_spinless.FermionModel.init_terms">[docs]</a>    <span class="k">def</span> <span class="nf">init_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">):</span>
         <span class="n">J</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;J&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
-        <span class="n">g</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;g&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="n">V</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;V&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="n">mu</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;mu&#39;</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">)):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">add_onsite</span><span class="p">(</span><span class="o">-</span><span class="n">g</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="s1">&#39;Sigmaz&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_onsite</span><span class="p">(</span><span class="o">-</span><span class="n">mu</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="s1">&#39;N&#39;</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">u1</span><span class="p">,</span> <span class="n">u2</span><span class="p">,</span> <span class="n">dx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">nearest_neighbors</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="o">-</span><span class="n">J</span><span class="p">,</span> <span class="n">u1</span><span class="p">,</span> <span class="s1">&#39;Sigmax&#39;</span><span class="p">,</span> <span class="n">u2</span><span class="p">,</span> <span class="s1">&#39;Sigmax&#39;</span><span class="p">,</span> <span class="n">dx</span><span class="p">)</span></div></div>
-        <span class="c1"># done</span>
+            <span class="c1"># (for a nearest neighbor model, we could leave the `JW` away)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="o">-</span><span class="n">J</span><span class="p">,</span> <span class="n">u1</span><span class="p">,</span> <span class="s1">&#39;Cd&#39;</span><span class="p">,</span> <span class="n">u2</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="s1">&#39;JW&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="o">-</span><span class="n">J</span><span class="p">,</span> <span class="n">u1</span><span class="p">,</span> <span class="s1">&#39;Cd&#39;</span><span class="p">,</span> <span class="n">u2</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="o">-</span><span class="n">dx</span><span class="p">,</span> <span class="s1">&#39;JW&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>  <span class="c1"># hermitian conjugate</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">u1</span><span class="p">,</span> <span class="s1">&#39;N&#39;</span><span class="p">,</span> <span class="n">u2</span><span class="p">,</span> <span class="s1">&#39;N&#39;</span><span class="p">,</span> <span class="n">dx</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="TFIChain"><a class="viewcode-back" href="../../../reference/tenpy.models.tf_ising.html#tenpy.models.tf_ising.TFIChain">[docs]</a><span class="k">class</span> <span class="nc">TFIChain</span><span class="p">(</span><span class="n">TFIModel</span><span class="p">,</span> <span class="n">NearestNeighborModel</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;The :class:`TFIModel` on a Chain, suitable for TEBD.</span>
+<div class="viewcode-block" id="FermionChain"><a class="viewcode-back" href="../../../reference/tenpy.models.fermions_spinless.html#tenpy.models.fermions_spinless.FermionChain">[docs]</a><span class="k">class</span> <span class="nc">FermionChain</span><span class="p">(</span><span class="n">FermionModel</span><span class="p">,</span><span class="n">NearestNeighborModel</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The :class:`FermionModel` on a Chain, suitable for TEBD.</span>
 
-<span class="sd">    See the :class:`TFIModel` for the documentation of parameters.</span>
+<span class="sd">    See the :class:`FermionModel` for the documentation of parameters.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">):</span>
         <span class="n">model_params</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;lattice&#39;</span><span class="p">,</span> <span class="s2">&quot;Chain&quot;</span><span class="p">)</span>
