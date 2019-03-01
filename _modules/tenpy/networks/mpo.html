@@ -82,7 +82,7 @@
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">..linalg</span> <span class="k">import</span> <span class="n">np_conserved</span> <span class="k">as</span> <span class="n">npc</span>
-<span class="kn">from</span> <span class="nn">.site</span> <span class="k">import</span> <span class="n">group_sites</span>
+<span class="kn">from</span> <span class="nn">.site</span> <span class="k">import</span> <span class="n">group_sites</span><span class="p">,</span> <span class="n">Site</span>
 <span class="kn">from</span> <span class="nn">..tools.string</span> <span class="k">import</span> <span class="n">vert_join</span>
 <span class="kn">from</span> <span class="nn">.mps</span> <span class="k">import</span> <span class="n">MPS</span> <span class="k">as</span> <span class="n">_MPS</span>  <span class="c1"># only for MPS._valid_bc</span>
 <span class="kn">from</span> <span class="nn">.mps</span> <span class="k">import</span> <span class="n">MPSEnvironment</span>
@@ -252,7 +252,7 @@
         <span class="k">if</span> <span class="n">copy</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_W</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_W</span><span class="p">[</span><span class="n">i</span><span class="p">]</span></div>
-
+    
 <div class="viewcode-block" id="MPO.set_W"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPO.set_W">[docs]</a>    <span class="k">def</span> <span class="nf">set_W</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">W</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Set `W` at site `i`.&quot;&quot;&quot;</span>
         <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_valid_index</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
@@ -260,7 +260,7 @@
 
 <div class="viewcode-block" id="MPO.get_IdL"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPO.get_IdL">[docs]</a>    <span class="k">def</span> <span class="nf">get_IdL</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return index of `IdL` at bond to the *left* of site `i`.</span>
-
+<span class="sd">    </span>
 <span class="sd">        May be ``None``.&quot;&quot;&quot;</span>
         <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_valid_index</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">IdL</span><span class="p">[</span><span class="n">i</span><span class="p">]</span></div>
@@ -331,8 +331,22 @@
             <span class="k">try</span><span class="p">:</span>
                 <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">Id</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
-                <span class="k">return</span> <span class="p">[</span><span class="n">Id</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span></div>
+                <span class="k">return</span> <span class="p">[</span><span class="n">Id</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
 
+<div class="viewcode-block" id="MPO.get_grouped_mpo"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPO.get_grouped_mpo">[docs]</a>    <span class="k">def</span> <span class="nf">get_grouped_mpo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">blocklen</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;contract blocklen subsequent tensors into a single one and return result as a new MPO object&quot;&quot;&quot;</span>
+        <span class="n">groupedMPO</span><span class="o">=</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">groupedMPO</span><span class="o">.</span><span class="n">group_sites</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">blocklen</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">groupedMPO</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MPO.get_full_hamiltonian"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPO.get_full_hamiltonian">[docs]</a>    <span class="k">def</span> <span class="nf">get_full_hamiltonian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">maxsize</span><span class="o">=</span><span class="mf">1e6</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;extract the full Hamiltonian as a d**L x d**L matrix&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">**</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">)</span><span class="o">&gt;</span><span class="n">maxsize</span><span class="p">):</span>
+            <span class="nb">print</span> <span class="p">(</span><span class="s1">&#39;Matrix dimension exceeds maxsize&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">singlesitempo</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_grouped_mpo</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">npc</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">singlesitempo</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span><span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;wL&#39;</span><span class="p">],[</span><span class="s1">&#39;wR&#39;</span><span class="p">]])</span></div></div>
+    
 
 <div class="viewcode-block" id="MPOGraph"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOGraph">[docs]</a><span class="k">class</span> <span class="nc">MPOGraph</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Representation of an MPO by a graph, based on a &#39;finite state machine&#39;.</span>
@@ -648,7 +662,7 @@
 <span class="sd">    H : :class:`~tenpy.networks.mpo.MPO`</span>
 <span class="sd">        The MPO sandwiched between `bra` and `ket`.</span>
 <span class="sd">        Should have &#39;IdL&#39; and &#39;IdR&#39; set on the first and last bond.</span>
-<span class="sd">    ket : :class:`~tenpy.networks.mpo.MPO`</span>
+<span class="sd">    ket : :class:`~tenpy.networks.mpo.MPS`</span>
 <span class="sd">        The MPS on which `H` acts. May be identical with `bra`.</span>
 <span class="sd">    firstLP : ``None`` | :class:`~tenpy.linalg.np_conserved.Array`</span>
 <span class="sd">        Initial very left part. If ``None``, build trivial one.</span>
@@ -951,7 +965,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Feb 18, 2019.
+      Last updated on Mar 01, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
     </div>
   </body>

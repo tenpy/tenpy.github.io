@@ -46,6 +46,10 @@
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">.optimization</span> <span class="k">import</span> <span class="n">bottleneck</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">argparse</span>
 
 <span class="nb">all</span> <span class="o">=</span> <span class="p">[</span>
     <span class="s1">&#39;to_iterable&#39;</span><span class="p">,</span> <span class="s1">&#39;to_array&#39;</span><span class="p">,</span> <span class="s1">&#39;anynan&#39;</span><span class="p">,</span> <span class="s1">&#39;argsort&#39;</span><span class="p">,</span> <span class="s1">&#39;inverse_permutation&#39;</span><span class="p">,</span> <span class="s1">&#39;list_to_dict_list&#39;</span><span class="p">,</span>
@@ -405,6 +409,229 @@
     <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">a</span>
     <span class="k">return</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span></div>
+
+<div class="viewcode-block" id="chi_list"><a class="viewcode-back" href="../../../reference/tenpy.tools.misc.html#tenpy.tools.misc.chi_list">[docs]</a><span class="k">def</span> <span class="nf">chi_list</span><span class="p">(</span><span class="n">chi_max</span><span class="p">,</span> <span class="n">dchi</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">nsweeps</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute a &#39;ramping-up&#39; chi_list which increases chi by dchi evry nsweeps sweeps, to a max of</span>
+<span class="sd">        chi_max.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            chi_max (int): Final value for the bond dimension</span>
+<span class="sd">            dchi (int, optional): step size of chi</span>
+<span class="sd">            nsweeps (int, optional): step size in sweeps</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            chi_list (dict): list of bond dimensions for DMRG</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">chi_max</span> <span class="o">&lt;</span> <span class="n">dchi</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span><span class="n">chi_max</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+                <span class="n">chi_list</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">for</span> <span class="n">sweep</span><span class="p">,</span> <span class="n">chi</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">((</span><span class="n">chi_max</span><span class="p">)</span><span class="o">/</span><span class="n">dchi</span><span class="p">)),</span> <span class="nb">range</span><span class="p">(</span><span class="n">dchi</span><span class="p">,</span> <span class="n">chi_max</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">dchi</span><span class="p">)):</span>
+                        <span class="n">chi_list</span><span class="p">[</span><span class="n">nsweeps</span><span class="o">*</span><span class="n">sweep</span><span class="p">]</span> <span class="o">=</span> <span class="n">chi</span>
+                        <span class="k">if</span> <span class="n">verbose</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span> <span class="nb">print</span> <span class="p">(</span><span class="s1">&#39;Adding chi = </span><span class="si">{}</span><span class="s1"> at sweep = </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">chi</span><span class="p">,</span> <span class="n">nsweeps</span><span class="o">*</span><span class="n">sweep</span><span class="p">))</span>
+
+                <span class="k">if</span> <span class="n">chi</span> <span class="o">&lt;</span> <span class="n">chi_max</span><span class="p">:</span>
+                        <span class="n">chi_list</span><span class="p">[</span><span class="n">nsweeps</span> <span class="o">*</span> <span class="p">(</span><span class="n">sweep</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span> <span class="o">=</span> <span class="n">chi_max</span>
+
+                <span class="k">return</span> <span class="n">chi_list</span></div>
+
+
+<div class="viewcode-block" id="build_initial_state"><a class="viewcode-back" href="../../../reference/tenpy.tools.misc.html#tenpy.tools.misc.build_initial_state">[docs]</a><span class="k">def</span> <span class="nf">build_initial_state</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">filling</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;random&#39;</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initial state builder. Uses two iterables (&#39;states&#39; and &#39;filling&#39;) to determine how to fill the</span>
+<span class="sd">        state. The two lists should have the same length as every element in &#39;filling&#39; gives the filling</span>
+<span class="sd">        fraction for the corresponding state in &#39;states&#39;.</span>
+
+<span class="sd">        Example:</span>
+<span class="sd">            size = 6, states = [0, 1, 2], filling = [1./3, 2./3, 0.]</span>
+<span class="sd">            n_states = size * filling = [2, 4, 0]</span>
+<span class="sd">            ==&gt; Two sites will get state 0, 4 sites will get state 1, 0 sites will get state 2.</span>
+
+
+<span class="sd">        Args:</span>
+<span class="sd">            size (int): length of state</span>
+<span class="sd">            states (tuple or list): Containing the possible local states</span>
+<span class="sd">            filling (tuple or list): Fraction of the total number of sites to get a certain state. If</span>
+<span class="sd">                                    infinite fractions (e.g. 1/3) are needed, one should supply a fraction (1./3.)</span>
+<span class="sd">            mode (str, optional): State filling pattern. Only &#39;random&#39; is implemented</span>
+<span class="sd">            seed (int, optional): Seed for random number generators</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            initial_state (list) : the initial state</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If fractonal fillings are incommensurate with system size.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+
+        <span class="c1"># Do some safety checks</span>
+        <span class="k">assert</span> <span class="nb">sum</span><span class="p">(</span><span class="n">filling</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">states</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">filling</span><span class="p">)</span>
+
+        <span class="n">n_states</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">filling</span><span class="p">)</span> <span class="o">*</span> <span class="n">size</span>  <span class="c1"># Number of sites to get</span>
+        <span class="k">for</span> <span class="n">num</span> <span class="ow">in</span> <span class="n">n_states</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">((</span><span class="n">num</span><span class="o">-</span><span class="nb">round</span><span class="p">(</span><span class="n">num</span><span class="p">))</span><span class="o">&lt;</span><span class="mf">1e-12</span><span class="p">):</span>
+                        <span class="n">num</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">num</span><span class="p">))</span>
+                <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">num</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">int</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">num</span><span class="o">.</span><span class="n">is_integer</span><span class="p">():</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cannot create model of length </span><span class="si">{}</span><span class="s2"> with filling </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">filling</span><span class="p">))</span>
+
+        <span class="n">initial_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>  <span class="c1"># Initialize</span>
+        <span class="n">all_sites</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">size</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">state</span><span class="p">,</span> <span class="n">fill</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">filling</span><span class="p">):</span>
+                <span class="n">sites</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">all_sites</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">fill</span> <span class="o">*</span> <span class="n">size</span><span class="p">))</span>  <span class="c1"># pick fill*size sites to put state</span>
+                <span class="n">initial_state</span><span class="p">[</span><span class="n">sites</span><span class="p">]</span> <span class="o">=</span> <span class="n">state</span>
+                <span class="k">for</span> <span class="n">site</span> <span class="ow">in</span> <span class="n">sites</span><span class="p">:</span>
+                        <span class="n">all_sites</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">site</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">initial_state</span></div>
+
+<div class="viewcode-block" id="setup_executable"><a class="viewcode-back" href="../../../reference/tenpy.tools.misc.html#tenpy.tools.misc.setup_executable">[docs]</a><span class="k">def</span> <span class="nf">setup_executable</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="n">run_defaults</span><span class="p">,</span> <span class="n">identifier_list</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Read command line arguments and turn into useable dicts.</span>
+
+<span class="sd">        Uses default values defined at:</span>
+<span class="sd">        - model class for model_par</span>
+<span class="sd">        - here for sim_par</span>
+<span class="sd">        - executable file for run_par</span>
+<span class="sd">        Alternatively, a model_defaults dictionary and identifier_list can be supplied without the model</span>
+
+<span class="sd">        NB: for setup_executable to work with a model class, the model class needs to define two things:</span>
+<span class="sd">                - defaults, a static (class level) dictionary with (key, value) pairs that have the name</span>
+<span class="sd">                  of the parameter (as string) as key, and the default value as value.</span>
+<span class="sd">                - identifier, a static (class level) list or other iterable with the names of the parameters</span>
+<span class="sd">                  to be used in filename identifiers.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            mod (model | dict): Model class (or instance) OR a dictionary containing model defaults</span>
+<span class="sd">            run_defaults (dict): default values for executable file parameters</span>
+<span class="sd">            identifier_list (ieterable, optional) | Used only if mod is a dict. Contains the identifier</span>
+<span class="sd">                                                                                        variables</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            model_par, sim_par, run_par (dicts) : containing all parameters.</span>
+<span class="sd">            args | namespace with raw arguments for some backwards compatibility with executables.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+
+        <span class="c1"># These deal with backwards compatibility (supplying a model)</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">mod</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">dict</span> <span class="ow">and</span> <span class="n">identifier_list</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># Assume we&#39;ve been given a model class</span>
+                <span class="k">try</span><span class="p">:</span>
+                        <span class="n">model_defaults</span> <span class="o">=</span> <span class="n">mod</span><span class="o">.</span><span class="n">defaults</span>
+                        <span class="n">identifier_list</span> <span class="o">=</span> <span class="n">mod</span><span class="o">.</span><span class="n">identifier</span>
+                <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Cannot get model defaults and identifer list from mod. Is mod a class/instance?&quot;</span><span class="p">)</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+                        <span class="k">raise</span> <span class="ne">AttributeError</span>
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">mod</span><span class="p">)</span> <span class="o">==</span> <span class="nb">dict</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">identifier_list</span><span class="p">,</span> <span class="s1">&#39;__iter__&#39;</span><span class="p">):</span>
+                <span class="n">model_defaults</span> <span class="o">=</span> <span class="n">mod</span>
+        <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;If model_par are supplied as dict, identifier_list should be provided.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># The model_par bit (for all model parameters)</span>
+        <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">model_defaults</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="nb">bool</span><span class="p">:</span>  <span class="c1"># For boolean defaults, we want a true/false flag</span>
+                        <span class="k">if</span> <span class="n">value</span><span class="p">:</span>
+                                <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-&#39;</span> <span class="o">+</span> <span class="n">label</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_false&#39;</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                                <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-&#39;</span> <span class="o">+</span> <span class="n">label</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>  <span class="c1"># For non-boolean defaults, take the type of the default as type for the cmdline var</span>
+                        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-&#39;</span> <span class="o">+</span> <span class="n">label</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">default</span><span class="o">=</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="c1"># The run_par bit (for executable-level parameters). These are defined in the executable file</span>
+        <span class="c1"># but need to be included for argparse to work correctly.</span>
+        <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">run_defaults</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="nb">bool</span><span class="p">:</span>  <span class="c1"># For boolean defaults, we want a true/false flag</span>
+                        <span class="k">if</span> <span class="n">value</span><span class="p">:</span>
+                                <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-&#39;</span> <span class="o">+</span> <span class="n">label</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_false&#39;</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                                <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-&#39;</span> <span class="o">+</span> <span class="n">label</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>  <span class="c1"># For non-boolean defaults, take the type of the default as type for the cmdline var</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Adding argument&#39;</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span>
+                        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-&#39;</span> <span class="o">+</span> <span class="n">label</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">default</span><span class="o">=</span><span class="n">value</span><span class="p">)</span>
+        <span class="c1"># The following parameters are run-time but so general they&#39;re defined here</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-ncores&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-dir&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-plots&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">)</span>  <span class="c1"># Generic flag to activate plotting</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-seed&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>  <span class="c1"># For anything random</span>
+
+        <span class="c1"># The sim_par bit (for DMRG-related parameters). These don&#39;t vary, so we&#39;ll just define here.</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-chi&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-dchi&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>  <span class="c1"># Step size for chi ramp</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-dsweeps&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>  <span class="c1"># Number of sweeps for chi step</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-min_sweeps&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-max_sweeps&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+        <span class="c1">#parser.add_argument(&#39;-n_steps&#39;, type=int, default=10)</span>
+        <span class="c1">#parser.add_argument(&#39;-max_steps&#39;, type=int, default=2400)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-mixer&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">)</span>  <span class="c1"># To activate mixer</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-mix_str&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">1.e-3</span><span class="p">)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-mix_dec&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">1.5</span><span class="p">)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-mix_len&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">80</span><span class="p">)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-start_env&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-update_env&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+
+
+        <span class="c1"># Now parse and turn into manageable dicts.</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+        <span class="n">par_dict</span> <span class="o">=</span> <span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>  <span class="c1"># Turns args (=&#39;Namespace&#39; object) into dict.</span>
+
+        <span class="n">model_par</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">model_defaults</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>  <span class="c1"># Select the model-relevant parts of par_dict</span>
+                <span class="n">model_par</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">par_dict</span><span class="p">[</span><span class="n">label</span><span class="p">]</span>
+
+        <span class="n">run_par</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">run_defaults</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>  <span class="c1"># Select the executable-relevant parts of par_dict</span>
+                <span class="n">run_par</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">par_dict</span><span class="p">[</span><span class="n">label</span><span class="p">]</span>
+
+        <span class="k">try</span><span class="p">:</span>
+                <span class="n">sim_par</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s1">&#39;chi_list&#39;</span><span class="p">:</span> <span class="n">chi_list</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">chi</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">dchi</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">dsweeps</span><span class="p">),</span>
+                        <span class="s1">&#39;N_sweeps_check&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+                        <span class="s1">&#39;min_sweeps&#39;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">min_sweeps</span><span class="p">,</span>
+                        <span class="s1">&#39;max_sweeps&#39;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">max_sweeps</span><span class="p">,</span>
+                        <span class="s1">&#39;verbose&#39;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>  <span class="c1"># Take this from the model</span>
+                        <span class="s1">&#39;lanczos_params&#39;</span> <span class="p">:</span> <span class="p">{</span><span class="s1">&#39;N_min&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;N_max&#39;</span><span class="p">:</span> <span class="mi">40</span><span class="p">,</span> <span class="s1">&#39;E_tol&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">12</span><span class="p">)}</span>
+                <span class="p">}</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;sim_par parsing has failed, most likely because model does not define verbose parameter.&#39;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">AttributeError</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">mixer</span><span class="p">:</span>
+                <span class="n">sim_par</span><span class="p">[</span><span class="s1">&#39;mixer&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">sim_par</span><span class="p">[</span><span class="s1">&#39;mixer_params&#39;</span><span class="p">]</span> <span class="o">=</span>  <span class="p">{</span><span class="s1">&#39;amplitude&#39;</span><span class="p">:</span><span class="n">args</span><span class="o">.</span><span class="n">mix_str</span><span class="p">,</span> <span class="s1">&#39;decay&#39;</span><span class="p">:</span><span class="n">args</span><span class="o">.</span><span class="n">mix_dec</span><span class="p">,</span> <span class="s1">&#39;disable_after&#39;</span><span class="p">:</span><span class="n">args</span><span class="o">.</span><span class="n">mix_len</span><span class="p">}</span>
+
+        <span class="c1"># Having set up all dictionaries, we can now do some other setting up</span>
+        <span class="c1">#omp.set_num_threads(args.ncores)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">dir</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">dir</span><span class="p">)</span>
+        <span class="kn">import</span> <span class="nn">matplotlib</span>
+        <span class="n">matplotlib</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;savefig.directory&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">())</span>
+
+        <span class="c1"># Build the identifier based on model-defined and general parameters</span>
+        <span class="n">identifier</span> <span class="o">=</span> <span class="s2">&quot;chi_</span><span class="si">{}</span><span class="s2">_seed_</span><span class="si">{}</span><span class="s2">_&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">chi</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>  <span class="c1"># Only use seed if supplied?</span>
+        <span class="k">for</span> <span class="n">varname</span> <span class="ow">in</span> <span class="n">identifier_list</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s1">&#39;conserve&#39;</span> <span class="ow">in</span> <span class="n">varname</span><span class="p">:</span>
+                        <span class="n">shortened</span> <span class="o">=</span> <span class="n">varname</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;conserve&#39;</span><span class="p">,</span> <span class="s1">&#39;cons&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;number&#39;</span><span class="p">,</span> <span class="s1">&#39;num&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;charge&#39;</span><span class="p">,</span> <span class="s1">&#39;ch&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;spin&#39;</span><span class="p">,</span><span class="s1">&#39;S&#39;</span><span class="p">)</span>
+                        <span class="n">identifier</span> <span class="o">+=</span> <span class="n">shortened</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span>
+                <span class="k">elif</span> <span class="n">model_par</span><span class="p">[</span><span class="n">varname</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># Parameters that are 0 are ignored. Only want supplied?</span>
+                        <span class="n">identifier</span> <span class="o">+=</span> <span class="n">varname</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">model_par</span><span class="p">[</span><span class="n">varname</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">mixer</span><span class="p">:</span>
+                <span class="n">identifier</span> <span class="o">+=</span> <span class="s1">&#39;mix_(</span><span class="si">{}</span><span class="s1">,</span><span class="si">{}</span><span class="s1">,</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">mix_str</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">mix_dec</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">mix_len</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">identifier</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;_&quot;</span><span class="p">:</span>
+                <span class="n">identifier</span> <span class="o">=</span> <span class="n">identifier</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="c1"># Attempt to shorten the identifier</span>
+        <span class="n">identifier</span> <span class="o">=</span> <span class="n">identifier</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;periodic&#39;</span><span class="p">,</span> <span class="s1">&#39;inf&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;finite&#39;</span><span class="p">,</span> <span class="s1">&#39;fin&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.0_&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">identifier</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">144</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Warning: identifier has a lenght longer than max filename on encrypted Ubuntu!&quot;</span><span class="p">)</span>
+
+
+        <span class="n">run_par</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+            <span class="s1">&#39;ncores&#39;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">ncores</span><span class="p">,</span>
+            <span class="s1">&#39;dir&#39;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">dir</span><span class="p">,</span>
+            <span class="s1">&#39;plots&#39;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">plots</span><span class="p">,</span>
+            <span class="s1">&#39;identifier&#39;</span><span class="p">:</span> <span class="n">identifier</span><span class="p">,</span>
+            <span class="s1">&#39;seed&#39;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span>
+        <span class="p">})</span>
+
+        <span class="k">return</span> <span class="n">model_par</span><span class="p">,</span> <span class="n">sim_par</span><span class="p">,</span> <span class="n">run_par</span><span class="p">,</span> <span class="n">args</span></div>
 </pre></div>
 
           </div>
@@ -452,7 +679,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Feb 18, 2019.
+      Last updated on Mar 01, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
     </div>
   </body>

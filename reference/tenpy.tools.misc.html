@@ -224,6 +224,48 @@ True, if any of the params[key] for single <cite>key</cite> in <cite>keys</cite>
 </dd></dl>
 
 <dl class="function">
+<dt id="tenpy.tools.misc.build_initial_state">
+<code class="descclassname">tenpy.tools.misc.</code><code class="descname">build_initial_state</code><span class="sig-paren">(</span><em>size</em>, <em>states</em>, <em>filling</em>, <em>mode='random'</em>, <em>seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/tools/misc.html#build_initial_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.tools.misc.build_initial_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initial state builder. Uses two iterables (‘states’ and ‘filling’) to determine how to fill the
+state. The two lists should have the same length as every element in ‘filling’ gives the filling
+fraction for the corresponding state in ‘states’.</p>
+<dl class="docutils">
+<dt>Example:</dt>
+<dd>size = 6, states = [0, 1, 2], filling = [1./3, 2./3, 0.]
+n_states = size * filling = [2, 4, 0]
+==&gt; Two sites will get state 0, 4 sites will get state 1, 0 sites will get state 2.</dd>
+<dt>Args:</dt>
+<dd><p class="first">size (int): length of state
+states (tuple or list): Containing the possible local states
+filling (tuple or list): Fraction of the total number of sites to get a certain state. If</p>
+<blockquote>
+<div>infinite fractions (e.g. 1/3) are needed, one should supply a fraction (1./3.)</div></blockquote>
+<p class="last">mode (str, optional): State filling pattern. Only ‘random’ is implemented
+seed (int, optional): Seed for random number generators</p>
+</dd>
+<dt>Returns:</dt>
+<dd>initial_state (list) : the initial state</dd>
+<dt>Raises:</dt>
+<dd>ValueError: If fractonal fillings are incommensurate with system size.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="tenpy.tools.misc.chi_list">
+<code class="descclassname">tenpy.tools.misc.</code><code class="descname">chi_list</code><span class="sig-paren">(</span><em>chi_max</em>, <em>dchi=20</em>, <em>nsweeps=20</em>, <em>verbose=0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/tools/misc.html#chi_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.tools.misc.chi_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute a ‘ramping-up’ chi_list which increases chi by dchi evry nsweeps sweeps, to a max of
+chi_max.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd>chi_max (int): Final value for the bond dimension
+dchi (int, optional): step size of chi
+nsweeps (int, optional): step size in sweeps</dd>
+<dt>Returns:</dt>
+<dd>chi_list (dict): list of bond dimensions for DMRG</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
 <dt id="tenpy.tools.misc.inverse_permutation">
 <code class="descclassname">tenpy.tools.misc.</code><code class="descname">inverse_permutation</code><span class="sig-paren">(</span><em>perm</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/tools/misc.html#inverse_permutation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.tools.misc.inverse_permutation" title="Permalink to this definition">¶</a></dt>
 <dd><p>reverse sorting indices.</p>
@@ -328,6 +370,37 @@ i.e. <code class="docutils literal notranslate"><span class="pre">key</span> <sp
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tenpy.tools.misc.setup_executable">
+<code class="descclassname">tenpy.tools.misc.</code><code class="descname">setup_executable</code><span class="sig-paren">(</span><em>mod</em>, <em>run_defaults</em>, <em>identifier_list=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/tools/misc.html#setup_executable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.tools.misc.setup_executable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read command line arguments and turn into useable dicts.</p>
+<p>Uses default values defined at:
+- model class for model_par
+- here for sim_par
+- executable file for run_par
+Alternatively, a model_defaults dictionary and identifier_list can be supplied without the model</p>
+<dl class="docutils">
+<dt>NB: for setup_executable to work with a model class, the model class needs to define two things:</dt>
+<dd><ul class="first last simple">
+<li>defaults, a static (class level) dictionary with (key, value) pairs that have the name
+of the parameter (as string) as key, and the default value as value.</li>
+<li>identifier, a static (class level) list or other iterable with the names of the parameters
+to be used in filename identifiers.</li>
+</ul>
+</dd>
+<dt>Args:</dt>
+<dd><p class="first">mod (model | dict): Model class (or instance) OR a dictionary containing model defaults
+run_defaults (dict): default values for executable file parameters
+identifier_list (ieterable, optional) | Used only if mod is a dict. Contains the identifier</p>
+<blockquote class="last">
+<div>variables</div></blockquote>
+</dd>
+<dt>Returns:</dt>
+<dd>model_par, sim_par, run_par (dicts) : containing all parameters.
+args | namespace with raw arguments for some backwards compatibility with executables.</dd>
+</dl>
 </dd></dl>
 
 <dl class="function">
@@ -496,7 +569,7 @@ constructed such that <code class="docutils literal notranslate"><span class="pr
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Feb 18, 2019.
+      Last updated on Mar 01, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
     </div>
   </body>
