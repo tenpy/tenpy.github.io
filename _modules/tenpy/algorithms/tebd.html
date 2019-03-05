@@ -492,14 +492,12 @@
         <span class="sd">&quot;&quot;&quot;Updates the B matrices on a given bond.</span>
 
 <span class="sd">        Function that updates the B matrices, the bond matrix s between and the</span>
-<span class="sd">        bond dimension chi for bond i. This would look something like::</span>
+<span class="sd">        bond dimension chi for bond i. The correponding tensor networks look like this::</span>
 
-<span class="sd">        |     ... - B1  -  s  -  B2 - ...</span>
-<span class="sd">        |           |             |</span>
-<span class="sd">        |           |-------------|</span>
-<span class="sd">        |           |      U      |</span>
-<span class="sd">        |           |-------------|</span>
-<span class="sd">        |           |             |</span>
+<span class="sd">        |           --S--B1--B2--           --B1--B2--</span>
+<span class="sd">        |                |   |                |   |</span>
+<span class="sd">        |     theta:     U_bond        C:     U_bond</span>
+<span class="sd">        |                |   |                |   |</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -519,33 +517,39 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">100</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Update sites (</span><span class="si">{0:d}</span><span class="s2">, </span><span class="si">{1:d}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">i1</span><span class="p">))</span>
         <span class="c1"># Construct the theta matrix</span>
-        <span class="n">theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_theta</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># &#39;vL&#39;, &#39;vR&#39;, &#39;p0&#39;, &#39;p1&#39;</span>
-        <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U_bond</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">]))</span>
-        <span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([(</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">)],</span> <span class="n">qconj</span><span class="o">=</span><span class="p">[</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_theta</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">formL</span><span class="o">=</span><span class="mf">0.</span><span class="p">)</span>  <span class="c1"># the two B without the S on the left</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U_bond</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">]))</span>  <span class="c1"># apply U</span>
+        <span class="n">C</span><span class="o">.</span><span class="n">itranspose</span><span class="p">([</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">])</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">scale_axis</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_SL</span><span class="p">(</span><span class="n">i0</span><span class="p">),</span> <span class="s1">&#39;vL&#39;</span><span class="p">)</span>
+        <span class="c1"># now theta is the same as if we had done</span>
+        <span class="c1">#   theta = self.psi.get_theta(i0, n=2)</span>
+        <span class="c1">#   theta = npc.tensordot(U_bond, theta, axes=([&#39;p0*&#39;, &#39;p1*&#39;], [&#39;p0&#39;, &#39;p1&#39;]))  # apply U</span>
+        <span class="c1"># but also have C which is the same except the missing &quot;S&quot; on the left</span>
+        <span class="c1"># so we don&#39;t have to apply inverses of S (see below)</span>
 
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([(</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">)],</span> <span class="n">qconj</span><span class="o">=</span><span class="p">[</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
         <span class="c1"># Perform the SVD and truncate the wavefunction</span>
         <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">trunc_err</span><span class="p">,</span> <span class="n">renormalize</span> <span class="o">=</span> <span class="n">svd_theta</span><span class="p">(</span>
             <span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">,</span> <span class="n">inner_labels</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">])</span>
 
         <span class="c1"># Split tensor and update matrices</span>
         <span class="n">B_R</span> <span class="o">=</span> <span class="n">V</span><span class="o">.</span><span class="n">split_legs</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">ireplace_label</span><span class="p">(</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">)</span>
+
         <span class="c1"># In general, we want to do the following:</span>
         <span class="c1">#     U = U.iscale_axis(S, &#39;vR&#39;)</span>
-        <span class="c1">#     B_L = U.split_legs(0).iscale_axis(self.psi.get_SL(i0)**(-1), &#39;vL&#39;)</span>
+        <span class="c1">#     B_L = U.split_legs(0).iscale_axis(self.psi.get_SL(i0)**-1, &#39;vL&#39;)</span>
         <span class="c1">#     B_L = B_L.ireplace_label(&#39;p0&#39;, &#39;p&#39;)</span>
-        <span class="c1"># i.e. with SL = self.psi.get_SL(i0), we have ``B_L = SL**(-1) U S``</span>
+        <span class="c1"># i.e. with SL = self.psi.get_SL(i0), we have ``B_L = SL**-1 U S``</span>
         <span class="c1">#</span>
         <span class="c1"># However, the inverse of SL is problematic, as it might contain very small singular</span>
-        <span class="c1"># values.  Instead, we calculate ``C == SL**-1 theta == SL**-1 U S V``,</span>
+        <span class="c1"># values.  Instead, we use ``C == SL**-1 theta == SL**-1 U S V``,</span>
         <span class="c1"># such that we obtain ``B_L = SL**-1 U S = SL**-1 U S V V^dagger = C V^dagger``</span>
-        <span class="n">C</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_theta</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">formL</span><span class="o">=</span><span class="mf">0.</span><span class="p">)</span>
         <span class="c1"># here, C is the same as theta, but without the `S` on the very left</span>
         <span class="c1"># (Note: this requires no inverse if the MPS is initially in &#39;B&#39; canonical form)</span>
-        <span class="n">C</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U_bond</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">]))</span>  <span class="c1"># apply U as for theta</span>
         <span class="n">B_L</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span>
-            <span class="n">C</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">((</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">),</span> <span class="n">pipes</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+            <span class="n">C</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">((</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">),</span> <span class="n">pipes</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
             <span class="n">V</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span>
-            <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(vR.p1)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vR*.p1*)&#39;</span><span class="p">])</span>
+            <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(p1.vR)&#39;</span><span class="p">,</span> <span class="s1">&#39;(p1*.vR*)&#39;</span><span class="p">])</span>
         <span class="n">B_L</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;vL*&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">])</span>
         <span class="n">B_L</span> <span class="o">/=</span> <span class="n">renormalize</span>  <span class="c1"># re-normalize to &lt;psi|psi&gt; = 1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">set_SR</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span>
@@ -699,7 +703,7 @@
 <span class="sd">    laws dictated by the conserved charges. If no charge is preserved, this distribution is called</span>
 <span class="sd">    circular unitary ensemble (CUE), see :func:`~tenpy.linalg.random_matrix.CUE`.</span>
 
-<span class="sd">    On one hand, such an evolution is of interest in recent research (see eg. arXiv:1710.09827).</span>
+<span class="sd">    On one hand, such an evolution is of interest in recent research (see eg. :arXiv:`1710.09827`).</span>
 <span class="sd">    On the other hand, it also comes in handy to &quot;randomize&quot; an initial state, e.g. for DMRG.</span>
 <span class="sd">    Note that the entanglement grows very quickly, choose the truncation paramters accordingly!</span>
 
@@ -865,7 +869,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Mar 01, 2019.
+      Last updated on Mar 05, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
     </div>
   </body>

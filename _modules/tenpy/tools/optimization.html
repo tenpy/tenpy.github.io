@@ -50,6 +50,18 @@
 <span class="sd">    Second rule of optimization (for experts only): &quot;Don&#39;t do it yet.&quot;</span>
 <span class="sd">    Third rule of optimization: &quot;Profile before optimizing.&quot;</span>
 
+<span class="sd">Luckily, following the third optimization rule, namely profiling code, is</span>
+<span class="sd">fairly simple in python, see the `documentation &lt;https://docs.python.org/3/library/profile.html&gt;`_.</span>
+<span class="sd">If you have a python skript running your code, you can simply call it with</span>
+<span class="sd">``python -m &quot;cProfile&quot; -s &quot;tottime&quot; your_skript.py``. Alternatively, save the profiling statistics</span>
+<span class="sd">with ``python -m &quot;cProfile&quot; -o &quot;profile_data.stat&quot; your_skript.py`` and</span>
+<span class="sd">run these few lines of python code::</span>
+
+<span class="sd">    import pstats</span>
+<span class="sd">    p = pstats.Pstats(&quot;profile_data.stat&quot;)</span>
+<span class="sd">    p.sort_stats(&#39;cumtime&#39;)  # sort by &#39;cumtime&#39; column</span>
+<span class="sd">    p.print_stats(30)   # prints first 30 entries</span>
+
 <span class="sd">That being said, I actually did profile and optimize (parts of) the library; and there are a few</span>
 <span class="sd">knobs you can turn to tweak the most out of this library, explained in the following.</span>
 
@@ -62,58 +74,55 @@
 <span class="sd">3) In case you didn&#39;t do that yet: some parts of the library are written in both python and Cython</span>
 <span class="sd">   with the same interface, so you can simply compile the Cython code, as explained in</span>
 <span class="sd">   :doc:`../INSTALL`. Then everything should work the same way from a user perspective,</span>
-<span class="sd">   while internally the faster, pre-compiled cython code is used.</span>
-<span class="sd">   This should also be a safe thing to do.</span>
+<span class="sd">   while internally the faster, pre-compiled cython code from ``tenpy/linalg/npc_helper.pyx``</span>
+<span class="sd">   is used. This should also be a safe thing to do.</span>
+<span class="sd">   The replacement of the optimized functions is done by the decorator :func:`use_cython`.</span>
 <span class="sd">4) One of the great things about python is its dynamical nature - anything can be done at runtime.</span>
 <span class="sd">   In that spirit, this module allows to set a global  &quot;optimization level&quot; which can be changed</span>
 <span class="sd">   *dynamically* (i.e., during runtime) with :func:`set_level`. The library will then try some</span>
-<span class="sd">   extra optimiztion, e.g., skip sanity checks.</span>
-<span class="sd">   See :class:`OptimizationFlag` and :func:`set_level` for more details.</span>
+<span class="sd">   extra optimiztion, most notably skip sanity checks of arguments.</span>
+<span class="sd">   The possible choices for this global level are given by the :class:`OptimizationFlag`.</span>
+<span class="sd">   The default initial value for the global optimization level can be adjusted by the environment</span>
+<span class="sd">   variable `TENPY_OPTIMIZE`.</span>
 
 <span class="sd">   .. warning ::</span>
 <span class="sd">        When this optimizing is enabled, we skip (some) sanity checks.</span>
 <span class="sd">        Thus, errors will not be detected that easily, and debugging is much harder!</span>
-<span class="sd">        Use this kind of optimization only for code which you succesfully ran before</span>
-<span class="sd">        with (very) similar parmeters!</span>
+<span class="sd">        We recommend to use this kind of optimization only for code which you succesfully have run</span>
+<span class="sd">        before with (very) similar parmeters!</span>
 <span class="sd">        Enable this optimization only during the parts of the code where it is really necessary.</span>
+<span class="sd">        The context manager :class:`temporary_level` can help with that.</span>
 <span class="sd">        Check whether it actually helps - if it doesn&#39;t, keep the optimization disabled!</span>
+<span class="sd">        Some parts of the library already do that as well (e.g. DMRG after the first sweep).</span>
 
 <span class="sd">5) You might want to try some different compile time options for the cython code, set in the</span>
-<span class="sd">   `setup.py` in the top directory.  Since the `setup.py` reads out the `TENPY_OPTIMIZE`</span>
-<span class="sd">   environment variable, you can simple use an ``export TENPY_OPTIMIZE=1`` (in your bash/terminal)</span>
-<span class="sd">   right before compilation. An ``export TENPY_OPTIMIZE=-1`` activates profiling hooks instead.</span>
+<span class="sd">   `setup.py` in the top directory of the repository.</span>
+<span class="sd">   Since the `setup.py` reads out the `TENPY_OPTIMIZE`</span>
+<span class="sd">   environment variable, you can simple use an ``export TENPY_OPTIMIZE=3`` (in your bash/terminal)</span>
+<span class="sd">   right before compilation. An ``export TENPY_OPTIMIZE=0`` activates profiling hooks instead.</span>
 
 <span class="sd">   .. warning ::</span>
 <span class="sd">       This increases the probability of getting segmentation faults and anyway might not</span>
 <span class="sd">       help that much; in the crucial parts of the cython code, these optimizations are already</span>
 <span class="sd">       applied. We do *not* recommend using this!</span>
-
-<span class="sd">6) If you&#39;re still not satisfied with the speed of this library: this code is written in python,</span>
-<span class="sd">   which is &#39;slow&#39; due to its dynamical nature. Use a library written in another programming</span>
-<span class="sd">   language, there are plenty of them out there...</span>
-
-<span class="sd">Finally, let me note that following the third optimization rule, namely profiling code, is</span>
-<span class="sd">fairly simple in python, see the `documentation &lt;https://docs.python.org/3/library/profile.html&gt;`_.</span>
-<span class="sd">If you have a python skript running your code, you can simply call it with</span>
-<span class="sd">``python -m &quot;cProfile&quot; -s &quot;tottime&quot; your_skript.py``. Alternative, save the profiling statistics</span>
-<span class="sd">with ``python -m &quot;cProfile&quot; -o &quot;profile_data.stat&quot; your_skript.py`` and</span>
-<span class="sd">run these few lines of python code::</span>
-
-<span class="sd">    import pstats</span>
-<span class="sd">    p = pstats.Pstats(&quot;profile_data.stat&quot;)</span>
-<span class="sd">    p.sort_stats(&#39;cumtime&#39;)  # sort by &#39;cumtime&#39; column</span>
-<span class="sd">    p.print_stats(30)   # prints first 30 entries</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="c1"># Copyright 2018 TeNPy Developers</span>
 
 <span class="kn">from</span> <span class="nn">enum</span> <span class="k">import</span> <span class="n">IntEnum</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">os</span>
 
-<span class="nb">all</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;bottleneck&#39;</span><span class="p">,</span> <span class="s1">&#39;OptimizationFlag&#39;</span><span class="p">,</span> <span class="s1">&#39;set_level&#39;</span><span class="p">,</span> <span class="s1">&#39;get_level&#39;</span><span class="p">,</span> <span class="s1">&#39;optimize&#39;</span><span class="p">]</span>
+<span class="nb">all</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;bottleneck&#39;</span><span class="p">,</span> <span class="s1">&#39;OptimizationFlag&#39;</span><span class="p">,</span> <span class="s1">&#39;temporary_level&#39;</span><span class="p">,</span> <span class="s1">&#39;set_level&#39;</span><span class="p">,</span> <span class="s1">&#39;get_level&#39;</span><span class="p">,</span>
+       <span class="s1">&#39;optimize&#39;</span><span class="p">,</span>
+       <span class="s1">&#39;use_cython&#39;</span><span class="p">,</span> <span class="s1">&#39;have_cython_functions&#39;</span><span class="p">]</span>
 
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">import</span> <span class="nn">bottleneck</span>
 <span class="k">except</span><span class="p">:</span>
     <span class="n">bottleneck</span> <span class="o">=</span> <span class="kc">None</span>
+
+<span class="sd">&quot;&quot;&quot;bool whether the import of the cython file tenpy/linalg/npc_helper.pyx succeeded&quot;&quot;&quot;</span>
+<span class="n">have_cython_functions</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># set to True or False in the first call of `use_cython`</span>
 
 
 <div class="viewcode-block" id="OptimizationFlag"><a class="viewcode-back" href="../../../reference/tenpy.tools.optimization.html#tenpy.tools.optimization.OptimizationFlag">[docs]</a><span class="k">class</span> <span class="nc">OptimizationFlag</span><span class="p">(</span><span class="n">IntEnum</span><span class="p">):</span>
@@ -152,17 +161,71 @@
     <span class="n">skip_arg_checks</span> <span class="o">=</span> <span class="mi">3</span></div>
 
 
-<div class="viewcode-block" id="set_level"><a class="viewcode-back" href="../../../reference/tenpy.tools.optimization.html#tenpy.tools.optimization.set_level">[docs]</a><span class="k">def</span> <span class="nf">set_level</span><span class="p">(</span><span class="n">new_level</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<div class="viewcode-block" id="temporary_level"><a class="viewcode-back" href="../../../reference/tenpy.tools.optimization.html#tenpy.tools.optimization.temporary_level">[docs]</a><span class="k">class</span> <span class="nc">temporary_level</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Context manager to temporarily set the optimization level to a different value.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    temporary_level : int | OptimizationFlag | str | None</span>
+<span class="sd">        The optimization level to be set during the context.</span>
+<span class="sd">        `None` defaults to the current value of the optimization level.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    temporary_level : None | OptimizationFlag</span>
+<span class="sd">        The optimization level to be set during the context.</span>
+<span class="sd">    _old_level : OptimizationFlag</span>
+<span class="sd">        Optimization level to be restored at the end of the context manager.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    It is recommended to use this context manager in a ``with`` statement::</span>
+
+<span class="sd">        # optimization level default</span>
+<span class="sd">        with temporary_level(OptimizationFlag.safe):</span>
+<span class="sd">            do_some_stuff()  # temporarily have Optimization level `safe`</span>
+<span class="sd">            # you can even change the optimization level to something else:</span>
+<span class="sd">            set_level(OptimizationFlag.skip_args_check)</span>
+<span class="sd">            do_some_really_heavy_stuff()</span>
+<span class="sd">        # here we are back to the optimization level as before the ``with ...`` statement</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">temporary_level</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">temporary_level</span> <span class="o">=</span> <span class="n">temporary_level</span>
+
+    <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;enter the context manager&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_old_level</span> <span class="o">=</span> <span class="n">get_level</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">temporary_level</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">set_level</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">temporary_level</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">):</span>
+        <span class="s2">&quot;exit the context manager&quot;</span>
+        <span class="n">set_level</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_old_level</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="to_OptimizationFlag"><a class="viewcode-back" href="../../../reference/tenpy.tools.optimization.html#tenpy.tools.optimization.to_OptimizationFlag">[docs]</a><span class="k">def</span> <span class="nf">to_OptimizationFlag</span><span class="p">(</span><span class="n">level</span><span class="p">):</span>
+    <span class="s2">&quot;Convert strings and int to a valid OptimizationFlag. ``None`` defaults to the current level.&quot;</span>
+    <span class="k">if</span> <span class="n">level</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">get_level</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">level</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">level</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">level</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">level</span> <span class="o">=</span> <span class="n">OptimizationFlag</span><span class="p">[</span><span class="n">level</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">OptimizationFlag</span><span class="p">(</span><span class="n">level</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="set_level"><a class="viewcode-back" href="../../../reference/tenpy.tools.optimization.html#tenpy.tools.optimization.set_level">[docs]</a><span class="k">def</span> <span class="nf">set_level</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Set the global optimization level.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    new_level : int | OptimizationFlag</span>
+<span class="sd">    level : int | OptimizationFlag | str | None</span>
 <span class="sd">        The new global optimization level to be set.</span>
+<span class="sd">        ``None`` defaults to keeping the current level.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">new_level</span> <span class="o">=</span> <span class="n">OptimizationFlag</span><span class="p">(</span><span class="n">new_level</span><span class="p">)</span>
     <span class="k">global</span> <span class="n">_level</span>
-    <span class="n">_level</span> <span class="o">=</span> <span class="n">new_level</span></div>
+    <span class="n">_level</span> <span class="o">=</span> <span class="n">to_OptimizationFlag</span><span class="p">(</span><span class="n">level</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="get_level"><a class="viewcode-back" href="../../../reference/tenpy.tools.optimization.html#tenpy.tools.optimization.get_level">[docs]</a><span class="k">def</span> <span class="nf">get_level</span><span class="p">():</span>
@@ -182,14 +245,108 @@
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    optimize : bool</span>
-<span class="sd">        True if the algorithms should try to optimize, i.e., i.e. whether the global</span>
+<span class="sd">        True if the algorithms should try to optimize, i.e., whether the global</span>
 <span class="sd">        &quot;optimization level&quot; is equal or higher than the level to compare to.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">global</span> <span class="n">_level</span>
     <span class="k">return</span> <span class="p">(</span><span class="n">_level</span> <span class="o">&gt;=</span> <span class="n">level_compare</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="use_cython"><a class="viewcode-back" href="../../../reference/tenpy.tools.optimization.html#tenpy.tools.optimization.use_cython">[docs]</a><span class="k">def</span> <span class="nf">use_cython</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">replacement</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">check_doc</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Decorator to replace a function with a Cython-equivalent from npc_helper.pyx.</span>
+
+<span class="sd">    This is a `decorator &lt;https://docs.python.org/3.7/glossary.html#term-decorator&gt;`_, which is</span>
+<span class="sd">    supposed to be used in front of function definitions with an ``@`` sign, for example::</span>
+
+<span class="sd">        @use_cython</span>
+<span class="sd">        def my_slow_function(a):</span>
+<span class="sd">            &quot;some example function with slow python loops&quot;</span>
+<span class="sd">            result = 0.</span>
+<span class="sd">            for i in range(a.shape[0]):</span>
+<span class="sd">                for j in range(a.shape[1]):</span>
+<span class="sd">                    #... heavy calculations ...</span>
+<span class="sd">                    result += np.cos(a[i, j]**2) * (i + j)</span>
+<span class="sd">            return result</span>
+
+<span class="sd">    This decorator indicates that there is a `Cython &lt;https://cython.org&gt;`_ implementation in</span>
+<span class="sd">    the file ``tenpy/linalg/npc_helper.pyx``, which should have the same signature (i.e. same</span>
+<span class="sd">    arguments and return values) as the decorated function, and can be used as a replacement for</span>
+<span class="sd">    the decorated function. However, if the cython code could not be compiled on your system</span>
+<span class="sd">    (or if the environment variable ``TENPY_OPTIMIZE`` is set to negative values),</span>
+<span class="sd">    we just pass the previous function.</span>
+
+<span class="sd">    Note: in case that the decorator is used for a class method, the corresponding Cython version</span>
+<span class="sd">    needs to have an ``@cython.binding(True)``.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    func : function</span>
+<span class="sd">        The defined function</span>
+<span class="sd">    replacement : string | None</span>
+<span class="sd">        The name of the function defined in tenpy/linalg/npc_helper.pyx replacing the decorated</span>
+<span class="sd">        function. ``None`` defaults to the name of the decorated function,</span>
+<span class="sd">        i.e., in the above example `my_slow_function`.</span>
+<span class="sd">    check_doc : bool</span>
+<span class="sd">        If True, we check that the cython version of the function has the exact same doc string</span>
+<span class="sd">        (up to a possible first line containing the function signature) to exclude typos and</span>
+<span class="sd">        inconsistent versions.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    replacement_func : function</span>
+<span class="sd">        The function replacing the decorated function `func`.</span>
+<span class="sd">        If the cython code can not be loaded, this is just `func`,</span>
+<span class="sd">        otherwise it&#39;s the cython version specified by `replacement`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">func</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># someone used ``@use_cython(replacement=...)``</span>
+        <span class="c1"># so we need to return another decorator function</span>
+        <span class="k">def</span> <span class="nf">_decorator</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">use_cython</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">replacement</span><span class="p">,</span> <span class="n">check_doc</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_decorator</span>
+    <span class="k">global</span> <span class="n">_npc_helper_module</span>
+    <span class="k">global</span> <span class="n">have_cython_functions</span>
+    <span class="k">if</span> <span class="n">have_cython_functions</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">optimize</span><span class="p">(</span><span class="n">OptimizationFlag</span><span class="o">.</span><span class="n">default</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="kn">from</span> <span class="nn">..linalg</span> <span class="k">import</span> <span class="n">npc_helper</span>
+                <span class="n">_npc_helper_module</span> <span class="o">=</span> <span class="n">npc_helper</span>
+                <span class="n">have_cython_functions</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Couln&#39;t load compiled cython code. Code will run a bit slower.&quot;</span><span class="p">)</span>
+                <span class="n">have_cython_functions</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Don&#39;t load compiled cython code due to TENPY_OPTMIZE. &quot;</span>
+                  <span class="s2">&quot;Code will run a bit slower.&quot;</span><span class="p">)</span>
+            <span class="n">have_cython_functions</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">have_cython_functions</span><span class="p">:</span>
+        <span class="c1"># can&#39;t provide a faster version: cython module not available</span>
+        <span class="k">return</span> <span class="n">func</span>
+    <span class="k">if</span> <span class="n">replacement</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">replacement</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="vm">__name__</span>
+    <span class="n">fast_func</span> <span class="o">=</span> <span class="n">_npc_helper_module</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">replacement</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">fast_func</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;can&#39;t find cython function </span><span class="si">{0!s}</span><span class="s2"> to replace python function </span><span class="si">{1!s}</span><span class="s2"> in </span><span class="si">{2!r}</span><span class="s2">&quot;</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">replacement</span><span class="p">,</span> <span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">func</span><span class="o">.</span><span class="vm">__module__</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">check_doc</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">inspect</span>
+        <span class="n">clean_fdoc</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getdoc</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+        <span class="n">clean_cdoc</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getdoc</span><span class="p">(</span><span class="n">fast_func</span><span class="p">)</span>
+        <span class="n">cdoc</span> <span class="o">=</span> <span class="n">fast_func</span><span class="o">.</span><span class="vm">__doc__</span>
+        <span class="c1"># if the cython compiler directive &#39;embedsignature&#39; is used, the first line contains the</span>
+        <span class="c1"># function signature, so the doc string starts only with the second line</span>
+        <span class="n">clean_cdoc2</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">cleandoc</span><span class="p">(</span><span class="n">cdoc</span><span class="p">[</span><span class="n">cdoc</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="k">if</span> <span class="n">clean_fdoc</span> <span class="o">!=</span> <span class="n">clean_cdoc</span> <span class="ow">and</span> <span class="n">clean_fdoc</span> <span class="o">!=</span> <span class="n">clean_cdoc2</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;cython version of </span><span class="si">{0!s}</span><span class="s2"> has different doc-string&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">fast_func</span></div>
+
+
+<span class="c1"># private global variables</span>
 <span class="n">_level</span> <span class="o">=</span> <span class="n">OptimizationFlag</span><span class="o">.</span><span class="n">default</span>  <span class="c1"># set default optimization level</span>
+<span class="n">set_level</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;TENPY_OPTIMIZE&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>  <span class="c1"># update from environment variable</span>
+<span class="n">_npc_helper_module</span> <span class="o">=</span> <span class="kc">None</span>
 </pre></div>
 
           </div>
@@ -237,7 +394,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Mar 01, 2019.
+      Last updated on Mar 05, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
     </div>
   </body>
