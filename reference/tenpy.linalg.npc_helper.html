@@ -49,8 +49,116 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="tenpy-linalg-npc-helper-module">
-<h1>tenpy.linalg.npc_helper module<a class="headerlink" href="#tenpy-linalg-npc-helper-module" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-tenpy.linalg.npc_helper">
+<span id="tenpy-linalg-npc-helper-module"></span><h1>tenpy.linalg.npc_helper module<a class="headerlink" href="#module-tenpy.linalg.npc_helper" title="Permalink to this headline">¶</a></h1>
+<p>Optimization of charges.py and np_conserved.py</p>
+<p>This module is written in Cython, such that it can be compiled.
+It implements some functions and classes with the same interface as np_conserved.py/charges.py.</p>
+<p><a class="reference internal" href="tenpy.tools.optimization.html#tenpy.tools.optimization.use_cython" title="tenpy.tools.optimization.use_cython"><code class="xref py py-func docutils literal notranslate"><span class="pre">tenpy.tools.optimization.use_cython()</span></code></a> tries to import the compiled cython module and uses the
+functions/classes defined here to overwrite those written in pure Python whenever the
+decorator <code class="docutils literal notranslate"><span class="pre">&#64;use_cython</span></code> is used in other python files of tenpy.
+If this module was not compiled and could not be imported, a warning is issued.</p>
+<dl class="attribute">
+<dt id="tenpy.linalg.npc_helper.Array__imake_contiguous">
+<code class="descclassname">tenpy.linalg.npc_helper.</code><code class="descname">Array__imake_contiguous</code><a class="headerlink" href="#tenpy.linalg.npc_helper.Array__imake_contiguous" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make each of the blocks c-style contigous in memory.</p>
+<p>Might speed up subsequent tensordot &amp; co by fixing the memory layout to contigous blocks.
+(No need to call it manually: it’s called from tensordot &amp; co anyways!)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.linalg.npc_helper.Array_iadd_prefactor_other">
+<code class="descclassname">tenpy.linalg.npc_helper.</code><code class="descname">Array_iadd_prefactor_other</code><a class="headerlink" href="#tenpy.linalg.npc_helper.Array_iadd_prefactor_other" title="Permalink to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">self</span> <span class="pre">+=</span> <span class="pre">prefactor</span> <span class="pre">*</span> <span class="pre">other</span></code> for scalar <cite>prefactor</cite> and <code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code> <cite>other</cite>.</p>
+<p>Note that we allow the type of <cite>self</cite> to change if necessary.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.linalg.npc_helper.Array_iscale_prefactor">
+<code class="descclassname">tenpy.linalg.npc_helper.</code><code class="descname">Array_iscale_prefactor</code><a class="headerlink" href="#tenpy.linalg.npc_helper.Array_iscale_prefactor" title="Permalink to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">self</span> <span class="pre">*=</span> <span class="pre">prefactor</span></code> for scalar <cite>prefactor</cite>.</p>
+<p>Note that we allow the type of <cite>self</cite> to change if necessary.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.linalg.npc_helper.Array_itranspose">
+<code class="descclassname">tenpy.linalg.npc_helper.</code><code class="descname">Array_itranspose</code><a class="headerlink" href="#tenpy.linalg.npc_helper.Array_itranspose" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transpose axes like <cite>np.transpose</cite>. In place.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>axes: iterable (int|string), len ``rank`` | None</strong></dt>
+<dd><p class="first last">The new order of the axes. By default (None), reverse axes.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.linalg.npc_helper.ChargeInfo_check_valid">
+<code class="descclassname">tenpy.linalg.npc_helper.</code><code class="descname">ChargeInfo_check_valid</code><a class="headerlink" href="#tenpy.linalg.npc_helper.ChargeInfo_check_valid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check, if <cite>charges</cite> has all entries as expected from self.mod.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>charges</strong> <span class="classifier-delimiter">:</span> <span class="classifier">2D ndarray QTYPE_t</span></dt>
+<dd><p class="first last">Charge values to be checked.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>res</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">True, if all 0 &lt;= charges &lt;= self.mod (wherever self.mod != 1)</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.linalg.npc_helper.ChargeInfo_make_valid">
+<code class="descclassname">tenpy.linalg.npc_helper.</code><code class="descname">ChargeInfo_make_valid</code><a class="headerlink" href="#tenpy.linalg.npc_helper.ChargeInfo_make_valid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Take charges modulo self.mod.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>charges</strong> <span class="classifier-delimiter">:</span> <span class="classifier">array_like or None</span></dt>
+<dd><p class="first last">1D or 2D array of charges, last dimension <cite>self.qnumber</cite>
+None defaults to trivial charges <code class="docutils literal notranslate"><span class="pre">np.zeros(qnumber,</span> <span class="pre">dtype=QTYPE)</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>charges :</strong></dt>
+<dd><p class="first last">A copy of <cite>charges</cite> taken modulo <cite>mod</cite>, but with <code class="docutils literal notranslate"><span class="pre">x</span> <span class="pre">%</span> <span class="pre">1</span> <span class="pre">:=</span> <span class="pre">x</span></code></p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.linalg.npc_helper.LegPipe__init_from_legs">
+<code class="descclassname">tenpy.linalg.npc_helper.</code><code class="descname">LegPipe__init_from_legs</code><a class="headerlink" href="#tenpy.linalg.npc_helper.LegPipe__init_from_legs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate <code class="docutils literal notranslate"><span class="pre">self.qind</span></code>, <code class="docutils literal notranslate"><span class="pre">self.q_map</span></code> and <code class="docutils literal notranslate"><span class="pre">self.q_map_slices</span></code> from <code class="docutils literal notranslate"><span class="pre">self.legs</span></code>.</p>
+<p><cite>qind</cite> is constructed to fullfill the charge fusion rule stated in the class doc-string.</p>
+</dd></dl>
+
 </div>
 
 
@@ -124,7 +232,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Mar 05, 2019.
+      Last updated on Mar 06, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
     </div>
   </body>
