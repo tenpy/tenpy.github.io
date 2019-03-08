@@ -53,31 +53,34 @@
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;get_parameter&quot;</span><span class="p">,</span> <span class="s2">&quot;unused_parameters&quot;</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="get_parameter"><a class="viewcode-back" href="../../../reference/tenpy.tools.params.html#tenpy.tools.params.get_parameter">[docs]</a><span class="k">def</span> <span class="nf">get_parameter</span><span class="p">(</span><span class="n">par_dict</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">,</span> <span class="n">descr</span><span class="p">,</span> <span class="n">asarray</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="get_parameter"><a class="viewcode-back" href="../../../reference/tenpy.tools.params.html#tenpy.tools.params.get_parameter">[docs]</a><span class="k">def</span> <span class="nf">get_parameter</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">,</span> <span class="n">descr</span><span class="p">,</span> <span class="n">asarray</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Read out a parameter from the dictionary and/or provide default values.</span>
 
-<span class="sd">    This function provides a similar functionality as ``par_dict.get(key, default)``.</span>
+<span class="sd">    This function provides a similar functionality as ``params.get(key, default)``.</span>
 <span class="sd">    *Unlike* `dict.get` this function writes the default value into the dictionary</span>
-<span class="sd">    (i.e. in other words it&#39;s more similar to ``par_dict.setdefault(key, default)``).</span>
+<span class="sd">    (i.e. in other words it&#39;s more similar to ``params.setdefault(key, default)``).</span>
 
-<span class="sd">    However, a special key ``&#39;verbose&#39;`` *in* the `par_dict` with value &gt; 0 triggers this function</span>
-<span class="sd">    to additionally print the used value. If verbose &gt;= 10, it is printed every time its used,</span>
+<span class="sd">    This allows the user to save the modified dictionary as meta-data, which gives a</span>
+<span class="sd">    concrete record of the actually used parameters and simplifies reproducing the results</span>
+<span class="sd">    and restarting simulations.</span>
+
+<span class="sd">    Moreover, a special entry with the key ``&#39;verbose&#39;`` *in* the `params`</span>
+<span class="sd">    can trigger this function to also print the used value.</span>
+<span class="sd">    A higer `verbose` level implies more output.</span>
+<span class="sd">    If `verbose` &gt;= 100, it is printed every time it&#39;s used.</span>
+<span class="sd">    If `verbose` &gt;= 2., its printed for the first time time its used.</span>
+<span class="sd">    and for `verbose` &gt;= 1, non-default values are printed the first time they are used.</span>
 <span class="sd">    otherwise only for the first use.</span>
-<span class="sd">    (Wheter a parameter was used is saved in the set ``par_dict[&#39;_used_param&#39;]``.)</span>
 
-<span class="sd">    This function should be used in the algorithms to read out parameters.</span>
-<span class="sd">    Then, when the algorithms are calleed by tenpy users,</span>
-<span class="sd">    simply including ``verbose=1`` into a parameter dictionary will trigger the algorithms to</span>
-<span class="sd">    print all the actually used parameters during runtime.</span>
-
-<span class="sd">    In addition, the user can save the modified dictionary along with other data, which gives a</span>
-<span class="sd">    concrete record of the actually used parameters and simplifies reproducing the results.</span>
+<span class="sd">    Internally, whether a parameter was used is saved in the set ``params[&#39;_used_param&#39;]``.</span>
+<span class="sd">    This is used in :func:`unused_parameters` to print a warning if the key wasn&#39;t used</span>
+<span class="sd">    at the end of the algorithm, to detect mis-spelled parameters.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    par_dict : dict</span>
+<span class="sd">    params : dict</span>
 <span class="sd">        A dicionary of the parameters as provided by the user.</span>
-<span class="sd">        If `key` is not a valid key, ``par_dict[key]`` is set to `default`.</span>
+<span class="sd">        If `key` is not a valid key, ``params[key]`` is set to `default`.</span>
 <span class="sd">    key : string</span>
 <span class="sd">        The key for the parameter which should be read out from the dictionary.</span>
 <span class="sd">    default :</span>
@@ -90,12 +93,13 @@
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    value :</span>
-<span class="sd">        ``par_dict[key]`` if the key is in par_dict, otherwise `default`.</span>
+<span class="sd">        ``params[key]`` if the key is in params, otherwise `default`.</span>
 <span class="sd">        Converted to a numpy array, if `asarray`.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
-<span class="sd">    :func:`~tenpy.algorithms.tebd.time_evolution` gets a dictionary of parameters.</span>
+<span class="sd">    In the algorith</span>
+<span class="sd">    :class:`~tenpy.algorithms.tebd.Engine` gets a dictionary of parameters.</span>
 <span class="sd">    Beside doing other stuff, it calls :meth:`tenpy.models.model.NearestNeighborModel.calc_U_bond`</span>
 <span class="sd">    with the dictionary as argument, which looks similar like:</span>
 
@@ -120,11 +124,13 @@
 
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">defaultstring</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">par_dict</span> <span class="k">else</span> <span class="s2">&quot;(default) &quot;</span>
-    <span class="n">val</span> <span class="o">=</span> <span class="n">par_dict</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>  <span class="c1"># get the value; set default if not existent</span>
-    <span class="n">used</span> <span class="o">=</span> <span class="n">par_dict</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;_used_param&#39;</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span>
-    <span class="n">verbose</span> <span class="o">=</span> <span class="n">par_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">100</span> <span class="ow">or</span> <span class="p">(</span><span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">used</span> <span class="ow">and</span> <span class="n">verbose</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+    <span class="n">use_default</span> <span class="o">=</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">params</span>
+    <span class="n">val</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>  <span class="c1"># get the value; set default if not existent</span>
+    <span class="n">used</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;_used_param&#39;</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span>
+    <span class="n">verbose</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">new_key</span> <span class="o">=</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">used</span>
+    <span class="k">if</span> <span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">100</span> <span class="ow">or</span> <span class="p">(</span><span class="n">new_key</span> <span class="ow">and</span> <span class="n">verbose</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="mf">2.</span> <span class="k">if</span> <span class="n">use_default</span> <span class="k">else</span> <span class="mf">1.</span><span class="p">)):</span>
+        <span class="n">defaultstring</span> <span class="o">=</span> <span class="s2">&quot;(default) &quot;</span> <span class="k">if</span> <span class="n">use_default</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;parameter </span><span class="si">{key!r}</span><span class="s2">=</span><span class="si">{val!r}</span><span class="s2"> </span><span class="si">{defaultstring}</span><span class="s2">for </span><span class="si">{descr!s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
             <span class="n">descr</span><span class="o">=</span><span class="n">descr</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">val</span><span class="p">,</span> <span class="n">defaultstring</span><span class="o">=</span><span class="n">defaultstring</span><span class="p">))</span>
     <span class="n">used</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>  <span class="c1"># (does nothing if already present)</span>
@@ -133,14 +139,14 @@
     <span class="k">return</span> <span class="n">val</span></div>
 
 
-<div class="viewcode-block" id="unused_parameters"><a class="viewcode-back" href="../../../reference/tenpy.tools.params.html#tenpy.tools.params.unused_parameters">[docs]</a><span class="k">def</span> <span class="nf">unused_parameters</span><span class="p">(</span><span class="n">par_dict</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="unused_parameters"><a class="viewcode-back" href="../../../reference/tenpy.tools.params.html#tenpy.tools.params.unused_parameters">[docs]</a><span class="k">def</span> <span class="nf">unused_parameters</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a set of the parameters which have not been read out with `get_parameters`.</span>
 
 <span class="sd">    This function might be useful to check for typos in the parameter keys.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    par_dict : dict</span>
+<span class="sd">    params : dict</span>
 <span class="sd">        A dictionary of parameters which was given to (functions using) :meth:`get_parameter`</span>
 <span class="sd">    warn : None | str</span>
 <span class="sd">        If given, print a warning &quot;unused parameter for {warn!s}: {unused_keys!s}&quot;.</span>
@@ -148,10 +154,10 @@
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    unused_keys : set</span>
-<span class="sd">        The set of keys of the par_dict which was not used</span>
+<span class="sd">        The set of keys of the params which was not used</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">used</span> <span class="o">=</span> <span class="n">par_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;_used_param&#39;</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span>
-    <span class="n">unused</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">par_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">-</span> <span class="n">used</span>
+    <span class="n">used</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;_used_param&#39;</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span>
+    <span class="n">unused</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">-</span> <span class="n">used</span>
     <span class="n">unused</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="s1">&#39;_used_param&#39;</span><span class="p">)</span>
     <span class="n">unused</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="s1">&#39;verbose&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">warn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -209,7 +215,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Mar 06, 2019.
+      Last updated on Mar 08, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
     </div>
   </body>

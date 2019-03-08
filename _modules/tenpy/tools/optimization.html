@@ -74,7 +74,7 @@
 <span class="sd">3) In case you didn&#39;t do that yet: some parts of the library are written in both python and Cython</span>
 <span class="sd">   with the same interface, so you can simply compile the Cython code, as explained in</span>
 <span class="sd">   :doc:`../INSTALL`. Then everything should work the same way from a user perspective,</span>
-<span class="sd">   while internally the faster, pre-compiled cython code from ``tenpy/linalg/npc_helper.pyx``</span>
+<span class="sd">   while internally the faster, pre-compiled cython code from ``tenpy/linalg/_npc_helper.pyx``</span>
 <span class="sd">   is used. This should also be a safe thing to do.</span>
 <span class="sd">   The replacement of the optimized functions is done by the decorator :func:`use_cython`.</span>
 <span class="sd">4) One of the great things about python is its dynamical nature - anything can be done at runtime.</span>
@@ -121,7 +121,7 @@
 <span class="k">except</span><span class="p">:</span>
     <span class="n">bottleneck</span> <span class="o">=</span> <span class="kc">None</span>
 
-<span class="sd">&quot;&quot;&quot;bool whether the import of the cython file tenpy/linalg/npc_helper.pyx succeeded&quot;&quot;&quot;</span>
+<span class="sd">&quot;&quot;&quot;bool whether the import of the cython file tenpy/linalg/_npc_helper.pyx succeeded&quot;&quot;&quot;</span>
 <span class="n">have_cython_functions</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># set to True or False in the first call of `use_cython`</span>
 
 
@@ -253,7 +253,7 @@
 
 
 <div class="viewcode-block" id="use_cython"><a class="viewcode-back" href="../../../reference/tenpy.tools.optimization.html#tenpy.tools.optimization.use_cython">[docs]</a><span class="k">def</span> <span class="nf">use_cython</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">replacement</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">check_doc</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Decorator to replace a function with a Cython-equivalent from npc_helper.pyx.</span>
+    <span class="sd">&quot;&quot;&quot;Decorator to replace a function with a Cython-equivalent from _npc_helper.pyx.</span>
 
 <span class="sd">    This is a `decorator &lt;https://docs.python.org/3.7/glossary.html#term-decorator&gt;`_, which is</span>
 <span class="sd">    supposed to be used in front of function definitions with an ``@`` sign, for example::</span>
@@ -269,7 +269,7 @@
 <span class="sd">            return result</span>
 
 <span class="sd">    This decorator indicates that there is a `Cython &lt;https://cython.org&gt;`_ implementation in</span>
-<span class="sd">    the file ``tenpy/linalg/npc_helper.pyx``, which should have the same signature (i.e. same</span>
+<span class="sd">    the file ``tenpy/linalg/_npc_helper.pyx``, which should have the same signature (i.e. same</span>
 <span class="sd">    arguments and return values) as the decorated function, and can be used as a replacement for</span>
 <span class="sd">    the decorated function. However, if the cython code could not be compiled on your system</span>
 <span class="sd">    (or if the environment variable ``TENPY_OPTIMIZE`` is set to negative values),</span>
@@ -283,9 +283,10 @@
 <span class="sd">    func : function</span>
 <span class="sd">        The defined function</span>
 <span class="sd">    replacement : string | None</span>
-<span class="sd">        The name of the function defined in tenpy/linalg/npc_helper.pyx replacing the decorated</span>
-<span class="sd">        function. ``None`` defaults to the name of the decorated function,</span>
-<span class="sd">        i.e., in the above example `my_slow_function`.</span>
+<span class="sd">        The name of the function defined in ``tenpy/linalg/_npc_helper.pyx`` which should</span>
+<span class="sd">        replace the decorated function.</span>
+<span class="sd">        ``None`` defaults to the name of the decorated function,</span>
+<span class="sd">        e.g., in the above example `my_slow_function`.</span>
 <span class="sd">    check_doc : bool</span>
 <span class="sd">        If True, we check that the cython version of the function has the exact same doc string</span>
 <span class="sd">        (up to a possible first line containing the function signature) to exclude typos and</span>
@@ -309,15 +310,15 @@
     <span class="k">if</span> <span class="n">have_cython_functions</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">optimize</span><span class="p">(</span><span class="n">OptimizationFlag</span><span class="o">.</span><span class="n">default</span><span class="p">):</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="kn">from</span> <span class="nn">..linalg</span> <span class="k">import</span> <span class="n">npc_helper</span>
-                <span class="n">_npc_helper_module</span> <span class="o">=</span> <span class="n">npc_helper</span>
+                <span class="kn">from</span> <span class="nn">..linalg</span> <span class="k">import</span> <span class="n">_npc_helper</span>
+                <span class="n">_npc_helper_module</span> <span class="o">=</span> <span class="n">_npc_helper</span>
                 <span class="n">have_cython_functions</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
                 <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Couln&#39;t load compiled cython code. Code will run a bit slower.&quot;</span><span class="p">)</span>
                 <span class="n">have_cython_functions</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Don&#39;t load compiled cython code due to TENPY_OPTMIZE. &quot;</span>
-                  <span class="s2">&quot;Code will run a bit slower.&quot;</span><span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Don&#39;t load compiled cython code due to TENPY_OPTMIZE. &quot;</span>
+                          <span class="s2">&quot;Code will run a bit slower.&quot;</span><span class="p">)</span>
             <span class="n">have_cython_functions</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">have_cython_functions</span><span class="p">:</span>
         <span class="c1"># can&#39;t provide a faster version: cython module not available</span>
@@ -394,7 +395,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Mar 06, 2019.
+      Last updated on Mar 08, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
     </div>
   </body>
