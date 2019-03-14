@@ -3896,8 +3896,9 @@
     <span class="sd">&quot;&quot;&quot;Full contraction of `a` and `b` with axes in matching order.&quot;&quot;&quot;</span>
     <span class="n">calc_dtype</span><span class="p">,</span> <span class="n">res_dtype</span> <span class="o">=</span> <span class="n">_find_calc_dtype</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">b</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="n">res</span> <span class="o">=</span> <span class="n">res_dtype</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">chinfo</span><span class="o">.</span><span class="n">make_valid</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">qtotal</span> <span class="o">+</span> <span class="n">b</span><span class="o">.</span><span class="n">qtotal</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">res</span>  <span class="c1"># can&#39;t have blocks to be contracted</span>
+    <span class="n">check_qtotal</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">qtotal</span> <span class="o">-</span> <span class="n">a</span><span class="o">.</span><span class="n">qtotal</span> <span class="k">if</span> <span class="n">do_conj</span> <span class="k">else</span> <span class="n">b</span><span class="o">.</span><span class="n">qtotal</span> <span class="o">+</span> <span class="n">a</span><span class="o">.</span><span class="n">qtotal</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">chinfo</span><span class="o">.</span><span class="n">make_valid</span><span class="p">(</span><span class="n">check_qtotal</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">res</span> <span class="c1"># can&#39;t have blocks to be contracted.</span>
     <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">stored_blocks</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">b</span><span class="o">.</span><span class="n">stored_blocks</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">res</span>  <span class="c1"># also trivial</span>
     <span class="n">a</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">calc_dtype</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
@@ -3924,6 +3925,7 @@
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">_iter_common_sorted</span><span class="p">(</span><span class="n">a_qdata</span><span class="p">,</span> <span class="n">b_qdata</span><span class="p">):</span>
         <span class="n">res</span> <span class="o">+=</span> <span class="n">blas_dot</span><span class="p">(</span><span class="n">a_data</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">b_data</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
         <span class="c1"># same as res += np.inner(a_data[i].reshape((-1, )), b_data[j].reshape((-1, )))</span>
+        <span class="c1"># (or with complex conj if &#39;do_conj&#39;)</span>
     <span class="k">return</span> <span class="n">res</span>
 
 
@@ -4420,7 +4422,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Mar 13, 2019.
+      Last updated on Mar 14, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
     </div>
   </body>

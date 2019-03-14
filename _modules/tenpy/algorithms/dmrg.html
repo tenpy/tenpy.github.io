@@ -67,6 +67,9 @@
 
 <span class="sd">.. todo ::</span>
 <span class="sd">    Write UserGuide/Example!!!</span>
+
+<span class="sd">.. todo ::</span>
+<span class="sd">    separate effective Hamiltonian from Engine for better readability?</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="c1"># Copyright 2018 TeNPy Developers</span>
 
@@ -424,7 +427,7 @@
         <span class="n">DMRG_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DMRG_params</span>
         <span class="n">unused_parameters</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">[</span><span class="s1">&#39;lanczos_params&#39;</span><span class="p">],</span> <span class="s2">&quot;DMRG lanczos_params&quot;</span><span class="p">)</span>
         <span class="n">unused_parameters</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">[</span><span class="s1">&#39;trunc_params&#39;</span><span class="p">],</span> <span class="s2">&quot;DMRG trunc_params&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="s1">&#39;mixer_params&#39;</span> <span class="ow">in</span> <span class="n">DMRG_params</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s1">&#39;mixer_params&#39;</span> <span class="ow">in</span> <span class="n">DMRG_params</span> <span class="ow">and</span> <span class="n">DMRG_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mixer&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>
             <span class="n">unused_parameters</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">[</span><span class="s1">&#39;mixer_params&#39;</span><span class="p">],</span> <span class="s2">&quot;DMRG mixer_params&quot;</span><span class="p">)</span>
         <span class="n">unused_parameters</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s2">&quot;DMRG&quot;</span><span class="p">)</span>
 
@@ -963,9 +966,10 @@
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        xaxis : &#39;sweep&#39; | &#39;time&#39; | ...</span>
+<span class="sd">        xaxis : ``&#39;index&#39;`` | ``&#39;sweep&#39;`` | keys of :attr:`update_stats`</span>
 <span class="sd">            Key of :attr:`update_stats` to be used for the x-axis of the plots.</span>
-<span class="sd">            ``&#39;sweep&#39;`` is just enumerating the number of bond updates</span>
+<span class="sd">            ``&#39;index&#39;`` is just enumerating the number of bond updates,</span>
+<span class="sd">            and ``&#39;sweep&#39;`` corresponds to the sweep number</span>
 <span class="sd">            (including environment sweeps).</span>
 <span class="sd">        E_exact : float</span>
 <span class="sd">            Exact energy (for infinite systems: per site) for comparison.</span>
@@ -977,8 +981,8 @@
         <span class="n">ax1</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
         <span class="n">stats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_stats</span>
         <span class="n">L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">L</span>
-        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;marker&#39;</span><span class="p">,</span> <span class="s1">&#39;o&#39;</span><span class="p">)</span>
-        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;linestyle&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;marker&#39;</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;linestyle&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">)</span>
 
         <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;E_total&#39;</span><span class="p">])</span>
         <span class="n">schedule</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_sweep_schedule</span><span class="p">()</span>
@@ -1033,8 +1037,8 @@
             <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
         <span class="n">stats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sweep_stats</span>
         <span class="n">L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">L</span>
-        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;marker&#39;</span><span class="p">,</span> <span class="s1">&#39;o&#39;</span><span class="p">)</span>
-        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;linestyle&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;marker&#39;</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;linestyle&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">)</span>
 
         <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="n">xaxis</span><span class="p">])</span>
         <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="n">yaxis</span><span class="p">])</span>
@@ -1352,7 +1356,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">amplitude</span> <span class="o">/=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decay</span>
         <span class="k">if</span> <span class="n">sweeps</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">disable_after</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">amplitude</span> <span class="o">&lt;=</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="s1">&#39;float&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mf">0.1</span><span class="p">:</span>  <span class="c1"># increased verbosity: the same level as DMRG</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;disable mixer after </span><span class="si">{0:d}</span><span class="s2"> sweeps&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sweeps</span><span class="p">))</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;disable mixer after </span><span class="si">{0:d}</span><span class="s2"> sweeps, final amplitude </span><span class="si">{1:.2e}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">sweeps</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">amplitude</span><span class="p">))</span>
             <span class="k">return</span> <span class="kc">None</span>  <span class="c1"># disable mixer</span>
         <span class="k">return</span> <span class="bp">self</span></div>
 
@@ -1642,7 +1647,7 @@
         <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">rho_c</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;wL*&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p1*&#39;</span><span class="p">,</span> <span class="s1">&#39;wR*&#39;</span><span class="p">,</span> <span class="s1">&#39;vR*&#39;</span><span class="p">]))</span>
         <span class="n">rho</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;(vR*.p0)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vR.p0*)&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;(vL.p0)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vL*.p0*)&#39;</span><span class="p">])</span>
         <span class="k">if</span> <span class="n">add_separate_Id</span><span class="p">:</span>
-            <span class="n">rho</span> <span class="o">=</span> <span class="n">rho</span> <span class="o">+</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(vR.p1)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vR*.p1*)&#39;</span><span class="p">])</span>
+            <span class="n">rho</span> <span class="o">=</span> <span class="n">rho</span> <span class="o">+</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(p1.vR)&#39;</span><span class="p">,</span> <span class="s1">&#39;(p1*.vR*)&#39;</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">rho</span></div>
 
 <div class="viewcode-block" id="DensityMatrixMixer.mix_rho_R"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.dmrg.html#tenpy.algorithms.dmrg.DensityMatrixMixer.mix_rho_R">[docs]</a>    <span class="k">def</span> <span class="nf">mix_rho_R</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">mix_enabled</span><span class="p">):</span>
@@ -1815,7 +1820,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Mar 13, 2019.
+      Last updated on Mar 14, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
     </div>
   </body>
