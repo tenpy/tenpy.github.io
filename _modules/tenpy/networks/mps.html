@@ -1144,7 +1144,7 @@
                 <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">:</span>
                     <span class="n">leg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_B</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;vL&#39;</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>  <span class="c1"># i == L: segment b.c.</span>
-                    <span class="n">leg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_B</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">)</span>
+                    <span class="n">leg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_B</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>
                 <span class="n">spectrum</span> <span class="o">=</span> <span class="p">[(</span><span class="n">leg</span><span class="o">.</span><span class="n">get_charge</span><span class="p">(</span><span class="n">qi</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">ss</span><span class="p">[</span><span class="n">leg</span><span class="o">.</span><span class="n">get_slice</span><span class="p">(</span><span class="n">qi</span><span class="p">)]))</span>
                             <span class="k">for</span> <span class="n">qi</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">leg</span><span class="o">.</span><span class="n">block_number</span><span class="p">)]</span>
                 <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">spectrum</span><span class="p">)</span>
@@ -1574,12 +1574,13 @@
 <span class="sd">        term_list : list of terms</span>
 <span class="sd">            Each `term` should have the form ``[(Op1, site1), (Op2, site2), ...]``.</span>
 <span class="sd">        prefactors : list of (complex) floats</span>
-<span class="sd">            Prefactors for the ``total_sum`` to be evaluated.</span>
+<span class="sd">            Prefactors for the ``term_sum`` to be evaluated.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        terms_sum : list of (complex) float</span>
-<span class="sd">            Equivalent to ``sum([t*f for t, f in zip(terms, prefactors)])``.</span>
+<span class="sd">            Equivalent to the expression</span>
+<span class="sd">            ``sum([self.expectation_value_term(t)*f for t, f in zip(terms_list, prefactors)])``.</span>
 <span class="sd">        cache :</span>
 <span class="sd">            Intermediate results. Currently the values for each of the term, but this might be</span>
 <span class="sd">            changed soon.</span>
@@ -2424,7 +2425,11 @@
     <span class="k">def</span> <span class="nf">_expectation_value_args</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ops</span><span class="p">,</span> <span class="n">sites</span><span class="p">,</span> <span class="n">axes</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;parse the arguments of self.expectation_value()&quot;&quot;&quot;</span>
         <span class="n">ops</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">to_iterable_arrays</span><span class="p">(</span><span class="n">ops</span><span class="p">)</span>
-        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_op</span><span class="p">(</span><span class="n">ops</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">rank</span> <span class="o">//</span> <span class="mi">2</span>  <span class="c1"># same as int(rank/2)</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">ops</span><span class="p">):</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">sites</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">to_iterable</span><span class="p">(</span><span class="n">sites</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="n">ops</span><span class="p">[</span><span class="n">s</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">ops</span><span class="p">)]</span><span class="o">.</span><span class="n">rank</span> <span class="o">//</span> <span class="mi">2</span>  <span class="c1"># same as int(rank/2)</span>
         <span class="n">L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
         <span class="k">if</span> <span class="n">sites</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
@@ -2747,6 +2752,15 @@
 <div class="viewcode-block" id="MPSEnvironment.get_LP"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.html#tenpy.networks.mpo.MPSEnvironment.get_LP">[docs]</a>    <span class="k">def</span> <span class="nf">get_LP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculate LP at given site from nearest available one (including `i`).</span>
 
+<span class="sd">        The returned ``LP_i`` corresponds to the following contraction,</span>
+<span class="sd">        where the M&#39;s and the N&#39;s are in the &#39;A&#39; form::</span>
+
+<span class="sd">            |     .-------M[0]--- ... --M[i-1]---&gt;-   &#39;vR&#39;</span>
+<span class="sd">            |     |       |             |</span>
+<span class="sd">            |     LP[0]---W[0]--- ... --W[i-1]---&gt;-   &#39;wR&#39;</span>
+<span class="sd">            |     |       |             |</span>
+<span class="sd">            |     .-------N[0]*-- ... --N[i-1]*--&lt;-   &#39;vR*&#39;</span>
+
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        i : int</span>
@@ -2759,14 +2773,6 @@
 <span class="sd">        LP_i : :class:`~tenpy.linalg.np_conserved.Array`</span>
 <span class="sd">            Contraction of everything left of site `i`,</span>
 <span class="sd">            with labels ``&#39;vR*&#39;, &#39;vR&#39;`` for `bra`, `ket`.</span>
-<span class="sd">        LP_i= .------&gt;-M[0]--&gt; ... --&gt;M[i-2]--&gt;M[i-1]--&gt;</span>
-<span class="sd">              |        |                |        |</span>
-<span class="sd">              |        ^                ^        ^</span>
-<span class="sd">              |        |                |        |</span>
-<span class="sd">              |        ^                ^        ^</span>
-<span class="sd">              |        |                |        |</span>
-<span class="sd">              .------&gt;-N[0]*-&gt; ... --&gt;N[i-2]*--&gt;N[i-1]*--&gt;</span>
-<span class="sd">        where the M&#39;s and the N&#39;s are in the &#39;A&#39; form</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># find nearest available LP to the left.</span>
         <span class="k">for</span> <span class="n">i0</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
@@ -2786,6 +2792,16 @@
 <div class="viewcode-block" id="MPSEnvironment.get_RP"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.html#tenpy.networks.mpo.MPSEnvironment.get_RP">[docs]</a>    <span class="k">def</span> <span class="nf">get_RP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculate RP at given site from nearest available one (including `i`).</span>
 
+<span class="sd">        The returned ``RP_i`` corresponds to the following contraction,</span>
+<span class="sd">        where the M&#39;s and the N&#39;s are in the &#39;B&#39; form::</span>
+
+<span class="sd">            |     &#39;vL&#39;  -&gt;---M[i+1]-- ... --M[L-1]----.</span>
+<span class="sd">            |                |              |         |</span>
+<span class="sd">            |                |              |         RP[-1]</span>
+<span class="sd">            |                |              |         |</span>
+<span class="sd">            |     &#39;vL*&#39; -&lt;---N[i+1]*- ... --N[L-1]*---.</span>
+
+
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        i : int</span>
@@ -2798,20 +2814,6 @@
 <span class="sd">        RP_i : :class:`~tenpy.linalg.np_conserved.Array`</span>
 <span class="sd">            Contraction of everything left of site `i`,</span>
 <span class="sd">            with labels ``&#39;vL*&#39;, &#39;vL&#39;`` for `bra`, `ket`.</span>
-
-
-
-<span class="sd">       RP_i=     --&gt;M[i+1]---&gt;  ...  ---&gt;M[i-2]--&gt;.</span>
-<span class="sd">                      |                     |      |</span>
-<span class="sd">                      ^                     ^      |</span>
-<span class="sd">                      |                     |      |</span>
-<span class="sd">                      ^                     ^      |</span>
-<span class="sd">                      |                     |      |</span>
-<span class="sd">                 --&gt;N[i+1]*--&gt;  ... --&gt;N[i-2]*--&gt;.</span>
-
-
-<span class="sd">        where the M&#39;s and the N&#39;s are in the &#39;B&#39; form</span>
-
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># find nearest available RP to the right.</span>
         <span class="k">for</span> <span class="n">i0</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
@@ -3296,7 +3298,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Mar 15, 2019.
+      Last updated on Mar 16, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
     </div>
   </body>
