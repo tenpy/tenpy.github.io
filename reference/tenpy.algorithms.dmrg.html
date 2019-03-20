@@ -164,12 +164,14 @@ a class (not an instance!) can be used as custom engine.</td>
 <a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.truncate" title="tenpy.algorithms.truncation.truncate"><code class="xref py py-func docutils literal notranslate"><span class="pre">truncate()</span></code></a></td>
 </tr>
 <tr class="row-odd"><td>chi_list</td>
-<td>dict</td>
+<td>dict |
+None</td>
 <td>A dictionary to gradually increase the <cite>chi_max</cite> parameter of
 <cite>trunc_params</cite>. The key defines starting from which sweep
 <cite>chi_max</cite> is set to the value, e.g. <code class="docutils literal notranslate"><span class="pre">{0:</span> <span class="pre">50,</span> <span class="pre">20:</span> <span class="pre">100}</span></code> uses
 <code class="docutils literal notranslate"><span class="pre">chi_max=50</span></code> for the first 20 sweeps and <code class="docutils literal notranslate"><span class="pre">chi_max=100</span></code>
-afterwards.</td>
+afterwards. Overwrites <cite>trunc_params[‘chi_list’]`</cite>.
+By default (<code class="docutils literal notranslate"><span class="pre">None</span></code>) this feature is disabled.</td>
 </tr>
 <tr class="row-even"><td>lanczos_params</td>
 <td>dict</td>
@@ -362,8 +364,8 @@ conditions; same as <cite>psi.finite</cite>.</p>
 <dt><strong>shelve</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
 <dd><p class="first last">True when the DMRG stopped due to the time limit set by <cite>max_hours</cite>, otherwise <cite>False</cite>.</p>
 </dd>
-<dt><strong>chi_list</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
-<dd><p class="first last">See DMRG_params <cite>chi_list</cite>.</p>
+<dt><strong>chi_list</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict | None</span></dt>
+<dd><p class="first last">See DMRG_params <cite>chi_list</cite>. <code class="docutils literal notranslate"><span class="pre">None</span></code> (default) disables this feature.</p>
 </dd>
 <dt><strong>update_stats</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
 <dd><p class="first">A dictionary with detailed statistics of the convergence.
@@ -480,10 +482,10 @@ added each time <a class="reference internal" href="#tenpy.algorithms.dmrg.Engin
 <td>Cleanup the effects of the mixer.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.Engine.plot_sweep_stats" title="tenpy.algorithms.dmrg.Engine.plot_sweep_stats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_sweep_stats</span></code></a>([axes,&nbsp;xaxis,&nbsp;yaxis,&nbsp;y_exact])</td>
-<td>Plot the sweep statistics to display the convergence with the sweeps.</td>
+<td>Plot <code class="xref py py-attr docutils literal notranslate"><span class="pre">sweep_stats</span></code> to display the convergence with the sweeps.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.Engine.plot_update_stats" title="tenpy.algorithms.dmrg.Engine.plot_update_stats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_update_stats</span></code></a>(ax1,&nbsp;ax2[,&nbsp;xaxis,&nbsp;E_exact])</td>
-<td>Plot the update statistics to display the convergence during the sweeps.</td>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.Engine.plot_update_stats" title="tenpy.algorithms.dmrg.Engine.plot_update_stats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_update_stats</span></code></a>(axes[,&nbsp;xaxis,&nbsp;yaxis,&nbsp;y_exact])</td>
+<td>Plot <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code> to display the convergence during the sweeps.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.Engine.prepare_diag" title="tenpy.algorithms.dmrg.Engine.prepare_diag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prepare_diag</span></code></a>(i0,&nbsp;update_LP,&nbsp;update_RP)</td>
 <td>Prepare <cite>self</cite> to represent the effective Hamiltonian on sites <code class="docutils literal notranslate"><span class="pre">(i0,</span> <span class="pre">i0+1)</span></code>.</td>
@@ -710,16 +712,16 @@ To recover the originial form, this function simply performs one sweep with disa
 <dl class="method">
 <dt id="tenpy.algorithms.dmrg.Engine.plot_sweep_stats">
 <code class="descname">plot_sweep_stats</code><span class="sig-paren">(</span><em>axes=None</em>, <em>xaxis='time'</em>, <em>yaxis='E'</em>, <em>y_exact=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#Engine.plot_sweep_stats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.Engine.plot_sweep_stats" title="Permalink to this definition">¶</a></dt>
-<dd><p>Plot the sweep statistics to display the convergence with the sweeps.</p>
+<dd><p>Plot <code class="xref py py-attr docutils literal notranslate"><span class="pre">sweep_stats</span></code> to display the convergence with the sweeps.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
 <dt><strong>axes</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference external" href="https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes" title="(in Matplotlib v3.0.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.axes.Axes</span></code></a></span></dt>
-<dd><p class="first last">The axes to plot into. Defaults to <code class="docutils literal notranslate"><span class="pre">plt.gca()</span></code></p>
+<dd><p class="first last">The axes to plot into. Defaults to <a class="reference external" href="https://matplotlib.org/api/_as_gen/matplotlib.pyplot.gca.html#matplotlib.pyplot.gca" title="(in Matplotlib v3.0.3)"><code class="xref py py-func docutils literal notranslate"><span class="pre">matplotlib.pyplot.gca()</span></code></a></p>
 </dd>
-<dt><strong>xaxis, yaxis</strong> <span class="classifier-delimiter">:</span> <span class="classifier">‘sweep’ | ‘time’ | …</span></dt>
+<dt><strong>xaxis, yaxis</strong> <span class="classifier-delimiter">:</span> <span class="classifier">key of <code class="xref py py-attr docutils literal notranslate"><span class="pre">sweep_stats</span></code></span></dt>
 <dd><p class="first last">Key of <code class="xref py py-attr docutils literal notranslate"><span class="pre">sweep_stats</span></code> to be used for the x-axis and y-axis of the plots.</p>
 </dd>
 <dt><strong>y_exact</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
@@ -738,29 +740,31 @@ If given, plot <code class="docutils literal notranslate"><span class="pre">abs(
 
 <dl class="method">
 <dt id="tenpy.algorithms.dmrg.Engine.plot_update_stats">
-<code class="descname">plot_update_stats</code><span class="sig-paren">(</span><em>ax1</em>, <em>ax2</em>, <em>xaxis='time'</em>, <em>E_exact=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#Engine.plot_update_stats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.Engine.plot_update_stats" title="Permalink to this definition">¶</a></dt>
-<dd><p>Plot the update statistics to display the convergence during the sweeps.</p>
-<p>Makes two subplots, showing the energy (<cite>ax1</cite>) and number of lanczos iterations (<cite>ax2</cite>).</p>
+<code class="descname">plot_update_stats</code><span class="sig-paren">(</span><em>axes</em>, <em>xaxis='time'</em>, <em>yaxis='E'</em>, <em>y_exact=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#Engine.plot_update_stats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.Engine.plot_update_stats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code> to display the convergence during the sweeps.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>ax1, ax2</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference external" href="https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes" title="(in Matplotlib v3.0.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.axes.Axes</span></code></a></span></dt>
-<dd><p class="first last">The axes to plot into. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, we skip plotting.</p>
+<dt><strong>axes</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference external" href="https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes" title="(in Matplotlib v3.0.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.axes.Axes</span></code></a></span></dt>
+<dd><p class="first last">The axes to plot into. Defaults to <a class="reference external" href="https://matplotlib.org/api/_as_gen/matplotlib.pyplot.gca.html#matplotlib.pyplot.gca" title="(in Matplotlib v3.0.3)"><code class="xref py py-func docutils literal notranslate"><span class="pre">matplotlib.pyplot.gca()</span></code></a></p>
 </dd>
-<dt><strong>xaxis</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">'index'</span></code> | <code class="docutils literal notranslate"><span class="pre">'sweep'</span></code> | keys of <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code></span></dt>
+<dt><strong>xaxis</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">'index'</span> <span class="pre">|</span> <span class="pre">'sweep'</span></code> | keys of <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code></span></dt>
 <dd><p class="first last">Key of <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code> to be used for the x-axis of the plots.
 <code class="docutils literal notranslate"><span class="pre">'index'</span></code> is just enumerating the number of bond updates,
-and <code class="docutils literal notranslate"><span class="pre">'sweep'</span></code> corresponds to the sweep number
-(including environment sweeps).</p>
+and <code class="docutils literal notranslate"><span class="pre">'sweep'</span></code> corresponds to the sweep number (including environment sweeps).</p>
 </dd>
-<dt><strong>E_exact</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd><p class="first last">Exact energy (for infinite systems: per site) for comparison.
-If given, plot <code class="docutils literal notranslate"><span class="pre">abs((E-E_exact)/E_exact)</span></code> on a log-scale yaxis.</p>
+<dt><strong>yaxis</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">'E'</span></code> | keys of <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code></span></dt>
+<dd><p class="first last">Key of <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code> to be used for the y-axisof the plots.
+For ‘E’, use the energy (per site for infinite systems).</p>
+</dd>
+<dt><strong>y_exact</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Exact value for the quantity on the y-axis for comparison.
+If given, plot <code class="docutils literal notranslate"><span class="pre">abs((y-y_exact)/y_exact)</span></code> on a log-scale yaxis.</p>
 </dd>
 <dt><strong>**kwargs :</strong></dt>
-<dd><p class="first last">Further keyword arguments given to <code class="docutils literal notranslate"><span class="pre">ax1.plot(...)</span></code> and <code class="docutils literal notranslate"><span class="pre">ax2.plot(...)</span></code>.</p>
+<dd><p class="first last">Further keyword arguments given to <code class="docutils literal notranslate"><span class="pre">axes.plot(...)</span></code>.</p>
 </dd>
 </dl>
 </td>
@@ -1077,10 +1081,10 @@ Labels <code class="docutils literal notranslate"><span class="pre">'(vL.p1*)',<
 <td>Cleanup the effects of the mixer.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineCombine.plot_sweep_stats" title="tenpy.algorithms.dmrg.EngineCombine.plot_sweep_stats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_sweep_stats</span></code></a>([axes,&nbsp;xaxis,&nbsp;yaxis,&nbsp;y_exact])</td>
-<td>Plot the sweep statistics to display the convergence with the sweeps.</td>
+<td>Plot <code class="xref py py-attr docutils literal notranslate"><span class="pre">sweep_stats</span></code> to display the convergence with the sweeps.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineCombine.plot_update_stats" title="tenpy.algorithms.dmrg.EngineCombine.plot_update_stats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_update_stats</span></code></a>(ax1,&nbsp;ax2[,&nbsp;xaxis,&nbsp;E_exact])</td>
-<td>Plot the update statistics to display the convergence during the sweeps.</td>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineCombine.plot_update_stats" title="tenpy.algorithms.dmrg.EngineCombine.plot_update_stats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_update_stats</span></code></a>(axes[,&nbsp;xaxis,&nbsp;yaxis,&nbsp;y_exact])</td>
+<td>Plot <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code> to display the convergence during the sweeps.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineCombine.prepare_diag" title="tenpy.algorithms.dmrg.EngineCombine.prepare_diag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prepare_diag</span></code></a>(i0)</td>
 <td>Prepare <cite>self</cite> to represent the effective Hamiltonian on sites <code class="docutils literal notranslate"><span class="pre">(i0,</span> <span class="pre">i0+1)</span></code>.</td>
@@ -1298,16 +1302,16 @@ To recover the originial form, this function simply performs one sweep with disa
 <dl class="method">
 <dt id="tenpy.algorithms.dmrg.EngineCombine.plot_sweep_stats">
 <code class="descname">plot_sweep_stats</code><span class="sig-paren">(</span><em>axes=None</em>, <em>xaxis='time'</em>, <em>yaxis='E'</em>, <em>y_exact=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineCombine.plot_sweep_stats" title="Permalink to this definition">¶</a></dt>
-<dd><p>Plot the sweep statistics to display the convergence with the sweeps.</p>
+<dd><p>Plot <code class="xref py py-attr docutils literal notranslate"><span class="pre">sweep_stats</span></code> to display the convergence with the sweeps.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
 <dt><strong>axes</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference external" href="https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes" title="(in Matplotlib v3.0.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.axes.Axes</span></code></a></span></dt>
-<dd><p class="first last">The axes to plot into. Defaults to <code class="docutils literal notranslate"><span class="pre">plt.gca()</span></code></p>
+<dd><p class="first last">The axes to plot into. Defaults to <a class="reference external" href="https://matplotlib.org/api/_as_gen/matplotlib.pyplot.gca.html#matplotlib.pyplot.gca" title="(in Matplotlib v3.0.3)"><code class="xref py py-func docutils literal notranslate"><span class="pre">matplotlib.pyplot.gca()</span></code></a></p>
 </dd>
-<dt><strong>xaxis, yaxis</strong> <span class="classifier-delimiter">:</span> <span class="classifier">‘sweep’ | ‘time’ | …</span></dt>
+<dt><strong>xaxis, yaxis</strong> <span class="classifier-delimiter">:</span> <span class="classifier">key of <code class="xref py py-attr docutils literal notranslate"><span class="pre">sweep_stats</span></code></span></dt>
 <dd><p class="first last">Key of <code class="xref py py-attr docutils literal notranslate"><span class="pre">sweep_stats</span></code> to be used for the x-axis and y-axis of the plots.</p>
 </dd>
 <dt><strong>y_exact</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
@@ -1326,29 +1330,31 @@ If given, plot <code class="docutils literal notranslate"><span class="pre">abs(
 
 <dl class="method">
 <dt id="tenpy.algorithms.dmrg.EngineCombine.plot_update_stats">
-<code class="descname">plot_update_stats</code><span class="sig-paren">(</span><em>ax1</em>, <em>ax2</em>, <em>xaxis='time'</em>, <em>E_exact=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineCombine.plot_update_stats" title="Permalink to this definition">¶</a></dt>
-<dd><p>Plot the update statistics to display the convergence during the sweeps.</p>
-<p>Makes two subplots, showing the energy (<cite>ax1</cite>) and number of lanczos iterations (<cite>ax2</cite>).</p>
+<code class="descname">plot_update_stats</code><span class="sig-paren">(</span><em>axes</em>, <em>xaxis='time'</em>, <em>yaxis='E'</em>, <em>y_exact=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineCombine.plot_update_stats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code> to display the convergence during the sweeps.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>ax1, ax2</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference external" href="https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes" title="(in Matplotlib v3.0.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.axes.Axes</span></code></a></span></dt>
-<dd><p class="first last">The axes to plot into. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, we skip plotting.</p>
+<dt><strong>axes</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference external" href="https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes" title="(in Matplotlib v3.0.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.axes.Axes</span></code></a></span></dt>
+<dd><p class="first last">The axes to plot into. Defaults to <a class="reference external" href="https://matplotlib.org/api/_as_gen/matplotlib.pyplot.gca.html#matplotlib.pyplot.gca" title="(in Matplotlib v3.0.3)"><code class="xref py py-func docutils literal notranslate"><span class="pre">matplotlib.pyplot.gca()</span></code></a></p>
 </dd>
-<dt><strong>xaxis</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">'index'</span></code> | <code class="docutils literal notranslate"><span class="pre">'sweep'</span></code> | keys of <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code></span></dt>
+<dt><strong>xaxis</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">'index'</span> <span class="pre">|</span> <span class="pre">'sweep'</span></code> | keys of <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code></span></dt>
 <dd><p class="first last">Key of <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code> to be used for the x-axis of the plots.
 <code class="docutils literal notranslate"><span class="pre">'index'</span></code> is just enumerating the number of bond updates,
-and <code class="docutils literal notranslate"><span class="pre">'sweep'</span></code> corresponds to the sweep number
-(including environment sweeps).</p>
+and <code class="docutils literal notranslate"><span class="pre">'sweep'</span></code> corresponds to the sweep number (including environment sweeps).</p>
 </dd>
-<dt><strong>E_exact</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd><p class="first last">Exact energy (for infinite systems: per site) for comparison.
-If given, plot <code class="docutils literal notranslate"><span class="pre">abs((E-E_exact)/E_exact)</span></code> on a log-scale yaxis.</p>
+<dt><strong>yaxis</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">'E'</span></code> | keys of <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code></span></dt>
+<dd><p class="first last">Key of <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code> to be used for the y-axisof the plots.
+For ‘E’, use the energy (per site for infinite systems).</p>
+</dd>
+<dt><strong>y_exact</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Exact value for the quantity on the y-axis for comparison.
+If given, plot <code class="docutils literal notranslate"><span class="pre">abs((y-y_exact)/y_exact)</span></code> on a log-scale yaxis.</p>
 </dd>
 <dt><strong>**kwargs :</strong></dt>
-<dd><p class="first last">Further keyword arguments given to <code class="docutils literal notranslate"><span class="pre">ax1.plot(...)</span></code> and <code class="docutils literal notranslate"><span class="pre">ax2.plot(...)</span></code>.</p>
+<dd><p class="first last">Further keyword arguments given to <code class="docutils literal notranslate"><span class="pre">axes.plot(...)</span></code>.</p>
 </dd>
 </dl>
 </td>
@@ -1648,10 +1654,10 @@ Labels <code class="docutils literal notranslate"><span class="pre">'wL,</span> 
 <td>Cleanup the effects of the mixer.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.plot_sweep_stats" title="tenpy.algorithms.dmrg.EngineFracture.plot_sweep_stats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_sweep_stats</span></code></a>([axes,&nbsp;xaxis,&nbsp;yaxis,&nbsp;y_exact])</td>
-<td>Plot the sweep statistics to display the convergence with the sweeps.</td>
+<td>Plot <code class="xref py py-attr docutils literal notranslate"><span class="pre">sweep_stats</span></code> to display the convergence with the sweeps.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.plot_update_stats" title="tenpy.algorithms.dmrg.EngineFracture.plot_update_stats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_update_stats</span></code></a>(ax1,&nbsp;ax2[,&nbsp;xaxis,&nbsp;E_exact])</td>
-<td>Plot the update statistics to display the convergence during the sweeps.</td>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.plot_update_stats" title="tenpy.algorithms.dmrg.EngineFracture.plot_update_stats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_update_stats</span></code></a>(axes[,&nbsp;xaxis,&nbsp;yaxis,&nbsp;y_exact])</td>
+<td>Plot <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code> to display the convergence during the sweeps.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.prepare_diag" title="tenpy.algorithms.dmrg.EngineFracture.prepare_diag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prepare_diag</span></code></a>(i0)</td>
 <td>Prepare <cite>self</cite> to represent the effective Hamiltonian on sites <code class="docutils literal notranslate"><span class="pre">(i0,</span> <span class="pre">i0+1)</span></code>.</td>
@@ -1869,16 +1875,16 @@ To recover the originial form, this function simply performs one sweep with disa
 <dl class="method">
 <dt id="tenpy.algorithms.dmrg.EngineFracture.plot_sweep_stats">
 <code class="descname">plot_sweep_stats</code><span class="sig-paren">(</span><em>axes=None</em>, <em>xaxis='time'</em>, <em>yaxis='E'</em>, <em>y_exact=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture.plot_sweep_stats" title="Permalink to this definition">¶</a></dt>
-<dd><p>Plot the sweep statistics to display the convergence with the sweeps.</p>
+<dd><p>Plot <code class="xref py py-attr docutils literal notranslate"><span class="pre">sweep_stats</span></code> to display the convergence with the sweeps.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
 <dt><strong>axes</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference external" href="https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes" title="(in Matplotlib v3.0.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.axes.Axes</span></code></a></span></dt>
-<dd><p class="first last">The axes to plot into. Defaults to <code class="docutils literal notranslate"><span class="pre">plt.gca()</span></code></p>
+<dd><p class="first last">The axes to plot into. Defaults to <a class="reference external" href="https://matplotlib.org/api/_as_gen/matplotlib.pyplot.gca.html#matplotlib.pyplot.gca" title="(in Matplotlib v3.0.3)"><code class="xref py py-func docutils literal notranslate"><span class="pre">matplotlib.pyplot.gca()</span></code></a></p>
 </dd>
-<dt><strong>xaxis, yaxis</strong> <span class="classifier-delimiter">:</span> <span class="classifier">‘sweep’ | ‘time’ | …</span></dt>
+<dt><strong>xaxis, yaxis</strong> <span class="classifier-delimiter">:</span> <span class="classifier">key of <code class="xref py py-attr docutils literal notranslate"><span class="pre">sweep_stats</span></code></span></dt>
 <dd><p class="first last">Key of <code class="xref py py-attr docutils literal notranslate"><span class="pre">sweep_stats</span></code> to be used for the x-axis and y-axis of the plots.</p>
 </dd>
 <dt><strong>y_exact</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
@@ -1897,29 +1903,31 @@ If given, plot <code class="docutils literal notranslate"><span class="pre">abs(
 
 <dl class="method">
 <dt id="tenpy.algorithms.dmrg.EngineFracture.plot_update_stats">
-<code class="descname">plot_update_stats</code><span class="sig-paren">(</span><em>ax1</em>, <em>ax2</em>, <em>xaxis='time'</em>, <em>E_exact=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture.plot_update_stats" title="Permalink to this definition">¶</a></dt>
-<dd><p>Plot the update statistics to display the convergence during the sweeps.</p>
-<p>Makes two subplots, showing the energy (<cite>ax1</cite>) and number of lanczos iterations (<cite>ax2</cite>).</p>
+<code class="descname">plot_update_stats</code><span class="sig-paren">(</span><em>axes</em>, <em>xaxis='time'</em>, <em>yaxis='E'</em>, <em>y_exact=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture.plot_update_stats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code> to display the convergence during the sweeps.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>ax1, ax2</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference external" href="https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes" title="(in Matplotlib v3.0.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.axes.Axes</span></code></a></span></dt>
-<dd><p class="first last">The axes to plot into. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, we skip plotting.</p>
+<dt><strong>axes</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference external" href="https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes" title="(in Matplotlib v3.0.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.axes.Axes</span></code></a></span></dt>
+<dd><p class="first last">The axes to plot into. Defaults to <a class="reference external" href="https://matplotlib.org/api/_as_gen/matplotlib.pyplot.gca.html#matplotlib.pyplot.gca" title="(in Matplotlib v3.0.3)"><code class="xref py py-func docutils literal notranslate"><span class="pre">matplotlib.pyplot.gca()</span></code></a></p>
 </dd>
-<dt><strong>xaxis</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">'index'</span></code> | <code class="docutils literal notranslate"><span class="pre">'sweep'</span></code> | keys of <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code></span></dt>
+<dt><strong>xaxis</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">'index'</span> <span class="pre">|</span> <span class="pre">'sweep'</span></code> | keys of <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code></span></dt>
 <dd><p class="first last">Key of <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code> to be used for the x-axis of the plots.
 <code class="docutils literal notranslate"><span class="pre">'index'</span></code> is just enumerating the number of bond updates,
-and <code class="docutils literal notranslate"><span class="pre">'sweep'</span></code> corresponds to the sweep number
-(including environment sweeps).</p>
+and <code class="docutils literal notranslate"><span class="pre">'sweep'</span></code> corresponds to the sweep number (including environment sweeps).</p>
 </dd>
-<dt><strong>E_exact</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd><p class="first last">Exact energy (for infinite systems: per site) for comparison.
-If given, plot <code class="docutils literal notranslate"><span class="pre">abs((E-E_exact)/E_exact)</span></code> on a log-scale yaxis.</p>
+<dt><strong>yaxis</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">'E'</span></code> | keys of <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code></span></dt>
+<dd><p class="first last">Key of <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code> to be used for the y-axisof the plots.
+For ‘E’, use the energy (per site for infinite systems).</p>
+</dd>
+<dt><strong>y_exact</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Exact value for the quantity on the y-axis for comparison.
+If given, plot <code class="docutils literal notranslate"><span class="pre">abs((y-y_exact)/y_exact)</span></code> on a log-scale yaxis.</p>
 </dd>
 <dt><strong>**kwargs :</strong></dt>
-<dd><p class="first last">Further keyword arguments given to <code class="docutils literal notranslate"><span class="pre">ax1.plot(...)</span></code> and <code class="docutils literal notranslate"><span class="pre">ax2.plot(...)</span></code>.</p>
+<dd><p class="first last">Further keyword arguments given to <code class="docutils literal notranslate"><span class="pre">axes.plot(...)</span></code>.</p>
 </dd>
 </dl>
 </td>
@@ -2924,7 +2932,7 @@ should be disabled.</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Mar 19, 2019.
+      Last updated on Mar 20, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
     </div>
   </body>
