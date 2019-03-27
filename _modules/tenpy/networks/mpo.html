@@ -404,6 +404,27 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_ordered_states</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">()</span>
 
+<div class="viewcode-block" id="MPOGraph.from_terms"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOGraph.from_terms">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_terms</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">onsite_terms</span><span class="p">,</span> <span class="n">coupling_terms</span><span class="p">,</span> <span class="n">sites</span><span class="p">,</span> <span class="n">bc</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize an :class:`MPOGraph` from onsite_terms and coupling_terms.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        onsite_terms : :class:`~tenpy.networks.mps.OnsiteTerms`</span>
+<span class="sd">            Onsite terms to be added to the new :class:`MPOGraph`.</span>
+<span class="sd">        coupling_terms :class:`~tenpy.networks.mps.CouplingTerms` | :class:`~tenpy.networks.mps.MultiCouplingTerms`</span>
+<span class="sd">            Coupling terms to be added to the new :class:`MPOGraph`.</span>
+<span class="sd">        sites : list of :class:`~tenpy.networks.site.Site`</span>
+<span class="sd">            Local sites of the Hilbert space.</span>
+<span class="sd">        bc : ``&#39;finite&#39; | &#39;infinite&#39;``</span>
+<span class="sd">            MPO boundary conditions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">graph</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="n">bc</span><span class="p">)</span>
+        <span class="n">onsite_terms</span><span class="o">.</span><span class="n">add_to_graph</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
+        <span class="n">coupling_terms</span><span class="o">.</span><span class="n">add_to_graph</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
+        <span class="n">graph</span><span class="o">.</span><span class="n">add_missing_IdL_IdR</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">graph</span></div>
+
 <div class="viewcode-block" id="MPOGraph.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOGraph.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Sanity check. Raises ValueErrors, if something is wrong.&quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
@@ -998,7 +1019,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Mar 26, 2019.
+      Last updated on Mar 27, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
     </div>
   </body>

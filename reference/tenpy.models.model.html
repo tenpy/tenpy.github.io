@@ -171,7 +171,7 @@ in 2D becomes long-range in the MPS chain.</p>
 <dt><strong>lattice</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.model.lattice.Lattice</span></code></span></dt>
 <dd><p class="first last">The lattice defining the geometry and the local Hilbert space(s).</p>
 </dd>
-<dt><strong>H_bond</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dt><strong>H_bond</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of {<a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a> | None}</span></dt>
 <dd><p class="first last">The Hamiltonian rewritten as <code class="docutils literal notranslate"><span class="pre">sum_i</span> <span class="pre">H_bond[i]</span></code> for MPS indices <code class="docutils literal notranslate"><span class="pre">i</span></code>.
 <code class="docutils literal notranslate"><span class="pre">H_bond[i]</span></code> acts on sites <code class="docutils literal notranslate"><span class="pre">(i-1,</span> <span class="pre">i)</span></code>; we require <code class="docutils literal notranslate"><span class="pre">len(H_bond)</span> <span class="pre">==</span> <span class="pre">lat.N_sites</span></code>.
 Legs of each <code class="docutils literal notranslate"><span class="pre">H_bond[i]</span></code> are <code class="docutils literal notranslate"><span class="pre">['p0',</span> <span class="pre">'p0*',</span> <span class="pre">'p1',</span> <span class="pre">'p1*']</span></code>.</p>
@@ -180,9 +180,9 @@ Legs of each <code class="docutils literal notranslate"><span class="pre">H_bond
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>H_bond</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <code class="xref py py-class docutils literal notranslate"><span class="pre">npc.Array</span></code></span></dt>
+<dt><strong>H_bond</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of {<a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a> | None}</span></dt>
 <dd><p class="first last">The Hamiltonian rewritten as <code class="docutils literal notranslate"><span class="pre">sum_i</span> <span class="pre">H_bond[i]</span></code> for MPS indices <code class="docutils literal notranslate"><span class="pre">i</span></code>.
-<code class="docutils literal notranslate"><span class="pre">H_bond[i]</span></code> acts on sites <code class="docutils literal notranslate"><span class="pre">(i-1,</span> <span class="pre">i)</span></code>.
+<code class="docutils literal notranslate"><span class="pre">H_bond[i]</span></code> acts on sites <code class="docutils literal notranslate"><span class="pre">(i-1,</span> <span class="pre">i)</span></code>, <code class="docutils literal notranslate"><span class="pre">None</span></code> represents 0.
 Legs of each <code class="docutils literal notranslate"><span class="pre">H_bond[i]</span></code> are <code class="docutils literal notranslate"><span class="pre">['p0',</span> <span class="pre">'p0*',</span> <span class="pre">'p1',</span> <span class="pre">'p1*']</span></code>.</p>
 </dd>
 </dl>
@@ -456,20 +456,13 @@ or help the convergence of DMRG (in case of too long range interactions).</p>
 <dl class="class">
 <dt id="tenpy.models.model.CouplingModel">
 <em class="property">class </em><code class="descclassname">tenpy.models.model.</code><code class="descname">CouplingModel</code><span class="sig-paren">(</span><em>lattice</em>, <em>bc_coupling=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#CouplingModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.CouplingModel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#tenpy.models.model.Model" title="tenpy.models.model.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.Model</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.networks.mps.OnsiteTerms</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.networks.mps.CouplingTerms</span></code></p>
+<dd><p>Bases: <a class="reference internal" href="#tenpy.models.model.Model" title="tenpy.models.model.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.Model</span></code></a></p>
 <p>Base class for a general model of a Hamiltonian consisting of two-site couplings.</p>
 <p>In this class, the terms of the Hamiltonian are specified explicitly as
 <code class="xref py py-class docutils literal notranslate"><span class="pre">OnsiteTerms</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingTerms</span></code>.</p>
 <div class="deprecated">
 <p><span class="versionmodified">Deprecated since version 0.4.0: </span><cite>bc_coupling</cite> will be removed in 1.0.0. To specify the full geometry in the lattice,
 use the <cite>bc</cite> parameter of the <code class="xref py py-class docutils literal notranslate"><span class="pre">Lattice</span></code>.</p>
-</div>
-<div class="admonition-todo admonition" id="index-1">
-<p class="first admonition-title">Todo</p>
-<p class="last">save terms by category and only add them up in the end when generating the Hamiltonian.
-calc_H_onsite, calc_H_bond, calc_H_MPO should become global functions of tenpy.networks.mps
-taking <cite>sites</cite> as arguments.
-_graph_add_* should become methods of CouplingTerms</p>
 </div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -490,8 +483,12 @@ when going around the boundary along this direction.</p>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>H_onsite</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <code class="xref py py-class docutils literal notranslate"><span class="pre">npc.Array</span></code></span></dt>
-<dd><p class="first last">For each site (in MPS order) the onsite part of the Hamiltonian.</p>
+<dt><strong>onsite_terms</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{‘category’: <code class="xref py py-class docutils literal notranslate"><span class="pre">OnsiteTerms</span></code>}</span></dt>
+<dd><p class="first last">The <code class="xref py py-class docutils literal notranslate"><span class="pre">OnsiteTerms</span></code> ordered by category.</p>
+</dd>
+<dt><strong>coupling_terms</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{‘category’: <code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingTerms</span></code>}</span></dt>
+<dd><p class="first last">The <code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingTerms</span></code> ordered by category.
+In a <a class="reference internal" href="#tenpy.models.model.MultiCouplingModel" title="tenpy.models.model.MultiCouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">MultiCouplingModel</span></code></a>, values may also be <code class="xref py py-class docutils literal notranslate"><span class="pre">MultiCouplingTerms</span></code>.</p>
 </dd>
 </dl>
 </td>
@@ -511,17 +508,23 @@ when going around the boundary along this direction.</p>
 <tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.add_coupling_term" title="tenpy.models.model.CouplingModel.add_coupling_term"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_coupling_term</span></code></a>(strength,&nbsp;i,&nbsp;j,&nbsp;op_i,&nbsp;op_j)</td>
 <td>Add a two-site coupling term on given MPS sites.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.add_onsite" title="tenpy.models.model.CouplingModel.add_onsite"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite</span></code></a>(strength,&nbsp;u,&nbsp;opname)</td>
-<td>Add onsite terms to self.</td>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.add_onsite" title="tenpy.models.model.CouplingModel.add_onsite"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite</span></code></a>(strength,&nbsp;u,&nbsp;opname[,&nbsp;category])</td>
+<td>Add onsite terms to <code class="xref py py-attr docutils literal notranslate"><span class="pre">onsite_terms</span></code>.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.add_onsite_term" title="tenpy.models.model.CouplingModel.add_onsite_term"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite_term</span></code></a>(strength,&nbsp;i,&nbsp;op)</td>
-<td>Add a onsite term on a given MPS site.</td>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.add_onsite_term" title="tenpy.models.model.CouplingModel.add_onsite_term"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite_term</span></code></a>(strength,&nbsp;i,&nbsp;op[,&nbsp;category])</td>
+<td>Add an onsite term on a given MPS site.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.all_coupling_terms" title="tenpy.models.model.CouplingModel.all_coupling_terms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">all_coupling_terms</span></code></a>()</td>
+<td>Sum of all <code class="xref py py-attr docutils literal notranslate"><span class="pre">coupling_terms</span></code>.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.all_onsite_terms" title="tenpy.models.model.CouplingModel.all_onsite_terms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">all_onsite_terms</span></code></a>()</td>
+<td>Sum of all <code class="xref py py-attr docutils literal notranslate"><span class="pre">onsite_terms</span></code>.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.calc_H_MPO" title="tenpy.models.model.CouplingModel.calc_H_MPO"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_MPO</span></code></a>([tol_zero])</td>
 <td>Calculate MPO representation of the Hamiltonian.</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.calc_H_bond" title="tenpy.models.model.CouplingModel.calc_H_bond"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_bond</span></code></a>([tol_zero])</td>
-<td>calculate <cite>H_bond</cite> from <cite>self.coupling_terms</cite> and <cite>self.H_onsite</cite>.</td>
+<td>calculate <cite>H_bond</cite> from <code class="xref py py-attr docutils literal notranslate"><span class="pre">coupling_terms</span></code> and <code class="xref py py-attr docutils literal notranslate"><span class="pre">onsite_terms</span></code>.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.calc_H_onsite" title="tenpy.models.model.CouplingModel.calc_H_onsite"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_onsite</span></code></a>([tol_zero])</td>
 <td>Calculate <cite>H_onsite</cite> from <cite>self.onsite_terms</cite>.</td>
@@ -532,17 +535,14 @@ when going around the boundary along this direction.</p>
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.group_sites" title="tenpy.models.model.CouplingModel.group_sites"><code class="xref py py-obj docutils literal notranslate"><span class="pre">group_sites</span></code></a>([n,&nbsp;grouped_sites])</td>
 <td>Modify <cite>self</cite> in place to group sites.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.plot_coupling_terms" title="tenpy.models.model.CouplingModel.plot_coupling_terms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_coupling_terms</span></code></a>(ax[,&nbsp;style_map])</td>
-<td>“Plot coupling terms into a given lattice.</td>
-</tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.test_sanity" title="tenpy.models.model.CouplingModel.test_sanity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingModel.test_sanity" title="tenpy.models.model.CouplingModel.test_sanity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code></a>()</td>
 <td>Sanity check.</td>
 </tr>
 </tbody>
 </table>
 <dl class="method">
 <dt id="tenpy.models.model.CouplingModel.add_coupling">
-<code class="descname">add_coupling</code><span class="sig-paren">(</span><em>strength</em>, <em>u1</em>, <em>op1</em>, <em>u2</em>, <em>op2</em>, <em>dx</em>, <em>op_string=None</em>, <em>str_on_first=True</em>, <em>raise_op2_left=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#CouplingModel.add_coupling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.CouplingModel.add_coupling" title="Permalink to this definition">¶</a></dt>
+<code class="descname">add_coupling</code><span class="sig-paren">(</span><em>strength</em>, <em>u1</em>, <em>op1</em>, <em>u2</em>, <em>op2</em>, <em>dx</em>, <em>op_string=None</em>, <em>str_on_first=True</em>, <em>raise_op2_left=False</em>, <em>category=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#CouplingModel.add_coupling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.CouplingModel.add_coupling" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add twosite coupling terms to the Hamiltonian, summing over lattice sites.</p>
 <p>Represents couplings of the form
 <span class="math notranslate nohighlight">\(\sum_{x_0, ..., x_{dim-1}} strength[loc(\vec{x})] * OP1 * OP2\)</span>, where
@@ -601,6 +601,10 @@ independent of the MPS ordering.</p>
 <dd><p class="first last">Raise an error when <cite>op2</cite> appears left of <cite>op1</cite>
 (in the sense of the MPS ordering given by the lattice).</p>
 </dd>
+<dt><strong>category</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Descriptive name used as key for <code class="xref py py-attr docutils literal notranslate"><span class="pre">coupling_terms</span></code>.
+Defaults to a string of the form <code class="docutils literal notranslate"><span class="pre">&quot;{op1}_i</span> <span class="pre">{op2}_j&quot;</span></code>.</p>
+</dd>
 </dl>
 </td>
 </tr>
@@ -641,8 +645,9 @@ For spin-less fermions (<a class="reference internal" href="tenpy.networks.site.
 
 <dl class="method">
 <dt id="tenpy.models.model.CouplingModel.add_coupling_term">
-<code class="descname">add_coupling_term</code><span class="sig-paren">(</span><em>strength</em>, <em>i</em>, <em>j</em>, <em>op_i</em>, <em>op_j</em>, <em>op_string='Id'</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.CouplingModel.add_coupling_term" title="Permalink to this definition">¶</a></dt>
+<code class="descname">add_coupling_term</code><span class="sig-paren">(</span><em>strength</em>, <em>i</em>, <em>j</em>, <em>op_i</em>, <em>op_j</em>, <em>op_string='Id'</em>, <em>category=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#CouplingModel.add_coupling_term"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.CouplingModel.add_coupling_term" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add a two-site coupling term on given MPS sites.</p>
+<p>Wrapper for <code class="docutils literal notranslate"><span class="pre">self.coupling_terms[category].add_coupling_term(...)</span></code>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -662,6 +667,10 @@ If j &gt;= N_sites, it indicates couplings between unit cells of an infinite MPS
 <dt><strong>op_string</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
 <dd><p class="first last">The operator to be inserted between <cite>i</cite> and <cite>j</cite>.</p>
 </dd>
+<dt><strong>category</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Descriptive name used as key for <code class="xref py py-attr docutils literal notranslate"><span class="pre">coupling_terms</span></code>.
+Defaults to a string of the form <code class="docutils literal notranslate"><span class="pre">&quot;{op1}_i</span> <span class="pre">{op2}_j&quot;</span></code>.</p>
+</dd>
 </dl>
 </td>
 </tr>
@@ -671,8 +680,8 @@ If j &gt;= N_sites, it indicates couplings between unit cells of an infinite MPS
 
 <dl class="method">
 <dt id="tenpy.models.model.CouplingModel.add_onsite">
-<code class="descname">add_onsite</code><span class="sig-paren">(</span><em>strength</em>, <em>u</em>, <em>opname</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#CouplingModel.add_onsite"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.CouplingModel.add_onsite" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add onsite terms to self.</p>
+<code class="descname">add_onsite</code><span class="sig-paren">(</span><em>strength</em>, <em>u</em>, <em>opname</em>, <em>category=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#CouplingModel.add_onsite"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.CouplingModel.add_onsite" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add onsite terms to <code class="xref py py-attr docutils literal notranslate"><span class="pre">onsite_terms</span></code>.</p>
 <p>Adds a term <span class="math notranslate nohighlight">\(\sum_{x_0, ..., x_{dim-1}} strength[x_0, ..., x_{dim-1}] * OP\)</span>,
 where the operator <code class="docutils literal notranslate"><span class="pre">OP=lat.unit_cell[u].get_op(opname)</span></code>
 acts on the site given by a lattice index <code class="docutils literal notranslate"><span class="pre">(x_0,</span> <span class="pre">...,</span> <span class="pre">x_{dim-1},</span> <span class="pre">u)</span></code>,
@@ -693,6 +702,9 @@ is provided, it gets tiled to the required shape.</p>
 <dt><strong>opname</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
 <dd><p class="first last">valid operator name of an onsite operator in <code class="docutils literal notranslate"><span class="pre">lat.unit_cell[u]</span></code>.</p>
 </dd>
+<dt><strong>category</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Descriptive name used as key for <code class="xref py py-attr docutils literal notranslate"><span class="pre">onsite_terms</span></code>. Defaults to <cite>opname</cite>.</p>
+</dd>
 </dl>
 </td>
 </tr>
@@ -702,8 +714,9 @@ is provided, it gets tiled to the required shape.</p>
 
 <dl class="method">
 <dt id="tenpy.models.model.CouplingModel.add_onsite_term">
-<code class="descname">add_onsite_term</code><span class="sig-paren">(</span><em>strength</em>, <em>i</em>, <em>op</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.CouplingModel.add_onsite_term" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add a onsite term on a given MPS site.</p>
+<code class="descname">add_onsite_term</code><span class="sig-paren">(</span><em>strength</em>, <em>i</em>, <em>op</em>, <em>category=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#CouplingModel.add_onsite_term"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.CouplingModel.add_onsite_term" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add an onsite term on a given MPS site.</p>
+<p>Wrapper for <code class="docutils literal notranslate"><span class="pre">self.onsite_terms[category].add_onsite_term(...)</span></code>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -719,11 +732,26 @@ We require <code class="docutils literal notranslate"><span class="pre">0</span>
 <dt><strong>op</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
 <dd><p class="first last">Name of the involved operator.</p>
 </dd>
+<dt><strong>category</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Descriptive name used as key for <code class="xref py py-attr docutils literal notranslate"><span class="pre">onsite_terms</span></code>. Defaults to <cite>op</cite>.</p>
+</dd>
 </dl>
 </td>
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.models.model.CouplingModel.all_coupling_terms">
+<code class="descname">all_coupling_terms</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#CouplingModel.all_coupling_terms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.CouplingModel.all_coupling_terms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sum of all <code class="xref py py-attr docutils literal notranslate"><span class="pre">coupling_terms</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.models.model.CouplingModel.all_onsite_terms">
+<code class="descname">all_onsite_terms</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#CouplingModel.all_onsite_terms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.CouplingModel.all_onsite_terms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sum of all <code class="xref py py-attr docutils literal notranslate"><span class="pre">onsite_terms</span></code>.</p>
 </dd></dl>
 
 <dl class="method">
@@ -757,8 +785,7 @@ We require <code class="docutils literal notranslate"><span class="pre">0</span>
 <dl class="method">
 <dt id="tenpy.models.model.CouplingModel.calc_H_bond">
 <code class="descname">calc_H_bond</code><span class="sig-paren">(</span><em>tol_zero=1e-15</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#CouplingModel.calc_H_bond"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.CouplingModel.calc_H_bond" title="Permalink to this definition">¶</a></dt>
-<dd><p>calculate <cite>H_bond</cite> from <cite>self.coupling_terms</cite> and <cite>self.H_onsite</cite>.</p>
-<p>If <code class="docutils literal notranslate"><span class="pre">self.H_onsite</span> <span class="pre">is</span> <span class="pre">None</span></code>, it is calculated with <code class="xref py py-meth docutils literal notranslate"><span class="pre">self.calc_H_onsite()</span></code>.</p>
+<dd><p>calculate <cite>H_bond</cite> from <code class="xref py py-attr docutils literal notranslate"><span class="pre">coupling_terms</span></code> and <code class="xref py py-attr docutils literal notranslate"><span class="pre">onsite_terms</span></code>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -792,6 +819,11 @@ Legs are <code class="docutils literal notranslate"><span class="pre">['p0',</sp
 <dt id="tenpy.models.model.CouplingModel.calc_H_onsite">
 <code class="descname">calc_H_onsite</code><span class="sig-paren">(</span><em>tol_zero=1e-15</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#CouplingModel.calc_H_onsite"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.CouplingModel.calc_H_onsite" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate <cite>H_onsite</cite> from <cite>self.onsite_terms</cite>.</p>
+<div class="deprecated">
+<p><span class="versionmodified">Deprecated since version 0.4.0: </span>Will be removed in 1.0.0.
+Replace calls to this function by
+<code class="docutils literal notranslate"><span class="pre">self.all_onsite_terms().remove_zeros(tol_zero).to_Arrays(self.lat.mps_sites())</span></code>.</p>
+</div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -910,41 +942,6 @@ or help the convergence of DMRG (in case of too long range interactions).</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="tenpy.models.model.CouplingModel.plot_coupling_terms">
-<code class="descname">plot_coupling_terms</code><span class="sig-paren">(</span><em>ax</em>, <em>style_map=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.CouplingModel.plot_coupling_terms" title="Permalink to this definition">¶</a></dt>
-<dd><p>“Plot coupling terms into a given lattice.</p>
-<p>This function plots the <code class="xref py py-attr docutils literal notranslate"><span class="pre">coupling_terms</span></code></p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>ax</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference external" href="https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes" title="(in Matplotlib v3.0.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.axes.Axes</span></code></a></span></dt>
-<dd><p class="first last">The axes on which we should plot.</p>
-</dd>
-<dt><strong>style_map</strong> <span class="classifier-delimiter">:</span> <span class="classifier">function</span></dt>
-<dd><p class="first last">Get’s called with arguments <code class="docutils literal notranslate"><span class="pre">i,</span> <span class="pre">j,</span> <span class="pre">op_i,</span> <span class="pre">op_strength,</span> <span class="pre">op_j,</span> <span class="pre">strength</span></code> for
-each two-site coupling and should return a keyword-dictionary
-with the desired plot-style for this combination.
-By default (<code class="docutils literal notranslate"><span class="pre">None</span></code>), the linecolor depends on the phase of <cite>strength</cite>,
-the <cite>linewidth</cite> is given by the phase of <cite>strength</cite> (using the <cite>hsv</cite> colormap),
-and the linestyle depends on the type of operators coupled.</p>
-</dd>
-</dl>
-</td>
-</tr>
-</tbody>
-</table>
-<div class="admonition seealso">
-<p class="first admonition-title">See also</p>
-<dl class="last docutils">
-<dt><a class="reference internal" href="tenpy.models.lattice.html#tenpy.models.lattice.Lattice.plot_sites" title="tenpy.models.lattice.Lattice.plot_sites"><code class="xref py py-func docutils literal notranslate"><span class="pre">tenpy.models.lattice.Lattice.plot_sites()</span></code></a></dt>
-<dd>plot the sites of the lattice.</dd>
-</dl>
-</div>
-</dd></dl>
-
-<dl class="method">
 <dt id="tenpy.models.model.CouplingModel.test_sanity">
 <code class="descname">test_sanity</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#CouplingModel.test_sanity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.CouplingModel.test_sanity" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sanity check. Raises ValueErrors, if something is wrong.</p>
@@ -955,8 +952,11 @@ and the linestyle depends on the type of operators coupled.</p>
 <dl class="class">
 <dt id="tenpy.models.model.MultiCouplingModel">
 <em class="property">class </em><code class="descclassname">tenpy.models.model.</code><code class="descname">MultiCouplingModel</code><span class="sig-paren">(</span><em>lattice</em>, <em>bc_coupling=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#MultiCouplingModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.MultiCouplingModel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.CouplingModel</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.networks.mps.MultiCouplingTerms</span></code></p>
+<dd><p>Bases: <a class="reference internal" href="#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.CouplingModel</span></code></a></p>
 <p>Generalizes <a class="reference internal" href="#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></a> to allow couplings involving more than two sites.</p>
+<p>The corresponding couplings can be added with <a class="reference internal" href="#tenpy.models.model.MultiCouplingModel.add_multi_coupling" title="tenpy.models.model.MultiCouplingModel.add_multi_coupling"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_multi_coupling()</span></code></a> and
+<a class="reference internal" href="#tenpy.models.model.MultiCouplingModel.add_multi_coupling_term" title="tenpy.models.model.MultiCouplingModel.add_multi_coupling_term"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_multi_coupling_term()</span></code></a> and are saved in <code class="xref py py-attr docutils literal notranslate"><span class="pre">coupling_terms</span></code>, which can now contain
+instances of <code class="xref py py-class docutils literal notranslate"><span class="pre">MultiCouplingTerms</span></code>.</p>
 <p class="rubric">Methods</p>
 <table border="1" class="longtable docutils">
 <colgroup>
@@ -974,19 +974,25 @@ and the linestyle depends on the type of operators coupled.</p>
 <td>Add multi-site coupling terms to the Hamiltonian, summing over lattice sites.</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.MultiCouplingModel.add_multi_coupling_term" title="tenpy.models.model.MultiCouplingModel.add_multi_coupling_term"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_multi_coupling_term</span></code></a>(strength,&nbsp;ijkl,&nbsp;…)</td>
-<td>Add a multi-site coupling term on given MPS sites.</td>
+<td>Add a general M-site coupling term on given MPS sites.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.MultiCouplingModel.add_onsite" title="tenpy.models.model.MultiCouplingModel.add_onsite"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite</span></code></a>(strength,&nbsp;u,&nbsp;opname)</td>
-<td>Add onsite terms to self.</td>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.MultiCouplingModel.add_onsite" title="tenpy.models.model.MultiCouplingModel.add_onsite"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite</span></code></a>(strength,&nbsp;u,&nbsp;opname[,&nbsp;category])</td>
+<td>Add onsite terms to <code class="xref py py-attr docutils literal notranslate"><span class="pre">onsite_terms</span></code>.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.MultiCouplingModel.add_onsite_term" title="tenpy.models.model.MultiCouplingModel.add_onsite_term"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite_term</span></code></a>(strength,&nbsp;i,&nbsp;op)</td>
-<td>Add a onsite term on a given MPS site.</td>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.MultiCouplingModel.add_onsite_term" title="tenpy.models.model.MultiCouplingModel.add_onsite_term"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite_term</span></code></a>(strength,&nbsp;i,&nbsp;op[,&nbsp;category])</td>
+<td>Add an onsite term on a given MPS site.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.MultiCouplingModel.all_coupling_terms" title="tenpy.models.model.MultiCouplingModel.all_coupling_terms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">all_coupling_terms</span></code></a>()</td>
+<td>Sum of all <code class="xref py py-attr docutils literal notranslate"><span class="pre">coupling_terms</span></code>.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.MultiCouplingModel.all_onsite_terms" title="tenpy.models.model.MultiCouplingModel.all_onsite_terms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">all_onsite_terms</span></code></a>()</td>
+<td>Sum of all <code class="xref py py-attr docutils literal notranslate"><span class="pre">onsite_terms</span></code>.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.MultiCouplingModel.calc_H_MPO" title="tenpy.models.model.MultiCouplingModel.calc_H_MPO"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_MPO</span></code></a>([tol_zero])</td>
 <td>Calculate MPO representation of the Hamiltonian.</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.MultiCouplingModel.calc_H_bond" title="tenpy.models.model.MultiCouplingModel.calc_H_bond"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_bond</span></code></a>([tol_zero])</td>
-<td>calculate <cite>H_bond</cite> from <cite>self.coupling_terms</cite> and <cite>self.H_onsite</cite>.</td>
+<td>calculate <cite>H_bond</cite> from <code class="xref py py-attr docutils literal notranslate"><span class="pre">coupling_terms</span></code> and <code class="xref py py-attr docutils literal notranslate"><span class="pre">onsite_terms</span></code>.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.MultiCouplingModel.calc_H_onsite" title="tenpy.models.model.MultiCouplingModel.calc_H_onsite"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_onsite</span></code></a>([tol_zero])</td>
 <td>Calculate <cite>H_onsite</cite> from <cite>self.onsite_terms</cite>.</td>
@@ -997,17 +1003,14 @@ and the linestyle depends on the type of operators coupled.</p>
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.MultiCouplingModel.group_sites" title="tenpy.models.model.MultiCouplingModel.group_sites"><code class="xref py py-obj docutils literal notranslate"><span class="pre">group_sites</span></code></a>([n,&nbsp;grouped_sites])</td>
 <td>Modify <cite>self</cite> in place to group sites.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.MultiCouplingModel.plot_coupling_terms" title="tenpy.models.model.MultiCouplingModel.plot_coupling_terms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_coupling_terms</span></code></a>(ax[,&nbsp;style_map])</td>
-<td>“Plot coupling terms into a given lattice.</td>
-</tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.MultiCouplingModel.test_sanity" title="tenpy.models.model.MultiCouplingModel.test_sanity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.MultiCouplingModel.test_sanity" title="tenpy.models.model.MultiCouplingModel.test_sanity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code></a>()</td>
 <td>Sanity check.</td>
 </tr>
 </tbody>
 </table>
 <dl class="method">
 <dt id="tenpy.models.model.MultiCouplingModel.add_coupling">
-<code class="descname">add_coupling</code><span class="sig-paren">(</span><em>strength</em>, <em>u1</em>, <em>op1</em>, <em>u2</em>, <em>op2</em>, <em>dx</em>, <em>op_string=None</em>, <em>str_on_first=True</em>, <em>raise_op2_left=False</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.MultiCouplingModel.add_coupling" title="Permalink to this definition">¶</a></dt>
+<code class="descname">add_coupling</code><span class="sig-paren">(</span><em>strength</em>, <em>u1</em>, <em>op1</em>, <em>u2</em>, <em>op2</em>, <em>dx</em>, <em>op_string=None</em>, <em>str_on_first=True</em>, <em>raise_op2_left=False</em>, <em>category=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.MultiCouplingModel.add_coupling" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add twosite coupling terms to the Hamiltonian, summing over lattice sites.</p>
 <p>Represents couplings of the form
 <span class="math notranslate nohighlight">\(\sum_{x_0, ..., x_{dim-1}} strength[loc(\vec{x})] * OP1 * OP2\)</span>, where
@@ -1066,6 +1069,10 @@ independent of the MPS ordering.</p>
 <dd><p class="first last">Raise an error when <cite>op2</cite> appears left of <cite>op1</cite>
 (in the sense of the MPS ordering given by the lattice).</p>
 </dd>
+<dt><strong>category</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Descriptive name used as key for <code class="xref py py-attr docutils literal notranslate"><span class="pre">coupling_terms</span></code>.
+Defaults to a string of the form <code class="docutils literal notranslate"><span class="pre">&quot;{op1}_i</span> <span class="pre">{op2}_j&quot;</span></code>.</p>
+</dd>
 </dl>
 </td>
 </tr>
@@ -1106,8 +1113,9 @@ For spin-less fermions (<a class="reference internal" href="tenpy.networks.site.
 
 <dl class="method">
 <dt id="tenpy.models.model.MultiCouplingModel.add_coupling_term">
-<code class="descname">add_coupling_term</code><span class="sig-paren">(</span><em>strength</em>, <em>i</em>, <em>j</em>, <em>op_i</em>, <em>op_j</em>, <em>op_string='Id'</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.MultiCouplingModel.add_coupling_term" title="Permalink to this definition">¶</a></dt>
+<code class="descname">add_coupling_term</code><span class="sig-paren">(</span><em>strength</em>, <em>i</em>, <em>j</em>, <em>op_i</em>, <em>op_j</em>, <em>op_string='Id'</em>, <em>category=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.MultiCouplingModel.add_coupling_term" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add a two-site coupling term on given MPS sites.</p>
+<p>Wrapper for <code class="docutils literal notranslate"><span class="pre">self.coupling_terms[category].add_coupling_term(...)</span></code>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1127,6 +1135,10 @@ If j &gt;= N_sites, it indicates couplings between unit cells of an infinite MPS
 <dt><strong>op_string</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
 <dd><p class="first last">The operator to be inserted between <cite>i</cite> and <cite>j</cite>.</p>
 </dd>
+<dt><strong>category</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Descriptive name used as key for <code class="xref py py-attr docutils literal notranslate"><span class="pre">coupling_terms</span></code>.
+Defaults to a string of the form <code class="docutils literal notranslate"><span class="pre">&quot;{op1}_i</span> <span class="pre">{op2}_j&quot;</span></code>.</p>
+</dd>
 </dl>
 </td>
 </tr>
@@ -1136,7 +1148,7 @@ If j &gt;= N_sites, it indicates couplings between unit cells of an infinite MPS
 
 <dl class="method">
 <dt id="tenpy.models.model.MultiCouplingModel.add_multi_coupling">
-<code class="descname">add_multi_coupling</code><span class="sig-paren">(</span><em>strength</em>, <em>u0</em>, <em>op0</em>, <em>other_ops</em>, <em>op_string=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#MultiCouplingModel.add_multi_coupling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.MultiCouplingModel.add_multi_coupling" title="Permalink to this definition">¶</a></dt>
+<code class="descname">add_multi_coupling</code><span class="sig-paren">(</span><em>strength</em>, <em>u0</em>, <em>op0</em>, <em>other_ops</em>, <em>op_string=None</em>, <em>category=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#MultiCouplingModel.add_multi_coupling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.MultiCouplingModel.add_multi_coupling" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add multi-site coupling terms to the Hamiltonian, summing over lattice sites.</p>
 <p>Represents couplings of the form
 <span class="math notranslate nohighlight">\(sum_{x_0, ..., x_{dim-1}} strength[loc(\vec{x})] * OP0 * OP1 * ... * OPM\)</span>,
@@ -1180,6 +1192,10 @@ inbetween the operators and also on the sites of the left operators.
 Note that in this case the ordering of the operators <em>is</em> important and handled in the
 usual convention that <code class="docutils literal notranslate"><span class="pre">OPM</span></code> acts first and <code class="docutils literal notranslate"><span class="pre">OP0</span></code> last on a physical state.</p>
 </dd>
+<dt><strong>category</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Descriptive name used as key for <code class="xref py py-attr docutils literal notranslate"><span class="pre">coupling_terms</span></code>.
+Defaults to a string of the form <code class="docutils literal notranslate"><span class="pre">&quot;{op0}_i</span> <span class="pre">{other_ops[0]}_j</span> <span class="pre">{other_ops[1]}_k</span> <span class="pre">...&quot;</span></code>.</p>
+</dd>
 </dl>
 </td>
 </tr>
@@ -1189,8 +1205,9 @@ usual convention that <code class="docutils literal notranslate"><span class="pr
 
 <dl class="method">
 <dt id="tenpy.models.model.MultiCouplingModel.add_multi_coupling_term">
-<code class="descname">add_multi_coupling_term</code><span class="sig-paren">(</span><em>strength</em>, <em>ijkl</em>, <em>ops_ijkl</em>, <em>op_string</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.MultiCouplingModel.add_multi_coupling_term" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add a multi-site coupling term on given MPS sites.</p>
+<code class="descname">add_multi_coupling_term</code><span class="sig-paren">(</span><em>strength</em>, <em>ijkl</em>, <em>ops_ijkl</em>, <em>op_string</em>, <em>category=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/model.html#MultiCouplingModel.add_multi_coupling_term"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.model.MultiCouplingModel.add_multi_coupling_term" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a general M-site coupling term on given MPS sites.</p>
+<p>Wrapper for <code class="docutils literal notranslate"><span class="pre">self.coupling_terms[category].add_multi_coupling_term(...)</span></code>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1212,6 +1229,10 @@ Inidces &gt;= N_sites indicate couplings between different unit cells of an infi
 <dd><p class="first last">Names of the operator to be inserted between the operators,
 e.g., op_string[0] is inserted between <cite>i</cite> and <cite>j</cite>.</p>
 </dd>
+<dt><strong>category</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Descriptive name used as key for <code class="xref py py-attr docutils literal notranslate"><span class="pre">coupling_terms</span></code>.
+Defaults to a string of the form <code class="docutils literal notranslate"><span class="pre">&quot;{op0}_i</span> <span class="pre">{other_ops[0]}_j</span> <span class="pre">{other_ops[1]}_k</span> <span class="pre">...&quot;</span></code>.</p>
+</dd>
 </dl>
 </td>
 </tr>
@@ -1221,8 +1242,8 @@ e.g., op_string[0] is inserted between <cite>i</cite> and <cite>j</cite>.</p>
 
 <dl class="method">
 <dt id="tenpy.models.model.MultiCouplingModel.add_onsite">
-<code class="descname">add_onsite</code><span class="sig-paren">(</span><em>strength</em>, <em>u</em>, <em>opname</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.MultiCouplingModel.add_onsite" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add onsite terms to self.</p>
+<code class="descname">add_onsite</code><span class="sig-paren">(</span><em>strength</em>, <em>u</em>, <em>opname</em>, <em>category=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.MultiCouplingModel.add_onsite" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add onsite terms to <code class="xref py py-attr docutils literal notranslate"><span class="pre">onsite_terms</span></code>.</p>
 <p>Adds a term <span class="math notranslate nohighlight">\(\sum_{x_0, ..., x_{dim-1}} strength[x_0, ..., x_{dim-1}] * OP\)</span>,
 where the operator <code class="docutils literal notranslate"><span class="pre">OP=lat.unit_cell[u].get_op(opname)</span></code>
 acts on the site given by a lattice index <code class="docutils literal notranslate"><span class="pre">(x_0,</span> <span class="pre">...,</span> <span class="pre">x_{dim-1},</span> <span class="pre">u)</span></code>,
@@ -1243,6 +1264,9 @@ is provided, it gets tiled to the required shape.</p>
 <dt><strong>opname</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
 <dd><p class="first last">valid operator name of an onsite operator in <code class="docutils literal notranslate"><span class="pre">lat.unit_cell[u]</span></code>.</p>
 </dd>
+<dt><strong>category</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Descriptive name used as key for <code class="xref py py-attr docutils literal notranslate"><span class="pre">onsite_terms</span></code>. Defaults to <cite>opname</cite>.</p>
+</dd>
 </dl>
 </td>
 </tr>
@@ -1252,8 +1276,9 @@ is provided, it gets tiled to the required shape.</p>
 
 <dl class="method">
 <dt id="tenpy.models.model.MultiCouplingModel.add_onsite_term">
-<code class="descname">add_onsite_term</code><span class="sig-paren">(</span><em>strength</em>, <em>i</em>, <em>op</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.MultiCouplingModel.add_onsite_term" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add a onsite term on a given MPS site.</p>
+<code class="descname">add_onsite_term</code><span class="sig-paren">(</span><em>strength</em>, <em>i</em>, <em>op</em>, <em>category=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.MultiCouplingModel.add_onsite_term" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add an onsite term on a given MPS site.</p>
+<p>Wrapper for <code class="docutils literal notranslate"><span class="pre">self.onsite_terms[category].add_onsite_term(...)</span></code>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1269,11 +1294,26 @@ We require <code class="docutils literal notranslate"><span class="pre">0</span>
 <dt><strong>op</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
 <dd><p class="first last">Name of the involved operator.</p>
 </dd>
+<dt><strong>category</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Descriptive name used as key for <code class="xref py py-attr docutils literal notranslate"><span class="pre">onsite_terms</span></code>. Defaults to <cite>op</cite>.</p>
+</dd>
 </dl>
 </td>
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.models.model.MultiCouplingModel.all_coupling_terms">
+<code class="descname">all_coupling_terms</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.MultiCouplingModel.all_coupling_terms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sum of all <code class="xref py py-attr docutils literal notranslate"><span class="pre">coupling_terms</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.models.model.MultiCouplingModel.all_onsite_terms">
+<code class="descname">all_onsite_terms</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.MultiCouplingModel.all_onsite_terms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sum of all <code class="xref py py-attr docutils literal notranslate"><span class="pre">onsite_terms</span></code>.</p>
 </dd></dl>
 
 <dl class="method">
@@ -1307,8 +1347,7 @@ We require <code class="docutils literal notranslate"><span class="pre">0</span>
 <dl class="method">
 <dt id="tenpy.models.model.MultiCouplingModel.calc_H_bond">
 <code class="descname">calc_H_bond</code><span class="sig-paren">(</span><em>tol_zero=1e-15</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.MultiCouplingModel.calc_H_bond" title="Permalink to this definition">¶</a></dt>
-<dd><p>calculate <cite>H_bond</cite> from <cite>self.coupling_terms</cite> and <cite>self.H_onsite</cite>.</p>
-<p>If <code class="docutils literal notranslate"><span class="pre">self.H_onsite</span> <span class="pre">is</span> <span class="pre">None</span></code>, it is calculated with <code class="xref py py-meth docutils literal notranslate"><span class="pre">self.calc_H_onsite()</span></code>.</p>
+<dd><p>calculate <cite>H_bond</cite> from <code class="xref py py-attr docutils literal notranslate"><span class="pre">coupling_terms</span></code> and <code class="xref py py-attr docutils literal notranslate"><span class="pre">onsite_terms</span></code>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1342,6 +1381,11 @@ Legs are <code class="docutils literal notranslate"><span class="pre">['p0',</sp
 <dt id="tenpy.models.model.MultiCouplingModel.calc_H_onsite">
 <code class="descname">calc_H_onsite</code><span class="sig-paren">(</span><em>tol_zero=1e-15</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.MultiCouplingModel.calc_H_onsite" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate <cite>H_onsite</cite> from <cite>self.onsite_terms</cite>.</p>
+<div class="deprecated">
+<p><span class="versionmodified">Deprecated since version 0.4.0: </span>Will be removed in 1.0.0.
+Replace calls to this function by
+<code class="docutils literal notranslate"><span class="pre">self.all_onsite_terms().remove_zeros(tol_zero).to_Arrays(self.lat.mps_sites())</span></code>.</p>
+</div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1460,41 +1504,6 @@ or help the convergence of DMRG (in case of too long range interactions).</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="tenpy.models.model.MultiCouplingModel.plot_coupling_terms">
-<code class="descname">plot_coupling_terms</code><span class="sig-paren">(</span><em>ax</em>, <em>style_map=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.MultiCouplingModel.plot_coupling_terms" title="Permalink to this definition">¶</a></dt>
-<dd><p>“Plot coupling terms into a given lattice.</p>
-<p>This function plots the <code class="xref py py-attr docutils literal notranslate"><span class="pre">coupling_terms</span></code></p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>ax</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference external" href="https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes" title="(in Matplotlib v3.0.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.axes.Axes</span></code></a></span></dt>
-<dd><p class="first last">The axes on which we should plot.</p>
-</dd>
-<dt><strong>style_map</strong> <span class="classifier-delimiter">:</span> <span class="classifier">function</span></dt>
-<dd><p class="first last">Get’s called with arguments <code class="docutils literal notranslate"><span class="pre">i,</span> <span class="pre">j,</span> <span class="pre">op_i,</span> <span class="pre">op_strength,</span> <span class="pre">op_j,</span> <span class="pre">strength</span></code> for
-each two-site coupling and should return a keyword-dictionary
-with the desired plot-style for this combination.
-By default (<code class="docutils literal notranslate"><span class="pre">None</span></code>), the linecolor depends on the phase of <cite>strength</cite>,
-the <cite>linewidth</cite> is given by the phase of <cite>strength</cite> (using the <cite>hsv</cite> colormap),
-and the linestyle depends on the type of operators coupled.</p>
-</dd>
-</dl>
-</td>
-</tr>
-</tbody>
-</table>
-<div class="admonition seealso">
-<p class="first admonition-title">See also</p>
-<dl class="last docutils">
-<dt><a class="reference internal" href="tenpy.models.lattice.html#tenpy.models.lattice.Lattice.plot_sites" title="tenpy.models.lattice.Lattice.plot_sites"><code class="xref py py-func docutils literal notranslate"><span class="pre">tenpy.models.lattice.Lattice.plot_sites()</span></code></a></dt>
-<dd>plot the sites of the lattice.</dd>
-</dl>
-</div>
-</dd></dl>
-
-<dl class="method">
 <dt id="tenpy.models.model.MultiCouplingModel.test_sanity">
 <code class="descname">test_sanity</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.MultiCouplingModel.test_sanity" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sanity check. Raises ValueErrors, if something is wrong.</p>
@@ -1563,17 +1572,23 @@ and specifies how much status information should be printed during initializatio
 <tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingMPOModel.add_coupling_term" title="tenpy.models.model.CouplingMPOModel.add_coupling_term"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_coupling_term</span></code></a>(strength,&nbsp;i,&nbsp;j,&nbsp;op_i,&nbsp;op_j)</td>
 <td>Add a two-site coupling term on given MPS sites.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.CouplingMPOModel.add_onsite" title="tenpy.models.model.CouplingMPOModel.add_onsite"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite</span></code></a>(strength,&nbsp;u,&nbsp;opname)</td>
-<td>Add onsite terms to self.</td>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.CouplingMPOModel.add_onsite" title="tenpy.models.model.CouplingMPOModel.add_onsite"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite</span></code></a>(strength,&nbsp;u,&nbsp;opname[,&nbsp;category])</td>
+<td>Add onsite terms to <code class="xref py py-attr docutils literal notranslate"><span class="pre">onsite_terms</span></code>.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingMPOModel.add_onsite_term" title="tenpy.models.model.CouplingMPOModel.add_onsite_term"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite_term</span></code></a>(strength,&nbsp;i,&nbsp;op)</td>
-<td>Add a onsite term on a given MPS site.</td>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingMPOModel.add_onsite_term" title="tenpy.models.model.CouplingMPOModel.add_onsite_term"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_onsite_term</span></code></a>(strength,&nbsp;i,&nbsp;op[,&nbsp;category])</td>
+<td>Add an onsite term on a given MPS site.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.CouplingMPOModel.all_coupling_terms" title="tenpy.models.model.CouplingMPOModel.all_coupling_terms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">all_coupling_terms</span></code></a>()</td>
+<td>Sum of all <code class="xref py py-attr docutils literal notranslate"><span class="pre">coupling_terms</span></code>.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingMPOModel.all_onsite_terms" title="tenpy.models.model.CouplingMPOModel.all_onsite_terms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">all_onsite_terms</span></code></a>()</td>
+<td>Sum of all <code class="xref py py-attr docutils literal notranslate"><span class="pre">onsite_terms</span></code>.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.CouplingMPOModel.calc_H_MPO" title="tenpy.models.model.CouplingMPOModel.calc_H_MPO"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_MPO</span></code></a>([tol_zero])</td>
 <td>Calculate MPO representation of the Hamiltonian.</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingMPOModel.calc_H_bond" title="tenpy.models.model.CouplingMPOModel.calc_H_bond"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_bond</span></code></a>([tol_zero])</td>
-<td>calculate <cite>H_bond</cite> from <cite>self.coupling_terms</cite> and <cite>self.H_onsite</cite>.</td>
+<td>calculate <cite>H_bond</cite> from <code class="xref py py-attr docutils literal notranslate"><span class="pre">coupling_terms</span></code> and <code class="xref py py-attr docutils literal notranslate"><span class="pre">onsite_terms</span></code>.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.CouplingMPOModel.calc_H_bond_from_MPO" title="tenpy.models.model.CouplingMPOModel.calc_H_bond_from_MPO"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_H_bond_from_MPO</span></code></a>([tol_zero])</td>
 <td>Calculate the bond Hamiltonian from the MPO Hamiltonian.</td>
@@ -1596,17 +1611,14 @@ and specifies how much status information should be printed during initializatio
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.CouplingMPOModel.init_terms" title="tenpy.models.model.CouplingMPOModel.init_terms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">init_terms</span></code></a>(model_params)</td>
 <td>Add the onsite and coupling terms to the model; subclasses should implement this.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingMPOModel.plot_coupling_terms" title="tenpy.models.model.CouplingMPOModel.plot_coupling_terms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_coupling_terms</span></code></a>(ax[,&nbsp;style_map])</td>
-<td>“Plot coupling terms into a given lattice.</td>
-</tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.models.model.CouplingMPOModel.test_sanity" title="tenpy.models.model.CouplingMPOModel.test_sanity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.models.model.CouplingMPOModel.test_sanity" title="tenpy.models.model.CouplingMPOModel.test_sanity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code></a>()</td>
 <td>Sanity check.</td>
 </tr>
 </tbody>
 </table>
 <dl class="method">
 <dt id="tenpy.models.model.CouplingMPOModel.add_coupling">
-<code class="descname">add_coupling</code><span class="sig-paren">(</span><em>strength</em>, <em>u1</em>, <em>op1</em>, <em>u2</em>, <em>op2</em>, <em>dx</em>, <em>op_string=None</em>, <em>str_on_first=True</em>, <em>raise_op2_left=False</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.CouplingMPOModel.add_coupling" title="Permalink to this definition">¶</a></dt>
+<code class="descname">add_coupling</code><span class="sig-paren">(</span><em>strength</em>, <em>u1</em>, <em>op1</em>, <em>u2</em>, <em>op2</em>, <em>dx</em>, <em>op_string=None</em>, <em>str_on_first=True</em>, <em>raise_op2_left=False</em>, <em>category=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.CouplingMPOModel.add_coupling" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add twosite coupling terms to the Hamiltonian, summing over lattice sites.</p>
 <p>Represents couplings of the form
 <span class="math notranslate nohighlight">\(\sum_{x_0, ..., x_{dim-1}} strength[loc(\vec{x})] * OP1 * OP2\)</span>, where
@@ -1665,6 +1677,10 @@ independent of the MPS ordering.</p>
 <dd><p class="first last">Raise an error when <cite>op2</cite> appears left of <cite>op1</cite>
 (in the sense of the MPS ordering given by the lattice).</p>
 </dd>
+<dt><strong>category</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Descriptive name used as key for <code class="xref py py-attr docutils literal notranslate"><span class="pre">coupling_terms</span></code>.
+Defaults to a string of the form <code class="docutils literal notranslate"><span class="pre">&quot;{op1}_i</span> <span class="pre">{op2}_j&quot;</span></code>.</p>
+</dd>
 </dl>
 </td>
 </tr>
@@ -1705,8 +1721,9 @@ For spin-less fermions (<a class="reference internal" href="tenpy.networks.site.
 
 <dl class="method">
 <dt id="tenpy.models.model.CouplingMPOModel.add_coupling_term">
-<code class="descname">add_coupling_term</code><span class="sig-paren">(</span><em>strength</em>, <em>i</em>, <em>j</em>, <em>op_i</em>, <em>op_j</em>, <em>op_string='Id'</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.CouplingMPOModel.add_coupling_term" title="Permalink to this definition">¶</a></dt>
+<code class="descname">add_coupling_term</code><span class="sig-paren">(</span><em>strength</em>, <em>i</em>, <em>j</em>, <em>op_i</em>, <em>op_j</em>, <em>op_string='Id'</em>, <em>category=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.CouplingMPOModel.add_coupling_term" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add a two-site coupling term on given MPS sites.</p>
+<p>Wrapper for <code class="docutils literal notranslate"><span class="pre">self.coupling_terms[category].add_coupling_term(...)</span></code>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1726,6 +1743,10 @@ If j &gt;= N_sites, it indicates couplings between unit cells of an infinite MPS
 <dt><strong>op_string</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
 <dd><p class="first last">The operator to be inserted between <cite>i</cite> and <cite>j</cite>.</p>
 </dd>
+<dt><strong>category</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Descriptive name used as key for <code class="xref py py-attr docutils literal notranslate"><span class="pre">coupling_terms</span></code>.
+Defaults to a string of the form <code class="docutils literal notranslate"><span class="pre">&quot;{op1}_i</span> <span class="pre">{op2}_j&quot;</span></code>.</p>
+</dd>
 </dl>
 </td>
 </tr>
@@ -1735,8 +1756,8 @@ If j &gt;= N_sites, it indicates couplings between unit cells of an infinite MPS
 
 <dl class="method">
 <dt id="tenpy.models.model.CouplingMPOModel.add_onsite">
-<code class="descname">add_onsite</code><span class="sig-paren">(</span><em>strength</em>, <em>u</em>, <em>opname</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.CouplingMPOModel.add_onsite" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add onsite terms to self.</p>
+<code class="descname">add_onsite</code><span class="sig-paren">(</span><em>strength</em>, <em>u</em>, <em>opname</em>, <em>category=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.CouplingMPOModel.add_onsite" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add onsite terms to <code class="xref py py-attr docutils literal notranslate"><span class="pre">onsite_terms</span></code>.</p>
 <p>Adds a term <span class="math notranslate nohighlight">\(\sum_{x_0, ..., x_{dim-1}} strength[x_0, ..., x_{dim-1}] * OP\)</span>,
 where the operator <code class="docutils literal notranslate"><span class="pre">OP=lat.unit_cell[u].get_op(opname)</span></code>
 acts on the site given by a lattice index <code class="docutils literal notranslate"><span class="pre">(x_0,</span> <span class="pre">...,</span> <span class="pre">x_{dim-1},</span> <span class="pre">u)</span></code>,
@@ -1757,6 +1778,9 @@ is provided, it gets tiled to the required shape.</p>
 <dt><strong>opname</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
 <dd><p class="first last">valid operator name of an onsite operator in <code class="docutils literal notranslate"><span class="pre">lat.unit_cell[u]</span></code>.</p>
 </dd>
+<dt><strong>category</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Descriptive name used as key for <code class="xref py py-attr docutils literal notranslate"><span class="pre">onsite_terms</span></code>. Defaults to <cite>opname</cite>.</p>
+</dd>
 </dl>
 </td>
 </tr>
@@ -1766,8 +1790,9 @@ is provided, it gets tiled to the required shape.</p>
 
 <dl class="method">
 <dt id="tenpy.models.model.CouplingMPOModel.add_onsite_term">
-<code class="descname">add_onsite_term</code><span class="sig-paren">(</span><em>strength</em>, <em>i</em>, <em>op</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.CouplingMPOModel.add_onsite_term" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add a onsite term on a given MPS site.</p>
+<code class="descname">add_onsite_term</code><span class="sig-paren">(</span><em>strength</em>, <em>i</em>, <em>op</em>, <em>category=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.CouplingMPOModel.add_onsite_term" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add an onsite term on a given MPS site.</p>
+<p>Wrapper for <code class="docutils literal notranslate"><span class="pre">self.onsite_terms[category].add_onsite_term(...)</span></code>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1783,11 +1808,26 @@ We require <code class="docutils literal notranslate"><span class="pre">0</span>
 <dt><strong>op</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
 <dd><p class="first last">Name of the involved operator.</p>
 </dd>
+<dt><strong>category</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Descriptive name used as key for <code class="xref py py-attr docutils literal notranslate"><span class="pre">onsite_terms</span></code>. Defaults to <cite>op</cite>.</p>
+</dd>
 </dl>
 </td>
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.models.model.CouplingMPOModel.all_coupling_terms">
+<code class="descname">all_coupling_terms</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.CouplingMPOModel.all_coupling_terms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sum of all <code class="xref py py-attr docutils literal notranslate"><span class="pre">coupling_terms</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.models.model.CouplingMPOModel.all_onsite_terms">
+<code class="descname">all_onsite_terms</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.CouplingMPOModel.all_onsite_terms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sum of all <code class="xref py py-attr docutils literal notranslate"><span class="pre">onsite_terms</span></code>.</p>
 </dd></dl>
 
 <dl class="method">
@@ -1821,8 +1861,7 @@ We require <code class="docutils literal notranslate"><span class="pre">0</span>
 <dl class="method">
 <dt id="tenpy.models.model.CouplingMPOModel.calc_H_bond">
 <code class="descname">calc_H_bond</code><span class="sig-paren">(</span><em>tol_zero=1e-15</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.CouplingMPOModel.calc_H_bond" title="Permalink to this definition">¶</a></dt>
-<dd><p>calculate <cite>H_bond</cite> from <cite>self.coupling_terms</cite> and <cite>self.H_onsite</cite>.</p>
-<p>If <code class="docutils literal notranslate"><span class="pre">self.H_onsite</span> <span class="pre">is</span> <span class="pre">None</span></code>, it is calculated with <code class="xref py py-meth docutils literal notranslate"><span class="pre">self.calc_H_onsite()</span></code>.</p>
+<dd><p>calculate <cite>H_bond</cite> from <code class="xref py py-attr docutils literal notranslate"><span class="pre">coupling_terms</span></code> and <code class="xref py py-attr docutils literal notranslate"><span class="pre">onsite_terms</span></code>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1889,6 +1928,11 @@ Legs are <code class="docutils literal notranslate"><span class="pre">['p0',</sp
 <dt id="tenpy.models.model.CouplingMPOModel.calc_H_onsite">
 <code class="descname">calc_H_onsite</code><span class="sig-paren">(</span><em>tol_zero=1e-15</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.CouplingMPOModel.calc_H_onsite" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate <cite>H_onsite</cite> from <cite>self.onsite_terms</cite>.</p>
+<div class="deprecated">
+<p><span class="versionmodified">Deprecated since version 0.4.0: </span>Will be removed in 1.0.0.
+Replace calls to this function by
+<code class="docutils literal notranslate"><span class="pre">self.all_onsite_terms().remove_zeros(tol_zero).to_Arrays(self.lat.mps_sites())</span></code>.</p>
+</div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -2146,41 +2190,6 @@ to <code class="docutils literal notranslate"><span class="pre">&quot;best&quot;
 </dd></dl>
 
 <dl class="method">
-<dt id="tenpy.models.model.CouplingMPOModel.plot_coupling_terms">
-<code class="descname">plot_coupling_terms</code><span class="sig-paren">(</span><em>ax</em>, <em>style_map=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.CouplingMPOModel.plot_coupling_terms" title="Permalink to this definition">¶</a></dt>
-<dd><p>“Plot coupling terms into a given lattice.</p>
-<p>This function plots the <code class="xref py py-attr docutils literal notranslate"><span class="pre">coupling_terms</span></code></p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>ax</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference external" href="https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes" title="(in Matplotlib v3.0.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.axes.Axes</span></code></a></span></dt>
-<dd><p class="first last">The axes on which we should plot.</p>
-</dd>
-<dt><strong>style_map</strong> <span class="classifier-delimiter">:</span> <span class="classifier">function</span></dt>
-<dd><p class="first last">Get’s called with arguments <code class="docutils literal notranslate"><span class="pre">i,</span> <span class="pre">j,</span> <span class="pre">op_i,</span> <span class="pre">op_strength,</span> <span class="pre">op_j,</span> <span class="pre">strength</span></code> for
-each two-site coupling and should return a keyword-dictionary
-with the desired plot-style for this combination.
-By default (<code class="docutils literal notranslate"><span class="pre">None</span></code>), the linecolor depends on the phase of <cite>strength</cite>,
-the <cite>linewidth</cite> is given by the phase of <cite>strength</cite> (using the <cite>hsv</cite> colormap),
-and the linestyle depends on the type of operators coupled.</p>
-</dd>
-</dl>
-</td>
-</tr>
-</tbody>
-</table>
-<div class="admonition seealso">
-<p class="first admonition-title">See also</p>
-<dl class="last docutils">
-<dt><a class="reference internal" href="tenpy.models.lattice.html#tenpy.models.lattice.Lattice.plot_sites" title="tenpy.models.lattice.Lattice.plot_sites"><code class="xref py py-func docutils literal notranslate"><span class="pre">tenpy.models.lattice.Lattice.plot_sites()</span></code></a></dt>
-<dd>plot the sites of the lattice.</dd>
-</dl>
-</div>
-</dd></dl>
-
-<dl class="method">
 <dt id="tenpy.models.model.CouplingMPOModel.test_sanity">
 <code class="descname">test_sanity</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.model.CouplingMPOModel.test_sanity" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sanity check. Raises ValueErrors, if something is wrong.</p>
@@ -2261,7 +2270,7 @@ and the linestyle depends on the type of operators coupled.</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Mar 26, 2019.
+      Last updated on Mar 27, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
     </div>
   </body>
