@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>tenpy.algorithms.tebd module &#8212; TeNPy 0.3.0 documentation</title>
+    <title>tebd &#8212; TeNPy 0.3.0 documentation</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     
@@ -20,8 +20,8 @@
     <link rel="shortcut icon" href="../_static/logo.ico"/>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="tenpy.algorithms.truncation module" href="tenpy.algorithms.truncation.html" />
-    <link rel="prev" title="tenpy.algorithms.tdvp module" href="tenpy.algorithms.tdvp.html" /> 
+    <link rel="next" title="Engine" href="tenpy.algorithms.tebd.Engine.html" />
+    <link rel="prev" title="run" href="tenpy.algorithms.dmrg.run.html" /> 
   </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
@@ -33,14 +33,14 @@
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="tenpy.algorithms.truncation.html" title="tenpy.algorithms.truncation module"
+          <a href="tenpy.algorithms.tebd.Engine.html" title="Engine"
              accesskey="N">next</a> |</li>
         <li class="right" >
-          <a href="tenpy.algorithms.tdvp.html" title="tenpy.algorithms.tdvp module"
+          <a href="tenpy.algorithms.dmrg.run.html" title="run"
              accesskey="P">previous</a> |</li>
         <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="tenpy.html" >Reference</a> &#187;</li>
-          <li class="nav-item nav-item-2"><a href="tenpy.algorithms.html" accesskey="U">tenpy.algorithms package</a> &#187;</li> 
+          <li class="nav-item nav-item-1"><a href="../reference.html" >Tenpy Reference</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.algorithms.html" accesskey="U">algorithms</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -49,19 +49,40 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="module-tenpy.algorithms.tebd">
-<span id="tenpy-algorithms-tebd-module"></span><h1>tenpy.algorithms.tebd module<a class="headerlink" href="#module-tenpy.algorithms.tebd" title="Permalink to this headline">¶</a></h1>
-<p>Time evolving block decimation (TEBD).</p>
+  <div class="section" id="tebd">
+<h1>tebd<a class="headerlink" href="#tebd" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li>full name: tenpy.algorithms.tebd</li>
+<li>parent module: <a class="reference internal" href="tenpy.algorithms.html#module-tenpy.algorithms" title="tenpy.algorithms"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tenpy.algorithms</span></code></a></li>
+<li>type: module</li>
+</ul>
+<p class="rubric">Classes</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="tenpy.algorithms.tebd.Engine.html#tenpy.algorithms.tebd.Engine" title="tenpy.algorithms.tebd.Engine"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Engine</span></code></a>(psi,&nbsp;model,&nbsp;TEBD_params)</td>
+<td>Time Evolving Block Decimation (TEBD) ‘engine’.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="tenpy.algorithms.tebd.RandomUnitaryEvolution.html#tenpy.algorithms.tebd.RandomUnitaryEvolution" title="tenpy.algorithms.tebd.RandomUnitaryEvolution"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RandomUnitaryEvolution</span></code></a>(psi,&nbsp;TEBD_params)</td>
+<td>Evolution of an MPS with random two-site unitaries in a TEBD-like fashion.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Module description</p>
+<span class="target" id="module-tenpy.algorithms.tebd"></span><p>Time evolving block decimation (TEBD).</p>
 <p>The TEBD algorithm (proposed in <a class="reference internal" href="../literature.html#vidal2004" id="id1">[Vidal2004]</a>) uses a trotter decomposition of the
 Hamiltonian to perform a time evoltion of an MPS. It works only for nearest-neigbor hamiltonians
-(in tenpy given by a <a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.NearestNeighborModel" title="tenpy.models.model.NearestNeighborModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NearestNeighborModel</span></code></a>),
+(in tenpy given by a <code class="xref py py-class docutils literal notranslate"><span class="pre">NearestNeighborModel</span></code>),
 which can be written as <span class="math notranslate nohighlight">\(H = H^{even} + H^{odd}\)</span>,  such that <span class="math notranslate nohighlight">\(H^{even}\)</span> contains the
 the terms on even bonds (and similar <span class="math notranslate nohighlight">\(H^{odd}\)</span> the terms on odd bonds).
 In the simplest case, we apply first <span class="math notranslate nohighlight">\(U=\exp(-i*dt*H^{even})\)</span>,
 then <span class="math notranslate nohighlight">\(U=\exp(-i*dt*H^{odd})\)</span> for each time step <span class="math notranslate nohighlight">\(dt\)</span>.
 This is correct up to errors of <span class="math notranslate nohighlight">\(O(dt^2)\)</span>, but to evolve until a time <span class="math notranslate nohighlight">\(T\)</span>, we need
 <span class="math notranslate nohighlight">\(T/dt\)</span> steps, so in total it is only correct up to error of <span class="math notranslate nohighlight">\(O(T*dt)\)</span>.
-Similarly, there are higher order schemata (in dt) (for more details see <a class="reference internal" href="#tenpy.algorithms.tebd.Engine.update" title="tenpy.algorithms.tebd.Engine.update"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Engine.update()</span></code></a>).</p>
+Similarly, there are higher order schemata (in dt) (for more details see <a class="reference internal" href="tenpy.algorithms.tebd.Engine.html#tenpy.algorithms.tebd.Engine.update" title="tenpy.algorithms.tebd.Engine.update"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Engine.update()</span></code></a>).</p>
 <p>Remember, that bond <cite>i</cite> is between sites <cite>(i-1, i)</cite>, so for a finite MPS it looks like:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>     <span class="o">-</span> <span class="n">B0</span> <span class="o">-</span> <span class="n">B1</span> <span class="o">-</span> <span class="n">B2</span> <span class="o">-</span> <span class="n">B3</span> <span class="o">-</span> <span class="n">B4</span> <span class="o">-</span> <span class="n">B5</span> <span class="o">-</span> <span class="n">B6</span> <span class="o">-</span>
 <span class="o">|</span>       <span class="o">|</span>    <span class="o">|</span>    <span class="o">|</span>    <span class="o">|</span>    <span class="o">|</span>    <span class="o">|</span>    <span class="o">|</span>
@@ -98,12 +119,12 @@ Yet, imaginary TEBD might be usefull for cross-checks and testing.</p>
 <dt><strong>psi</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPS</span></code></span></dt>
 <dd><p class="first last">Initial state to be time evolved. Modified in place.</p>
 </dd>
-<dt><strong>model</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.models.model.html#tenpy.models.model.NearestNeighborModel" title="tenpy.models.model.NearestNeighborModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NearestNeighborModel</span></code></a></span></dt>
+<dt><strong>model</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">NearestNeighborModel</span></code></span></dt>
 <dd><p class="first last">The model representing the Hamiltonian for which we want to find the ground state.</p>
 </dd>
 <dt><strong>TEBD_params</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
 <dd><p class="first last">Further optional parameters as described in the tables in
-<a class="reference internal" href="#tenpy.algorithms.tebd.Engine.run" title="tenpy.algorithms.tebd.Engine.run"><code class="xref py py-func docutils literal notranslate"><span class="pre">run()</span></code></a> and <a class="reference internal" href="#tenpy.algorithms.tebd.Engine.run_GS" title="tenpy.algorithms.tebd.Engine.run_GS"><code class="xref py py-func docutils literal notranslate"><span class="pre">run_GS()</span></code></a> for more details.
+<a class="reference internal" href="tenpy.algorithms.tebd.Engine.html#tenpy.algorithms.tebd.Engine.run" title="tenpy.algorithms.tebd.Engine.run"><code class="xref py py-func docutils literal notranslate"><span class="pre">run()</span></code></a> and <a class="reference internal" href="tenpy.algorithms.tebd.Engine.html#tenpy.algorithms.tebd.Engine.run_GS" title="tenpy.algorithms.tebd.Engine.run_GS"><code class="xref py py-func docutils literal notranslate"><span class="pre">run_GS()</span></code></a> for more details.
 Use <code class="docutils literal notranslate"><span class="pre">verbose=1</span></code> to print the used parameters during runtime.</p>
 </dd>
 </dl>
@@ -116,26 +137,26 @@ Use <code class="docutils literal notranslate"><span class="pre">verbose=1</span
 <dt><strong>evolved_time</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float | complex</span></dt>
 <dd><p class="first last">Indicating how long <cite>psi</cite> has been evolved, <code class="docutils literal notranslate"><span class="pre">psi</span> <span class="pre">=</span> <span class="pre">exp(-i</span> <span class="pre">*</span> <span class="pre">evolved_time</span> <span class="pre">*</span> <span class="pre">H)</span> <span class="pre">psi(t=0)</span></code>.</p>
 </dd>
-<dt><strong>trunc_err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
+<dt><strong>trunc_err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.TruncationError.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
 <dd><p class="first last">The error of the represented state which is introduced due to the truncation during
 the sequence of update steps.</p>
 </dd>
-<dt><strong>psi</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.networks.mps.html#tenpy.networks.mps.MPS" title="tenpy.networks.mps.MPS"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPS</span></code></a></span></dt>
+<dt><strong>psi</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS" title="tenpy.networks.mps.MPS"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPS</span></code></a></span></dt>
 <dd><p class="first last">The MPS, time evolved in-place.</p>
 </dd>
 <dt><strong>model</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">NearestNeigborModel</span></code></span></dt>
 <dd><p class="first last">The model defining the Hamiltonian.</p>
 </dd>
 <dt><strong>TEBD_params: dict</strong></dt>
-<dd><p class="first last">Optional parameters, see <a class="reference internal" href="#tenpy.algorithms.tebd.Engine.run" title="tenpy.algorithms.tebd.Engine.run"><code class="xref py py-func docutils literal notranslate"><span class="pre">run()</span></code></a> and <a class="reference internal" href="#tenpy.algorithms.tebd.Engine.run_GS" title="tenpy.algorithms.tebd.Engine.run_GS"><code class="xref py py-func docutils literal notranslate"><span class="pre">run_GS()</span></code></a> for more details.</p>
+<dd><p class="first last">Optional parameters, see <a class="reference internal" href="tenpy.algorithms.tebd.Engine.html#tenpy.algorithms.tebd.Engine.run" title="tenpy.algorithms.tebd.Engine.run"><code class="xref py py-func docutils literal notranslate"><span class="pre">run()</span></code></a> and <a class="reference internal" href="tenpy.algorithms.tebd.Engine.html#tenpy.algorithms.tebd.Engine.run_GS" title="tenpy.algorithms.tebd.Engine.run_GS"><code class="xref py py-func docutils literal notranslate"><span class="pre">run_GS()</span></code></a> for more details.</p>
 </dd>
 <dt><strong>_bond_eig_vals</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of 1D ndarray</span></dt>
 <dd><p class="first last">Eigenvalues for each of <cite>model.H_bond</cite>; necessary to calculate <cite>_U</cite>.</p>
 </dd>
-<dt><strong>_bond_eig_vecs</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dt><strong>_bond_eig_vecs</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
 <dd><p class="first last">Eigenvectors for each of <cite>model.H_bond</cite>; necessary to calculate <cite>_U</cite>.</p>
 </dd>
-<dt><strong>_U</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of list of <a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dt><strong>_U</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of list of <a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
 <dd><p class="first last">Exponentiated <cite>H_bond</cite> (bond Hamiltonians), i.e. roughly <code class="docutils literal notranslate"><span class="pre">exp(-i</span> <span class="pre">H_bond</span> <span class="pre">dt_i)</span></code>.
 First list for different <cite>dt_i</cite> as necessary for the chosen <cite>order</cite>,
 second list for the <cite>L</cite> different bonds.</p>
@@ -144,7 +165,7 @@ second list for the <cite>L</cite> different bonds.</p>
 <dd><p class="first last">A dictionary containing the information of the latest created <cite>_U</cite>.
 We don’t recalculate <cite>_U</cite> if those parameters didn’t change.</p>
 </dd>
-<dt><strong>_trunc_err_bonds</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
+<dt><strong>_trunc_err_bonds</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <a class="reference internal" href="tenpy.algorithms.truncation.TruncationError.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
 <dd><p class="first last">The <em>local</em> truncation error introduced at each bond, ignoring the errors at other bonds.
 The <cite>i</cite>-th entry is left of site <cite>i</cite>.</p>
 </dd>
@@ -163,71 +184,42 @@ The <cite>i</cite>-th entry is left of site <cite>i</cite>.</p>
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.tebd.Engine.calc_U" title="tenpy.algorithms.tebd.Engine.calc_U"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_U</span></code></a>(order,&nbsp;delta_t[,&nbsp;type_evo,&nbsp;E_offset])</td>
+<tr class="row-odd"><td><a class="reference internal" href="tenpy.algorithms.tebd.Engine.html#tenpy.algorithms.tebd.Engine.calc_U" title="tenpy.algorithms.tebd.Engine.calc_U"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_U</span></code></a>(order,&nbsp;delta_t[,&nbsp;type_evo,&nbsp;E_offset])</td>
 <td>Calculate <code class="docutils literal notranslate"><span class="pre">self.U_bond</span></code> from <code class="docutils literal notranslate"><span class="pre">self.bond_eig_{vals,vecs}</span></code>.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.tebd.Engine.run" title="tenpy.algorithms.tebd.Engine.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="tenpy.algorithms.tebd.Engine.html#tenpy.algorithms.tebd.Engine.run" title="tenpy.algorithms.tebd.Engine.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>()</td>
 <td>(Real-)time evolution with TEBD (time evolving block decimation).</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.tebd.Engine.run_GS" title="tenpy.algorithms.tebd.Engine.run_GS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_GS</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="tenpy.algorithms.tebd.Engine.html#tenpy.algorithms.tebd.Engine.run_GS" title="tenpy.algorithms.tebd.Engine.run_GS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_GS</span></code></a>()</td>
 <td>TEBD algorithm in imaginary time to find the ground state.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.tebd.Engine.suzuki_trotter_decomposition" title="tenpy.algorithms.tebd.Engine.suzuki_trotter_decomposition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">suzuki_trotter_decomposition</span></code></a>(order,&nbsp;N_steps)</td>
+<tr class="row-even"><td><a class="reference internal" href="tenpy.algorithms.tebd.Engine.html#tenpy.algorithms.tebd.Engine.suzuki_trotter_decomposition" title="tenpy.algorithms.tebd.Engine.suzuki_trotter_decomposition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">suzuki_trotter_decomposition</span></code></a>(order,&nbsp;N_steps)</td>
 <td>Returns list of necessary steps for the suzuki trotter decomposition.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.tebd.Engine.suzuki_trotter_time_steps" title="tenpy.algorithms.tebd.Engine.suzuki_trotter_time_steps"><code class="xref py py-obj docutils literal notranslate"><span class="pre">suzuki_trotter_time_steps</span></code></a>(order)</td>
+<tr class="row-odd"><td><a class="reference internal" href="tenpy.algorithms.tebd.Engine.html#tenpy.algorithms.tebd.Engine.suzuki_trotter_time_steps" title="tenpy.algorithms.tebd.Engine.suzuki_trotter_time_steps"><code class="xref py py-obj docutils literal notranslate"><span class="pre">suzuki_trotter_time_steps</span></code></a>(order)</td>
 <td>Return time steps of U for the Suzuki Trotter decomposition of desired order.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.tebd.Engine.update" title="tenpy.algorithms.tebd.Engine.update"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update</span></code></a>(N_steps)</td>
+<tr class="row-even"><td><a class="reference internal" href="tenpy.algorithms.tebd.Engine.html#tenpy.algorithms.tebd.Engine.update" title="tenpy.algorithms.tebd.Engine.update"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update</span></code></a>(N_steps)</td>
 <td>Evolve by <code class="docutils literal notranslate"><span class="pre">N_steps</span> <span class="pre">*</span> <span class="pre">U_param['dt']</span></code>.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.tebd.Engine.update_bond" title="tenpy.algorithms.tebd.Engine.update_bond"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_bond</span></code></a>(i,&nbsp;U_bond)</td>
+<tr class="row-odd"><td><a class="reference internal" href="tenpy.algorithms.tebd.Engine.html#tenpy.algorithms.tebd.Engine.update_bond" title="tenpy.algorithms.tebd.Engine.update_bond"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_bond</span></code></a>(i,&nbsp;U_bond)</td>
 <td>Updates the B matrices on a given bond.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.tebd.Engine.update_bond_imag" title="tenpy.algorithms.tebd.Engine.update_bond_imag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_bond_imag</span></code></a>(i,&nbsp;U_bond)</td>
+<tr class="row-even"><td><a class="reference internal" href="tenpy.algorithms.tebd.Engine.html#tenpy.algorithms.tebd.Engine.update_bond_imag" title="tenpy.algorithms.tebd.Engine.update_bond_imag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_bond_imag</span></code></a>(i,&nbsp;U_bond)</td>
 <td>Update a bond with a (possibly non-unitary) <cite>U_bond</cite>.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.tebd.Engine.update_imag" title="tenpy.algorithms.tebd.Engine.update_imag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_imag</span></code></a>(N_steps)</td>
+<tr class="row-odd"><td><a class="reference internal" href="tenpy.algorithms.tebd.Engine.html#tenpy.algorithms.tebd.Engine.update_imag" title="tenpy.algorithms.tebd.Engine.update_imag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_imag</span></code></a>(N_steps)</td>
 <td>Perform an update suitable for imaginary time evolution.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.tebd.Engine.update_step" title="tenpy.algorithms.tebd.Engine.update_step"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_step</span></code></a>(U_idx_dt,&nbsp;odd)</td>
+<tr class="row-even"><td><a class="reference internal" href="tenpy.algorithms.tebd.Engine.html#tenpy.algorithms.tebd.Engine.update_step" title="tenpy.algorithms.tebd.Engine.update_step"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_step</span></code></a>(U_idx_dt,&nbsp;odd)</td>
 <td>Updates either even <em>or</em> odd bonds in unit cell.</td>
 </tr>
 </tbody>
 </table>
-<dl class="method">
-<dt id="tenpy.algorithms.tebd.Engine.calc_U">
-<code class="descname">calc_U</code><span class="sig-paren">(</span><em>order</em>, <em>delta_t</em>, <em>type_evo='real'</em>, <em>E_offset=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/tebd.html#Engine.calc_U"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.tebd.Engine.calc_U" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculate <code class="docutils literal notranslate"><span class="pre">self.U_bond</span></code> from <code class="docutils literal notranslate"><span class="pre">self.bond_eig_{vals,vecs}</span></code>.</p>
-<p>This function calculates</p>
-<ul class="simple">
-<li><code class="docutils literal notranslate"><span class="pre">U_bond</span> <span class="pre">=</span> <span class="pre">exp(-i</span> <span class="pre">dt</span> <span class="pre">(H_bond-E_offset_bond))</span></code> for <code class="docutils literal notranslate"><span class="pre">type_evo='real'</span></code>, or</li>
-<li><code class="docutils literal notranslate"><span class="pre">U_bond</span> <span class="pre">=</span> <span class="pre">exp(-</span> <span class="pre">dt</span> <span class="pre">H_bond)</span></code> for <code class="docutils literal notranslate"><span class="pre">type_evo='imag'</span></code>.</li>
-</ul>
-<p>For first order (in <cite>delta_t</cite>), we need just one <code class="docutils literal notranslate"><span class="pre">dt=delta_t</span></code>.
-Higher order requires smaller <cite>dt</cite> steps, as given by <a class="reference internal" href="#tenpy.algorithms.tebd.Engine.suzuki_trotter_time_steps" title="tenpy.algorithms.tebd.Engine.suzuki_trotter_time_steps"><code class="xref py py-meth docutils literal notranslate"><span class="pre">suzuki_trotter_time_steps()</span></code></a>.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>order</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd><p class="first last">Trotter order calculated U_bond. See update for more information.</p>
-</dd>
-<dt><strong>delta_t</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd><p class="first last">Size of the time-step used in calculating U_bond</p>
-</dd>
-<dt><strong>type_evo</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">'imag'</span> <span class="pre">|</span> <span class="pre">'real'</span></code></span></dt>
-<dd><p class="first last">Determines whether we perform real or imaginary time-evolution.</p>
-</dd>
-<dt><strong>E_offset</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None | list of float</span></dt>
-<dd><p class="first last">Possible offset added to <cite>H_bond</cite> for real-time evolution.</p>
-</dd>
-</dl>
-</td>
-</tr>
-</tbody>
-</table>
+<dl class="attribute">
+<dt id="tenpy.algorithms.tebd.Engine.trunc_err_bonds">
+<code class="descname">trunc_err_bonds</code><a class="headerlink" href="#tenpy.algorithms.tebd.Engine.trunc_err_bonds" title="Permalink to this definition">¶</a></dt>
+<dd><p>truncation error introduced on each non-trivial bond</p>
 </dd></dl>
 
 <dl class="method">
@@ -270,7 +262,7 @@ once.)</td>
 <tr class="row-odd"><td>trunc_params</td>
 <td>dict</td>
 <td>Truncation parameters as described in
-<a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.truncate" title="tenpy.algorithms.truncation.truncate"><code class="xref py py-func docutils literal notranslate"><span class="pre">truncate()</span></code></a>.</td>
+<a class="reference internal" href="tenpy.algorithms.truncation.truncate.html#tenpy.algorithms.truncation.truncate" title="tenpy.algorithms.truncation.truncate"><code class="xref py py-func docutils literal notranslate"><span class="pre">truncate()</span></code></a>.</td>
 </tr>
 </tbody>
 </table>
@@ -324,7 +316,34 @@ performed</td>
 <tr class="row-odd"><td>trunc_params</td>
 <td>dict</td>
 <td>Truncation parameters as described in
-<a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.truncate" title="tenpy.algorithms.truncation.truncate"><code class="xref py py-func docutils literal notranslate"><span class="pre">truncate()</span></code></a></td>
+<a class="reference internal" href="tenpy.algorithms.truncation.truncate.html#tenpy.algorithms.truncation.truncate" title="tenpy.algorithms.truncation.truncate"><code class="xref py py-func docutils literal notranslate"><span class="pre">truncate()</span></code></a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="tenpy.algorithms.tebd.Engine.suzuki_trotter_time_steps">
+<em class="property">static </em><code class="descname">suzuki_trotter_time_steps</code><span class="sig-paren">(</span><em>order</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/tebd.html#Engine.suzuki_trotter_time_steps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.tebd.Engine.suzuki_trotter_time_steps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return time steps of U for the Suzuki Trotter decomposition of desired order.</p>
+<p>See <a class="reference internal" href="tenpy.algorithms.tebd.Engine.html#tenpy.algorithms.tebd.Engine.suzuki_trotter_decomposition" title="tenpy.algorithms.tebd.Engine.suzuki_trotter_decomposition"><code class="xref py py-meth docutils literal notranslate"><span class="pre">suzuki_trotter_decomposition()</span></code></a> for details.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>order</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">The desired order of the Suzuki-Trotter decomposition.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>time_steps</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of float</span></dt>
+<dd><p class="first last">We need <code class="docutils literal notranslate"><span class="pre">U</span> <span class="pre">=</span> <span class="pre">exp(-i</span> <span class="pre">H_{even/odd}</span> <span class="pre">delta_t</span> <span class="pre">*</span> <span class="pre">dt)</span></code> for the <cite>dt</cite> returned in this list.</p>
+</dd>
+</dl>
+</td>
 </tr>
 </tbody>
 </table>
@@ -362,37 +381,39 @@ state <code class="docutils literal notranslate"><span class="pre">|psi&gt;</spa
 </table>
 </dd></dl>
 
-<dl class="staticmethod">
-<dt id="tenpy.algorithms.tebd.Engine.suzuki_trotter_time_steps">
-<em class="property">static </em><code class="descname">suzuki_trotter_time_steps</code><span class="sig-paren">(</span><em>order</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/tebd.html#Engine.suzuki_trotter_time_steps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.tebd.Engine.suzuki_trotter_time_steps" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return time steps of U for the Suzuki Trotter decomposition of desired order.</p>
-<p>See <a class="reference internal" href="#tenpy.algorithms.tebd.Engine.suzuki_trotter_decomposition" title="tenpy.algorithms.tebd.Engine.suzuki_trotter_decomposition"><code class="xref py py-meth docutils literal notranslate"><span class="pre">suzuki_trotter_decomposition()</span></code></a> for details.</p>
+<dl class="method">
+<dt id="tenpy.algorithms.tebd.Engine.calc_U">
+<code class="descname">calc_U</code><span class="sig-paren">(</span><em>order</em>, <em>delta_t</em>, <em>type_evo='real'</em>, <em>E_offset=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/tebd.html#Engine.calc_U"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.tebd.Engine.calc_U" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate <code class="docutils literal notranslate"><span class="pre">self.U_bond</span></code> from <code class="docutils literal notranslate"><span class="pre">self.bond_eig_{vals,vecs}</span></code>.</p>
+<p>This function calculates</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">U_bond</span> <span class="pre">=</span> <span class="pre">exp(-i</span> <span class="pre">dt</span> <span class="pre">(H_bond-E_offset_bond))</span></code> for <code class="docutils literal notranslate"><span class="pre">type_evo='real'</span></code>, or</li>
+<li><code class="docutils literal notranslate"><span class="pre">U_bond</span> <span class="pre">=</span> <span class="pre">exp(-</span> <span class="pre">dt</span> <span class="pre">H_bond)</span></code> for <code class="docutils literal notranslate"><span class="pre">type_evo='imag'</span></code>.</li>
+</ul>
+<p>For first order (in <cite>delta_t</cite>), we need just one <code class="docutils literal notranslate"><span class="pre">dt=delta_t</span></code>.
+Higher order requires smaller <cite>dt</cite> steps, as given by <a class="reference internal" href="tenpy.algorithms.tebd.Engine.html#tenpy.algorithms.tebd.Engine.suzuki_trotter_time_steps" title="tenpy.algorithms.tebd.Engine.suzuki_trotter_time_steps"><code class="xref py py-meth docutils literal notranslate"><span class="pre">suzuki_trotter_time_steps()</span></code></a>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
 <dt><strong>order</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd><p class="first last">The desired order of the Suzuki-Trotter decomposition.</p>
+<dd><p class="first last">Trotter order calculated U_bond. See update for more information.</p>
 </dd>
-</dl>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>time_steps</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of float</span></dt>
-<dd><p class="first last">We need <code class="docutils literal notranslate"><span class="pre">U</span> <span class="pre">=</span> <span class="pre">exp(-i</span> <span class="pre">H_{even/odd}</span> <span class="pre">delta_t</span> <span class="pre">*</span> <span class="pre">dt)</span></code> for the <cite>dt</cite> returned in this list.</p>
+<dt><strong>delta_t</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Size of the time-step used in calculating U_bond</p>
+</dd>
+<dt><strong>type_evo</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">'imag'</span> <span class="pre">|</span> <span class="pre">'real'</span></code></span></dt>
+<dd><p class="first last">Determines whether we perform real or imaginary time-evolution.</p>
+</dd>
+<dt><strong>E_offset</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None | list of float</span></dt>
+<dd><p class="first last">Possible offset added to <cite>H_bond</cite> for real-time evolution.</p>
 </dd>
 </dl>
 </td>
 </tr>
 </tbody>
 </table>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="tenpy.algorithms.tebd.Engine.trunc_err_bonds">
-<code class="descname">trunc_err_bonds</code><a class="headerlink" href="#tenpy.algorithms.tebd.Engine.trunc_err_bonds" title="Permalink to this definition">¶</a></dt>
-<dd><p>truncation error introduced on each non-trivial bond</p>
 </dd></dl>
 
 <dl class="method">
@@ -411,110 +432,7 @@ state <code class="docutils literal notranslate"><span class="pre">|psi&gt;</spa
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>trunc_err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
-<dd><p class="first last">The error of the represented state which is introduced due to the truncation during
-this sequence of update steps.</p>
-</dd>
-</dl>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="tenpy.algorithms.tebd.Engine.update_bond">
-<code class="descname">update_bond</code><span class="sig-paren">(</span><em>i</em>, <em>U_bond</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/tebd.html#Engine.update_bond"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.tebd.Engine.update_bond" title="Permalink to this definition">¶</a></dt>
-<dd><p>Updates the B matrices on a given bond.</p>
-<p>Function that updates the B matrices, the bond matrix s between and the
-bond dimension chi for bond i. The correponding tensor networks look like this:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>           <span class="o">--</span><span class="n">S</span><span class="o">--</span><span class="n">B1</span><span class="o">--</span><span class="n">B2</span><span class="o">--</span>           <span class="o">--</span><span class="n">B1</span><span class="o">--</span><span class="n">B2</span><span class="o">--</span>
-<span class="o">|</span>                <span class="o">|</span>   <span class="o">|</span>                <span class="o">|</span>   <span class="o">|</span>
-<span class="o">|</span>     <span class="n">theta</span><span class="p">:</span>     <span class="n">U_bond</span>        <span class="n">C</span><span class="p">:</span>     <span class="n">U_bond</span>
-<span class="o">|</span>                <span class="o">|</span>   <span class="o">|</span>                <span class="o">|</span>   <span class="o">|</span>
-</pre></div>
-</div>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>i</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd><p class="first last">Bond index; we update the matrices at sites <code class="docutils literal notranslate"><span class="pre">i-1,</span> <span class="pre">i</span></code>.</p>
-</dd>
-<dt><strong>U_bond</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
-<dd><p class="first last">The bond operator which we apply to the wave function.
-We expect labels <code class="docutils literal notranslate"><span class="pre">'p0',</span> <span class="pre">'p1',</span> <span class="pre">'p0*',</span> <span class="pre">'p1*'</span></code>.</p>
-</dd>
-</dl>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>trunc_err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
-<dd><p class="first last">The error of the represented state which is introduced by the truncation
-during this update step.</p>
-</dd>
-</dl>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="tenpy.algorithms.tebd.Engine.update_bond_imag">
-<code class="descname">update_bond_imag</code><span class="sig-paren">(</span><em>i</em>, <em>U_bond</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/tebd.html#Engine.update_bond_imag"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.tebd.Engine.update_bond_imag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Update a bond with a (possibly non-unitary) <cite>U_bond</cite>.</p>
-<p>Similar as <a class="reference internal" href="#tenpy.algorithms.tebd.Engine.update_bond" title="tenpy.algorithms.tebd.Engine.update_bond"><code class="xref py py-meth docutils literal notranslate"><span class="pre">update_bond()</span></code></a>; but after the SVD just keep the <cite>A, S, B</cite> canonical form.
-In that way, one can sweep left or right without using old singular values,
-thus preserving the canonical form during imaginary time evolution.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>i</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd><p class="first last">Bond index; we update the matrices at sites <code class="docutils literal notranslate"><span class="pre">i-1,</span> <span class="pre">i</span></code>.</p>
-</dd>
-<dt><strong>U_bond</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
-<dd><p class="first last">The bond operator which we apply to the wave function.
-We expect labels <code class="docutils literal notranslate"><span class="pre">'p0',</span> <span class="pre">'p1',</span> <span class="pre">'p0*',</span> <span class="pre">'p1*'</span></code>.</p>
-</dd>
-</dl>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>trunc_err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
-<dd><p class="first last">The error of the represented state which is introduced by the truncation
-during this update step.</p>
-</dd>
-</dl>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="tenpy.algorithms.tebd.Engine.update_imag">
-<code class="descname">update_imag</code><span class="sig-paren">(</span><em>N_steps</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/tebd.html#Engine.update_imag"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.tebd.Engine.update_imag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Perform an update suitable for imaginary time evolution.</p>
-<p>Instead of the even/odd brick structure used for ordinary TEBD,
-we ‘sweep’ from left to right and right to left, similar as DMRG.
-Thanks to that, we are actually able to preserve the canonical form.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>N_steps</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd><p class="first last">The number of steps for which the whole lattice should be updated.</p>
-</dd>
-</dl>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>trunc_err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
+<dt><strong>trunc_err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.TruncationError.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
 <dd><p class="first last">The error of the represented state which is introduced due to the truncation during
 this sequence of update steps.</p>
 </dd>
@@ -558,9 +476,112 @@ evolve with <code class="docutils literal notranslate"><span class="pre">Us[i]</
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>trunc_err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
+<dt><strong>trunc_err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.TruncationError.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
 <dd><p class="first last">The error of the represented state which is introduced due to the truncation
 during this sequence of update steps.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.tebd.Engine.update_bond">
+<code class="descname">update_bond</code><span class="sig-paren">(</span><em>i</em>, <em>U_bond</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/tebd.html#Engine.update_bond"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.tebd.Engine.update_bond" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the B matrices on a given bond.</p>
+<p>Function that updates the B matrices, the bond matrix s between and the
+bond dimension chi for bond i. The correponding tensor networks look like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>           <span class="o">--</span><span class="n">S</span><span class="o">--</span><span class="n">B1</span><span class="o">--</span><span class="n">B2</span><span class="o">--</span>           <span class="o">--</span><span class="n">B1</span><span class="o">--</span><span class="n">B2</span><span class="o">--</span>
+<span class="o">|</span>                <span class="o">|</span>   <span class="o">|</span>                <span class="o">|</span>   <span class="o">|</span>
+<span class="o">|</span>     <span class="n">theta</span><span class="p">:</span>     <span class="n">U_bond</span>        <span class="n">C</span><span class="p">:</span>     <span class="n">U_bond</span>
+<span class="o">|</span>                <span class="o">|</span>   <span class="o">|</span>                <span class="o">|</span>   <span class="o">|</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>i</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Bond index; we update the matrices at sites <code class="docutils literal notranslate"><span class="pre">i-1,</span> <span class="pre">i</span></code>.</p>
+</dd>
+<dt><strong>U_bond</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">The bond operator which we apply to the wave function.
+We expect labels <code class="docutils literal notranslate"><span class="pre">'p0',</span> <span class="pre">'p1',</span> <span class="pre">'p0*',</span> <span class="pre">'p1*'</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>trunc_err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.TruncationError.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
+<dd><p class="first last">The error of the represented state which is introduced by the truncation
+during this update step.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.tebd.Engine.update_imag">
+<code class="descname">update_imag</code><span class="sig-paren">(</span><em>N_steps</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/tebd.html#Engine.update_imag"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.tebd.Engine.update_imag" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform an update suitable for imaginary time evolution.</p>
+<p>Instead of the even/odd brick structure used for ordinary TEBD,
+we ‘sweep’ from left to right and right to left, similar as DMRG.
+Thanks to that, we are actually able to preserve the canonical form.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>N_steps</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">The number of steps for which the whole lattice should be updated.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>trunc_err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.TruncationError.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
+<dd><p class="first last">The error of the represented state which is introduced due to the truncation during
+this sequence of update steps.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.tebd.Engine.update_bond_imag">
+<code class="descname">update_bond_imag</code><span class="sig-paren">(</span><em>i</em>, <em>U_bond</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/tebd.html#Engine.update_bond_imag"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.tebd.Engine.update_bond_imag" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update a bond with a (possibly non-unitary) <cite>U_bond</cite>.</p>
+<p>Similar as <a class="reference internal" href="tenpy.algorithms.tebd.Engine.html#tenpy.algorithms.tebd.Engine.update_bond" title="tenpy.algorithms.tebd.Engine.update_bond"><code class="xref py py-meth docutils literal notranslate"><span class="pre">update_bond()</span></code></a>; but after the SVD just keep the <cite>A, S, B</cite> canonical form.
+In that way, one can sweep left or right without using old singular values,
+thus preserving the canonical form during imaginary time evolution.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>i</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Bond index; we update the matrices at sites <code class="docutils literal notranslate"><span class="pre">i-1,</span> <span class="pre">i</span></code>.</p>
+</dd>
+<dt><strong>U_bond</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">The bond operator which we apply to the wave function.
+We expect labels <code class="docutils literal notranslate"><span class="pre">'p0',</span> <span class="pre">'p1',</span> <span class="pre">'p0*',</span> <span class="pre">'p1*'</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>trunc_err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.TruncationError.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
+<dd><p class="first last">The error of the represented state which is introduced by the truncation
+during this update step.</p>
 </dd>
 </dl>
 </td>
@@ -574,12 +595,12 @@ during this sequence of update steps.</p>
 <dl class="class">
 <dt id="tenpy.algorithms.tebd.RandomUnitaryEvolution">
 <em class="property">class </em><code class="descclassname">tenpy.algorithms.tebd.</code><code class="descname">RandomUnitaryEvolution</code><span class="sig-paren">(</span><em>psi</em>, <em>TEBD_params</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/tebd.html#RandomUnitaryEvolution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.tebd.RandomUnitaryEvolution" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#tenpy.algorithms.tebd.Engine" title="tenpy.algorithms.tebd.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.algorithms.tebd.Engine</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="tenpy.algorithms.tebd.Engine.html#tenpy.algorithms.tebd.Engine" title="tenpy.algorithms.tebd.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.algorithms.tebd.Engine</span></code></a></p>
 <p>Evolution of an MPS with random two-site unitaries in a TEBD-like fashion.</p>
 <p>Instead of using a model Hamiltonian, this TEBD engine evolves with random two-site unitaries.
 These unitaries are drawn according to the Haar measure on unitaries obeying the conservation
 laws dictated by the conserved charges. If no charge is preserved, this distribution is called
-circular unitary ensemble (CUE), see <a class="reference internal" href="tenpy.linalg.random_matrix.html#tenpy.linalg.random_matrix.CUE" title="tenpy.linalg.random_matrix.CUE"><code class="xref py py-func docutils literal notranslate"><span class="pre">CUE()</span></code></a>.</p>
+circular unitary ensemble (CUE), see <a class="reference internal" href="tenpy.linalg.random_matrix.CUE.html#tenpy.linalg.random_matrix.CUE" title="tenpy.linalg.random_matrix.CUE"><code class="xref py py-func docutils literal notranslate"><span class="pre">CUE()</span></code></a>.</p>
 <p>On one hand, such an evolution is of interest in recent research (see eg. <a class="reference external" href="https://arxiv.org/abs/1710.09827">arXiv:1710.09827</a>).
 On the other hand, it also comes in handy to “randomize” an initial state, e.g. for DMRG.
 Note that the entanglement grows very quickly, choose the truncation paramters accordingly!</p>
@@ -593,7 +614,7 @@ Note that the entanglement grows very quickly, choose the truncation paramters a
 </dd>
 <dt><strong>TEBD_params</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
 <dd><p class="first last">Use <code class="docutils literal notranslate"><span class="pre">verbose=1</span></code> to print the used parameters during runtime.
-See <a class="reference internal" href="#tenpy.algorithms.tebd.RandomUnitaryEvolution.run" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.run"><code class="xref py py-func docutils literal notranslate"><span class="pre">run()</span></code></a> and <a class="reference internal" href="#tenpy.algorithms.tebd.RandomUnitaryEvolution.run_GS" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.run_GS"><code class="xref py py-func docutils literal notranslate"><span class="pre">run_GS()</span></code></a> for more details.</p>
+See <a class="reference internal" href="tenpy.algorithms.tebd.RandomUnitaryEvolution.html#tenpy.algorithms.tebd.RandomUnitaryEvolution.run" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.run"><code class="xref py py-func docutils literal notranslate"><span class="pre">run()</span></code></a> and <a class="reference internal" href="tenpy.algorithms.tebd.RandomUnitaryEvolution.html#tenpy.algorithms.tebd.RandomUnitaryEvolution.run_GS" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.run_GS"><code class="xref py py-func docutils literal notranslate"><span class="pre">run_GS()</span></code></a> for more details.</p>
 </dd>
 </dl>
 </td>
@@ -631,7 +652,7 @@ If you start in a sector of all up spins, the random unitaries can only apply a 
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
-<dt><a class="reference internal" href="#tenpy.algorithms.tebd.RandomUnitaryEvolution.trunc_err_bonds" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.trunc_err_bonds"><code class="xref py py-obj docutils literal notranslate"><span class="pre">trunc_err_bonds</span></code></a></dt>
+<dt><a class="reference internal" href="tenpy.algorithms.tebd.RandomUnitaryEvolution.html#tenpy.algorithms.tebd.RandomUnitaryEvolution.trunc_err_bonds" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.trunc_err_bonds"><code class="xref py py-obj docutils literal notranslate"><span class="pre">trunc_err_bonds</span></code></a></dt>
 <dd><p class="first last">truncation error introduced on each non-trivial bond</p>
 </dd>
 </dl>
@@ -646,44 +667,38 @@ If you start in a sector of all up spins, the random unitaries can only apply a 
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.tebd.RandomUnitaryEvolution.calc_U" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.calc_U"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_U</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="tenpy.algorithms.tebd.RandomUnitaryEvolution.html#tenpy.algorithms.tebd.RandomUnitaryEvolution.calc_U" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.calc_U"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_U</span></code></a>()</td>
 <td>Draw new random two-site unitaries replacing the usual <cite>U</cite> of TEBD.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.tebd.RandomUnitaryEvolution.run" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="tenpy.algorithms.tebd.RandomUnitaryEvolution.html#tenpy.algorithms.tebd.RandomUnitaryEvolution.run" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>()</td>
 <td>Time evolution with TEBD (time evolving block decimation) and random two-site unitaries.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.tebd.RandomUnitaryEvolution.run_GS" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.run_GS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_GS</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="tenpy.algorithms.tebd.RandomUnitaryEvolution.html#tenpy.algorithms.tebd.RandomUnitaryEvolution.run_GS" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.run_GS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_GS</span></code></a>()</td>
 <td>TEBD algorithm in imaginary time to find the ground state.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.tebd.RandomUnitaryEvolution.suzuki_trotter_decomposition" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.suzuki_trotter_decomposition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">suzuki_trotter_decomposition</span></code></a>(order,&nbsp;N_steps)</td>
+<tr class="row-even"><td><a class="reference internal" href="tenpy.algorithms.tebd.RandomUnitaryEvolution.html#tenpy.algorithms.tebd.RandomUnitaryEvolution.suzuki_trotter_decomposition" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.suzuki_trotter_decomposition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">suzuki_trotter_decomposition</span></code></a>(order,&nbsp;N_steps)</td>
 <td>Returns list of necessary steps for the suzuki trotter decomposition.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.tebd.RandomUnitaryEvolution.suzuki_trotter_time_steps" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.suzuki_trotter_time_steps"><code class="xref py py-obj docutils literal notranslate"><span class="pre">suzuki_trotter_time_steps</span></code></a>(order)</td>
+<tr class="row-odd"><td><a class="reference internal" href="tenpy.algorithms.tebd.RandomUnitaryEvolution.html#tenpy.algorithms.tebd.RandomUnitaryEvolution.suzuki_trotter_time_steps" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.suzuki_trotter_time_steps"><code class="xref py py-obj docutils literal notranslate"><span class="pre">suzuki_trotter_time_steps</span></code></a>(order)</td>
 <td>Return time steps of U for the Suzuki Trotter decomposition of desired order.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.tebd.RandomUnitaryEvolution.update" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.update"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update</span></code></a>(N_steps)</td>
+<tr class="row-even"><td><a class="reference internal" href="tenpy.algorithms.tebd.RandomUnitaryEvolution.html#tenpy.algorithms.tebd.RandomUnitaryEvolution.update" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.update"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update</span></code></a>(N_steps)</td>
 <td>Apply <code class="docutils literal notranslate"><span class="pre">N_steps</span></code> random two-site unitaries to each bond (in even-odd pattern).</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.tebd.RandomUnitaryEvolution.update_bond" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.update_bond"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_bond</span></code></a>(i,&nbsp;U_bond)</td>
+<tr class="row-odd"><td><a class="reference internal" href="tenpy.algorithms.tebd.RandomUnitaryEvolution.html#tenpy.algorithms.tebd.RandomUnitaryEvolution.update_bond" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.update_bond"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_bond</span></code></a>(i,&nbsp;U_bond)</td>
 <td>Updates the B matrices on a given bond.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.tebd.RandomUnitaryEvolution.update_bond_imag" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.update_bond_imag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_bond_imag</span></code></a>(i,&nbsp;U_bond)</td>
+<tr class="row-even"><td><a class="reference internal" href="tenpy.algorithms.tebd.RandomUnitaryEvolution.html#tenpy.algorithms.tebd.RandomUnitaryEvolution.update_bond_imag" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.update_bond_imag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_bond_imag</span></code></a>(i,&nbsp;U_bond)</td>
 <td>Update a bond with a (possibly non-unitary) <cite>U_bond</cite>.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.tebd.RandomUnitaryEvolution.update_imag" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.update_imag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_imag</span></code></a>(N_steps)</td>
+<tr class="row-odd"><td><a class="reference internal" href="tenpy.algorithms.tebd.RandomUnitaryEvolution.html#tenpy.algorithms.tebd.RandomUnitaryEvolution.update_imag" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.update_imag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_imag</span></code></a>(N_steps)</td>
 <td>Perform an update suitable for imaginary time evolution.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.tebd.RandomUnitaryEvolution.update_step" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.update_step"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_step</span></code></a>(U_idx_dt,&nbsp;odd)</td>
+<tr class="row-even"><td><a class="reference internal" href="tenpy.algorithms.tebd.RandomUnitaryEvolution.html#tenpy.algorithms.tebd.RandomUnitaryEvolution.update_step" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.update_step"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_step</span></code></a>(U_idx_dt,&nbsp;odd)</td>
 <td>Updates either even <em>or</em> odd bonds in unit cell.</td>
 </tr>
 </tbody>
 </table>
-<dl class="method">
-<dt id="tenpy.algorithms.tebd.RandomUnitaryEvolution.calc_U">
-<code class="descname">calc_U</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/tebd.html#RandomUnitaryEvolution.calc_U"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.tebd.RandomUnitaryEvolution.calc_U" title="Permalink to this definition">¶</a></dt>
-<dd><p>Draw new random two-site unitaries replacing the usual <cite>U</cite> of TEBD.</p>
-</dd></dl>
-
 <dl class="method">
 <dt id="tenpy.algorithms.tebd.RandomUnitaryEvolution.run">
 <code class="descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/tebd.html#RandomUnitaryEvolution.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.tebd.RandomUnitaryEvolution.run" title="Permalink to this definition">¶</a></dt>
@@ -710,7 +725,40 @@ bond.</td>
 <tr class="row-odd"><td>trunc_params</td>
 <td>dict</td>
 <td>Truncation parameters as described in
-<a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.truncate" title="tenpy.algorithms.truncation.truncate"><code class="xref py py-func docutils literal notranslate"><span class="pre">truncate()</span></code></a></td>
+<a class="reference internal" href="tenpy.algorithms.truncation.truncate.html#tenpy.algorithms.truncation.truncate" title="tenpy.algorithms.truncation.truncate"><code class="xref py py-func docutils literal notranslate"><span class="pre">truncate()</span></code></a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.tebd.RandomUnitaryEvolution.calc_U">
+<code class="descname">calc_U</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/tebd.html#RandomUnitaryEvolution.calc_U"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.tebd.RandomUnitaryEvolution.calc_U" title="Permalink to this definition">¶</a></dt>
+<dd><p>Draw new random two-site unitaries replacing the usual <cite>U</cite> of TEBD.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.tebd.RandomUnitaryEvolution.update">
+<code class="descname">update</code><span class="sig-paren">(</span><em>N_steps</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/tebd.html#RandomUnitaryEvolution.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.tebd.RandomUnitaryEvolution.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply <code class="docutils literal notranslate"><span class="pre">N_steps</span></code> random two-site unitaries to each bond (in even-odd pattern).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>N_steps</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">The number of steps for which the whole lattice should be updated.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>trunc_err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.TruncationError.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
+<dd><p class="first last">The error of the represented state which is introduced due to the truncation during
+this sequence of update steps.</p>
+</dd>
+</dl>
+</td>
 </tr>
 </tbody>
 </table>
@@ -764,7 +812,7 @@ performed</td>
 <tr class="row-odd"><td>trunc_params</td>
 <td>dict</td>
 <td>Truncation parameters as described in
-<a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.truncate" title="tenpy.algorithms.truncation.truncate"><code class="xref py py-func docutils literal notranslate"><span class="pre">truncate()</span></code></a></td>
+<a class="reference internal" href="tenpy.algorithms.truncation.truncate.html#tenpy.algorithms.truncation.truncate" title="tenpy.algorithms.truncation.truncate"><code class="xref py py-func docutils literal notranslate"><span class="pre">truncate()</span></code></a></td>
 </tr>
 </tbody>
 </table>
@@ -806,7 +854,7 @@ state <code class="docutils literal notranslate"><span class="pre">|psi&gt;</spa
 <dt id="tenpy.algorithms.tebd.RandomUnitaryEvolution.suzuki_trotter_time_steps">
 <em class="property">static </em><code class="descname">suzuki_trotter_time_steps</code><span class="sig-paren">(</span><em>order</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.algorithms.tebd.RandomUnitaryEvolution.suzuki_trotter_time_steps" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return time steps of U for the Suzuki Trotter decomposition of desired order.</p>
-<p>See <a class="reference internal" href="#tenpy.algorithms.tebd.RandomUnitaryEvolution.suzuki_trotter_decomposition" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.suzuki_trotter_decomposition"><code class="xref py py-meth docutils literal notranslate"><span class="pre">suzuki_trotter_decomposition()</span></code></a> for details.</p>
+<p>See <a class="reference internal" href="tenpy.algorithms.tebd.RandomUnitaryEvolution.html#tenpy.algorithms.tebd.RandomUnitaryEvolution.suzuki_trotter_decomposition" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.suzuki_trotter_decomposition"><code class="xref py py-meth docutils literal notranslate"><span class="pre">suzuki_trotter_decomposition()</span></code></a> for details.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -836,33 +884,6 @@ state <code class="docutils literal notranslate"><span class="pre">|psi&gt;</spa
 </dd></dl>
 
 <dl class="method">
-<dt id="tenpy.algorithms.tebd.RandomUnitaryEvolution.update">
-<code class="descname">update</code><span class="sig-paren">(</span><em>N_steps</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/tebd.html#RandomUnitaryEvolution.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.tebd.RandomUnitaryEvolution.update" title="Permalink to this definition">¶</a></dt>
-<dd><p>Apply <code class="docutils literal notranslate"><span class="pre">N_steps</span></code> random two-site unitaries to each bond (in even-odd pattern).</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>N_steps</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd><p class="first last">The number of steps for which the whole lattice should be updated.</p>
-</dd>
-</dl>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>trunc_err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
-<dd><p class="first last">The error of the represented state which is introduced due to the truncation during
-this sequence of update steps.</p>
-</dd>
-</dl>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
 <dt id="tenpy.algorithms.tebd.RandomUnitaryEvolution.update_bond">
 <code class="descname">update_bond</code><span class="sig-paren">(</span><em>i</em>, <em>U_bond</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.algorithms.tebd.RandomUnitaryEvolution.update_bond" title="Permalink to this definition">¶</a></dt>
 <dd><p>Updates the B matrices on a given bond.</p>
@@ -882,7 +903,7 @@ bond dimension chi for bond i. The correponding tensor networks look like this:<
 <dt><strong>i</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
 <dd><p class="first last">Bond index; we update the matrices at sites <code class="docutils literal notranslate"><span class="pre">i-1,</span> <span class="pre">i</span></code>.</p>
 </dd>
-<dt><strong>U_bond</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dt><strong>U_bond</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
 <dd><p class="first last">The bond operator which we apply to the wave function.
 We expect labels <code class="docutils literal notranslate"><span class="pre">'p0',</span> <span class="pre">'p1',</span> <span class="pre">'p0*',</span> <span class="pre">'p1*'</span></code>.</p>
 </dd>
@@ -890,7 +911,7 @@ We expect labels <code class="docutils literal notranslate"><span class="pre">'p
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>trunc_err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
+<dt><strong>trunc_err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.TruncationError.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
 <dd><p class="first last">The error of the represented state which is introduced by the truncation
 during this update step.</p>
 </dd>
@@ -905,7 +926,7 @@ during this update step.</p>
 <dt id="tenpy.algorithms.tebd.RandomUnitaryEvolution.update_bond_imag">
 <code class="descname">update_bond_imag</code><span class="sig-paren">(</span><em>i</em>, <em>U_bond</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.algorithms.tebd.RandomUnitaryEvolution.update_bond_imag" title="Permalink to this definition">¶</a></dt>
 <dd><p>Update a bond with a (possibly non-unitary) <cite>U_bond</cite>.</p>
-<p>Similar as <a class="reference internal" href="#tenpy.algorithms.tebd.RandomUnitaryEvolution.update_bond" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.update_bond"><code class="xref py py-meth docutils literal notranslate"><span class="pre">update_bond()</span></code></a>; but after the SVD just keep the <cite>A, S, B</cite> canonical form.
+<p>Similar as <a class="reference internal" href="tenpy.algorithms.tebd.RandomUnitaryEvolution.html#tenpy.algorithms.tebd.RandomUnitaryEvolution.update_bond" title="tenpy.algorithms.tebd.RandomUnitaryEvolution.update_bond"><code class="xref py py-meth docutils literal notranslate"><span class="pre">update_bond()</span></code></a>; but after the SVD just keep the <cite>A, S, B</cite> canonical form.
 In that way, one can sweep left or right without using old singular values,
 thus preserving the canonical form during imaginary time evolution.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -916,7 +937,7 @@ thus preserving the canonical form during imaginary time evolution.</p>
 <dt><strong>i</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
 <dd><p class="first last">Bond index; we update the matrices at sites <code class="docutils literal notranslate"><span class="pre">i-1,</span> <span class="pre">i</span></code>.</p>
 </dd>
-<dt><strong>U_bond</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dt><strong>U_bond</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
 <dd><p class="first last">The bond operator which we apply to the wave function.
 We expect labels <code class="docutils literal notranslate"><span class="pre">'p0',</span> <span class="pre">'p1',</span> <span class="pre">'p0*',</span> <span class="pre">'p1*'</span></code>.</p>
 </dd>
@@ -924,7 +945,7 @@ We expect labels <code class="docutils literal notranslate"><span class="pre">'p
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>trunc_err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
+<dt><strong>trunc_err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.TruncationError.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
 <dd><p class="first last">The error of the represented state which is introduced by the truncation
 during this update step.</p>
 </dd>
@@ -954,7 +975,7 @@ Thanks to that, we are actually able to preserve the canonical form.</p>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>trunc_err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
+<dt><strong>trunc_err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.TruncationError.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
 <dd><p class="first last">The error of the represented state which is introduced due to the truncation during
 this sequence of update steps.</p>
 </dd>
@@ -998,7 +1019,7 @@ evolve with <code class="docutils literal notranslate"><span class="pre">Us[i]</
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>trunc_err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
+<dt><strong>trunc_err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.TruncationError.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
 <dd><p class="first last">The error of the represented state which is introduced due to the truncation
 during this sequence of update steps.</p>
 </dd>
@@ -1023,11 +1044,11 @@ during this sequence of update steps.</p>
               <img class="logo" src="../_static/logo.png" alt="Logo"/>
             </a></p>
   <h4>Previous topic</h4>
-  <p class="topless"><a href="tenpy.algorithms.tdvp.html"
-                        title="previous chapter">tenpy.algorithms.tdvp module</a></p>
+  <p class="topless"><a href="tenpy.algorithms.dmrg.run.html"
+                        title="previous chapter">run</a></p>
   <h4>Next topic</h4>
-  <p class="topless"><a href="tenpy.algorithms.truncation.html"
-                        title="next chapter">tenpy.algorithms.truncation module</a></p>
+  <p class="topless"><a href="tenpy.algorithms.tebd.Engine.html"
+                        title="next chapter">Engine</a></p>
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
     <div class="searchformwrapper">
@@ -1043,17 +1064,22 @@ during this sequence of update steps.</p>
 <h3><a href="../index.html">Table of Contents</a></h3>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../userguide.html">User Guide</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="tenpy.html">Reference</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="tenpy.html#subpackages">Subpackages</a><ul class="current">
-<li class="toctree-l3 current"><a class="reference internal" href="tenpy.algorithms.html">tenpy.algorithms package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tenpy.linalg.html">tenpy.linalg package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tenpy.models.html">tenpy.models package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tenpy.networks.html">tenpy.networks package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tenpy.tools.html">tenpy.tools package</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../reference.html">Tenpy Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tenpy.algorithms.html">algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.truncation.html">truncation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.dmrg.html">dmrg</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">tebd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.tdvp.html">tdvp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.purification_tebd.html">purification_tebd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.network_contractor.html">network_contractor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.exact_diag.html">exact_diag</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="tenpy.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tenpy.html#module-tenpy">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.linalg.html">linalg</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.models.html">models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.networks.html">networks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.tools.html">tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.version.html">version</a></li>
 </ul>
 </li>
 </ul>
@@ -1072,14 +1098,14 @@ during this sequence of update steps.</p>
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="tenpy.algorithms.truncation.html" title="tenpy.algorithms.truncation module"
+          <a href="tenpy.algorithms.tebd.Engine.html" title="Engine"
              >next</a> |</li>
         <li class="right" >
-          <a href="tenpy.algorithms.tdvp.html" title="tenpy.algorithms.tdvp module"
+          <a href="tenpy.algorithms.dmrg.run.html" title="run"
              >previous</a> |</li>
         <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="tenpy.html" >Reference</a> &#187;</li>
-          <li class="nav-item nav-item-2"><a href="tenpy.algorithms.html" >tenpy.algorithms package</a> &#187;</li> 
+          <li class="nav-item nav-item-1"><a href="../reference.html" >Tenpy Reference</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.algorithms.html" >algorithms</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">

@@ -1,0 +1,716 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>EngineFracture &#8212; TeNPy 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Mixer" href="tenpy.algorithms.dmrg.Mixer.html" />
+    <link rel="prev" title="EngineCombine" href="tenpy.algorithms.dmrg.EngineCombine.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tenpy.algorithms.dmrg.Mixer.html" title="Mixer"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="tenpy.algorithms.dmrg.EngineCombine.html" title="EngineCombine"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../reference.html" >Tenpy Reference</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.algorithms.html" >algorithms</a> &#187;</li>
+          <li class="nav-item nav-item-3"><a href="tenpy.algorithms.dmrg.html" accesskey="U">dmrg</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="enginefracture">
+<h1>EngineFracture<a class="headerlink" href="#enginefracture" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li>full name: tenpy.algorithms.dmrg.EngineFracture</li>
+<li>parent module: <a class="reference internal" href="tenpy.algorithms.dmrg.html#module-tenpy.algorithms.dmrg" title="tenpy.algorithms.dmrg"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tenpy.algorithms.dmrg</span></code></a></li>
+<li>type: class</li>
+</ul>
+<dl class="class">
+<dt id="tenpy.algorithms.dmrg.EngineFracture">
+<em class="property">class </em><code class="descclassname">tenpy.algorithms.dmrg.</code><code class="descname">EngineFracture</code><span class="sig-paren">(</span><em>psi</em>, <em>model</em>, <em>DMRG_params</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#EngineFracture"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tenpy.algorithms.dmrg.Engine.html#tenpy.algorithms.dmrg.Engine" title="tenpy.algorithms.dmrg.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.algorithms.dmrg.Engine</span></code></a></p>
+<p>Engine which keeps the legs separate.</p>
+<p>Due to a different contraction order in <a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.matvec" title="tenpy.algorithms.dmrg.EngineFracture.matvec"><code class="xref py py-meth docutils literal notranslate"><span class="pre">matvec()</span></code></a>, this engine might be faster than
+<a class="reference internal" href="tenpy.algorithms.dmrg.EngineCombine.html#tenpy.algorithms.dmrg.EngineCombine" title="tenpy.algorithms.dmrg.EngineCombine"><code class="xref py py-class docutils literal notranslate"><span class="pre">EngineCombine</span></code></a>, at least for large physical dimensions and if the MPO is sparse.
+One <a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.matvec" title="tenpy.algorithms.dmrg.EngineFracture.matvec"><code class="xref py py-meth docutils literal notranslate"><span class="pre">matvec()</span></code></a> is <span class="math notranslate nohighlight">\(O(2 \chi^3 d^2 W + 2 \chi^2 d^3 W^2 )\)</span>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>LP</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Left part of the effective Hamiltonian. Labels <code class="docutils literal notranslate"><span class="pre">'vR*',</span> <span class="pre">'wR',</span> <span class="pre">'vR'</span></code>.</p>
+</dd>
+<dt><strong>RP</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Right part of the effective Hamiltonian. Labels <code class="docutils literal notranslate"><span class="pre">'vL*',</span> <span class="pre">'wL',</span> <span class="pre">'vL'</span></code>.</p>
+</dd>
+<dt><strong>H0, H1</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">MPO on the two sites to be optimized.
+Labels <code class="docutils literal notranslate"><span class="pre">'wL,</span> <span class="pre">'wR',</span> <span class="pre">'p0',</span> <span class="pre">'p0*'</span></code> and <code class="docutils literal notranslate"><span class="pre">'wL,</span> <span class="pre">'wR',</span> <span class="pre">'p1',</span> <span class="pre">'p1*'</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.diag" title="tenpy.algorithms.dmrg.EngineFracture.diag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">diag</span></code></a>(theta_guess,&nbsp;theta_ortho)</td>
+<td>Diagonalize the effective Hamiltonian represented by self.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.environment_sweeps" title="tenpy.algorithms.dmrg.EngineFracture.environment_sweeps"><code class="xref py py-obj docutils literal notranslate"><span class="pre">environment_sweeps</span></code></a>(N_sweeps)</td>
+<td>Perform <cite>N_sweeps</cite> sweeps without bond optimization to update the environment.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.get_theta_ortho" title="tenpy.algorithms.dmrg.EngineFracture.get_theta_ortho"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_theta_ortho</span></code></a>(i0)</td>
+<td>Get the 2-site wavefunctions to orthogonalize against from <code class="xref py py-attr docutils literal notranslate"><span class="pre">ortho_to_envs</span></code>.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.init_env" title="tenpy.algorithms.dmrg.EngineFracture.init_env"><code class="xref py py-obj docutils literal notranslate"><span class="pre">init_env</span></code></a>([model])</td>
+<td>(Re-)initialize the environment.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.matvec" title="tenpy.algorithms.dmrg.EngineFracture.matvec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">matvec</span></code></a>(theta)</td>
+<td>Apply the effective Hamiltonian to <cite>theta</cite>.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.mixed_svd" title="tenpy.algorithms.dmrg.EngineFracture.mixed_svd"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mixed_svd</span></code></a>(theta,&nbsp;i0,&nbsp;update_LP,&nbsp;update_RP)</td>
+<td>Get (truncated) <cite>B</cite> from the new theta (as returned by diag).</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.mixer_activate" title="tenpy.algorithms.dmrg.EngineFracture.mixer_activate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mixer_activate</span></code></a>()</td>
+<td>Set <cite>self.mixer</cite> to the class specified by <cite>DMRG_params[‘mixer’]</cite>.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.mixer_cleanup" title="tenpy.algorithms.dmrg.EngineFracture.mixer_cleanup"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mixer_cleanup</span></code></a>()</td>
+<td>Cleanup the effects of the mixer.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.plot_sweep_stats" title="tenpy.algorithms.dmrg.EngineFracture.plot_sweep_stats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_sweep_stats</span></code></a>([axes,&nbsp;xaxis,&nbsp;yaxis,&nbsp;y_exact])</td>
+<td>Plot <code class="xref py py-attr docutils literal notranslate"><span class="pre">sweep_stats</span></code> to display the convergence with the sweeps.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.plot_update_stats" title="tenpy.algorithms.dmrg.EngineFracture.plot_update_stats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_update_stats</span></code></a>(axes[,&nbsp;xaxis,&nbsp;yaxis,&nbsp;y_exact])</td>
+<td>Plot <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code> to display the convergence during the sweeps.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.prepare_diag" title="tenpy.algorithms.dmrg.EngineFracture.prepare_diag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prepare_diag</span></code></a>(i0)</td>
+<td>Prepare <cite>self</cite> to represent the effective Hamiltonian on sites <code class="docutils literal notranslate"><span class="pre">(i0,</span> <span class="pre">i0+1)</span></code>.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.prepare_svd" title="tenpy.algorithms.dmrg.EngineFracture.prepare_svd"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prepare_svd</span></code></a>(theta)</td>
+<td>Transform theta into matrix for svd.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.reset_stats" title="tenpy.algorithms.dmrg.EngineFracture.reset_stats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset_stats</span></code></a>()</td>
+<td>Reset the statistics.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.run" title="tenpy.algorithms.dmrg.EngineFracture.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>()</td>
+<td>Run the DMRG simulation to find the ground state.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.set_B" title="tenpy.algorithms.dmrg.EngineFracture.set_B"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_B</span></code></a>(i0,&nbsp;U,&nbsp;S,&nbsp;VH)</td>
+<td>Update the MPS with the <code class="docutils literal notranslate"><span class="pre">U,</span> <span class="pre">S,</span> <span class="pre">VH</span></code> returned by <cite>self.mixed_svd</cite>.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.sweep" title="tenpy.algorithms.dmrg.EngineFracture.sweep"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sweep</span></code></a>([optimize,&nbsp;meas_E_trunc])</td>
+<td>One ‘sweep’ of the DMRG algorithm.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.update_LP" title="tenpy.algorithms.dmrg.EngineFracture.update_LP"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_LP</span></code></a>(i0,&nbsp;U)</td>
+<td>Update left part of the environment.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.update_RP" title="tenpy.algorithms.dmrg.EngineFracture.update_RP"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_RP</span></code></a>(i0,&nbsp;VH)</td>
+<td>Update right part of the environment.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.update_bond" title="tenpy.algorithms.dmrg.EngineFracture.update_bond"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_bond</span></code></a>(i0,&nbsp;update_LP,&nbsp;update_RP[,&nbsp;…])</td>
+<td>Perform bond-update on the sites <code class="docutils literal notranslate"><span class="pre">(i0,</span> <span class="pre">i0+1)</span></code>.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.EngineFracture.prepare_diag">
+<code class="descname">prepare_diag</code><span class="sig-paren">(</span><em>i0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#EngineFracture.prepare_diag"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture.prepare_diag" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepare <cite>self</cite> to represent the effective Hamiltonian on sites <code class="docutils literal notranslate"><span class="pre">(i0,</span> <span class="pre">i0+1)</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>i0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">We want to optimize on sites <code class="docutils literal notranslate"><span class="pre">(i0,</span> <span class="pre">i0+1)</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>theta_guess</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Current best guess for the ground state, which is to be optimized.
+Labels <code class="docutils literal notranslate"><span class="pre">'vL',</span> <span class="pre">'p0',</span> <span class="pre">'vR',</span> <span class="pre">'p1'</span></code>.</p>
+</dd>
+<dt><strong>theta_ortho</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">States (also with labels <code class="docutils literal notranslate"><span class="pre">'vL',</span> <span class="pre">'p0',</span> <span class="pre">'vR',</span> <span class="pre">'p1'</span></code>) to orthogonalize against,
+c.f. see <a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.get_theta_ortho" title="tenpy.algorithms.dmrg.EngineFracture.get_theta_ortho"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_theta_ortho()</span></code></a>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.EngineFracture.matvec">
+<code class="descname">matvec</code><span class="sig-paren">(</span><em>theta</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#EngineFracture.matvec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture.matvec" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply the effective Hamiltonian to <cite>theta</cite>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Wave function to apply the effective Hamiltonian to.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>H_theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Wave function to apply the effective Hamiltonian to,  <span class="math notranslate nohighlight">\(H |\theta&gt;\)</span></p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.EngineFracture.prepare_svd">
+<code class="descname">prepare_svd</code><span class="sig-paren">(</span><em>theta</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#EngineFracture.prepare_svd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture.prepare_svd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transform theta into matrix for svd.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.EngineFracture.update_LP">
+<code class="descname">update_LP</code><span class="sig-paren">(</span><em>i0</em>, <em>U</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#EngineFracture.update_LP"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture.update_LP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update left part of the environment.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>i0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Site index. We calculate <code class="docutils literal notranslate"><span class="pre">self.env.get_LP(i0+1)</span></code>.</p>
+</dd>
+<dt><strong>U</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">The U as returned by SVD with combined legs, labels <code class="docutils literal notranslate"><span class="pre">'(vL.p0)',</span> <span class="pre">'vR'</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.EngineFracture.update_RP">
+<code class="descname">update_RP</code><span class="sig-paren">(</span><em>i0</em>, <em>VH</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#EngineFracture.update_RP"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture.update_RP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update right part of the environment.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>i0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Site index. We calculate <code class="docutils literal notranslate"><span class="pre">self.env.get_RP(i0)</span></code>.</p>
+</dd>
+<dt><strong>VH</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">The U as returned by SVD, with combined legs, labels <code class="docutils literal notranslate"><span class="pre">'vL',</span> <span class="pre">'(vR.p1)'</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.EngineFracture.diag">
+<code class="descname">diag</code><span class="sig-paren">(</span><em>theta_guess</em>, <em>theta_ortho</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture.diag" title="Permalink to this definition">¶</a></dt>
+<dd><p>Diagonalize the effective Hamiltonian represented by self.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>theta_guess</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Initial guess for the ground state of the effective Hamiltonian.</p>
+</dd>
+<dt><strong>theta_ortho</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">States to orthogonalize against, with same tensor structure as <cite>theta_guess</cite>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>E0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Energy of the found ground state.</p>
+</dd>
+<dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Ground state of the effective Hamiltonian.</p>
+</dd>
+<dt><strong>N</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Number of Lanczos iterations used.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.EngineFracture.environment_sweeps">
+<code class="descname">environment_sweeps</code><span class="sig-paren">(</span><em>N_sweeps</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture.environment_sweeps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform <cite>N_sweeps</cite> sweeps without bond optimization to update the environment.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.EngineFracture.get_theta_ortho">
+<code class="descname">get_theta_ortho</code><span class="sig-paren">(</span><em>i0</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture.get_theta_ortho" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the 2-site wavefunctions to orthogonalize against from <code class="xref py py-attr docutils literal notranslate"><span class="pre">ortho_to_envs</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>i0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">We want to optimize on sites <code class="docutils literal notranslate"><span class="pre">(i0,</span> <span class="pre">i0+1)</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>theta_ortho</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of <a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">States to orthogonalize against, with legs ‘vL’, ‘p0’, ‘p1’, ‘vR’.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.EngineFracture.init_env">
+<code class="descname">init_env</code><span class="sig-paren">(</span><em>model=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture.init_env" title="Permalink to this definition">¶</a></dt>
+<dd><p>(Re-)initialize the environment.</p>
+<p>This function is useful to re-start DMRG after with a slightly different model or
+different (DMRG) parameters. Note that we assume that we still have the same <cite>psi</cite>.
+Calls <a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.reset_stats" title="tenpy.algorithms.dmrg.EngineFracture.reset_stats"><code class="xref py py-meth docutils literal notranslate"><span class="pre">reset_stats()</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>model</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPOModel</span></code></span></dt>
+<dd><p class="first last">The model representing the Hamiltonian for which we want to find the ground state.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, keep the model used before.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.EngineFracture.mixed_svd">
+<code class="descname">mixed_svd</code><span class="sig-paren">(</span><em>theta</em>, <em>i0</em>, <em>update_LP</em>, <em>update_RP</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture.mixed_svd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get (truncated) <cite>B</cite> from the new theta (as returned by diag).</p>
+<p>The goal ist to split theta and truncate it:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>   <span class="o">--</span> <span class="n">theta</span> <span class="o">--</span>   <span class="o">==&gt;</span>    <span class="o">--</span> <span class="n">U</span> <span class="o">--</span> <span class="n">S</span> <span class="o">--</span>  <span class="n">VH</span> <span class="o">-</span>
+<span class="o">|</span>      <span class="o">|</span>   <span class="o">|</span>                <span class="o">|</span>          <span class="o">|</span>
+</pre></div>
+</div>
+<p>Without a mixer, this is done by a simple svd and truncation of Schmidt values.</p>
+<p>With a mixer, the state is perturbed before the SVD.
+The details of the perturbation are defined by the <a class="reference internal" href="tenpy.algorithms.dmrg.Mixer.html#tenpy.algorithms.dmrg.Mixer" title="tenpy.algorithms.dmrg.Mixer"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mixer</span></code></a> class.</p>
+<p>Note that the returned <cite>S</cite> is a general (not diagonal) matrix, with labels <code class="docutils literal notranslate"><span class="pre">'vL',</span> <span class="pre">'vR'</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">The optimized wave function, prepared for svd.</p>
+</dd>
+<dt><strong>i0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Site index; <cite>theta</cite> lives on <code class="docutils literal notranslate"><span class="pre">i0,</span> <span class="pre">i0+1</span></code>.</p>
+</dd>
+<dt><strong>update_LP</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">Whether to calculate the next <code class="docutils literal notranslate"><span class="pre">env.LP[i0+1]</span></code>.</p>
+</dd>
+<dt><strong>update_RP</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">Whether to calculate the next <code class="docutils literal notranslate"><span class="pre">env.RP[i0]</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>U</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Left-canonical part of <cite>theta</cite>. Labels <code class="docutils literal notranslate"><span class="pre">'(vL.p0)',</span> <span class="pre">'vR'</span></code>.</p>
+</dd>
+<dt><strong>S</strong> <span class="classifier-delimiter">:</span> <span class="classifier">1D ndarray | 2D <a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Without mixer just the singluar values of the array; with mixer it might be a general
+matrix with labels <code class="docutils literal notranslate"><span class="pre">'vL',</span> <span class="pre">'vR'</span></code>; see comment above.</p>
+</dd>
+<dt><strong>VH</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Right-canonical part of <cite>theta</cite>. Labels <code class="docutils literal notranslate"><span class="pre">'vL',</span> <span class="pre">'(p1.vR)'</span></code>.</p>
+</dd>
+<dt><strong>err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.TruncationError.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
+<dd><p class="first last">The truncation error introduced.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.EngineFracture.mixer_activate">
+<code class="descname">mixer_activate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture.mixer_activate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set <cite>self.mixer</cite> to the class specified by <cite>DMRG_params[‘mixer’]</cite>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.EngineFracture.mixer_cleanup">
+<code class="descname">mixer_cleanup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture.mixer_cleanup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Cleanup the effects of the mixer.</p>
+<p>A <a class="reference internal" href="#tenpy.algorithms.dmrg.EngineFracture.sweep" title="tenpy.algorithms.dmrg.EngineFracture.sweep"><code class="xref py py-meth docutils literal notranslate"><span class="pre">sweep()</span></code></a> with an enabled <a class="reference internal" href="tenpy.algorithms.dmrg.Mixer.html#tenpy.algorithms.dmrg.Mixer" title="tenpy.algorithms.dmrg.Mixer"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mixer</span></code></a> leaves the MPS <cite>psi</cite> with 2D arrays in <cite>S</cite>.
+To recover the originial form, this function simply performs one sweep with disabled mixer.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.EngineFracture.plot_sweep_stats">
+<code class="descname">plot_sweep_stats</code><span class="sig-paren">(</span><em>axes=None</em>, <em>xaxis='time'</em>, <em>yaxis='E'</em>, <em>y_exact=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture.plot_sweep_stats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot <code class="xref py py-attr docutils literal notranslate"><span class="pre">sweep_stats</span></code> to display the convergence with the sweeps.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>axes</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference external" href="https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes" title="(in Matplotlib v3.0.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.axes.Axes</span></code></a></span></dt>
+<dd><p class="first last">The axes to plot into. Defaults to <a class="reference external" href="https://matplotlib.org/api/_as_gen/matplotlib.pyplot.gca.html#matplotlib.pyplot.gca" title="(in Matplotlib v3.0.3)"><code class="xref py py-func docutils literal notranslate"><span class="pre">matplotlib.pyplot.gca()</span></code></a></p>
+</dd>
+<dt><strong>xaxis, yaxis</strong> <span class="classifier-delimiter">:</span> <span class="classifier">key of <code class="xref py py-attr docutils literal notranslate"><span class="pre">sweep_stats</span></code></span></dt>
+<dd><p class="first last">Key of <code class="xref py py-attr docutils literal notranslate"><span class="pre">sweep_stats</span></code> to be used for the x-axis and y-axis of the plots.</p>
+</dd>
+<dt><strong>y_exact</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Exact value for the quantity on the y-axis for comparison.
+If given, plot <code class="docutils literal notranslate"><span class="pre">abs((y-y_exact)/y_exact)</span></code> on a log-scale yaxis.</p>
+</dd>
+<dt><strong>**kwargs :</strong></dt>
+<dd><p class="first last">Further keyword arguments given to <code class="docutils literal notranslate"><span class="pre">axes.plot(...)</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.EngineFracture.plot_update_stats">
+<code class="descname">plot_update_stats</code><span class="sig-paren">(</span><em>axes</em>, <em>xaxis='time'</em>, <em>yaxis='E'</em>, <em>y_exact=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture.plot_update_stats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code> to display the convergence during the sweeps.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>axes</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference external" href="https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes" title="(in Matplotlib v3.0.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.axes.Axes</span></code></a></span></dt>
+<dd><p class="first last">The axes to plot into. Defaults to <a class="reference external" href="https://matplotlib.org/api/_as_gen/matplotlib.pyplot.gca.html#matplotlib.pyplot.gca" title="(in Matplotlib v3.0.3)"><code class="xref py py-func docutils literal notranslate"><span class="pre">matplotlib.pyplot.gca()</span></code></a></p>
+</dd>
+<dt><strong>xaxis</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">'index'</span> <span class="pre">|</span> <span class="pre">'sweep'</span></code> | keys of <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code></span></dt>
+<dd><p class="first last">Key of <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code> to be used for the x-axis of the plots.
+<code class="docutils literal notranslate"><span class="pre">'index'</span></code> is just enumerating the number of bond updates,
+and <code class="docutils literal notranslate"><span class="pre">'sweep'</span></code> corresponds to the sweep number (including environment sweeps).</p>
+</dd>
+<dt><strong>yaxis</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">'E'</span></code> | keys of <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code></span></dt>
+<dd><p class="first last">Key of <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code> to be used for the y-axisof the plots.
+For ‘E’, use the energy (per site for infinite systems).</p>
+</dd>
+<dt><strong>y_exact</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Exact value for the quantity on the y-axis for comparison.
+If given, plot <code class="docutils literal notranslate"><span class="pre">abs((y-y_exact)/y_exact)</span></code> on a log-scale yaxis.</p>
+</dd>
+<dt><strong>**kwargs :</strong></dt>
+<dd><p class="first last">Further keyword arguments given to <code class="docutils literal notranslate"><span class="pre">axes.plot(...)</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.EngineFracture.reset_stats">
+<code class="descname">reset_stats</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture.reset_stats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reset the statistics. Useful if you want to start a new DMRG run.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.EngineFracture.run">
+<code class="descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run the DMRG simulation to find the ground state.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>E</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The energy of the resulting ground state MPS.</p>
+</dd>
+<dt><strong>psi</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS" title="tenpy.networks.mps.MPS"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPS</span></code></a></span></dt>
+<dd><p class="first last">The MPS representing the ground state after the simluation,
+i.e. just a reference to <code class="xref py py-attr docutils literal notranslate"><span class="pre">psi</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.EngineFracture.set_B">
+<code class="descname">set_B</code><span class="sig-paren">(</span><em>i0</em>, <em>U</em>, <em>S</em>, <em>VH</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture.set_B" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the MPS with the <code class="docutils literal notranslate"><span class="pre">U,</span> <span class="pre">S,</span> <span class="pre">VH</span></code> returned by <cite>self.mixed_svd</cite>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>i0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">We update the MPS <cite>B</cite> at sites <code class="docutils literal notranslate"><span class="pre">i0,</span> <span class="pre">i0+1</span></code>.</p>
+</dd>
+<dt><strong>U, VH</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Left and Right-canonical matrices as returned by the SVD.</p>
+</dd>
+<dt><strong>S</strong> <span class="classifier-delimiter">:</span> <span class="classifier">1D array | 2D <a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">The middle part returned by the SVD, <code class="docutils literal notranslate"><span class="pre">theta</span> <span class="pre">=</span> <span class="pre">U</span> <span class="pre">S</span> <span class="pre">VH</span></code>.
+Without a mixer just the singular values, with enabled <cite>mixer</cite> a 2D array.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.EngineFracture.sweep">
+<code class="descname">sweep</code><span class="sig-paren">(</span><em>optimize=True</em>, <em>meas_E_trunc=False</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture.sweep" title="Permalink to this definition">¶</a></dt>
+<dd><p>One ‘sweep’ of the DMRG algorithm.</p>
+<p>Iteratate over the bond which is optimized, to the right and
+then back to the left to the starting point.
+If optimize=False, don’t actually diagonalize the effective hamiltonian,
+but only update the environment.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>optimize</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">Whether we actually optimize to find the ground state of the effective Hamiltonian.
+(If False, just update the environments).</p>
+</dd>
+<dt><strong>meas_E_trunc</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">Wheter to measure the energy after truncation.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>max_trunc_err</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Maximal truncation error introduced.</p>
+</dd>
+<dt><strong>max_E_trunc</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="docutils literal notranslate"><span class="pre">None</span></code> | float</span></dt>
+<dd><p class="first last"><code class="docutils literal notranslate"><span class="pre">None</span></code> if meas_E_trunc is False, else the maximal change of the energy due to the
+truncation.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.EngineFracture.update_bond">
+<code class="descname">update_bond</code><span class="sig-paren">(</span><em>i0</em>, <em>update_LP</em>, <em>update_RP</em>, <em>optimize=True</em>, <em>meas_E_trunc=False</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.algorithms.dmrg.EngineFracture.update_bond" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform bond-update on the sites <code class="docutils literal notranslate"><span class="pre">(i0,</span> <span class="pre">i0+1)</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>i0</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Site left to the bond which should be optimized.</p>
+</dd>
+<dt><strong>update_LP</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">Whether to calculate the next <code class="docutils literal notranslate"><span class="pre">env.LP[i0+1]</span></code>.</p>
+</dd>
+<dt><strong>update_LP</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">Whether to calculate the next <code class="docutils literal notranslate"><span class="pre">env.RP[i0]</span></code>.</p>
+</dd>
+<dt><strong>optimize</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">Wheter we actually optimize to find the ground state of the effective Hamiltonian.
+(If False, just update the environments).</p>
+</dd>
+<dt><strong>meas_E_trunc</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">Wheter to measure the energy after truncation.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>E_total</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Total energy, obtained <em>before</em> truncation (if <code class="docutils literal notranslate"><span class="pre">optimize=True</span></code>),
+or <em>after</em> truncation (if <code class="docutils literal notranslate"><span class="pre">optimize=False</span></code>) (but never <code class="docutils literal notranslate"><span class="pre">None</span></code>).</p>
+</dd>
+<dt><strong>E_trunc</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float | <code class="docutils literal notranslate"><span class="pre">None</span></code></span></dt>
+<dd><p class="first last">The energy difference of the total energy after minus before truncation,
+<code class="docutils literal notranslate"><span class="pre">E_truncated</span> <span class="pre">-</span> <span class="pre">E_total</span></code>. <code class="docutils literal notranslate"><span class="pre">None</span></code> if <code class="docutils literal notranslate"><span class="pre">meas_E_trunc=False</span></code>.</p>
+</dd>
+<dt><strong>err</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.TruncationError.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt>
+<dd><p class="first last">The truncation error introduced after bond optimization.</p>
+</dd>
+<dt><strong>N_lanczos</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Dimension of the Krylov space used for optimization in the lanczos algorithm.
+0 if <code class="docutils literal notranslate"><span class="pre">optimize=False</span></code>.</p>
+</dd>
+<dt><strong>age</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Current size of the DMRG simulation: number of physical sites involved
+into the contraction.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/logo.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="tenpy.algorithms.dmrg.EngineCombine.html"
+                        title="previous chapter">EngineCombine</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="tenpy.algorithms.dmrg.Mixer.html"
+                        title="next chapter">Mixer</a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../userguide.html">User Guide</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../reference.html">Tenpy Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tenpy.algorithms.html">algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.truncation.html">truncation</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="tenpy.algorithms.dmrg.html">dmrg</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.tebd.html">tebd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.tdvp.html">tdvp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.purification_tebd.html">purification_tebd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.network_contractor.html">network_contractor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.exact_diag.html">exact_diag</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.linalg.html">linalg</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.models.html">models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.networks.html">networks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.tools.html">tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.version.html">version</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tenpy.algorithms.dmrg.Mixer.html" title="Mixer"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="tenpy.algorithms.dmrg.EngineCombine.html" title="EngineCombine"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../reference.html" >Tenpy Reference</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.algorithms.html" >algorithms</a> &#187;</li>
+          <li class="nav-item nav-item-3"><a href="tenpy.algorithms.dmrg.html" >dmrg</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2019, TeNPy Developers.
+      Last updated on Mar 29, 2019.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
+    </div>
+  </body>
+</html>
