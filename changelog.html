@@ -91,6 +91,7 @@ Each of them is now a dictionary with category strings as keys and the newly int
 <li><a class="reference internal" href="reference/tenpy.networks.mps.html#tenpy.networks.mps.MPS.canonical_form_infinite" title="tenpy.networks.mps.MPS.canonical_form_infinite"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.networks.mps.MPS.canonical_form_infinite()</span></code></a>.</li>
 <li><a class="reference internal" href="reference/tenpy.networks.mps.html#tenpy.networks.mps.MPS.expectation_value_term" title="tenpy.networks.mps.MPS.expectation_value_term"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.networks.mps.MPS.expectation_value_term()</span></code></a>, <a class="reference internal" href="reference/tenpy.networks.mps.html#tenpy.networks.mps.MPS.expectation_value_terms_sum" title="tenpy.networks.mps.MPS.expectation_value_terms_sum"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.networks.mps.MPS.expectation_value_terms_sum()</span></code></a> and
 <a class="reference internal" href="reference/tenpy.networks.mps.html#tenpy.networks.mps.MPS.expectation_value_multi_sites" title="tenpy.networks.mps.MPS.expectation_value_multi_sites"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.networks.mps.MPS.expectation_value_multi_sites()</span></code></a> for expectation values of terms.</li>
+<li><a class="reference internal" href="reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPO.expectation_value" title="tenpy.networks.mpo.MPO.expectation_value"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.networks.mpo.MPO.expectation_value()</span></code></a>.</li>
 <li><a class="reference internal" href="reference/tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array.extend" title="tenpy.linalg.np_conserved.Array.extend"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.linalg.np_conserved.Array.extend()</span></code></a> and <a class="reference internal" href="reference/tenpy.linalg.charges.html#tenpy.linalg.charges.LegCharge.extend" title="tenpy.linalg.charges.LegCharge.extend"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.linalg.charges.LegCharge.extend()</span></code></a>,
 allowing to extend an Array with zeros.</li>
 <li>DMRG parameter <code class="docutils literal notranslate"><span class="pre">'orthogonal_to'</span></code> allows to calculate excited states for finite systems.</li>
@@ -118,6 +119,8 @@ e.g. <code class="docutils literal notranslate"><span class="pre">:issue:`5`,</s
 <li><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.networks.mps.OnsiteTerm</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.networks.mps.CouplingTerm</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.networks.mps.MultiCouplingTerm</span></code>
 containing the of terms for the <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></a> and <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.MultiCouplingModel" title="tenpy.models.model.MultiCouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">MultiCouplingModel</span></code></a>.
 This allowed to add the <cite>category</cite> argument to <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingModel.add_onsite" title="tenpy.models.model.CouplingModel.add_onsite"><code class="xref py py-class docutils literal notranslate"><span class="pre">add_onsite</span></code></a>, <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingModel.add_coupling" title="tenpy.models.model.CouplingModel.add_coupling"><code class="xref py py-class docutils literal notranslate"><span class="pre">add_coupling</span></code></a> and <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.MultiCouplingModel.add_multi_coupling" title="tenpy.models.model.MultiCouplingModel.add_multi_coupling"><code class="xref py py-class docutils literal notranslate"><span class="pre">add_multi_coupling</span></code></a>.</li>
+<li><a class="reference internal" href="reference/tenpy.networks.mps.html#tenpy.networks.mps.MPS.init_LP" title="tenpy.networks.mps.MPS.init_LP"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.networks.mps.MPS.init_LP()</span></code></a> and <a class="reference internal" href="reference/tenpy.networks.mps.html#tenpy.networks.mps.MPS.init_RP" title="tenpy.networks.mps.MPS.init_RP"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.networks.mps.MPS.init_RP()</span></code></a> to initialize left and right parts
+of an Environment.</li>
 </ul>
 </div>
 <div class="section" id="changed">
@@ -155,9 +158,9 @@ Disable <code class="docutils literal notranslate"><span class="pre">DMRG_params
 <li>increase <code class="docutils literal notranslate"><span class="pre">Lanczos_params['N_cache']</span> <span class="pre">=</span> <span class="pre">N_max</span></code> (i.e., keep all states)</li>
 <li>set <code class="docutils literal notranslate"><span class="pre">DMRG_params['P_tol_to_trunc']</span> <span class="pre">=</span> <span class="pre">0.05</span></code> and provide reasonable …_min and …_max values.</li>
 <li>increased (default) DMRG accuracy by setting
-<code class="docutils literal notranslate"><span class="pre">DMRG_params['max_E_err']</span> <span class="pre">=</span> <span class="pre">1.e-5</span></code> and <code class="docutils literal notranslate"><span class="pre">DMRG_params['max_S_err']</span> <span class="pre">=</span> <span class="pre">1.e-3</span></code>.</li>
+<code class="docutils literal notranslate"><span class="pre">DMRG_params['max_E_err']</span> <span class="pre">=</span> <span class="pre">1.e-8</span></code> and <code class="docutils literal notranslate"><span class="pre">DMRG_params['max_S_err']</span> <span class="pre">=</span> <span class="pre">1.e-5</span></code>.</li>
 <li>don’t check the (absolute) energy for convergence in Lanczos.</li>
-<li>set <code class="docutils literal notranslate"><span class="pre">DMRG_params['norm_tol']</span> <span class="pre">=</span> <span class="pre">1.e-3</span></code> to check whether the final state is in canonical form.</li>
+<li>set <code class="docutils literal notranslate"><span class="pre">DMRG_params['norm_tol']</span> <span class="pre">=</span> <span class="pre">1.e-5</span></code> to check whether the final state is in canonical form.</li>
 </ul>
 </li>
 <li>Verbosity of <a class="reference internal" href="reference/tenpy.tools.params.html#tenpy.tools.params.get_parameter" title="tenpy.tools.params.get_parameter"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_parameter()</span></code></a> reduced: Print parameters only for verbosity &gt;=1.
@@ -168,6 +171,7 @@ and default values only for verbosity &gt;= 2.</li>
 <a class="reference internal" href="reference/tenpy.models.model.html#tenpy.models.model.CouplingModel.add_coupling" title="tenpy.models.model.CouplingModel.add_coupling"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_coupling()</span></code></a>.</li>
 <li>The way the labels of npc Arrays are stored internally changed to a simple list with None entries.
 There is a deprecated propery setter yielding a dictionary with the labels.</li>
+<li>renamed <cite>first_LP</cite> and <cite>last_RP</cite> arguments of <a class="reference internal" href="reference/tenpy.networks.mps.html#tenpy.networks.mps.MPSEnvironment" title="tenpy.networks.mps.MPSEnvironment"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPSEnvironment</span></code></a> and <a class="reference internal" href="reference/tenpy.networks.mpo.html#tenpy.networks.mpo.MPOEnvironment" title="tenpy.networks.mpo.MPOEnvironment"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPOEnvironment</span></code></a> to <cite>init_LP</cite> and <cite>init_RP</cite>.</li>
 </ul>
 </div>
 <div class="section" id="fixed">
@@ -415,7 +419,7 @@ Similar as the old <cite>models.model.set_var</cite>, but use it also for algori
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Mar 27, 2019.
+      Last updated on Mar 29, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
     </div>
   </body>

@@ -307,6 +307,12 @@ e.g. a right-canonical <cite>B</cite> full-fills:</p>
 <tr class="row-odd"><td><a class="reference internal" href="#tenpy.networks.purification_mps.PurificationMPS.group_split" title="tenpy.networks.purification_mps.PurificationMPS.group_split"><code class="xref py py-obj docutils literal notranslate"><span class="pre">group_split</span></code></a>([trunc_par])</td>
 <td>Modify <cite>self</cite> inplace to split previously grouped sites.</td>
 </tr>
+<tr class="row-even"><td><a class="reference internal" href="#tenpy.networks.purification_mps.PurificationMPS.init_LP" title="tenpy.networks.purification_mps.PurificationMPS.init_LP"><code class="xref py py-obj docutils literal notranslate"><span class="pre">init_LP</span></code></a>(i[,&nbsp;bra,&nbsp;mpo])</td>
+<td>Build initial left part <code class="docutils literal notranslate"><span class="pre">LP</span></code> for an MPS/MPOEnvironment.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tenpy.networks.purification_mps.PurificationMPS.init_RP" title="tenpy.networks.purification_mps.PurificationMPS.init_RP"><code class="xref py py-obj docutils literal notranslate"><span class="pre">init_RP</span></code></a>(i[,&nbsp;bra,&nbsp;mpo])</td>
+<td>Build initial right part <code class="docutils literal notranslate"><span class="pre">RP</span></code> for an MPS/MPOEnvironment.</td>
+</tr>
 <tr class="row-even"><td><a class="reference internal" href="#tenpy.networks.purification_mps.PurificationMPS.mutinf_two_site" title="tenpy.networks.purification_mps.PurificationMPS.mutinf_two_site"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mutinf_two_site</span></code></a>([max_range,&nbsp;n,&nbsp;legs])</td>
 <td>Calculate the two-site mutual information <span class="math notranslate nohighlight">\(I(i:j)\)</span>.</td>
 </tr>
@@ -1712,6 +1718,78 @@ or help the convergence of DMRG (in case of too long range interactions).</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="tenpy.networks.purification_mps.PurificationMPS.init_LP">
+<code class="descname">init_LP</code><span class="sig-paren">(</span><em>i</em>, <em>bra=None</em>, <em>mpo=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.networks.purification_mps.PurificationMPS.init_LP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build initial left part <code class="docutils literal notranslate"><span class="pre">LP</span></code> for an MPS/MPOEnvironment.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>i</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Build <code class="docutils literal notranslate"><span class="pre">LP</span></code> left of site <cite>i</cite>.</p>
+</dd>
+<dt><strong>bra</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPS</span></code></span></dt>
+<dd><p class="first last">Check leg compatiblity with a <cite>bra</cite>. Note that the returned <cite>init_LP</cite> will
+only be the contraction for the <code class="docutils literal notranslate"><span class="pre">LP</span></code> of  <code class="docutils literal notranslate"><span class="pre">&lt;bra|self&gt;</span></code> on the left most site <cite>i</cite> = 0
+of a finite MPS.</p>
+</dd>
+<dt><strong>mpo</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None | <a class="reference internal" href="tenpy.networks.mpo.html#tenpy.networks.mpo.MPO" title="tenpy.networks.mpo.MPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPO</span></code></a></span></dt>
+<dd><p class="first last">If given, add a leg for the MPO. Requires the <cite>MPO.IdL</cite> on site <cite>i</cite> to be set.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>init_LP</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Identity contractible with the <cite>vL</cite> leg of <code class="docutils literal notranslate"><span class="pre">self.get_B(i)</span></code>, labels <code class="docutils literal notranslate"><span class="pre">'vR*',</span> <span class="pre">'vR'</span></code>.
+If <cite>mpo</cite> is given, multiplied with a unit vector nonzero in <code class="docutils literal notranslate"><span class="pre">mpo.IdL[i]</span></code>,
+with labels <code class="docutils literal notranslate"><span class="pre">'vR*',</span> <span class="pre">'wR',</span> <span class="pre">'vR'</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.networks.purification_mps.PurificationMPS.init_RP">
+<code class="descname">init_RP</code><span class="sig-paren">(</span><em>i</em>, <em>bra=None</em>, <em>mpo=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.networks.purification_mps.PurificationMPS.init_RP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build initial right part <code class="docutils literal notranslate"><span class="pre">RP</span></code> for an MPS/MPOEnvironment.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>i</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Build <code class="docutils literal notranslate"><span class="pre">RP</span></code> rigth of site <cite>i</cite>.</p>
+</dd>
+<dt><strong>bra</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPS</span></code></span></dt>
+<dd><p class="first last">Check leg compatiblity with a <cite>bra</cite>. Note that the returned <cite>init_RP</cite> will
+only be the contraction for the <code class="docutils literal notranslate"><span class="pre">RP</span></code> of  <code class="docutils literal notranslate"><span class="pre">&lt;bra|self&gt;</span></code> on the right most site
+<cite>i</cite> = L - 1 of a finite MPS.</p>
+</dd>
+<dt><strong>mpo</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None | <a class="reference internal" href="tenpy.networks.mpo.html#tenpy.networks.mpo.MPO" title="tenpy.networks.mpo.MPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPO</span></code></a></span></dt>
+<dd><p class="first last">If given, add a leg for the MPO. Requires the <cite>MPO.IdR</cite> on site <cite>i</cite> to be set.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>init_RP</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt>
+<dd><p class="first last">Identity contractible with the <cite>vR</cite> leg of <code class="docutils literal notranslate"><span class="pre">self.get_B(i)</span></code>, labels <code class="docutils literal notranslate"><span class="pre">'vL*',</span> <span class="pre">'vL'</span></code>.
+If <cite>mpo</cite> is given, multiplied with a unit vector nonzero in <code class="docutils literal notranslate"><span class="pre">mpo.IdR[i]</span></code>,
+with labels <code class="docutils literal notranslate"><span class="pre">'vL*',</span> <span class="pre">'wL',</span> <span class="pre">'vL'</span></code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="tenpy.networks.purification_mps.PurificationMPS.mutinf_two_site">
 <code class="descname">mutinf_two_site</code><span class="sig-paren">(</span><em>max_range=None</em>, <em>n=1</em>, <em>legs='p'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/purification_mps.html#PurificationMPS.mutinf_two_site"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.purification_mps.PurificationMPS.mutinf_two_site" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate the two-site mutual information <span class="math notranslate nohighlight">\(I(i:j)\)</span>.</p>
@@ -2064,7 +2142,7 @@ Should have legs <code class="docutils literal notranslate"><span class="pre">['
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Mar 28, 2019.
+      Last updated on Mar 29, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
     </div>
   </body>
