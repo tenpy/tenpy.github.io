@@ -1,0 +1,196 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>tenpy.models.fermions_hubbard &#8212; TeNPy 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tenpy.models.fermions_hubbard</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Fermionic Hubbard model: (spin-full fermions with interactions).</span>
+
+<span class="sd">.. todo ::</span>
+<span class="sd">    Should we redefine the hopping to have a negative prefactor by default if t = 1?</span>
+<span class="sd">    How to notify users of the class???</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># Copyright 2018 TeNPy Developers</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">.model</span> <span class="k">import</span> <span class="n">CouplingMPOModel</span><span class="p">,</span> <span class="n">NearestNeighborModel</span>
+<span class="kn">from</span> <span class="nn">..tools.params</span> <span class="k">import</span> <span class="n">get_parameter</span>
+<span class="kn">from</span> <span class="nn">..networks.site</span> <span class="k">import</span> <span class="n">SpinHalfFermionSite</span>
+
+
+<div class="viewcode-block" id="FermionicHubbardModel"><a class="viewcode-back" href="../../../reference/tenpy.models.fermions_hubbard.FermionicHubbardModel.html#tenpy.models.fermions_hubbard.FermionicHubbardModel">[docs]</a><span class="k">class</span> <span class="nc">FermionicHubbardModel</span><span class="p">(</span><span class="n">CouplingMPOModel</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Spin-1/2 fermionic Hubbard model in 1D.</span>
+
+<span class="sd">    The Hamiltonian reads:</span>
+
+<span class="sd">    .. math ::</span>
+<span class="sd">        H = \sum_{\langle i, j \rangle, i &lt; j, \sigma} t (c^{\dagger}_{\sigma, i} c_{\sigma j} + h.c.)</span>
+<span class="sd">            + \sum_i U n_{\uparrow, i} n_{\downarrow, i}</span>
+<span class="sd">            + \sum_i \mu ( n_{\uparrow, i} + n_{\downarrow, i} )</span>
+<span class="sd">            +  \sum_{\langle i, j \rangle, i&lt; j, \sigma} V</span>
+<span class="sd">                       (n_{\uparrow,i} + n_{\downarrow,i})(n_{\uparrow,j} + n_{\downarrow,j})</span>
+
+
+<span class="sd">    Here, :math:`\langle i,j \rangle, i&lt; j` denotes nearest neighbor pairs.</span>
+<span class="sd">    All parameters are collected in a single dictionary `model_params` and read out with</span>
+<span class="sd">    :func:`~tenpy.tools.params.get_parameter`.</span>
+
+<span class="sd">    .. warning ::</span>
+<span class="sd">        Using the Jordan-Wigner string (``JW``) is crucial to get correct results!</span>
+<span class="sd">        See :doc:`/intro_JordanWigner` for details.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cons_N : {&#39;N&#39; | &#39;parity&#39; | None}</span>
+<span class="sd">        Whether particle number is conserved,</span>
+<span class="sd">        see :class:`~tenpy.networks.site.SpinHalfFermionSite` for details.</span>
+<span class="sd">    cons_Sz : {&#39;Sz&#39; | &#39;parity&#39; | None}</span>
+<span class="sd">        Whether spin is conserved,</span>
+<span class="sd">        see :class:`~tenpy.networks.site.SpinHalfFermionSite` for details.</span>
+<span class="sd">    t, U, mu : float | array</span>
+<span class="sd">        Parameters as defined for the Hamiltonian above</span>
+<span class="sd">    lattice : str | :class:`~tenpy.models.lattice.Lattice`</span>
+<span class="sd">        Instance of a lattice class for the underlaying geometry.</span>
+<span class="sd">        Alternatively a string being the name of one of the Lattices defined in</span>
+<span class="sd">        :mod:`~tenpy.models.lattice`, e.g. ``&quot;Chain&quot;, &quot;Square&quot;, &quot;HoneyComb&quot;, ...``.</span>
+<span class="sd">    bc_MPS : {&#39;finite&#39; | &#39;infinte&#39;}</span>
+<span class="sd">        MPS boundary conditions along the x-direction.</span>
+<span class="sd">        For &#39;infinite&#39; boundary conditions, repeat the unit cell in x-direction.</span>
+<span class="sd">        Coupling boundary conditions in x-direction are chosen accordingly.</span>
+<span class="sd">        Only used if `lattice` is a string.</span>
+<span class="sd">    order : string</span>
+<span class="sd">        Ordering of the sites in the MPS, e.g. &#39;default&#39;, &#39;snake&#39;;</span>
+<span class="sd">        see :meth:`~tenpy.models.lattice.Lattice.ordering`.</span>
+<span class="sd">        Only used if `lattice` is a string.</span>
+<span class="sd">    L : int</span>
+<span class="sd">        Lenght of the lattice.</span>
+<span class="sd">        Only used if `lattice` is the name of a 1D Lattice.</span>
+<span class="sd">    Lx, Ly : int</span>
+<span class="sd">        Length of the lattice in x- and y-direction.</span>
+<span class="sd">        Only used if `lattice` is the name of a 2D Lattice.</span>
+<span class="sd">    bc_y : &#39;ladder&#39; | &#39;cylinder&#39;</span>
+<span class="sd">        Boundary conditions in y-direction.</span>
+<span class="sd">        Only used if `lattice` is the name of a 2D Lattice.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">):</span>
+        <span class="n">CouplingMPOModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">)</span>
+
+<div class="viewcode-block" id="FermionicHubbardModel.init_sites"><a class="viewcode-back" href="../../../reference/tenpy.models.fermions_hubbard.FermionicHubbardModel.html#tenpy.models.fermions_hubbard.FermionicHubbardModel.init_sites">[docs]</a>    <span class="k">def</span> <span class="nf">init_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">):</span>
+        <span class="n">cons_N</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;cons_N&#39;</span><span class="p">,</span> <span class="s1">&#39;N&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">cons_Sz</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;cons_Sz&#39;</span><span class="p">,</span> <span class="s1">&#39;Sz&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">site</span> <span class="o">=</span> <span class="n">SpinHalfFermionSite</span><span class="p">(</span><span class="n">cons_N</span><span class="o">=</span><span class="n">cons_N</span><span class="p">,</span> <span class="n">cons_Sz</span><span class="o">=</span><span class="n">cons_Sz</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">site</span></div>
+
+<div class="viewcode-block" id="FermionicHubbardModel.init_terms"><a class="viewcode-back" href="../../../reference/tenpy.models.fermions_hubbard.FermionicHubbardModel.html#tenpy.models.fermions_hubbard.FermionicHubbardModel.init_terms">[docs]</a>    <span class="k">def</span> <span class="nf">init_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">):</span>
+        <span class="c1"># 0) Read out/set default parameters.</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="n">U</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;U&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="n">V</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;V&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="n">mu</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;mu&#39;</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_onsite</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Ntot&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_onsite</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;NuNd&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">u1</span><span class="p">,</span> <span class="n">u2</span><span class="p">,</span> <span class="n">dx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">nearest_neighbors</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">u1</span><span class="p">,</span> <span class="s1">&#39;Cdu&#39;</span><span class="p">,</span> <span class="n">u2</span><span class="p">,</span> <span class="s1">&#39;Cu&#39;</span><span class="p">,</span> <span class="n">dx</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">u2</span><span class="p">,</span> <span class="s1">&#39;Cdu&#39;</span><span class="p">,</span> <span class="n">u1</span><span class="p">,</span> <span class="s1">&#39;Cu&#39;</span><span class="p">,</span> <span class="o">-</span><span class="n">dx</span><span class="p">)</span>  <span class="c1"># h.c.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">u1</span><span class="p">,</span> <span class="s1">&#39;Cdd&#39;</span><span class="p">,</span> <span class="n">u2</span><span class="p">,</span> <span class="s1">&#39;Cd&#39;</span><span class="p">,</span> <span class="n">dx</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">u2</span><span class="p">,</span> <span class="s1">&#39;Cdd&#39;</span><span class="p">,</span> <span class="n">u1</span><span class="p">,</span> <span class="s1">&#39;Cd&#39;</span><span class="p">,</span> <span class="o">-</span><span class="n">dx</span><span class="p">)</span>  <span class="c1"># h.c.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">u1</span><span class="p">,</span> <span class="s1">&#39;Ntot&#39;</span><span class="p">,</span> <span class="n">u2</span><span class="p">,</span> <span class="s1">&#39;Ntot&#39;</span><span class="p">,</span> <span class="n">dx</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="FermionicHubbardChain"><a class="viewcode-back" href="../../../reference/tenpy.models.fermions_hubbard.FermionicHubbardChain.html#tenpy.models.fermions_hubbard.FermionicHubbardChain">[docs]</a><span class="k">class</span> <span class="nc">FermionicHubbardChain</span><span class="p">(</span><span class="n">FermionicHubbardModel</span><span class="p">,</span><span class="n">NearestNeighborModel</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The :class:`FermionicHubbardModel` on a Chain, suitable for TEBD.</span>
+
+<span class="sd">    See the :class:`FermionicHubbardModel` for the documentation of parameters.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">):</span>
+        <span class="n">model_params</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;lattice&#39;</span><span class="p">,</span> <span class="s2">&quot;Chain&quot;</span><span class="p">)</span>
+        <span class="n">CouplingMPOModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/logo.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../userguide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference.html">Tenpy Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.3.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2019, TeNPy Developers.
+      Last updated on Mar 29, 2019.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.0.
+    </div>
+  </body>
+</html>
