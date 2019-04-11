@@ -193,22 +193,23 @@ take a look at <code class="xref py py-attr docutils literal notranslate"><span 
 In case of operators acting on different sites, you typically have a Jordan-Wigner string inbetween (e.g. for the
 <span class="math notranslate nohighlight">\(c^\dagger_i c_j\)</span> examples described above and below) or no Jordan-Wigner strings at all (e.g. for density-density
 interactions <span class="math notranslate nohighlight">\(n_i n_j\)</span>).
-Actually, the case that the Jordan Wigner string on the left of the first non-trivial operator does not cancel is currently not really supported
+In fact, the case that the Jordan Wigner string on the left of the first non-trivial operator does not cancel is currently not supported
 for models and expectation values, as it usually doesn’t appear in practice.</p>
-<p>When <strong>building a model</strong> with the <code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code>,
+<p>When <strong>building a model</strong> with the <a class="reference internal" href="reference/tenpy.models.model.CouplingModel.html#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></a>,
 <em>onsite</em> terms for which the Jordan-Wigner string cancels can be added directly.
-Care has to be taken when adding <em>couplings</em> with <code class="xref py py-meth docutils literal notranslate"><span class="pre">add_coupling()</span></code>.
+Care has to be taken when adding <em>couplings</em> with <a class="reference internal" href="reference/tenpy.models.model.CouplingModel.html#tenpy.models.model.CouplingModel.add_coupling" title="tenpy.models.model.CouplingModel.add_coupling"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_coupling()</span></code></a>.
 When you need a Jordan-Wigner string inbetween the operators, set the optional arguments <code class="docutils literal notranslate"><span class="pre">op_string='JW',</span> <span class="pre">str_on_first=True</span></code>.
 Then, the function automatically takes care of the Jordan-Wigner string in the correct way, adding it on the left
-operator.</p>
+operator. With the default arguments, it is checked automatically whether the model</p>
 <p>Obviously, you should be careful about the convention which of the two coupling terms is applied first (in a physical
 sense as an operator acting on a state), as this corresponds to a sign. We follow the convention that the operator given
 as argument <cite>op2</cite> is applied first, independent of wheter it ends up left or right in the MPS ordering sense.</p>
 <p>As a concrete example, let us specify a hopping
 <span class="math notranslate nohighlight">\(\sum_{\langle i, j\rangle} (c^\dagger_i c_j + h.c.) = \sum_{\langle i, j\rangle} (c^\dagger_i c_j + c^\dagger_j c_i)\)</span>
-in a 1D chain of <a class="reference internal" href="reference/tenpy.networks.site.FermionSite.html#tenpy.networks.site.FermionSite" title="tenpy.networks.site.FermionSite"><code class="xref py py-class docutils literal notranslate"><span class="pre">FermionSite</span></code></a> with <code class="xref py py-meth docutils literal notranslate"><span class="pre">add_coupling()</span></code>:</p>
+in a 1D chain of <a class="reference internal" href="reference/tenpy.networks.site.FermionSite.html#tenpy.networks.site.FermionSite" title="tenpy.networks.site.FermionSite"><code class="xref py py-class docutils literal notranslate"><span class="pre">FermionSite</span></code></a> with <a class="reference internal" href="reference/tenpy.models.model.CouplingModel.html#tenpy.models.model.CouplingModel.add_coupling" title="tenpy.models.model.CouplingModel.add_coupling"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_coupling()</span></code></a>:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">add_coupling</span><span class="p">(</span><span class="n">strength</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Cd&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;JW&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
 <span class="n">add_coupling</span><span class="p">(</span><span class="n">strength</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Cd&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;JW&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+<span class="c1"># (without the last 2 arguments, add_coupling checks for necessary JW strings automatically)</span>
 </pre></div>
 </div>
 <p>Slightly more complicated, to specify the hopping
@@ -219,14 +220,15 @@ in the Fermi-Hubbard model on a 2D square lattice, we would need more terms:</p>
     <span class="n">add_coupling</span><span class="p">(</span><span class="n">strength</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Cdd&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Cd&#39;</span><span class="p">,</span> <span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">),</span> <span class="s1">&#39;JW&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>If you want to build a model directly as an MPO or with nearest-neighbor bonds, you have to worry yourself about how to handle the Jordan-Wigner string correctly.</p>
+<p>If you want to build a model directly as an MPO or with nearest-neighbor bonds only, <em>you</em> have to care about how to handle the Jordan-Wigner string correctly.</p>
 <p>The most important functions for doing <strong>measurements</strong> are probably <a class="reference internal" href="reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.expectation_value" title="tenpy.networks.mps.MPS.expectation_value"><code class="xref py py-meth docutils literal notranslate"><span class="pre">expectation_value()</span></code></a>
 and <a class="reference internal" href="reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.correlation_function" title="tenpy.networks.mps.MPS.correlation_function"><code class="xref py py-meth docutils literal notranslate"><span class="pre">correlation_function()</span></code></a>. Again, if all the Jordan-Wigner strings cancel, you don’t have
 to worry about them at all, e.g. for many onsite operators or correlation functions involving only number operators.
 If you measure operators involving multiple sites with <cite>expectation_value</cite>, take care to include the Jordan-Wigner
-string correctly while building these operators.
-The <a class="reference internal" href="reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.correlation_function" title="tenpy.networks.mps.MPS.correlation_function"><code class="xref py py-meth docutils literal notranslate"><span class="pre">correlation_function()</span></code></a> supports a Jordan-Wigner string in between the two operators to
-be measured; as for <code class="xref py py-meth docutils literal notranslate"><span class="pre">add_coupling()</span></code>, you should set the optional arguments <code class="docutils literal notranslate"><span class="pre">op_string='JW',</span> <span class="pre">str_on_first=True</span></code> in that case.</p>
+string correctly while building these operators.</p>
+<p>The <a class="reference internal" href="reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.correlation_function" title="tenpy.networks.mps.MPS.correlation_function"><code class="xref py py-meth docutils literal notranslate"><span class="pre">correlation_function()</span></code></a> supports a Jordan-Wigner string in between the two operators to
+be measured. As for <a class="reference internal" href="reference/tenpy.models.model.CouplingModel.html#tenpy.models.model.CouplingModel.add_coupling" title="tenpy.models.model.CouplingModel.add_coupling"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_coupling()</span></code></a>, you should set the optional arguments <code class="docutils literal notranslate"><span class="pre">op_string='JW',</span> <span class="pre">str_on_first=True</span></code> in that case.
+Functions like <a class="reference internal" href="reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.expectation_value_term" title="tenpy.networks.mps.MPS.expectation_value_term"><code class="xref py py-meth docutils literal notranslate"><span class="pre">expectation_value_term()</span></code></a> also care about the Jordan Wigner string (if specified in the documentation).</p>
 </div>
 </div>
 
@@ -314,7 +316,7 @@ be measured; as for <code class="xref py py-meth docutils literal notranslate"><
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Mar 29, 2019.
+      Last updated on Apr 11, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.0.
     </div>
   </body>

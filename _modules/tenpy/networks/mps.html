@@ -124,7 +124,7 @@
 <span class="kn">from</span> <span class="nn">..linalg</span> <span class="k">import</span> <span class="n">np_conserved</span> <span class="k">as</span> <span class="n">npc</span>
 <span class="kn">from</span> <span class="nn">..linalg</span> <span class="k">import</span> <span class="n">sparse</span>
 <span class="kn">from</span> <span class="nn">.site</span> <span class="k">import</span> <span class="n">GroupedSite</span><span class="p">,</span> <span class="n">group_sites</span>
-<span class="kn">from</span> <span class="nn">..tools.misc</span> <span class="k">import</span> <span class="n">to_iterable</span><span class="p">,</span> <span class="n">argsort</span><span class="p">,</span> <span class="n">add_with_None_0</span>
+<span class="kn">from</span> <span class="nn">..tools.misc</span> <span class="k">import</span> <span class="n">to_iterable</span><span class="p">,</span> <span class="n">argsort</span>
 <span class="kn">from</span> <span class="nn">..tools.math</span> <span class="k">import</span> <span class="n">lcm</span><span class="p">,</span> <span class="n">speigs</span><span class="p">,</span> <span class="n">entropy</span>
 <span class="kn">from</span> <span class="nn">..algorithms.truncation</span> <span class="k">import</span> <span class="n">TruncationError</span><span class="p">,</span> <span class="n">svd_theta</span>
 
@@ -901,7 +901,7 @@
 
 <span class="sd">        See also</span>
 <span class="sd">        --------</span>
-<span class="sd">        :meth:`group_split` : Reverts the grouping.</span>
+<span class="sd">        group_split : Reverts the grouping.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">convert_form</span><span class="p">(</span><span class="s1">&#39;B&#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">grouped_sites</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -946,7 +946,7 @@
 
 <span class="sd">        See also</span>
 <span class="sd">        --------</span>
-<span class="sd">        :meth:`group_sites` : Should have been used before to combine sites.</span>
+<span class="sd">        group_sites : Should have been used before to combine sites.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">convert_form</span><span class="p">(</span><span class="s1">&#39;B&#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
@@ -1556,7 +1556,7 @@
 
 <span class="sd">        See also</span>
 <span class="sd">        --------</span>
-<span class="sd">        :meth:`correlation_function`: efficient way to evaluate many correlation functions.</span>
+<span class="sd">        correlation_function : efficient way to evaluate many correlation functions.</span>
 
 <span class="sd">        Examples</span>
 <span class="sd">        --------</span>
@@ -1639,37 +1639,67 @@
         <span class="n">exp_val</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">real_if_close</span><span class="p">(</span><span class="n">exp_val</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MPS.expectation_value_terms_sum"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.expectation_value_terms_sum">[docs]</a>    <span class="k">def</span> <span class="nf">expectation_value_terms_sum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">term_list</span><span class="p">,</span> <span class="n">prefactors</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.expectation_value_terms_sum"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.expectation_value_terms_sum">[docs]</a>    <span class="k">def</span> <span class="nf">expectation_value_terms_sum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">term_list</span><span class="p">,</span> <span class="n">prefactors</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculate expectation values for a bunch of terms and sum them up.</span>
+
+<span class="sd">        This is equivalent to the following expression::</span>
+
+<span class="sd">            sum([self.expectation_value_term(term)*strength for term, strength in term_list])</span>
+
+<span class="sd">        However, for effiency, the term_list is converted to an MPO and the expectation value</span>
+<span class="sd">        of the MPO is evaluated.</span>
+
+<span class="sd">        .. note ::</span>
+<span class="sd">            Due to the way MPO expectation values are evaluated for infinite systems,</span>
+<span class="sd">            it works only if all terms in the `term_list` start within the MPS unit cell.</span>
+
+<span class="sd">        .. deprecated:: 0.4.0</span>
+<span class="sd">            `prefactor` will be removed in version 1.0.0.</span>
+<span class="sd">            Instead, directly give just ``TermList(term_list, prefactors)`` as argument.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        term_list : list of terms</span>
-<span class="sd">            Each `term` should have the form ``[(Op1, site1), (Op2, site2), ...]``.</span>
-<span class="sd">        prefactors : list of (complex) floats</span>
-<span class="sd">            Prefactors for the ``term_sum`` to be evaluated.</span>
+<span class="sd">        term_list : :class:`~tenpy.networks.terms.TermList`</span>
+<span class="sd">            The terms and prefactors (`strength`) to be summed up.</span>
+<span class="sd">        prefactors :</span>
+<span class="sd">            Instead of specifying a :class:`~tenpy.networks.terms.TermList`,</span>
+<span class="sd">            one can also specify the term_list and strength separately.</span>
+<span class="sd">            This is deprecated.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        terms_sum : list of (complex) float</span>
 <span class="sd">            Equivalent to the expression</span>
-<span class="sd">            ``sum([self.expectation_value_term(t)*f for t, f in zip(terms_list, prefactors)])``.</span>
-<span class="sd">        cache :</span>
-<span class="sd">            Intermediate results. Currently the values for each of the term, but this might be</span>
-<span class="sd">            changed soon.</span>
+<span class="sd">            ``sum([self.expectation_value_term(term)*strength for term, strength in term_list])``.</span>
+<span class="sd">        _mpo :</span>
+<span class="sd">            Intermediate results: the generated MPO.</span>
+<span class="sd">            For a finite MPS, ``terms_sum = _mpo.expectation_value(self)``, for an infinite MPS</span>
+<span class="sd">            ``terms_sum = _mpo.expectation_value(self) * self.L``</span>
 
 <span class="sd">        See also</span>
 <span class="sd">        --------</span>
-<span class="sd">        :meth:`expectation_value_term`: evaluates a single `term`.</span>
-
-<span class="sd">        .. todo :</span>
-<span class="sd">            This is a naive implementation. For efficiency a caching is necessary:</span>
-<span class="sd">            We need to evaluate the expectation values of terms starting with the same operator(s)</span>
-<span class="sd">            from the left at the same time to avoid doing the same work many times.</span>
+<span class="sd">        expectation_value_term : evaluates a single `term`.</span>
+<span class="sd">        tenpy.networks.mpo.MPO.expectation_value : expectation value density of an MPO.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">terms</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">expectation_value_term</span><span class="p">(</span><span class="n">term</span><span class="p">)</span> <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">term_list</span><span class="p">]</span>
-        <span class="n">terms_sum</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">t</span><span class="o">*</span><span class="n">f</span> <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">terms</span><span class="p">,</span> <span class="n">prefactors</span><span class="p">)])</span>
-        <span class="k">return</span> <span class="n">terms_sum</span><span class="p">,</span> <span class="n">terms</span></div>
+        <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">mpo</span><span class="p">,</span> <span class="n">terms</span>
+        <span class="k">if</span> <span class="n">prefactors</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Deprecated argument prefactors: replace arguments with &quot;</span>
+                          <span class="s2">&quot;``TermList(term_list, prefactors)``.&quot;</span><span class="p">,</span> <span class="ne">FutureWarning</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">term_list</span> <span class="o">=</span> <span class="n">terms</span><span class="o">.</span><span class="n">TermList</span><span class="p">(</span><span class="n">term_list</span><span class="p">,</span> <span class="n">prefactors</span><span class="p">)</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">term_list</span><span class="o">.</span><span class="n">terms</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="nb">min</span><span class="p">([</span><span class="n">i</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">term</span><span class="p">])</span> <span class="o">&lt;</span> <span class="n">L</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;term doesn&#39;t start in MPS unit cell: &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">term</span><span class="p">))</span>
+        <span class="c1"># conversion</span>
+        <span class="n">ot</span><span class="p">,</span> <span class="n">ct</span> <span class="o">=</span> <span class="n">term_list</span><span class="o">.</span><span class="n">to_OnsiteTerms_CouplingTerms</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">)</span>
+        <span class="n">bc</span> <span class="o">=</span> <span class="s1">&#39;finite&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">finite</span> <span class="k">else</span> <span class="s1">&#39;infinite&#39;</span>
+        <span class="n">mpo_graph</span> <span class="o">=</span> <span class="n">mpo</span><span class="o">.</span><span class="n">MPOGraph</span><span class="o">.</span><span class="n">from_terms</span><span class="p">(</span><span class="n">ot</span><span class="p">,</span> <span class="n">ct</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">,</span> <span class="n">bc</span><span class="p">)</span>
+        <span class="n">mpo_</span> <span class="o">=</span> <span class="n">mpo_graph</span><span class="o">.</span><span class="n">build_MPO</span><span class="p">()</span>
+        <span class="n">terms_sum</span> <span class="o">=</span> <span class="n">mpo_</span><span class="o">.</span><span class="n">expectation_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_range</span><span class="o">=</span><span class="n">ct</span><span class="o">.</span><span class="n">max_range</span><span class="p">())</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
+            <span class="n">terms_sum</span> <span class="o">=</span> <span class="n">terms_sum</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
+        <span class="k">return</span> <span class="n">terms_sum</span><span class="p">,</span> <span class="n">mpo_</span></div>
 
 <div class="viewcode-block" id="MPS.correlation_function"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.correlation_function">[docs]</a>    <span class="k">def</span> <span class="nf">correlation_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                              <span class="n">ops1</span><span class="p">,</span>
@@ -3323,764 +3353,6 @@
         <span class="c1"># sort</span>
         <span class="n">perm</span> <span class="o">=</span> <span class="n">argsort</span><span class="p">(</span><span class="n">eta</span><span class="p">,</span> <span class="n">which</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">eta</span><span class="p">)[</span><span class="n">perm</span><span class="p">],</span> <span class="p">[</span><span class="n">A</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">perm</span><span class="p">]</span></div></div>
-
-
-<div class="viewcode-block" id="OnsiteTerms"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.OnsiteTerms.html#tenpy.networks.mpo.OnsiteTerms">[docs]</a><span class="k">class</span> <span class="nc">OnsiteTerms</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Operator names, site indices and strengths representing onsite terms.</span>
-
-<span class="sd">    Represents a sum of onsite terms where the operators are only given by their name (in the form</span>
-<span class="sd">    of a string). What the operator represents is later given by the :attr:`MPS.sites` using</span>
-<span class="sd">    :meth:`~tenpy.networks.site.get_op`.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    L : int</span>
-<span class="sd">        Number of sites.</span>
-
-<span class="sd">    Attributes</span>
-<span class="sd">    ----------</span>
-<span class="sd">    L : int</span>
-<span class="sd">        Number of sites.</span>
-<span class="sd">    onsite_terms : list of dict</span>
-<span class="sd">        Filled by meth:`add_onsite_term`.</span>
-<span class="sd">        For each index `i` a dictionary ``{&#39;opname&#39;: strength}`` defining the onsite terms.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">L</span><span class="p">):</span>
-        <span class="k">assert</span> <span class="n">L</span> <span class="o">&gt;</span> <span class="mi">0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">=</span> <span class="n">L</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">onsite_terms</span> <span class="o">=</span> <span class="p">[</span><span class="nb">dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">)]</span>
-
-<div class="viewcode-block" id="OnsiteTerms.add_onsite_term"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.OnsiteTerms.html#tenpy.networks.mpo.OnsiteTerms.add_onsite_term">[docs]</a>    <span class="k">def</span> <span class="nf">add_onsite_term</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strength</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">op</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add a onsite term on a given MPS site.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        strength : float</span>
-<span class="sd">            The strength of the term.</span>
-<span class="sd">        i : int</span>
-<span class="sd">            The MPS index of the site on which the operator acts.</span>
-<span class="sd">            We require ``0 &lt;= i &lt; L``.</span>
-<span class="sd">        op : str</span>
-<span class="sd">            Name of the involved operator.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">term</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">onsite_terms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-        <span class="n">term</span><span class="p">[</span><span class="n">op</span><span class="p">]</span> <span class="o">=</span> <span class="n">term</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">strength</span></div>
-
-<div class="viewcode-block" id="OnsiteTerms.add_to_graph"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.OnsiteTerms.html#tenpy.networks.mpo.OnsiteTerms.add_to_graph">[docs]</a>    <span class="k">def</span> <span class="nf">add_to_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add terms from :attr:`onsite_terms` to an MPOGraph.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        graph : :class:`~tenpy.networks.mpo.MPOGraph`</span>
-<span class="sd">            The graph into which the terms from :attr:`onsite_terms` should be added.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">terms</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">onsite_terms</span><span class="p">):</span>
-            <span class="k">for</span> <span class="n">opname</span><span class="p">,</span> <span class="n">strength</span> <span class="ow">in</span> <span class="n">terms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="n">graph</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="s1">&#39;IdL&#39;</span><span class="p">,</span> <span class="s1">&#39;IdR&#39;</span><span class="p">,</span> <span class="n">opname</span><span class="p">,</span> <span class="n">strength</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="OnsiteTerms.to_Arrays"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.OnsiteTerms.html#tenpy.networks.mpo.OnsiteTerms.to_Arrays">[docs]</a>    <span class="k">def</span> <span class="nf">to_Arrays</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sites</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Convert the :attr:`onsite_terms` into a list of np_conserved Arrays.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        sites : list of :class:`~tenpy.networks.site.Site`</span>
-<span class="sd">            The sites for translating the operator names on the :attr:`L` sites into</span>
-<span class="sd">            :class:`~tenpy.linalg.np_conserved.Array`.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        onsite_arrays : list of :class:`~tenpy.linalg.np_conserved.Array`</span>
-<span class="sd">            Onsite terms represented by `self`. Entry `i` of the list lives on ``sites[i]``.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sites</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Incompatible length&quot;</span><span class="p">)</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">site</span><span class="p">,</span> <span class="n">terms</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">onsite_terms</span><span class="p">):</span>
-            <span class="n">H</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="k">for</span> <span class="n">opname</span><span class="p">,</span> <span class="n">strength</span> <span class="ow">in</span> <span class="n">terms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="n">H</span> <span class="o">=</span> <span class="n">add_with_None_0</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">strength</span> <span class="o">*</span> <span class="n">site</span><span class="o">.</span><span class="n">get_op</span><span class="p">(</span><span class="n">opname</span><span class="p">))</span>
-                <span class="c1"># Note: H can change from None to npc Array and can change dtype</span>
-            <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">H</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">res</span></div>
-
-<div class="viewcode-block" id="OnsiteTerms.remove_zeros"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.OnsiteTerms.html#tenpy.networks.mpo.OnsiteTerms.remove_zeros">[docs]</a>    <span class="k">def</span> <span class="nf">remove_zeros</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tol_zero</span><span class="o">=</span><span class="mf">1.e-15</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Remove entries close to 0 from :attr:`onsite_terms`.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        tol_zero : float</span>
-<span class="sd">            Entries in :attr:`onsite_terms` with `strength` &lt; `tol_zero` are considered to be</span>
-<span class="sd">            zero and removed.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">onsite_terms</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
-                <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">term</span><span class="p">[</span><span class="n">op</span><span class="p">])</span> <span class="o">&lt;</span> <span class="n">tol_zero</span><span class="p">:</span>
-                    <span class="k">del</span> <span class="n">term</span><span class="p">[</span><span class="n">op</span><span class="p">]</span></div>
-        <span class="c1"># done</span>
-
-<div class="viewcode-block" id="OnsiteTerms.add_to_nn_bond_Arrays"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.OnsiteTerms.html#tenpy.networks.mpo.OnsiteTerms.add_to_nn_bond_Arrays">[docs]</a>    <span class="k">def</span> <span class="nf">add_to_nn_bond_Arrays</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">H_bond</span><span class="p">,</span> <span class="n">sites</span><span class="p">,</span> <span class="n">finite</span><span class="p">,</span> <span class="n">distribute</span><span class="o">=</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)):</span>
-        <span class="sd">&quot;&quot;&quot;Add :attr:`self.onsite_terms` into nearest-neighbor bond arrays.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        H_bond : list of {:class:`~tenpy.linalg.np_conserved.Array` | None}</span>
-<span class="sd">            The :attr:`coupling_terms` rewritten as ``sum_i H_bond[i]`` for MPS indices ``i``.</span>
-<span class="sd">            ``H_bond[i]`` acts on sites ``(i-1, i)``, ``None`` represents 0.</span>
-<span class="sd">            Legs of each ``H_bond[i]`` are ``[&#39;p0&#39;, &#39;p0*&#39;, &#39;p1&#39;, &#39;p1*&#39;]``.</span>
-<span class="sd">            Modified *in place*.</span>
-<span class="sd">        sites : list of :class:`~tenpy.networks.site.Site`</span>
-<span class="sd">            The sites for translating the operator names on the :attr:`L` sites into</span>
-<span class="sd">            :class:`~tenpy.linalg.np_conserved.Array`.</span>
-<span class="sd">        distribute : (float, float)</span>
-<span class="sd">            How to split the onsite terms (in the bulk) into the bond terms to the left</span>
-<span class="sd">            (``distribute[0]``) and right (``distribute[1]``).</span>
-<span class="sd">        finite : bool</span>
-<span class="sd">            Boundary conditions of the MPS, :attr:`MPS.finite`.</span>
-<span class="sd">            If finite, we distribute the onsite term of the</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">dist_L</span><span class="p">,</span> <span class="n">dist_R</span> <span class="o">=</span> <span class="n">distribute</span>
-        <span class="k">if</span> <span class="n">dist_L</span> <span class="o">+</span> <span class="n">dist_R</span> <span class="o">!=</span> <span class="mf">1.</span><span class="p">:</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;sum of `distribute` not 1!!!&quot;</span><span class="p">)</span>
-        <span class="n">N_sites</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
-        <span class="n">H_onsite</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_Arrays</span><span class="p">(</span><span class="n">sites</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N_sites</span><span class="p">):</span>
-            <span class="n">H_j</span> <span class="o">=</span> <span class="n">H_onsite</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
-            <span class="k">if</span> <span class="n">H_j</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">continue</span>
-            <span class="k">if</span> <span class="n">finite</span> <span class="ow">and</span> <span class="n">j</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">dist_L</span><span class="p">,</span> <span class="n">dist_R</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span>
-            <span class="k">elif</span> <span class="n">finite</span> <span class="ow">and</span> <span class="n">j</span> <span class="o">==</span> <span class="n">N_sites</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="n">dist_L</span><span class="p">,</span> <span class="n">dist_R</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">dist_L</span><span class="p">,</span> <span class="n">dist_R</span> <span class="o">=</span> <span class="n">distribute</span>
-            <span class="k">if</span> <span class="n">dist_L</span> <span class="o">!=</span> <span class="mf">0.</span><span class="p">:</span>
-                <span class="n">i</span> <span class="o">=</span> <span class="p">(</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">N_sites</span>
-                <span class="n">Id_i</span> <span class="o">=</span> <span class="n">sites</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">Id</span>
-                <span class="n">H_bond</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">add_with_None_0</span><span class="p">(</span><span class="n">H_bond</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">dist_L</span> <span class="o">*</span> <span class="n">npc</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">Id_i</span><span class="p">,</span> <span class="n">H_j</span><span class="p">))</span>
-            <span class="k">if</span> <span class="n">dist_R</span> <span class="o">!=</span> <span class="mf">0.</span><span class="p">:</span>
-                <span class="n">k</span> <span class="o">=</span> <span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">N_sites</span>
-                <span class="n">Id_k</span> <span class="o">=</span> <span class="n">sites</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">Id</span>
-                <span class="n">H_bond</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">add_with_None_0</span><span class="p">(</span><span class="n">H_bond</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">dist_R</span> <span class="o">*</span> <span class="n">npc</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">H_j</span><span class="p">,</span> <span class="n">Id_k</span><span class="p">))</span>
-        <span class="k">for</span> <span class="n">H</span> <span class="ow">in</span> <span class="n">H_bond</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">H</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">H</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">])</span></div>
-        <span class="c1"># done</span>
-
-    <span class="k">def</span> <span class="nf">__iadd__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">OnsiteTerms</span><span class="p">):</span>
-            <span class="k">return</span> <span class="bp">NotImplemented</span>  <span class="c1"># unknown type of other</span>
-        <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">L</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;incompatible lengths&quot;</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">self_t</span><span class="p">,</span> <span class="n">other_t</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">onsite_terms</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">onsite_terms</span><span class="p">):</span>
-            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">other_t</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="n">self_t</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">self_t</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mf">0.</span><span class="p">)</span> <span class="o">+</span> <span class="n">value</span>
-        <span class="k">return</span> <span class="bp">self</span>
-
-    <span class="k">def</span> <span class="nf">_test_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sites</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Check that all given operators exist in the `sites`.&quot;&quot;&quot;</span>
-        <span class="k">for</span> <span class="n">site</span><span class="p">,</span> <span class="n">terms</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">onsite_terms</span><span class="p">):</span>
-            <span class="k">for</span> <span class="n">opname</span><span class="p">,</span> <span class="n">strength</span> <span class="ow">in</span> <span class="n">terms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="n">site</span><span class="o">.</span><span class="n">valid_opname</span><span class="p">(</span><span class="n">opname</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Operator </span><span class="si">{op!r}</span><span class="s2"> not in site&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">opname</span><span class="p">))</span></div>
-
-
-<div class="viewcode-block" id="CouplingTerms"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.CouplingTerms.html#tenpy.networks.mpo.CouplingTerms">[docs]</a><span class="k">class</span> <span class="nc">CouplingTerms</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Operator names, site indices and strengths representing two-site coupling terms.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    L : int</span>
-<span class="sd">        Number of sites.</span>
-
-<span class="sd">    Attributes</span>
-<span class="sd">    ----------</span>
-<span class="sd">    L : int</span>
-<span class="sd">        Number of sites.</span>
-<span class="sd">    coupling_terms : dict of dict</span>
-<span class="sd">        Filled by :meth:`add_coupling_term`.</span>
-<span class="sd">        Nested dictionaries of the form</span>
-<span class="sd">        ``{i: {(&#39;opname_i&#39;, &#39;opname_string&#39;): {j: {&#39;opname_j&#39;: strength}}}}``.</span>
-<span class="sd">        Note that always ``i &lt; j``, but entries with ``j &gt;= L`` are allowed for</span>
-<span class="sd">        ``bc_MPS == &#39;infinite&#39;``, in which case they indicate couplings between different</span>
-<span class="sd">        iMPS unit cells.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">L</span><span class="p">):</span>
-        <span class="k">assert</span> <span class="n">L</span> <span class="o">&gt;</span> <span class="mi">0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">=</span> <span class="n">L</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
-
-<div class="viewcode-block" id="CouplingTerms.max_range"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.CouplingTerms.html#tenpy.networks.mpo.CouplingTerms.max_range">[docs]</a>    <span class="k">def</span> <span class="nf">max_range</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Determine the maximal range in :attr:`coupling_terms`.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        max_range : int</span>
-<span class="sd">            The maximum of ``j - i`` for the `i`, `j` occuring in a term of :attr:`coupling_terms`.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">max_range</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">d1</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">for</span> <span class="n">d2</span> <span class="ow">in</span> <span class="n">d1</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-                <span class="n">j_max</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">d2</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
-                <span class="n">max_range</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">max_range</span><span class="p">,</span> <span class="n">j_max</span> <span class="o">-</span> <span class="n">i</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">max_range</span></div>
-
-<div class="viewcode-block" id="CouplingTerms.add_coupling_term"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.CouplingTerms.html#tenpy.networks.mpo.CouplingTerms.add_coupling_term">[docs]</a>    <span class="k">def</span> <span class="nf">add_coupling_term</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strength</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">op_i</span><span class="p">,</span> <span class="n">op_j</span><span class="p">,</span> <span class="n">op_string</span><span class="o">=</span><span class="s1">&#39;Id&#39;</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add a two-site coupling term on given MPS sites.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        strength : float</span>
-<span class="sd">            The strength of the coupling term.</span>
-<span class="sd">        i, j : int</span>
-<span class="sd">            The MPS indices of the two sites on which the operator acts.</span>
-<span class="sd">            We require ``0 &lt;= i &lt; N_sites``  and ``i &lt; j``, i.e., `op_i` acts &quot;left&quot; of `op_j`.</span>
-<span class="sd">            If j &gt;= N_sites, it indicates couplings between unit cells of an infinite MPS.</span>
-<span class="sd">        op1, op2 : str</span>
-<span class="sd">            Names of the involved operators.</span>
-<span class="sd">        op_string : str</span>
-<span class="sd">            The operator to be inserted between `i` and `j`.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;We need 0 &lt;= i &lt; N_sites, got i=</span><span class="si">{i:d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">))</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">j</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;need i &lt; j&quot;</span><span class="p">)</span>
-        <span class="n">d1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">dict</span><span class="p">())</span>
-        <span class="c1"># form of d1: ``{(&#39;opname_i&#39;, &#39;opname_string&#39;): {j: {&#39;opname_j&#39;: current_strength}}}``</span>
-        <span class="n">d2</span> <span class="o">=</span> <span class="n">d1</span><span class="o">.</span><span class="n">setdefault</span><span class="p">((</span><span class="n">op_i</span><span class="p">,</span> <span class="n">op_string</span><span class="p">),</span> <span class="nb">dict</span><span class="p">())</span>
-        <span class="n">d3</span> <span class="o">=</span> <span class="n">d2</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="nb">dict</span><span class="p">())</span>
-        <span class="n">d3</span><span class="p">[</span><span class="n">op_j</span><span class="p">]</span> <span class="o">=</span> <span class="n">d3</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">op_j</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">strength</span></div>
-
-<div class="viewcode-block" id="CouplingTerms.coupling_term_handle_JW"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.CouplingTerms.html#tenpy.networks.mpo.CouplingTerms.coupling_term_handle_JW">[docs]</a>    <span class="k">def</span> <span class="nf">coupling_term_handle_JW</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">term</span><span class="p">,</span> <span class="n">op_needs_JW</span><span class="p">,</span> <span class="n">op_string</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Helping function to call before :meth:`add_multi_coupling_term`.</span>
-
-<span class="sd">        Sort and groups the operators by sites they act on, such that the returned</span>
-<span class="sd">        `ijkl` is strictly ascending, i.e. has entries `i &lt; j &lt; k &lt; l`.</span>
-<span class="sd">        Moreover, handle/figure out Jordan-Wigner strings if needed.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        term : [(str, int), (str, int)]</span>
-<span class="sd">            List of two tuples ``(op, i)`` where `i` is the MPS index of the site the operator</span>
-<span class="sd">            named `op` acts on.</span>
-<span class="sd">        op_needs_JW : list of bool</span>
-<span class="sd">            For each entry in term whether the operator needs a JW string.</span>
-<span class="sd">            Only used if `op_string` is None.</span>
-<span class="sd">        op_string : None | str</span>
-<span class="sd">            Operator name to be used as operator string *between* the operators, or ``None`` if the</span>
-<span class="sd">            Jordan Wigner string should be figured out.</span>
-
-<span class="sd">            .. warning :</span>
-<span class="sd">                ``None`` figures out for each segment between the operators, whether a</span>
-<span class="sd">                Jordan-Wigner string is needed.</span>
-<span class="sd">                This is different from a plain ``&#39;JW&#39;``, which just applies a string on</span>
-<span class="sd">                each segment!</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        i, j, op_i, op_j, op_string:</span>
-<span class="sd">            Arguments for :meth:`MultiCouplingTerms.add_multi_coupling_term` such that the added</span>
-<span class="sd">            term corresponds to the parameters of this function.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
-        <span class="p">(</span><span class="n">op_i</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="p">(</span><span class="n">op_j</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span> <span class="o">=</span> <span class="n">term</span>
-        <span class="k">if</span> <span class="n">op_string</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">need_JW1</span><span class="p">,</span> <span class="n">need_JW2</span> <span class="o">=</span> <span class="n">op_needs_JW</span>
-            <span class="k">if</span> <span class="n">need_JW1</span> <span class="ow">and</span> <span class="n">need_JW2</span><span class="p">:</span>
-                <span class="n">op_string</span> <span class="o">=</span> <span class="s1">&#39;JW&#39;</span>
-            <span class="k">elif</span> <span class="n">need_JW1</span> <span class="ow">or</span> <span class="n">need_JW2</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Only one of the operators needs a Jordan-Wigner string?!&quot;</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">op_string</span> <span class="o">=</span> <span class="s1">&#39;Id&#39;</span>
-        <span class="n">swap</span> <span class="o">=</span> <span class="p">(</span><span class="n">j</span> <span class="o">&lt;</span> <span class="n">i</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">swap</span><span class="p">:</span>
-            <span class="n">op_i</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">op_j</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">op_j</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">op_i</span><span class="p">,</span> <span class="n">i</span>
-        <span class="k">if</span> <span class="n">op_string</span> <span class="o">==</span> <span class="s1">&#39;JW&#39;</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">swap</span><span class="p">:</span>
-                <span class="n">op_i</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">op_string</span><span class="p">,</span> <span class="n">op_i</span><span class="p">])</span>  <span class="c1"># op_i=(original op_j) should act first</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">op_i</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">op_i</span><span class="p">,</span> <span class="n">op_string</span><span class="p">])</span>  <span class="c1"># op_j should act first</span>
-        <span class="k">return</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">op_i</span><span class="p">,</span> <span class="n">op_j</span><span class="p">,</span> <span class="n">op_string</span></div>
-
-<div class="viewcode-block" id="CouplingTerms.plot_coupling_terms"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.CouplingTerms.html#tenpy.networks.mpo.CouplingTerms.plot_coupling_terms">[docs]</a>    <span class="k">def</span> <span class="nf">plot_coupling_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">style_map</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;&quot;Plot coupling terms into a given lattice.</span>
-
-<span class="sd">        This function plots the :attr:`coupling_terms`</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        ax : :class:`matplotlib.axes.Axes`</span>
-<span class="sd">            The axes on which we should plot.</span>
-<span class="sd">        style_map : function</span>
-<span class="sd">            Get&#39;s called with arguments ``i, j, op_i, op_strength, op_j, strength`` for</span>
-<span class="sd">            each two-site coupling and should return a keyword-dictionary</span>
-<span class="sd">            with the desired plot-style for this combination.</span>
-<span class="sd">            By default (``None``), the linecolor depends on the phase of `strength`,</span>
-<span class="sd">            the `linewidth` is given by the phase of `strength` (using the `hsv` colormap),</span>
-<span class="sd">            and the linestyle depends on the type of operators coupled.</span>
-
-<span class="sd">        See also</span>
-<span class="sd">        --------</span>
-<span class="sd">        :func:`tenpy.models.lattice.Lattice.plot_sites` : plot the sites of the lattice.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">lat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span>
-        <span class="n">pos</span> <span class="o">=</span> <span class="n">lat</span><span class="o">.</span><span class="n">position</span><span class="p">(</span><span class="n">lat</span><span class="o">.</span><span class="n">order</span><span class="p">)</span> <span class="c1"># row `i` gives position where to plot site `i`</span>
-        <span class="n">N_sites</span> <span class="o">=</span> <span class="n">lat</span><span class="o">.</span><span class="n">N_sites</span>
-        <span class="n">x_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>  <span class="c1"># columns=x,y, rows=i,j</span>
-        <span class="k">if</span> <span class="n">style_map</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">linestyles</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="s1">&#39;-.&#39;</span><span class="p">,</span> <span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">]</span>
-            <span class="n">style_cache</span> <span class="o">=</span> <span class="p">{}</span>
-            <span class="kn">from</span> <span class="nn">matplotlib.cm</span> <span class="k">import</span> <span class="n">hsv</span>
-            <span class="kn">from</span> <span class="nn">matplotlib.colors</span> <span class="k">import</span> <span class="n">Normalize</span>
-            <span class="n">norm_angle</span> <span class="o">=</span> <span class="n">Normalize</span><span class="p">(</span><span class="n">vmin</span><span class="o">=-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
-            <span class="k">def</span> <span class="nf">style_map</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">op_i</span><span class="p">,</span> <span class="n">op_string</span><span class="p">,</span> <span class="n">op_j</span><span class="p">,</span> <span class="n">strength</span><span class="p">):</span>
-                <span class="sd">&quot;&quot;&quot;define the plot style for a given coupling&quot;&quot;&quot;</span>
-                <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="n">op_i</span><span class="p">,</span> <span class="n">op_string</span><span class="p">,</span> <span class="n">op_j</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">style_cache</span><span class="p">:</span>
-                    <span class="k">return</span> <span class="n">style_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-                <span class="n">style</span> <span class="o">=</span> <span class="p">{}</span>
-                <span class="n">style</span><span class="p">[</span><span class="s1">&#39;linestyle&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">linestyles</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">style_cache</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">linestyles</span><span class="p">)]</span>
-                <span class="n">style</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hsv</span><span class="p">(</span><span class="n">norm_angle</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="n">strength</span><span class="p">)))</span>
-                <span class="n">style</span><span class="p">[</span><span class="s1">&#39;linewidth&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">strength</span><span class="p">)</span>
-                <span class="n">style_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">style</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-                <span class="n">style</span><span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="c1"># when key occurs for the first time, use a label.</span>
-                <span class="k">return</span> <span class="n">style</span>
-
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
-            <span class="n">d1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-            <span class="n">x_y</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-            <span class="k">for</span> <span class="p">(</span><span class="n">op_i</span><span class="p">,</span> <span class="n">op_string</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">d1</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
-                <span class="n">d2</span> <span class="o">=</span> <span class="n">d1</span><span class="p">[(</span><span class="n">op_i</span><span class="p">,</span> <span class="n">op_string</span><span class="p">)]</span>
-                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">d2</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
-                    <span class="n">d3</span> <span class="o">=</span> <span class="n">d2</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
-                    <span class="n">shift</span> <span class="o">=</span> <span class="n">j</span> <span class="o">-</span> <span class="n">j</span> <span class="o">%</span> <span class="n">N_sites</span>
-                    <span class="k">if</span> <span class="n">shift</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                        <span class="n">x_y</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">lat_idx_j</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">lat</span><span class="o">.</span><span class="n">order</span><span class="p">[</span><span class="n">j</span> <span class="o">%</span> <span class="n">N_sites</span><span class="p">])</span>
-                        <span class="n">lat_idx_j</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span><span class="n">shift</span> <span class="o">//</span> <span class="n">N_sites</span><span class="p">)</span> <span class="o">*</span> <span class="n">lat</span><span class="o">.</span><span class="n">N_rings</span>
-                        <span class="n">x_y</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">lat</span><span class="o">.</span><span class="n">position</span><span class="p">(</span><span class="n">lat_idx_j</span><span class="p">)</span>
-                    <span class="k">for</span> <span class="n">op_j</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">d3</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
-                        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">op_j</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
-                            <span class="k">continue</span>  <span class="c1"># multi-site coupling!</span>
-                        <span class="n">strength</span> <span class="o">=</span> <span class="n">d3</span><span class="p">[</span><span class="n">op_j</span><span class="p">]</span>
-                        <span class="n">style</span> <span class="o">=</span> <span class="n">style_map</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">op_i</span><span class="p">,</span> <span class="n">op_string</span><span class="p">,</span> <span class="n">op_j</span><span class="p">,</span> <span class="n">strength</span><span class="p">)</span>
-                        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x_y</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">x_y</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="o">**</span><span class="n">style</span><span class="p">)</span></div>
-        <span class="c1"># done</span>
-
-<div class="viewcode-block" id="CouplingTerms.add_to_graph"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.CouplingTerms.html#tenpy.networks.mpo.CouplingTerms.add_to_graph">[docs]</a>    <span class="k">def</span> <span class="nf">add_to_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add terms from :attr:`coupling_terms` to an MPOGraph.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        graph : :class:`~tenpy.networks.mpo.MPOGraph`</span>
-<span class="sd">            The graph into which the terms from :attr:`coupling_terms` should be added.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># structure of coupling terms:</span>
-        <span class="c1"># {i: {(&#39;opname_i&#39;, &#39;opname_string&#39;): {j: {&#39;opname_j&#39;: strength}}}}</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">d1</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">for</span> <span class="p">(</span><span class="n">opname_i</span><span class="p">,</span> <span class="n">op_string</span><span class="p">),</span> <span class="n">d2</span> <span class="ow">in</span> <span class="n">d1</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="n">label</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">opname_i</span><span class="p">,</span> <span class="n">op_string</span><span class="p">)</span>
-                <span class="n">graph</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="s1">&#39;IdL&#39;</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">opname_i</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">skip_existing</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">d3</span> <span class="ow">in</span> <span class="n">d2</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                    <span class="n">label_j</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">add_string</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">op_string</span><span class="p">)</span>
-                    <span class="k">for</span> <span class="n">opname_j</span><span class="p">,</span> <span class="n">strength</span> <span class="ow">in</span> <span class="n">d3</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                        <span class="n">graph</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">label_j</span><span class="p">,</span> <span class="s1">&#39;IdR&#39;</span><span class="p">,</span> <span class="n">opname_j</span><span class="p">,</span> <span class="n">strength</span><span class="p">)</span></div>
-        <span class="c1"># done</span>
-
-<div class="viewcode-block" id="CouplingTerms.to_nn_bond_Arrays"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.CouplingTerms.html#tenpy.networks.mpo.CouplingTerms.to_nn_bond_Arrays">[docs]</a>    <span class="k">def</span> <span class="nf">to_nn_bond_Arrays</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sites</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Convert the :attr:`coupling_terms` into Arrays on nearest neighbor bonds.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        sites : list of :class:`~tenpy.networks.site.Site`</span>
-<span class="sd">            The sites for translating the operator names on the :attr:`L` sites into</span>
-<span class="sd">            :class:`~tenpy.linalg.np_conserved.Array`.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        H_bond : list of {:class:`~tenpy.linalg.np_conserved.Array` | None}</span>
-<span class="sd">            The :attr:`coupling_terms` rewritten as ``sum_i H_bond[i]`` for MPS indices ``i``.</span>
-<span class="sd">            ``H_bond[i]`` acts on sites ``(i-1, i)``, ``None`` represents 0.</span>
-<span class="sd">            Legs of each ``H_bond[i]`` are ``[&#39;p0&#39;, &#39;p0*&#39;, &#39;p1&#39;, &#39;p1*&#39;]``.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">N_sites</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sites</span><span class="p">)</span> <span class="o">!=</span> <span class="n">N_sites</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;incompatible length&quot;</span><span class="p">)</span>
-        <span class="n">H_bond</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">N_sites</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">d1</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">j</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">N_sites</span>
-            <span class="n">site_i</span> <span class="o">=</span> <span class="n">sites</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-            <span class="n">site_j</span> <span class="o">=</span> <span class="n">sites</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
-            <span class="n">H</span> <span class="o">=</span> <span class="n">H_bond</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
-            <span class="k">for</span> <span class="p">(</span><span class="n">op1</span><span class="p">,</span> <span class="n">op_str</span><span class="p">),</span> <span class="n">d2</span> <span class="ow">in</span> <span class="n">d1</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="k">for</span> <span class="n">j2</span><span class="p">,</span> <span class="n">d3</span> <span class="ow">in</span> <span class="n">d2</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">j2</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
-                        <span class="c1"># This should only happen in a MultiSiteCoupling model</span>
-                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;MultiCouplingTerms: can&#39;t generate H_bond&quot;</span><span class="p">)</span>
-                    <span class="c1"># i, j in coupling_terms are defined such that we expect j2 = i + 1</span>
-                    <span class="k">if</span> <span class="n">j2</span> <span class="o">!=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>
-                        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Can&#39;t give nearest neighbor H_bond for long-range </span><span class="si">{i:d}</span><span class="s2">-</span><span class="si">{j:d}</span><span class="s2">&quot;</span>
-                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="n">j2</span><span class="p">))</span>
-                    <span class="k">for</span> <span class="n">op2</span><span class="p">,</span> <span class="n">strength</span> <span class="ow">in</span> <span class="n">d3</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                        <span class="n">H_add</span> <span class="o">=</span> <span class="n">strength</span> <span class="o">*</span> <span class="n">npc</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">site_i</span><span class="o">.</span><span class="n">get_op</span><span class="p">(</span><span class="n">op1</span><span class="p">),</span> <span class="n">site_j</span><span class="o">.</span><span class="n">get_op</span><span class="p">(</span><span class="n">op2</span><span class="p">))</span>
-                        <span class="n">H</span> <span class="o">=</span> <span class="n">add_with_None_0</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">H_add</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">H</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">H</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">])</span>
-            <span class="n">H_bond</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">H</span>
-        <span class="k">return</span> <span class="n">H_bond</span></div>
-
-<div class="viewcode-block" id="CouplingTerms.remove_zeros"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.CouplingTerms.html#tenpy.networks.mpo.CouplingTerms.remove_zeros">[docs]</a>    <span class="k">def</span> <span class="nf">remove_zeros</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tol_zero</span><span class="o">=</span><span class="mf">1.e-15</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Remove entries close to 0 from :attr:`coupling_terms`.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        tol_zero : float</span>
-<span class="sd">            Entries in :attr:`coupling_terms` with `strength` &lt; `tol_zero` are considered to be</span>
-<span class="sd">            zero and removed.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">for</span> <span class="n">d1</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-            <span class="c1"># d1 = ``{(&#39;opname_i&#39;, &#39;opname_string&#39;): {j: {&#39;opname_j&#39;: strength}}}``</span>
-            <span class="k">for</span> <span class="n">op_i_op_str</span><span class="p">,</span> <span class="n">d2</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">d1</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
-                <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">d3</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">d2</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
-                    <span class="k">for</span> <span class="n">op_j</span><span class="p">,</span> <span class="n">st</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">d3</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
-                        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">st</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">tol_zero</span><span class="p">:</span>
-                            <span class="k">del</span> <span class="n">d3</span><span class="p">[</span><span class="n">op_j</span><span class="p">]</span>
-                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">d3</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                        <span class="k">del</span> <span class="n">d2</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
-                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">d2</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="k">del</span> <span class="n">d1</span><span class="p">[</span><span class="n">op_i_op_str</span><span class="p">]</span></div>
-        <span class="c1"># done</span>
-
-    <span class="k">def</span> <span class="nf">__iadd__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">CouplingTerms</span><span class="p">):</span>
-            <span class="k">return</span> <span class="bp">NotImplemented</span>  <span class="c1"># unknown type of other</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">MultiCouplingTerms</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t add MultiCouplingTerms into CouplingTerms&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">L</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;incompatible lengths&quot;</span><span class="p">)</span>
-        <span class="c1"># {i: {(&#39;opname_i&#39;, &#39;opname_string&#39;): {j: {&#39;opname_j&#39;: strength}}}}</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">other_d1</span> <span class="ow">in</span> <span class="n">other</span><span class="o">.</span><span class="n">coupling_terms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">self_d1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">dict</span><span class="p">())</span>
-            <span class="k">for</span> <span class="n">opname_i_string</span><span class="p">,</span> <span class="n">other_d2</span> <span class="ow">in</span> <span class="n">other_d1</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="n">self_d2</span> <span class="o">=</span> <span class="n">self_d1</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">opname_i_string</span><span class="p">,</span> <span class="nb">dict</span><span class="p">())</span>
-                <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">other_d3</span> <span class="ow">in</span> <span class="n">other_d2</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                    <span class="n">self_d3</span> <span class="o">=</span> <span class="n">self_d2</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="nb">dict</span><span class="p">())</span>
-                    <span class="k">for</span> <span class="n">opname_j</span><span class="p">,</span> <span class="n">strength</span> <span class="ow">in</span> <span class="n">other_d3</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                        <span class="n">self_d3</span><span class="p">[</span><span class="n">opname_j</span><span class="p">]</span> <span class="o">=</span> <span class="n">self_d3</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">opname_j</span><span class="p">,</span> <span class="mf">0.</span><span class="p">)</span> <span class="o">+</span> <span class="n">strength</span>
-        <span class="k">return</span> <span class="bp">self</span>
-
-    <span class="k">def</span> <span class="nf">_test_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sites</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Check the format of self.coupling_terms&quot;&quot;&quot;</span>
-        <span class="n">L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">d1</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">site_i</span> <span class="o">=</span> <span class="n">sites</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-            <span class="k">for</span> <span class="p">(</span><span class="n">op_i</span><span class="p">,</span> <span class="n">opstring</span><span class="p">),</span> <span class="n">d2</span> <span class="ow">in</span> <span class="n">d1</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="n">site_i</span><span class="o">.</span><span class="n">valid_opname</span><span class="p">(</span><span class="n">op_i</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Operator </span><span class="si">{op!r}</span><span class="s2"> not in site&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op_i</span><span class="p">))</span>
-                <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">d3</span> <span class="ow">in</span> <span class="n">d2</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                    <span class="k">if</span> <span class="ow">not</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">j</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;wrong order of indices in coupling terms&quot;</span><span class="p">)</span>
-                    <span class="k">for</span> <span class="n">op_j</span> <span class="ow">in</span> <span class="n">d3</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-                        <span class="k">if</span> <span class="ow">not</span> <span class="n">sites</span><span class="p">[</span><span class="n">j</span> <span class="o">%</span> <span class="n">L</span><span class="p">]</span><span class="o">.</span><span class="n">valid_opname</span><span class="p">(</span><span class="n">op_j</span><span class="p">):</span>
-                            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Operator </span><span class="si">{op!r}</span><span class="s2"> not in site&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op_j</span><span class="p">))</span></div>
-        <span class="c1"># done</span>
-
-
-<div class="viewcode-block" id="MultiCouplingTerms"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MultiCouplingTerms.html#tenpy.networks.mpo.MultiCouplingTerms">[docs]</a><span class="k">class</span> <span class="nc">MultiCouplingTerms</span><span class="p">(</span><span class="n">CouplingTerms</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Operator names, site indices and strengths representing general `M`-site coupling terms.</span>
-
-<span class="sd">    Generalizes the :attr:`coupling_terms` of :class:`CouplingTerms` to `M`-site couplings.</span>
-<span class="sd">    The structure of the nested dictionary :attr:`coupling_terms` is similar, but we allow</span>
-<span class="sd">    an arbitrary recursion depth of the dictionary.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    L : int</span>
-<span class="sd">        Number of sites.</span>
-
-<span class="sd">    Attributes</span>
-<span class="sd">    ----------</span>
-<span class="sd">    L : int</span>
-<span class="sd">        Number of sites.</span>
-<span class="sd">    coupling_terms : dict of dict</span>
-<span class="sd">        Nested dictionaries of the following form::</span>
-
-<span class="sd">            {i: {(&#39;opname_i&#39;, &#39;opname_string_ij&#39;):</span>
-<span class="sd">                    {j: {(&#39;opname_j&#39;, &#39;opname_string_jk&#39;):</span>
-<span class="sd">                            {k: {(&#39;opname_k&#39;, &#39;opname_string_kl&#39;):</span>
-<span class="sd">                                ...</span>
-<span class="sd">                                    {l: {&#39;opname_l&#39;:</span>
-<span class="sd">                                            strength</span>
-<span class="sd">                                    }   }</span>
-<span class="sd">                                ...</span>
-<span class="sd">                            }   }</span>
-<span class="sd">                    }   }</span>
-<span class="sd">            }   }</span>
-
-<span class="sd">        For a M-site coupling, this involves a nesting depth of ``2*M`` dictionaries.</span>
-<span class="sd">        Note that always ``i &lt; j &lt; k &lt; ... &lt; l``, but entries with ``j,k,l &gt;= L``</span>
-<span class="sd">        are allowed for the case of ``bc_MPS == &#39;infinite&#39;``, when they indicate couplings</span>
-<span class="sd">        between different iMPS unit cells.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-
-<div class="viewcode-block" id="MultiCouplingTerms.add_multi_coupling_term"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MultiCouplingTerms.html#tenpy.networks.mpo.MultiCouplingTerms.add_multi_coupling_term">[docs]</a>    <span class="k">def</span> <span class="nf">add_multi_coupling_term</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strength</span><span class="p">,</span> <span class="n">ijkl</span><span class="p">,</span> <span class="n">ops_ijkl</span><span class="p">,</span> <span class="n">op_string</span><span class="o">=</span><span class="s2">&quot;Id&quot;</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add a multi-site coupling term on given MPS sites.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        strength : float</span>
-<span class="sd">            The strength of the coupling term.</span>
-<span class="sd">        ijkl : list of int</span>
-<span class="sd">            The MPS indices of the sites on which the operators acts. With `i, j, k, ... = ijkl`,</span>
-<span class="sd">            we require that they are ordered ascending, ``i &lt; j &lt; k &lt; ...`` and</span>
-<span class="sd">            that ``0 &lt;= i &lt; N_sites``.</span>
-<span class="sd">            Inidces &gt;= N_sites indicate couplings between different unit cells of an infinite MPS.</span>
-<span class="sd">        ops_ijkl : list of str</span>
-<span class="sd">            Names of the involved operators on sites `i, j, k, ...`.</span>
-<span class="sd">        op_string : (list of) str</span>
-<span class="sd">            Names of the operator to be inserted between the operators,</span>
-<span class="sd">            e.g., op_string[0] is inserted between `i` and `j`.</span>
-<span class="sd">            A single name holds for all in-between segments.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ijkl</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Need to act on at least 2 sites. Use onsite terms!&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">op_string</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="n">op_string</span> <span class="o">=</span> <span class="p">[</span><span class="n">op_string</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ijkl</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ijkl</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">ops_ijkl</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">op_string</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">ijkl</span><span class="p">,</span> <span class="n">ijkl</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">j</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Need i &lt; j &lt; k &lt; ...&quot;</span><span class="p">)</span>
-        <span class="c1"># create the nested structure</span>
-        <span class="c1"># {ijkl[0]: {(ops_ijkl[0], op_string[0]):</span>
-        <span class="c1">#            {ijkl[1]: {(ops_ijkl[1], op_string[1]):</span>
-        <span class="c1">#                       ...</span>
-        <span class="c1">#                           {ijkl[-1]: {ops_ijkl[-1]: strength}</span>
-        <span class="c1">#            }         }</span>
-        <span class="c1"># }         }</span>
-        <span class="n">d0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">op_str</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">ijkl</span><span class="p">,</span> <span class="n">ops_ijkl</span><span class="p">,</span> <span class="n">op_string</span><span class="p">):</span>
-            <span class="n">d1</span> <span class="o">=</span> <span class="n">d0</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">dict</span><span class="p">())</span>
-            <span class="n">d0</span> <span class="o">=</span> <span class="n">d1</span><span class="o">.</span><span class="n">setdefault</span><span class="p">((</span><span class="n">op</span><span class="p">,</span> <span class="n">op_str</span><span class="p">),</span> <span class="nb">dict</span><span class="p">())</span>
-        <span class="n">d1</span> <span class="o">=</span> <span class="n">d0</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">ijkl</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="nb">dict</span><span class="p">())</span>
-        <span class="n">op</span> <span class="o">=</span> <span class="n">ops_ijkl</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">d1</span><span class="p">[</span><span class="n">op</span><span class="p">]</span> <span class="o">=</span> <span class="n">d1</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">strength</span></div>
-
-<div class="viewcode-block" id="MultiCouplingTerms.multi_coupling_term_handle_JW"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MultiCouplingTerms.html#tenpy.networks.mpo.MultiCouplingTerms.multi_coupling_term_handle_JW">[docs]</a>    <span class="k">def</span> <span class="nf">multi_coupling_term_handle_JW</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">term</span><span class="p">,</span> <span class="n">op_needs_JW</span><span class="p">,</span> <span class="n">op_string</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Helping function to call before :meth:`add_multi_coupling_term`.</span>
-
-<span class="sd">        Sort and groups the operators by sites they act on, such that the returned</span>
-<span class="sd">        `ijkl` is strictly ascending, i.e. has entries `i &lt; j &lt; k &lt; l`.</span>
-<span class="sd">        Moreover, handle/figure out Jordan-Wigner strings if needed.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        term : list of (str, int)</span>
-<span class="sd">            List of tuples ``(op, i)`` where `i` is the MPS index of the site the operator</span>
-<span class="sd">            named `op` acts on.</span>
-<span class="sd">        op_needs_JW : list of bool</span>
-<span class="sd">            For each entry in term whether the operator needs a JW string.</span>
-<span class="sd">            Only used if `op_string` is None.</span>
-<span class="sd">        op_string : None | str</span>
-<span class="sd">            Operator name to be used as operator string *between* the operators, or ``None`` if the</span>
-<span class="sd">            Jordan Wigner string should be figured out.</span>
-
-<span class="sd">            .. warning :</span>
-<span class="sd">                ``None`` figures out for each segment between the operators, whether a</span>
-<span class="sd">                Jordan-Wigner string is needed.</span>
-<span class="sd">                This is different from a plain ``&#39;JW&#39;``, which just applies a string on</span>
-<span class="sd">                each segment!</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        ijkl, ops_ijkl, op_string :</span>
-<span class="sd">            Arguments for :meth:`MultiCouplingTerms.add_multi_coupling_term` such that the added term</span>
-<span class="sd">            corresponds to the parameters of this function.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
-        <span class="n">number_ops</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">term</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">number_ops</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;expect multi coupling&quot;</span><span class="p">)</span>
-        <span class="n">ops</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">term</span><span class="p">]</span>
-        <span class="n">ijkl</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">term</span><span class="p">]</span>
-        <span class="n">reorder</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">ijkl</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;mergesort&#39;</span><span class="p">)</span>  <span class="c1"># need stable kind!!!</span>
-        <span class="n">i0</span> <span class="o">=</span> <span class="n">ijkl</span><span class="p">[</span><span class="n">reorder</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">i0</span> <span class="o">&lt;</span> <span class="n">L</span><span class="p">:</span>  <span class="c1"># ensure this condition with a shift</span>
-            <span class="n">shift</span> <span class="o">=</span> <span class="n">i0</span> <span class="o">%</span> <span class="n">L</span> <span class="o">-</span> <span class="n">i0</span>
-            <span class="n">ijkl</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">shift</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">ijkl</span><span class="p">]</span>
-        <span class="c1"># what we want to calculate:</span>
-        <span class="n">new_ijkl</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">new_ops</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">new_op_str</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># new_op_string[x] is right of new_ops[x]</span>
-        <span class="c1"># first make groups with strictly ``i &lt; j &lt; k &lt; ... ``</span>
-        <span class="n">i0</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>  <span class="c1"># != the first i since -1 &lt;  0 &lt;= ijkl[:]</span>
-        <span class="n">grouped_reorder</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">reorder</span><span class="p">:</span>
-            <span class="n">i</span> <span class="o">=</span> <span class="n">ijkl</span><span class="p">[</span><span class="n">x</span><span class="p">]</span>
-            <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">i0</span><span class="p">:</span>
-                <span class="n">i0</span> <span class="o">=</span> <span class="n">i</span>
-                <span class="n">new_ijkl</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-                <span class="n">grouped_reorder</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">x</span><span class="p">])</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">grouped_reorder</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">op_string</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="c1"># simpler case</span>
-            <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">grouped_reorder</span><span class="p">:</span>
-                <span class="n">new_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">ops</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">group</span><span class="p">]))</span>
-                <span class="n">new_op_str</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">op_string</span><span class="p">)</span>
-            <span class="n">new_op_str</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>  <span class="c1"># remove last entry (created one too much)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># more complicated: handle Jordan-Wigner</span>
-            <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">grouped_reorder</span><span class="p">):</span>
-                <span class="n">right</span> <span class="o">=</span> <span class="p">[</span><span class="n">z</span> <span class="k">for</span> <span class="n">gr</span> <span class="ow">in</span> <span class="n">grouped_reorder</span><span class="p">[</span><span class="n">a</span><span class="o">+</span><span class="mi">1</span><span class="p">:]</span> <span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="n">gr</span><span class="p">]</span>
-                <span class="n">onsite_ops</span> <span class="o">=</span> <span class="p">[]</span>
-                <span class="n">need_JW_right</span> <span class="o">=</span> <span class="kc">False</span>
-                <span class="n">JW_max</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-                <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">group</span> <span class="o">+</span> <span class="p">[</span><span class="n">number_ops</span><span class="p">]:</span>
-                    <span class="n">JW_min</span><span class="p">,</span> <span class="n">JW_max</span> <span class="o">=</span> <span class="n">JW_max</span><span class="p">,</span> <span class="n">x</span>
-                    <span class="n">need_JW</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">([</span><span class="n">op_needs_JW</span><span class="p">[</span><span class="n">z</span><span class="p">]</span> <span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="n">right</span> <span class="k">if</span> <span class="n">JW_min</span> <span class="o">&lt;</span> <span class="n">z</span> <span class="o">&lt;</span> <span class="n">JW_max</span><span class="p">])</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
-                    <span class="k">if</span> <span class="n">need_JW</span><span class="p">:</span>
-                        <span class="n">onsite_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;JW&#39;</span><span class="p">)</span>
-                        <span class="n">need_JW_right</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">need_JW_right</span>
-                    <span class="k">if</span> <span class="n">x</span> <span class="o">!=</span> <span class="n">number_ops</span><span class="p">:</span>
-                        <span class="n">onsite_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ops</span><span class="p">[</span><span class="n">x</span><span class="p">])</span>
-                <span class="n">new_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">onsite_ops</span><span class="p">))</span>
-                <span class="n">op_str_right</span> <span class="o">=</span> <span class="s1">&#39;JW&#39;</span> <span class="k">if</span> <span class="n">need_JW_right</span> <span class="k">else</span> <span class="s1">&#39;Id&#39;</span>
-                <span class="n">new_op_str</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">op_str_right</span><span class="p">)</span>
-            <span class="n">new_op_str</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>  <span class="c1"># remove last entry (created one too much)</span>
-        <span class="k">return</span> <span class="n">new_ijkl</span><span class="p">,</span> <span class="n">new_ops</span><span class="p">,</span> <span class="n">new_op_str</span></div>
-
-<div class="viewcode-block" id="MultiCouplingTerms.max_range"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MultiCouplingTerms.html#tenpy.networks.mpo.MultiCouplingTerms.max_range">[docs]</a>    <span class="k">def</span> <span class="nf">max_range</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Determine the maximal range in :attr:`coupling_terms`.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        max_range : int</span>
-<span class="sd">            The maximum of ``j - i`` for the `i`, `j` occuring in a term of :attr:`coupling_terms`.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">max_range</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">d1</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">max_range</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">max_range</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_range</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">d1</span><span class="p">))</span>
-        <span class="k">return</span> <span class="n">max_range</span></div>
-
-<div class="viewcode-block" id="MultiCouplingTerms.add_to_graph"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MultiCouplingTerms.html#tenpy.networks.mpo.MultiCouplingTerms.add_to_graph">[docs]</a>    <span class="k">def</span> <span class="nf">add_to_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">_i</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">_d1</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">_label_left</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add terms from :attr:`coupling_terms` to an MPOGraph.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        graph : :class:`~tenpy.networks.mpo.MPOGraph`</span>
-<span class="sd">            The graph into which the terms from :attr:`coupling_terms` should be added.</span>
-<span class="sd">        _i, _d1, _label_left : None</span>
-<span class="sd">            Should not be given; only needed for recursion.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># nested structure of coupling_terms:</span>
-        <span class="c1"># d0 = {i: {(&#39;opname_i&#39;, &#39;opname_string_ij&#39;): ... {l: {&#39;opname_l&#39;: strength}}}</span>
-        <span class="k">if</span> <span class="n">_i</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># beginning of recursion</span>
-            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">d1</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">add_to_graph</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">d1</span><span class="p">,</span> <span class="s1">&#39;IdL&#39;</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">d2</span> <span class="ow">in</span> <span class="n">_d1</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span> <span class="c1"># further nesting</span>
-                    <span class="n">op_i</span><span class="p">,</span> <span class="n">op_string_ij</span> <span class="o">=</span> <span class="n">key</span>
-                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">_label_left</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">_label_left</span> <span class="o">==</span> <span class="s1">&#39;IdL&#39;</span><span class="p">:</span>
-                        <span class="n">label</span> <span class="o">=</span> <span class="p">(</span><span class="n">_i</span><span class="p">,</span> <span class="n">op_i</span><span class="p">,</span> <span class="n">op_string_ij</span><span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">label</span> <span class="o">=</span> <span class="n">_label_left</span> <span class="o">+</span> <span class="p">(</span><span class="n">_i</span><span class="p">,</span> <span class="n">op_i</span><span class="p">,</span> <span class="n">op_string_ij</span><span class="p">)</span>
-                    <span class="n">graph</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">_i</span><span class="p">,</span> <span class="n">_label_left</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">op_i</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">skip_existing</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-                    <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">d3</span> <span class="ow">in</span> <span class="n">d2</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                        <span class="n">label_j</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">add_string</span><span class="p">(</span><span class="n">_i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">op_string_ij</span><span class="p">)</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">add_to_graph</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">d3</span><span class="p">,</span> <span class="n">label_j</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>  <span class="c1"># maximal nesting reached: exit recursion</span>
-                    <span class="c1"># i is actually the `l`</span>
-                    <span class="n">op_i</span><span class="p">,</span> <span class="n">strength</span> <span class="o">=</span> <span class="n">key</span><span class="p">,</span> <span class="n">d2</span>
-                    <span class="n">graph</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">_i</span><span class="p">,</span> <span class="n">_label_left</span><span class="p">,</span> <span class="s1">&#39;IdR&#39;</span><span class="p">,</span> <span class="n">op_i</span><span class="p">,</span> <span class="n">strength</span><span class="p">)</span></div>
-        <span class="c1"># done</span>
-<div class="viewcode-block" id="MultiCouplingTerms.remove_zeros"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MultiCouplingTerms.html#tenpy.networks.mpo.MultiCouplingTerms.remove_zeros">[docs]</a>    <span class="k">def</span> <span class="nf">remove_zeros</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tol_zero</span><span class="o">=</span><span class="mf">1.e-15</span><span class="p">,</span> <span class="n">_d0</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Remove entries close to 0 from :attr:`coupling_terms`.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        tol_zero : float</span>
-<span class="sd">            Entries in :attr:`coupling_terms` with `strength` &lt; `tol_zero` are considered to be</span>
-<span class="sd">            zero and removed.</span>
-<span class="sd">        _d0 : None</span>
-<span class="sd">            Should not be given; only needed for recursion.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">_d0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">_d0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span>
-        <span class="c1"># d0 = ``{i: {(&#39;opname_i&#39;, &#39;opname_string_ij&#39;): ... {j: {&#39;opname_j&#39;: strength}}}``</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">d1</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">_d0</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
-            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">d2</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">d1</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">remove_zeros</span><span class="p">(</span><span class="n">tol_zero</span><span class="p">,</span> <span class="n">d2</span><span class="p">)</span>  <span class="c1"># recursive!</span>
-                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">d2</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                        <span class="k">del</span> <span class="n">d1</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="c1"># key is opname_j, d2 is strength</span>
-                    <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">d2</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">tol_zero</span><span class="p">:</span>
-                        <span class="k">del</span> <span class="n">d1</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">d1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="k">del</span> <span class="n">_d0</span><span class="p">[</span><span class="n">i</span><span class="p">]</span></div>
-        <span class="c1"># done</span>
-
-    <span class="k">def</span> <span class="nf">__iadd__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">CouplingTerms</span><span class="p">):</span>
-            <span class="k">return</span> <span class="bp">NotImplemented</span>  <span class="c1"># unknown type of other</span>
-        <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">L</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;incompatible lengths&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_iadd_multi_coupling_terms</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">coupling_terms</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span>
-
-    <span class="k">def</span> <span class="nf">_max_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">d1</span><span class="p">):</span>
-        <span class="n">max_range</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">d2</span> <span class="ow">in</span> <span class="n">d1</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
-                <span class="c1"># further couplings: d2 is dictionary</span>
-                <span class="n">j_max</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">d2</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
-                <span class="n">max_range</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">max_range</span><span class="p">,</span> <span class="n">j_max</span> <span class="o">-</span> <span class="n">i</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">d3</span> <span class="ow">in</span> <span class="n">d2</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-                    <span class="n">max_range</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">max_range</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_range</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">d3</span><span class="p">))</span>
-            <span class="c1"># else: d2 is strength, last coupling reached</span>
-        <span class="k">return</span> <span class="n">max_range</span>
-
-    <span class="k">def</span> <span class="nf">_iadd_multi_coupling_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">self_d0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">other_d0</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="c1"># {ijkl[0]: {(ops_ijkl[0], op_string[0]):</span>
-        <span class="c1">#            {ijkl[1]: {(ops_ijkl[1], op_string[1]):</span>
-        <span class="c1">#                       ...</span>
-        <span class="c1">#                           {ijkl[-1]: {ops_ijkl[-1]: strength}</span>
-        <span class="c1">#            }         }</span>
-        <span class="c1"># }         }</span>
-        <span class="c1"># d0 = ``{i: {(&#39;opname_i&#39;, &#39;opname_string_ij&#39;): ... {j: {&#39;opname_j&#39;: strength}}}``</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">other_d1</span> <span class="ow">in</span> <span class="n">other_d0</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">self_d1</span> <span class="o">=</span> <span class="n">self_d0</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">dict</span><span class="p">())</span>
-            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">other_d2</span> <span class="ow">in</span> <span class="n">other_d1</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>  <span class="c1"># further couplings</span>
-                    <span class="n">self_d2</span> <span class="o">=</span> <span class="n">self_d1</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">dict</span><span class="p">())</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_iadd_multi_coupling_terms</span><span class="p">(</span><span class="n">self_d2</span><span class="p">,</span> <span class="n">other_d2</span><span class="p">)</span>  <span class="c1"># recursive!</span>
-                <span class="k">else</span><span class="p">:</span>  <span class="c1"># last term of the coupling</span>
-                    <span class="n">opname_j</span> <span class="o">=</span> <span class="n">key</span>
-                    <span class="n">strength</span> <span class="o">=</span> <span class="n">other_d2</span>
-                    <span class="n">self_d1</span><span class="p">[</span><span class="n">opname_j</span><span class="p">]</span> <span class="o">=</span> <span class="n">self_d1</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">opname_j</span><span class="p">,</span> <span class="mf">0.</span><span class="p">)</span> <span class="o">+</span> <span class="n">strength</span>
-        <span class="c1"># done</span>
-
-    <span class="k">def</span> <span class="nf">_test_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sites</span><span class="p">,</span> <span class="n">d0</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="n">N_sites</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sites</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">d0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">d0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_terms</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">d1</span> <span class="ow">in</span> <span class="n">d0</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">site_i</span> <span class="o">=</span> <span class="n">sites</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="n">N_sites</span><span class="p">]</span>
-            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">d2</span> <span class="ow">in</span> <span class="n">d1</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>  <span class="c1"># further couplings</span>
-                    <span class="n">op_i</span><span class="p">,</span> <span class="n">opstring_ij</span> <span class="o">=</span> <span class="n">key</span>
-                    <span class="k">if</span> <span class="ow">not</span> <span class="n">site_i</span><span class="o">.</span><span class="n">valid_opname</span><span class="p">(</span><span class="n">op_i</span><span class="p">):</span>
-                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Operator </span><span class="si">{op!r}</span><span class="s2"> not in site&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op_i</span><span class="p">))</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_test_terms</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="n">d2</span><span class="p">)</span>  <span class="c1"># recursive!</span>
-                <span class="k">else</span><span class="p">:</span>  <span class="c1"># last term of the coupling</span>
-                    <span class="n">op_i</span> <span class="o">=</span> <span class="n">key</span>
-                    <span class="k">if</span> <span class="ow">not</span> <span class="n">site_i</span><span class="o">.</span><span class="n">valid_opname</span><span class="p">(</span><span class="n">op_i</span><span class="p">):</span>
-                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Operator </span><span class="si">{op!r}</span><span class="s2"> not in site&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op_i</span><span class="p">))</span></div>
-        <span class="c1"># done</span>
 </pre></div>
 
           </div>
@@ -4126,7 +3398,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Apr 06, 2019.
+      Last updated on Apr 11, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.0.
     </div>
   </body>
