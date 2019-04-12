@@ -130,7 +130,7 @@
         <span class="k">if</span> <span class="n">mx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">mx</span> <span class="o">=</span> <span class="n">phi_q</span>
         <span class="n">hop_x</span> <span class="o">=</span> <span class="o">-</span><span class="n">Jx</span>
-        <span class="n">hop_y</span> <span class="o">=</span> <span class="o">-</span><span class="n">Jy</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">1.</span><span class="n">j</span> <span class="o">*</span> <span class="n">phi</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">mx</span><span class="p">)[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">])</span>  <span class="c1"># has shape (Lx, 1)</span>
+        <span class="n">hop_y</span> <span class="o">=</span> <span class="o">-</span><span class="n">Jy</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">1.</span><span class="n">j</span> <span class="o">*</span> <span class="n">phi</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">mx</span><span class="p">)[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">])</span>  <span class="c1"># has shape (mx, 1)</span>
     <span class="k">elif</span> <span class="n">gauge</span> <span class="o">==</span> <span class="s1">&#39;landau_y&#39;</span><span class="p">:</span>
         <span class="c1"># hopping in x-direction: depends on y, shape (1, my)</span>
         <span class="c1"># hopping in y-direction: uniform</span>
@@ -138,7 +138,7 @@
         <span class="k">if</span> <span class="n">my</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">my</span> <span class="o">=</span> <span class="n">phi_q</span>
         <span class="n">hop_y</span> <span class="o">=</span> <span class="o">-</span><span class="n">Jy</span>
-        <span class="n">hop_x</span> <span class="o">=</span> <span class="o">-</span><span class="n">Jx</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mf">1.</span><span class="n">j</span> <span class="o">*</span> <span class="n">phi</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">my</span><span class="p">)[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:])</span>  <span class="c1"># has shape (1, Ly)</span>
+        <span class="n">hop_x</span> <span class="o">=</span> <span class="o">-</span><span class="n">Jx</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mf">1.</span><span class="n">j</span> <span class="o">*</span> <span class="n">phi</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">my</span><span class="p">)[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:])</span>  <span class="c1"># has shape (1, my)</span>
     <span class="k">elif</span> <span class="n">gauge</span> <span class="o">==</span> <span class="s1">&#39;symmetric&#39;</span><span class="p">:</span>
         <span class="c1"># hopping in x-direction: depends on y, shape (mx, my)</span>
         <span class="c1"># hopping in y-direction: depends on x, shape (mx, my)</span>
@@ -146,10 +146,12 @@
             <span class="c1"># TODO Rework so minimal MUC always contains integer number of flux quanta (i.e. not sqrt).</span>
             <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Magnetic unit cell not (fully) specified.&quot;</span><span class="p">)</span>
             <span class="n">mx</span> <span class="o">=</span> <span class="n">my</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">phi_q</span><span class="p">)</span>
-            <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="n">mx</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
-            <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="n">my</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
-        <span class="n">hop_x</span> <span class="o">=</span> <span class="o">-</span><span class="n">Jx</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mf">1.</span><span class="n">j</span> <span class="o">*</span> <span class="p">(</span><span class="n">phi</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">my</span><span class="p">)[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">])</span>
-        <span class="n">hop_y</span> <span class="o">=</span> <span class="o">-</span><span class="n">Jy</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">1.</span><span class="n">j</span> <span class="o">*</span> <span class="p">(</span><span class="n">phi</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">mx</span><span class="p">)[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:])</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">mx</span><span class="o">.</span><span class="n">is_integer</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unable to build symmetric gauge with this flux.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mx</span> <span class="o">!=</span> <span class="n">my</span> <span class="ow">or</span> <span class="n">mx</span> <span class="o">*</span> <span class="n">my</span> <span class="o">!=</span> <span class="n">phi_q</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Magnetic unit cell incompatible with flux or symmetric gauge.&quot;</span><span class="p">)</span>
+        <span class="n">hop_x</span> <span class="o">=</span> <span class="o">-</span><span class="n">Jx</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mf">1.</span><span class="n">j</span> <span class="o">*</span> <span class="p">(</span><span class="n">phi</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">my</span><span class="p">)[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:])</span>  <span class="c1"># shape (1, my)</span>
+        <span class="n">hop_y</span> <span class="o">=</span> <span class="o">-</span><span class="n">Jy</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">1.</span><span class="n">j</span> <span class="o">*</span> <span class="p">(</span><span class="n">phi</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">mx</span><span class="p">)[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">])</span>  <span class="c1"># shape (mx, 1)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Undefinied gauge &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">gauge</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">hop_x</span><span class="p">,</span> <span class="n">hop_y</span>
@@ -163,6 +165,7 @@
 <span class="sd">    .. math ::</span>
 <span class="sd">        H = - \sum_{x, y} \mathtt{Jx} (e^{i \mathtt{phi}_{x,y} } c^\dagger_{x,y} c_{x+1,y} + h.c.)   \\</span>
 <span class="sd">            - \sum_{x, y} \mathtt{Jy} (e^{i \mathtt{phi}_{x,y} } c^\dagger_{x,y} c_{x,y+1} + h.c.)</span>
+<span class="sd">            + \sum_{x, y} \mathtt{v} ( n_{x, y} n_{x, y + 1} + n_{x, y} n_{x + 1, y}</span>
 <span class="sd">            - \sum_{x, y} \mathtt{mu} n_{x,y},</span>
 
 <span class="sd">    where :math:`e^{i \mathtt{phi}_{x,y} }` is a complex Aharonov-Bohm hopping</span>
@@ -181,13 +184,13 @@
 <span class="sd">    filling : tuple</span>
 <span class="sd">        Average number of fermions per site, defined as a fraction (numerator, denominator)</span>
 <span class="sd">        Changes the definition of ``&#39;dN&#39;`` in the :class:`~tenpy.networks.site.FermionSite`.</span>
-<span class="sd">    Jx, Jy, mu: float</span>
+<span class="sd">    Jx, Jy, mu, v: float</span>
 <span class="sd">        Hamiltonian parameters as defined above.</span>
 <span class="sd">    bc_MPS : {&#39;finite&#39; | &#39;infinte&#39;}</span>
 <span class="sd">        MPS boundary conditions along the x-direction.</span>
 <span class="sd">        For &#39;infinite&#39; boundary conditions, repeat the unit cell in x-direction.</span>
 <span class="sd">        Coupling boundary conditions in x-direction are chosen accordingly.</span>
-<span class="sd">    bc_x : &#39;periodic&#39; | &#39;infinite&#39;</span>
+<span class="sd">    bc_x : &#39;periodic&#39; | &#39;open&#39;</span>
 <span class="sd">        Lattice boundary conditions in x-direction</span>
 <span class="sd">    bc_y : &#39;ladder&#39; | &#39;cylinder&#39;</span>
 <span class="sd">        Lattice boundary conditions in y-direction.</span>
@@ -235,19 +238,21 @@
         <span class="n">Lx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">Ly</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">phi_ext</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;phi_ext&#39;</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-        <span class="n">mu</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;mu&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="n">mu</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;mu&#39;</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
         <span class="n">hop_x</span><span class="p">,</span> <span class="n">hop_y</span> <span class="o">=</span> <span class="n">gauge_hopping</span><span class="p">(</span><span class="n">model_params</span><span class="p">)</span>
 
         <span class="c1"># 6) add terms of the Hamiltonian</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">add_onsite</span><span class="p">(</span><span class="o">-</span><span class="n">mu</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;N&#39;</span><span class="p">)</span>
         <span class="n">dx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
-        <span class="c1"># hop_x = self.coupling_strength_add_ext_flux(hop_x, dx, [0, phi_ext]) # does nothing...</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">hop_x</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Cd&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="n">dx</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">hop_x</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Cd&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="o">-</span><span class="n">dx</span><span class="p">)</span>  <span class="c1"># h.c.</span>
         <span class="n">dy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
         <span class="n">hop_y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_strength_add_ext_flux</span><span class="p">(</span><span class="n">hop_y</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">phi_ext</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">hop_y</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Cd&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="n">dy</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">hop_y</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Cd&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="o">-</span><span class="n">dy</span><span class="p">)</span>  <span class="c1"># h.c.</span></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">hop_y</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Cd&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="o">-</span><span class="n">dy</span><span class="p">)</span>  <span class="c1"># h.c.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;N&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;N&#39;</span><span class="p">,</span> <span class="n">dx</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_coupling</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;N&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;N&#39;</span><span class="p">,</span> <span class="n">dy</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="HofstadterBosons"><a class="viewcode-back" href="../../../reference/tenpy.models.hofstadter.HofstadterBosons.html#tenpy.models.hofstadter.HofstadterBosons">[docs]</a><span class="k">class</span> <span class="nc">HofstadterBosons</span><span class="p">(</span><span class="n">CouplingModel</span><span class="p">,</span> <span class="n">MPOModel</span><span class="p">):</span>
@@ -273,7 +278,7 @@
 <span class="sd">        Size of the simulation unit cell in terms of lattice sites.</span>
 <span class="sd">    mx, my : int</span>
 <span class="sd">        Size of the magnetic unit cell in terms of lattice sites.</span>
-<span class="sd">    N_max : int</span>
+<span class="sd">    Nmax : int</span>
 <span class="sd">        Maximum number of bosons per site.</span>
 <span class="sd">    filling : tuple</span>
 <span class="sd">        Average number of fermions per site, defined as a fraction (numerator, denominator)</span>
@@ -284,7 +289,7 @@
 <span class="sd">        MPS boundary conditions along the x-direction.</span>
 <span class="sd">        For &#39;infinite&#39; boundary conditions, repeat the unit cell in x-direction.</span>
 <span class="sd">        Coupling boundary conditions in x-direction are chosen accordingly.</span>
-<span class="sd">    bc_x : &#39;periodic&#39; | &#39;infinite&#39;</span>
+<span class="sd">    bc_x : &#39;periodic&#39; | &#39;open&#39;</span>
 <span class="sd">        Boundary conditions in x-direction</span>
 <span class="sd">    bc_y : &#39;ladder&#39; | &#39;cylinder&#39;</span>
 <span class="sd">        Boundary conditions in y-direction.</span>
@@ -333,7 +338,7 @@
         <span class="n">Lx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">Ly</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">phi_ext</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;phi_ext&#39;</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-        <span class="n">mu</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;mu&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="n">mu</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;mu&#39;</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
         <span class="n">U</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="s1">&#39;U&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
         <span class="n">hop_x</span><span class="p">,</span> <span class="n">hop_y</span> <span class="o">=</span> <span class="n">gauge_hopping</span><span class="p">(</span><span class="n">model_params</span><span class="p">)</span>
 
@@ -392,7 +397,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Apr 11, 2019.
+      Last updated on Apr 12, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.0.
     </div>
   </body>
