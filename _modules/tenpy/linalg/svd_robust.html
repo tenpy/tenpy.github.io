@@ -47,7 +47,7 @@
 <span class="sd">But sadly, both :func:`numpy.linalg.svd` and :func:`scipy.linalg.svd` fail from time to time,</span>
 <span class="sd">raising ``LinalgError(&quot;SVD did not converge&quot;)``.</span>
 <span class="sd">The reason is that both of them call the LAPACK function `#gesdd`</span>
-<span class="sd">(where `#` depends on the data type), which (to make it short) fails in some cases.</span>
+<span class="sd">(where `#` depends on the data type), which takes an iterative approach that can fail.</span>
 <span class="sd">However, it is usually much faster than the alternative (and robust) `#gesvd`.</span>
 
 <span class="sd">Our workaround is as follows: we provide a function :func:`svd` with call signature as scipy&#39;s svd.</span>
@@ -65,6 +65,7 @@
 <span class="sd">He explains a bit more in detail what fails.</span>
 
 <span class="sd">The include of `dgesvd` to scipy was done in https://github.com/scipy/scipy/pull/5994.</span>
+
 
 <span class="sd">Examples</span>
 <span class="sd">--------</span>
@@ -105,6 +106,9 @@
     <span class="n">_old_scipy</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
     <span class="n">_old_scipy</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Old scipy &lt;= 0.18.0: support will be dropped in TeNPy version 1.0.0&quot;</span><span class="p">,</span>
+                  <span class="ne">FutureWarning</span><span class="p">)</span>
+
 <span class="c1"># (NumpyVersion parses the argument for version comparsion, not ``numpy.__version__``)</span>
 
 <span class="c1">#: will be the the CLAPACK library loaded with _load_lapack()</span>
@@ -372,7 +376,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Apr 12, 2019.
+      Last updated on Apr 13, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.0.
     </div>
   </body>
