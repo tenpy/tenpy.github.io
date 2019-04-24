@@ -880,7 +880,7 @@
 <div class="viewcode-block" id="IrregularLattice"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.IrregularLattice.html#tenpy.models.lattice.IrregularLattice">[docs]</a><span class="k">class</span> <span class="nc">IrregularLattice</span><span class="p">(</span><span class="n">Lattice</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;A variant of a regular lattice, where we might have extra sites or sites missing.</span>
 
-<span class="sd">    .. todo :</span>
+<span class="sd">    .. todo ::</span>
 <span class="sd">        this doesn&#39;t fully work yet...</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -955,7 +955,7 @@
 
 
 <div class="viewcode-block" id="Chain"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.Chain.html#tenpy.models.lattice.Chain">[docs]</a><span class="k">class</span> <span class="nc">Chain</span><span class="p">(</span><span class="n">SimpleLattice</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;A simple uniform chain of L equal sites.</span>
+    <span class="sd">&quot;&quot;&quot;A chain of L equal sites.</span>
 
 <span class="sd">    .. image :: /images/lattices/Chain.*</span>
 
@@ -1022,7 +1022,7 @@
 
 
 <div class="viewcode-block" id="Square"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.Square.html#tenpy.models.lattice.Square">[docs]</a><span class="k">class</span> <span class="nc">Square</span><span class="p">(</span><span class="n">SimpleLattice</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;A simple uniform square lattice.</span>
+    <span class="sd">&quot;&quot;&quot;A square lattice.</span>
 
 <span class="sd">    .. image :: /images/lattices/Square.*</span>
 
@@ -1049,6 +1049,40 @@
         <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;next_nearest_neighbors&#39;</span><span class="p">,</span> <span class="n">nNN</span><span class="p">)</span>
         <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;next_next_nearest_neighbors&#39;</span><span class="p">,</span> <span class="n">nnNN</span><span class="p">)</span>
         <span class="n">SimpleLattice</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="p">[</span><span class="n">Lx</span><span class="p">,</span> <span class="n">Ly</span><span class="p">],</span> <span class="n">site</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">Triangular</span><span class="p">(</span><span class="n">SimpleLattice</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A triangular lattice.</span>
+
+<span class="sd">    .. image :: /images/lattices/Triangular.*</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Lx, Ly : int</span>
+<span class="sd">        The length in each direction.</span>
+<span class="sd">    site : :class:`~tenpy.networks.Site`</span>
+<span class="sd">        The local lattice site. The `unit_cell` of the :class:`Lattice` is just ``[site]``.</span>
+<span class="sd">    **kwargs :</span>
+<span class="sd">        Additional keyword arguments given to the :class:`Lattice`.</span>
+<span class="sd">        `[[next_]next_]nearest_neighbors` are set accordingly.</span>
+<span class="sd">        If `order` is specified in the form ``(&#39;standard&#39;, snake_windingi, priority)``,</span>
+<span class="sd">        the `snake_winding` and `priority` should only be specified for the spatial directions.</span>
+<span class="sd">        Similarly, `positions` can be specified as a single vector.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dim</span> <span class="o">=</span> <span class="mi">2</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Lx</span><span class="p">,</span> <span class="n">Ly</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">sqrt3_half</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>  <span class="c1"># = cos(pi/6)</span>
+        <span class="n">basis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">sqrt3_half</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">]])</span>
+
+        <span class="n">NN</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]))]</span>
+        <span class="n">nNN</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]))]</span>
+        <span class="n">nnNN</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">])),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]))]</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;basis&#39;</span><span class="p">,</span> <span class="n">basis</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;nearest_neighbors&#39;</span><span class="p">,</span> <span class="n">NN</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;next_nearest_neighbors&#39;</span><span class="p">,</span> <span class="n">nNN</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;next_next_nearest_neighbors&#39;</span><span class="p">,</span> <span class="n">nnNN</span><span class="p">)</span>
+        <span class="n">SimpleLattice</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="p">[</span><span class="n">Lx</span><span class="p">,</span> <span class="n">Ly</span><span class="p">],</span> <span class="n">site</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="Honeycomb"><a class="viewcode-back" href="../../../reference/tenpy.models.lattice.Honeycomb.html#tenpy.models.lattice.Honeycomb">[docs]</a><span class="k">class</span> <span class="nc">Honeycomb</span><span class="p">(</span><span class="n">Lattice</span><span class="p">):</span>
@@ -1377,7 +1411,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Apr 23, 2019.
+      Last updated on Apr 24, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.0.
     </div>
   </body>
