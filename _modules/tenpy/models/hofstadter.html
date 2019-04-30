@@ -84,9 +84,9 @@
 <span class="sd">          :math:`(1,7)`, so it encloses axactly 3 flux quanta.</span>
 <span class="sd">        * &#39;symmetric&#39;: symmetric gauge. The magnetic unit cell will have shape</span>
 <span class="sd">          :math:`(\mathtt{mx}, \mathtt{my})`, with :math:`mx = my`. For flux densities :math:`p/q`,</span>
-<span class="sd">          `mx` and `my` will default to :math:`\sqrt{q}`</span>
+<span class="sd">          `mx` and `my` will default to :math:`q`</span>
 <span class="sd">          Example: at a flux density 4/9, the magnetic unit cell will have shape</span>
-<span class="sd">          (3,3), so it encloses exactly 4 flux quanta.</span>
+<span class="sd">          (9,9).</span>
 
 <span class="sd">    .. todo :</span>
 <span class="sd">        Add periodic gauge (generalization of symmetric with mx, my unequal).</span>
@@ -143,13 +143,7 @@
         <span class="c1"># hopping in x-direction: depends on y, shape (mx, my)</span>
         <span class="c1"># hopping in y-direction: depends on x, shape (mx, my)</span>
         <span class="k">if</span> <span class="n">mx</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">my</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="c1"># TODO Rework so minimal MUC always contains integer number of flux quanta (i.e. not sqrt).</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Magnetic unit cell not (fully) specified.&quot;</span><span class="p">)</span>
-            <span class="n">mx</span> <span class="o">=</span> <span class="n">my</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">phi_q</span><span class="p">)</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">mx</span><span class="o">.</span><span class="n">is_integer</span><span class="p">():</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unable to build symmetric gauge with this flux.&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">mx</span> <span class="o">!=</span> <span class="n">my</span> <span class="ow">or</span> <span class="n">mx</span> <span class="o">*</span> <span class="n">my</span> <span class="o">!=</span> <span class="n">phi_q</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Magnetic unit cell incompatible with flux or symmetric gauge.&quot;</span><span class="p">)</span>
+            <span class="n">mx</span> <span class="o">=</span> <span class="n">my</span> <span class="o">=</span> <span class="n">phi_q</span>
         <span class="n">hop_x</span> <span class="o">=</span> <span class="o">-</span><span class="n">Jx</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mf">1.</span><span class="n">j</span> <span class="o">*</span> <span class="p">(</span><span class="n">phi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">my</span><span class="p">)[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:])</span>  <span class="c1"># shape (1, my)</span>
         <span class="n">hop_y</span> <span class="o">=</span> <span class="o">-</span><span class="n">Jy</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">1.</span><span class="n">j</span> <span class="o">*</span> <span class="p">(</span><span class="n">phi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">mx</span><span class="p">)[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">])</span>  <span class="c1"># shape (mx, 1)</span>
     <span class="k">else</span><span class="p">:</span>
@@ -397,7 +391,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Apr 29, 2019.
+      Last updated on Apr 30, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.0.
     </div>
   </body>
