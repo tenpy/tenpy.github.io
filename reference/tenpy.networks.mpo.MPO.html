@@ -140,17 +140,20 @@ A single entry holds for all bonds.</p>
 <tr class="row-even"><td><p><a class="reference internal" href="#tenpy.networks.mpo.MPO.group_sites" title="tenpy.networks.mpo.MPO.group_sites"><code class="xref py py-obj docutils literal notranslate"><span class="pre">group_sites</span></code></a>([n, grouped_sites])</p></td>
 <td><p>Modify <cite>self</cite> inplace to group sites.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.networks.mpo.MPO.set_W" title="tenpy.networks.mpo.MPO.set_W"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_W</span></code></a>(i, W)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.networks.mpo.MPO.is_hermitian" title="tenpy.networks.mpo.MPO.is_hermitian"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_hermitian</span></code></a>([tol])</p></td>
+<td><p>Check if <cite>H</cite> is a hermitian MPO.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.networks.mpo.MPO.set_W" title="tenpy.networks.mpo.MPO.set_W"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_W</span></code></a>(i, W)</p></td>
 <td><p>Set <cite>W</cite> at site <cite>i</cite>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.networks.mpo.MPO.test_sanity" title="tenpy.networks.mpo.MPO.test_sanity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.networks.mpo.MPO.test_sanity" title="tenpy.networks.mpo.MPO.test_sanity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code></a>()</p></td>
 <td><p>Sanity check.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="classmethod">
 <dt id="tenpy.networks.mpo.MPO.from_grids">
-<em class="property">classmethod </em><code class="descname">from_grids</code><span class="sig-paren">(</span><em>sites</em>, <em>grids</em>, <em>bc='finite'</em>, <em>IdL=None</em>, <em>IdR=None</em>, <em>Ws_qtotal=None</em>, <em>leg0=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#MPO.from_grids"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.MPO.from_grids" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="descname">from_grids</code><span class="sig-paren">(</span><em>sites</em>, <em>grids</em>, <em>bc='finite'</em>, <em>IdL=None</em>, <em>IdR=None</em>, <em>Ws_qtotal=None</em>, <em>leg0=None</em>, <em>max_range=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#MPO.from_grids"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.MPO.from_grids" title="Permalink to this definition">¶</a></dt>
 <dd><p>Initialize an MPO from <cite>grids</cite>.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters</dt>
@@ -166,6 +169,13 @@ with entries being or representing (see <a class="reference internal" href="tenp
 A single entry holds for all bonds.</p>
 </dd>
 <dt><strong>IdR</strong><span class="classifier">(iterable of) {int | None}</span></dt><dd><p>Indices on the bonds, which correpond to ‘only identities to the right’.</p>
+</dd>
+<dt><strong>Ws_qtotal</strong><span class="classifier">(list of) total charge</span></dt><dd><p>The <cite>qtotal</cite> to be used for each grid. Defaults to zero charges.</p>
+</dd>
+<dt><strong>leg0</strong><span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegCharge</span></code></span></dt><dd><p>LegCharge for ‘wL’ of the left-most <cite>W</cite>. By default, construct it.</p>
+</dd>
+<dt><strong>max_range</strong><span class="classifier">int | np.inf | None</span></dt><dd><p>Maximum range of hopping/interactions (in unit of sites) of the MPO.
+<code class="docutils literal notranslate"><span class="pre">None</span></code> for unknown.</p>
 </dd>
 </dl>
 </dd>
@@ -291,6 +301,31 @@ For an infinite MPS: the density per site.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="tenpy.networks.mpo.MPO.is_hermitian">
+<code class="descname">is_hermitian</code><span class="sig-paren">(</span><em>tol=1e-10</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#MPO.is_hermitian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.MPO.is_hermitian" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if <cite>H</cite> is a hermitian MPO.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>tol</strong><span class="classifier">float</span></dt><dd><p>Ignored for finite <cite>psi</cite>.
+For infinite MPO containing exponentially decaying long-range terms, stop evaluating
+further terms if the terms in <cite>LP</cite> have norm &lt; <cite>tol</cite>.</p>
+</dd>
+<dt><strong>max_range</strong><span class="classifier">int | None</span></dt><dd><p>Ignored for finite <cite>psi</cite>.
+Contract at most <code class="docutils literal notranslate"><span class="pre">self.L</span> <span class="pre">+</span> <span class="pre">max_range</span></code> sites, even if <cite>tol</cite> is not reached.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>hermitian</strong><span class="classifier">bool</span></dt><dd><p>Whether self is considered to be hermitian.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
 <dt id="tenpy.networks.mpo.MPO.get_grouped_mpo">
 <code class="descname">get_grouped_mpo</code><span class="sig-paren">(</span><em>blocklen</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#MPO.get_grouped_mpo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.MPO.get_grouped_mpo" title="Permalink to this definition">¶</a></dt>
 <dd><p>contract blocklen subsequent tensors into a single one and return result as a new MPO object</p>
@@ -378,7 +413,7 @@ For an infinite MPS: the density per site.</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on May 01, 2019.
+      Last updated on May 02, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.0.
     </div>
   </body>
