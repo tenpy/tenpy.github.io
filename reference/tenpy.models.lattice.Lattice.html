@@ -64,20 +64,24 @@
 A site of the lattice is thus identified by <strong>lattice indices</strong> <code class="docutils literal notranslate"><span class="pre">(x_0,</span> <span class="pre">...,</span> <span class="pre">x_{dim-1},</span> <span class="pre">u)</span></code>,
 where <code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">&lt;=</span> <span class="pre">x_l</span> <span class="pre">&lt;</span> <span class="pre">Ls[l]</span></code> pick the position of the unit cell in the lattice and
 <code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">&lt;=</span> <span class="pre">u</span> <span class="pre">&lt;</span> <span class="pre">len(unit_cell)</span></code> picks the site within the unit cell. The site is located
-in ‘space’ at <code class="docutils literal notranslate"><span class="pre">sum_l</span> <span class="pre">x_l*basis[l]</span> <span class="pre">+</span> <span class="pre">unit_cell_positions[u]</span></code> (see <a class="reference internal" href="#tenpy.models.lattice.Lattice.position" title="tenpy.models.lattice.Lattice.position"><code class="xref py py-meth docutils literal notranslate"><span class="pre">position()</span></code></a>).</p>
-<p>In addition to the pure geometry, this class also defines an ‘order’ of all sites.
+in ‘space’ at <code class="docutils literal notranslate"><span class="pre">sum_l</span> <span class="pre">x_l*basis[l]</span> <span class="pre">+</span> <span class="pre">unit_cell_positions[u]</span></code> (see <a class="reference internal" href="#tenpy.models.lattice.Lattice.position" title="tenpy.models.lattice.Lattice.position"><code class="xref py py-meth docutils literal notranslate"><span class="pre">position()</span></code></a>).
+(Note that the position in space is only used for plotting, not for defining the couplings.)</p>
+<p>In addition to the pure geometry, this class also defines an <cite>order</cite> of all sites.
 This order maps the lattice to a finite 1D chain and defines the geometry of MPSs and MPOs.
 The <strong>MPS index</strong> <cite>i</cite> corresponds thus to the lattice sites given by
-<code class="docutils literal notranslate"><span class="pre">(a_0,</span> <span class="pre">...,</span> <span class="pre">a_{D-1},</span> <span class="pre">u)</span> <span class="pre">=</span> <span class="pre">tuple(self.order[i])</span></code>.
+<code class="docutils literal notranslate"><span class="pre">(x_0,</span> <span class="pre">...,</span> <span class="pre">x_{dim-1},</span> <span class="pre">u)</span> <span class="pre">=</span> <span class="pre">tuple(self.order[i])</span></code>.
+Infinite boundary conditions of the MPS repeat in the first spatial direction of the lattice,
+i.e., if the site at (x_0, x_1, …, x_{dim-1},u)`` has MPS index <cite>i</cite>, the site at
+at <code class="docutils literal notranslate"><span class="pre">(x_0</span> <span class="pre">+</span> <span class="pre">a*Ls[0],</span> <span class="pre">x_1</span> <span class="pre">...,</span> <span class="pre">x_{dim-1},</span> <span class="pre">u)</span></code> corresponds to MPS index <code class="docutils literal notranslate"><span class="pre">i</span> <span class="pre">+</span> <span class="pre">N_sites</span></code>.
 Use <a class="reference internal" href="#tenpy.models.lattice.Lattice.mps2lat_idx" title="tenpy.models.lattice.Lattice.mps2lat_idx"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mps2lat_idx()</span></code></a> and <a class="reference internal" href="#tenpy.models.lattice.Lattice.lat2mps_idx" title="tenpy.models.lattice.Lattice.lat2mps_idx"><code class="xref py py-meth docutils literal notranslate"><span class="pre">lat2mps_idx()</span></code></a> for conversion of indices.
-<a class="reference internal" href="#tenpy.models.lattice.Lattice.mps2lat_values" title="tenpy.models.lattice.Lattice.mps2lat_values"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mps2lat_values()</span></code></a> perform the necessary reshaping and re-ordering from arrays indexed in
-MPS form to arrays indexed in lattice form.</p>
+The function <a class="reference internal" href="#tenpy.models.lattice.Lattice.mps2lat_values" title="tenpy.models.lattice.Lattice.mps2lat_values"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mps2lat_values()</span></code></a> performs the necessary reshaping and re-ordering from
+arrays indexed in MPS form to arrays indexed in lattice form.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl>
 <dt><strong>Ls</strong><span class="classifier">list of int</span></dt><dd><p>the length in each direction</p>
 </dd>
-<dt><strong>unit_cell</strong><span class="classifier">list of <code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></span></dt><dd><p>The sites making up a unit cell of the lattice.
+<dt><strong>unit_cell</strong><span class="classifier">list of <a class="reference internal" href="tenpy.networks.site.Site.html#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a></span></dt><dd><p>The sites making up a unit cell of the lattice.
 If you want to specify it only after initialization, use <code class="docutils literal notranslate"><span class="pre">None</span></code> entries in the list.</p>
 </dd>
 <dt><strong>order</strong><span class="classifier">str | <code class="docutils literal notranslate"><span class="pre">('standard',</span> <span class="pre">snake_winding,</span> <span class="pre">priority)</span></code> | <code class="docutils literal notranslate"><span class="pre">('grouped',</span> <span class="pre">groups)</span></code></span></dt><dd><p>A string or tuple specifying the order, given to <a class="reference internal" href="#tenpy.models.lattice.Lattice.ordering" title="tenpy.models.lattice.Lattice.ordering"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ordering()</span></code></a>.</p>
@@ -128,7 +132,7 @@ Note that we include each coupling only in one direction; to get both directions
 </dd>
 <dt><strong>shape</strong><span class="classifier">tuple of int</span></dt><dd><p>the ‘shape’ of the lattice, same as <code class="docutils literal notranslate"><span class="pre">Ls</span> <span class="pre">+</span> <span class="pre">(len(unit_cell),</span> <span class="pre">)</span></code></p>
 </dd>
-<dt><strong>unit_cell</strong><span class="classifier">list of <code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></span></dt><dd><p>the lattice sites making up a unit cell of the lattice.</p>
+<dt><strong>unit_cell</strong><span class="classifier">list of <a class="reference internal" href="tenpy.networks.site.Site.html#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a></span></dt><dd><p>the lattice sites making up a unit cell of the lattice.</p>
 </dd>
 <dt><strong>bc</strong><span class="classifier">bool ndarray</span></dt><dd><p>Boundary conditions of the couplings in each direction of the lattice,
 translated into a bool array with the global <cite>bc_choices</cite>.</p>
@@ -177,10 +181,10 @@ Note that we include each coupling only in one direction; to get both directions
 </colgroup>
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.models.lattice.Lattice.lat2mps_idx" title="tenpy.models.lattice.Lattice.lat2mps_idx"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lat2mps_idx</span></code></a>(lat_idx)</p></td>
-<td><p>translate lattice indices <code class="docutils literal notranslate"><span class="pre">(x_0,</span> <span class="pre">...,</span> <span class="pre">x_{D-1},</span> <span class="pre">u)</span></code> to MPS index <cite>i</cite>.</p></td>
+<td><p>Translate lattice indices <code class="docutils literal notranslate"><span class="pre">(x_0,</span> <span class="pre">...,</span> <span class="pre">x_{D-1},</span> <span class="pre">u)</span></code> to MPS index <cite>i</cite>.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#tenpy.models.lattice.Lattice.mps2lat_idx" title="tenpy.models.lattice.Lattice.mps2lat_idx"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mps2lat_idx</span></code></a>(i)</p></td>
-<td><p>translate MPS index <cite>i</cite> to lattice indices <code class="docutils literal notranslate"><span class="pre">(x_0,</span> <span class="pre">...,</span> <span class="pre">x_{D_1},</span> <span class="pre">u)</span></code></p></td>
+<td><p>Translate MPS index <cite>i</cite> to lattice indices <code class="docutils literal notranslate"><span class="pre">(x_0,</span> <span class="pre">...,</span> <span class="pre">x_{dim-1},</span> <span class="pre">u)</span></code>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.models.lattice.Lattice.mps2lat_values" title="tenpy.models.lattice.Lattice.mps2lat_values"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mps2lat_values</span></code></a>(A[, axes, u])</p></td>
 <td><p>reshape/reorder A to replace an MPS index by lattice indices.</p></td>
@@ -192,7 +196,7 @@ Note that we include each coupling only in one direction; to get both directions
 <td><p>Similar as <a class="reference internal" href="#tenpy.models.lattice.Lattice.mps_idx_fix_u" title="tenpy.models.lattice.Lattice.mps_idx_fix_u"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mps_idx_fix_u()</span></code></a>, but return also the corresponding lattice indices.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#tenpy.models.lattice.Lattice.mps_sites" title="tenpy.models.lattice.Lattice.mps_sites"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mps_sites</span></code></a>()</p></td>
-<td><p>Return a list [self.site(i) for i in range(self.N_sites)].</p></td>
+<td><p>Return a list of sites for all MPS indices.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.models.lattice.Lattice.number_nearest_neighbors" title="tenpy.models.lattice.Lattice.number_nearest_neighbors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">number_nearest_neighbors</span></code></a>([u])</p></td>
 <td><p>Count the number of nearest neighbors for a site in the bulk.</p></td>
@@ -228,7 +232,7 @@ Note that we include each coupling only in one direction; to get both directions
 <td><p>Generalization of <a class="reference internal" href="#tenpy.models.lattice.Lattice.possible_couplings" title="tenpy.models.lattice.Lattice.possible_couplings"><code class="xref py py-meth docutils literal notranslate"><span class="pre">possible_couplings()</span></code></a> to couplings with more than 2 sites.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#tenpy.models.lattice.Lattice.site" title="tenpy.models.lattice.Lattice.site"><code class="xref py py-obj docutils literal notranslate"><span class="pre">site</span></code></a>(i)</p></td>
-<td><p>return <code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code> instance corresponding to an MPS index <cite>i</cite></p></td>
+<td><p>return <a class="reference internal" href="tenpy.networks.site.Site.html#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a> instance corresponding to an MPS index <cite>i</cite></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.models.lattice.Lattice.test_sanity" title="tenpy.models.lattice.Lattice.test_sanity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code></a>()</p></td>
 <td><p>Sanity check.</p></td>
@@ -353,26 +357,61 @@ documentation of these functions.</p>
 <dl class="method">
 <dt id="tenpy.models.lattice.Lattice.site">
 <code class="descname">site</code><span class="sig-paren">(</span><em>i</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/lattice.html#Lattice.site"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.lattice.Lattice.site" title="Permalink to this definition">¶</a></dt>
-<dd><p>return <code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code> instance corresponding to an MPS index <cite>i</cite></p>
+<dd><p>return <a class="reference internal" href="tenpy.networks.site.Site.html#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a> instance corresponding to an MPS index <cite>i</cite></p>
 </dd></dl>
 
 <dl class="method">
 <dt id="tenpy.models.lattice.Lattice.mps_sites">
 <code class="descname">mps_sites</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/lattice.html#Lattice.mps_sites"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.lattice.Lattice.mps_sites" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a list [self.site(i) for i in range(self.N_sites)].</p>
+<dd><p>Return a list of sites for all MPS indices.</p>
+<p>Equivalent to <code class="docutils literal notranslate"><span class="pre">[self.site(i)</span> <span class="pre">for</span> <span class="pre">i</span> <span class="pre">in</span> <span class="pre">range(self.N_sites)]</span></code>.</p>
 <p>This should be used for <cite>sites</cite> of 1D tensor networks (MPS, MPO,…).</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="tenpy.models.lattice.Lattice.mps2lat_idx">
 <code class="descname">mps2lat_idx</code><span class="sig-paren">(</span><em>i</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/lattice.html#Lattice.mps2lat_idx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.lattice.Lattice.mps2lat_idx" title="Permalink to this definition">¶</a></dt>
-<dd><p>translate MPS index <cite>i</cite> to lattice indices <code class="docutils literal notranslate"><span class="pre">(x_0,</span> <span class="pre">...,</span> <span class="pre">x_{D_1},</span> <span class="pre">u)</span></code></p>
+<dd><p>Translate MPS index <cite>i</cite> to lattice indices <code class="docutils literal notranslate"><span class="pre">(x_0,</span> <span class="pre">...,</span> <span class="pre">x_{dim-1},</span> <span class="pre">u)</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>i</strong><span class="classifier">int | array_like of int</span></dt><dd><p>MPS index/indices.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>lat_idx</strong><span class="classifier">array</span></dt><dd><p>First dimensions like <cite>i</cite>, last dimension has len <cite>dim`+1 and contains the lattice
+indices ``(x_0, …, x_{dim-1}, u)`</cite> corresponding to <cite>i</cite>.
+For <cite>i</cite> accross the MPS unit cell and “infinite” <cite>bc_MPS</cite>, we shift <cite>x_0</cite> accordingly.</p>
+</dd>
+</dl>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="tenpy.models.lattice.Lattice.lat2mps_idx">
 <code class="descname">lat2mps_idx</code><span class="sig-paren">(</span><em>lat_idx</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/lattice.html#Lattice.lat2mps_idx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.lattice.Lattice.lat2mps_idx" title="Permalink to this definition">¶</a></dt>
-<dd><p>translate lattice indices <code class="docutils literal notranslate"><span class="pre">(x_0,</span> <span class="pre">...,</span> <span class="pre">x_{D-1},</span> <span class="pre">u)</span></code> to MPS index <cite>i</cite>.</p>
+<dd><p>Translate lattice indices <code class="docutils literal notranslate"><span class="pre">(x_0,</span> <span class="pre">...,</span> <span class="pre">x_{D-1},</span> <span class="pre">u)</span></code> to MPS index <cite>i</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>lat_idx</strong><span class="classifier">array_like […, dim+1]</span></dt><dd><p>The last dimension corresponds to lattice indices <code class="docutils literal notranslate"><span class="pre">(x_0,</span> <span class="pre">...,</span> <span class="pre">x_{D-1},</span> <span class="pre">u)</span></code>.
+All lattice indices should be positive and smaller than the corresponding entry in
+<code class="docutils literal notranslate"><span class="pre">self.shape</span></code>. Exception: for “infinite” <cite>bc_MPS</cite>, an <cite>x_0</cite> outside indicates shifts
+accross the boundary.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>i</strong><span class="classifier">array_like</span></dt><dd><p>MPS index/indices corresponding to <cite>lat_idx</cite>.
+Has the same shape as <cite>lat_idx</cite> without the last dimension.</p>
+</dd>
+</dl>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
@@ -755,7 +794,7 @@ Defaults to the first entry of <code class="xref py py-attr docutils literal not
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Apr 25, 2019.
+      Last updated on May 17, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.0.
     </div>
   </body>
