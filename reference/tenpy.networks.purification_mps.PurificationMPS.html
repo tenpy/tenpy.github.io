@@ -643,7 +643,7 @@ A single choice holds for all of the entries.</p>
 <dt id="tenpy.networks.purification_mps.PurificationMPS.correlation_function">
 <code class="descname">correlation_function</code><span class="sig-paren">(</span><em>ops1</em>, <em>ops2</em>, <em>sites1=None</em>, <em>sites2=None</em>, <em>opstr=None</em>, <em>str_on_first=True</em>, <em>hermitian=False</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.networks.purification_mps.PurificationMPS.correlation_function" title="Permalink to this definition">¶</a></dt>
 <dd><p>Correlation function  <code class="docutils literal notranslate"><span class="pre">&lt;psi|op1_i</span> <span class="pre">op2_j|psi&gt;/&lt;psi|psi&gt;</span></code> of single site operators.</p>
-<p>Given the MPS in canonical form, it calculates n-site expectation values.
+<p>Given the MPS in canonical form, it calculates 2-site correlation functions.
 For examples the contraction for a two-site operator on site <cite>i</cite> would look like:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>          <span class="o">.--</span><span class="n">S</span><span class="o">--</span><span class="n">B</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">--</span><span class="n">B</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">--...--</span><span class="n">B</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">---.</span>
 <span class="o">|</span>          <span class="o">|</span>     <span class="o">|</span>     <span class="o">|</span>            <span class="o">|</span>      <span class="o">|</span>
@@ -668,7 +668,7 @@ For examples the contraction for a two-site operator on site <cite>i</cite> woul
 </div>
 <p>For <code class="docutils literal notranslate"><span class="pre">i==j</span></code>, no <cite>opstr</cite> is included.
 For <code class="docutils literal notranslate"><span class="pre">str_on_first=False</span></code>, the <cite>opstr</cite> on site <code class="docutils literal notranslate"><span class="pre">min(i,</span> <span class="pre">j)</span></code> is always left out.</p>
-<p>Strings (like <code class="docutils literal notranslate"><span class="pre">'Id',</span> <span class="pre">'Sz'</span></code>) in the operator lists are translated into single-site
+<p>Strings (like <code class="docutils literal notranslate"><span class="pre">'Id',</span> <span class="pre">'Sz'</span></code>) in the arguments are translated into single-site
 operators defined by the <a class="reference internal" href="tenpy.networks.site.Site.html#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a> on which they act.
 Each operator should have the two legs <code class="docutils literal notranslate"><span class="pre">'p',</span> <span class="pre">'p*'</span></code>.</p>
 <dl class="field-list">
@@ -692,6 +692,7 @@ Is sorted before use, i.e. the order is ignored.</p>
 </dd>
 <dt><strong>opstr</strong><span class="classifier">None | (list of) { <a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a> | str }</span></dt><dd><p>Ignored by default (<code class="docutils literal notranslate"><span class="pre">None</span></code>).
 Operator(s) to be inserted between <code class="docutils literal notranslate"><span class="pre">ops1</span></code> and <code class="docutils literal notranslate"><span class="pre">ops2</span></code>.
+If less than <a class="reference internal" href="#tenpy.networks.purification_mps.PurificationMPS.L" title="tenpy.networks.purification_mps.PurificationMPS.L"><code class="xref py py-attr docutils literal notranslate"><span class="pre">L</span></code></a> operators are given, we repeat them periodically.
 If given as a list, <code class="docutils literal notranslate"><span class="pre">opstr[r]</span></code> is inserted at site <cite>r</cite> (independent of <cite>sites1</cite> and
 <cite>sites2</cite>).</p>
 </dd>
@@ -1234,7 +1235,7 @@ case we adjust the total charge to match these legs.</p>
 <dt><strong>vL_leg</strong><span class="classifier">None | LegCharge</span></dt><dd><p>Desired new virtual leg on the very left. Needs to have the same block strucuture as
 current leg, but can have shifted charge entries.</p>
 </dd>
-<dt><strong>vR_leg</strong><span class="classifier">None | LegCharge</span></dt><dd><p>Desired new virtual leg on the very rigth. Needs to have the same block strucuture as
+<dt><strong>vR_leg</strong><span class="classifier">None | LegCharge</span></dt><dd><p>Desired new virtual leg on the very right. Needs to have the same block strucuture as
 current leg, but can have shifted charge entries.
 Should be <cite>vL_leg.conj()</cite> for infinite MPS, if <cite>qtotal</cite> is not given.</p>
 </dd>
@@ -1493,7 +1494,7 @@ with labels <code class="docutils literal notranslate"><span class="pre">'vR*',<
 <dl class="field-list">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl>
-<dt><strong>i</strong><span class="classifier">int</span></dt><dd><p>Build <code class="docutils literal notranslate"><span class="pre">RP</span></code> rigth of site <cite>i</cite>.</p>
+<dt><strong>i</strong><span class="classifier">int</span></dt><dd><p>Build <code class="docutils literal notranslate"><span class="pre">RP</span></code> right of site <cite>i</cite>.</p>
 </dd>
 <dt><strong>bra</strong><span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPS</span></code></span></dt><dd><p>Check leg compatiblity with a <cite>bra</cite>. Note that the returned <cite>init_RP</cite> will
 only be the contraction for the <code class="docutils literal notranslate"><span class="pre">RP</span></code> of  <code class="docutils literal notranslate"><span class="pre">&lt;bra|self&gt;</span></code> on the right most site
@@ -1746,7 +1747,7 @@ Should have leg labels <code class="docutils literal notranslate"><span class="p
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Apr 25, 2019.
+      Last updated on Jun 01, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.0.
     </div>
   </body>

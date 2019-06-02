@@ -714,7 +714,9 @@
         <span class="n">keyL</span> <span class="o">=</span> <span class="n">keyR</span> <span class="o">=</span> <span class="n">key</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span>
             <span class="k">if</span> <span class="p">(</span><span class="n">k</span> <span class="o">-</span> <span class="n">i</span><span class="p">)</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">keyR</span> <span class="o">=</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">k</span> <span class="o">-</span> <span class="n">i</span><span class="p">)</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">)</span>
+                <span class="c1"># necessary to extend key because keyL is already in use at this bond</span>
+                <span class="n">keyR</span> <span class="o">=</span> <span class="n">keyL</span> <span class="o">+</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">opname</span><span class="p">,</span> <span class="n">opname</span><span class="p">)</span>  <span class="c1"># same structure as for other standard keys</span>
+                <span class="c1"># (i, op_i, op_str_right_of_i) e.g. in MultiCouplingTerms.add_to_graph</span>
             <span class="n">k</span> <span class="o">=</span> <span class="n">k</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_edge</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">keyL</span><span class="p">,</span> <span class="n">keyR</span><span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">keyL</span><span class="p">,</span> <span class="n">keyR</span><span class="p">,</span> <span class="n">opname</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">check_op</span><span class="o">=</span><span class="n">check_op</span><span class="p">,</span> <span class="n">skip_existing</span><span class="o">=</span><span class="n">skip_existing</span><span class="p">)</span>
@@ -807,16 +809,8 @@
         <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ordered_states</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">:</span>
             <span class="n">d</span> <span class="o">=</span> <span class="p">{}</span>
-            <span class="c1"># try &#39;IdL&#39;=0 and &#39;IdR&#39;=-1.</span>
-            <span class="k">if</span> <span class="s1">&#39;IdL&#39;</span> <span class="ow">in</span> <span class="n">s</span><span class="p">:</span>
-                <span class="n">offset</span> <span class="o">=</span> <span class="mi">1</span>
-                <span class="n">d</span><span class="p">[</span><span class="s1">&#39;IdL&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">s</span> <span class="o">-</span> <span class="p">{</span><span class="s1">&#39;IdL&#39;</span><span class="p">,</span> <span class="s1">&#39;IdR&#39;</span><span class="p">},</span> <span class="n">key</span><span class="o">=</span><span class="nb">str</span><span class="p">)):</span>
-                <span class="n">d</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="n">offset</span>
-            <span class="k">if</span> <span class="s1">&#39;IdR&#39;</span> <span class="ow">in</span> <span class="n">s</span><span class="p">:</span>
-                <span class="n">d</span><span class="p">[</span><span class="s1">&#39;IdR&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">_mpo_graph_state_order</span><span class="p">)):</span>
+                <span class="n">d</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
             <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_build_grids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1151,6 +1145,27 @@
     <span class="n">legs</span> <span class="o">=</span> <span class="p">[</span><span class="n">npc</span><span class="o">.</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">from_qflat</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="n">qflat</span><span class="p">,</span> <span class="n">qconj</span><span class="o">=+</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">qflat</span> <span class="ow">in</span> <span class="n">charges</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
     <span class="n">legs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">legs</span>
+
+
+<span class="k">def</span> <span class="nf">_mpo_graph_state_order</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Key-function for sorting they `states` of an MPO Graph.</span>
+
+<span class="sd">    For standard TeNPy MPOs we expect keys of the form</span>
+<span class="sd">    ``&#39;IdL&#39;``, ``&#39;IdR&#39;``, ``(i, op_i, opstr)`` and recursively ``key + (j, op_j, opstr)``,</span>
+<span class="sd">    (Note that op_j can be opstr if ``j-i &gt;= L``.)</span>
+
+<span class="sd">    The goal is to ensure that standard TeNPy MPOs yield an upper-right W for the MPO.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">key</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;IdL&#39;</span><span class="p">:</span>  <span class="c1"># should be first</span>
+            <span class="k">return</span> <span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="p">)</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;IdR&#39;</span><span class="p">:</span>  <span class="c1"># should be last</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="p">)</span>
+    <span class="c1"># fallback: compare strings</span>
+        <span class="k">return</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
 </pre></div>
 
           </div>
@@ -1196,7 +1211,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Jun 01, 2019.
+      Last updated on Jun 02, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.0.
     </div>
   </body>
