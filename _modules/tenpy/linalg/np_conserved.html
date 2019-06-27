@@ -134,6 +134,7 @@
 
 <span class="kn">from</span> <span class="nn">..tools.misc</span> <span class="k">import</span> <span class="n">to_iterable</span><span class="p">,</span> <span class="n">anynan</span><span class="p">,</span> <span class="n">argsort</span><span class="p">,</span> <span class="n">inverse_permutation</span><span class="p">,</span> <span class="n">list_to_dict_list</span>
 <span class="kn">from</span> <span class="nn">..tools.math</span> <span class="k">import</span> <span class="n">speigs</span> <span class="k">as</span> <span class="n">_sp_speigs</span>
+<span class="kn">from</span> <span class="nn">..tools.math</span> <span class="k">import</span> <span class="n">qr_li</span><span class="p">,</span> <span class="n">rq_li</span>
 <span class="kn">from</span> <span class="nn">..tools.string</span> <span class="k">import</span> <span class="n">vert_join</span><span class="p">,</span> <span class="n">is_non_string_iterable</span>
 <span class="kn">from</span> <span class="nn">..tools.optimization</span> <span class="k">import</span> <span class="n">optimize</span><span class="p">,</span> <span class="n">OptimizationFlag</span><span class="p">,</span> <span class="n">use_cython</span>
 
@@ -1251,10 +1252,14 @@
         <span class="c1"># ... and convert pipes back to leg charges</span>
         <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">:</span>
             <span class="n">ax</span> <span class="o">=</span> <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="n">pipe</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="n">ax</span><span class="p">]</span>
-            <span class="n">p_qind</span> <span class="o">=</span> <span class="n">inverse_permutation</span><span class="p">(</span><span class="n">pipe</span><span class="o">.</span><span class="n">_perm</span><span class="p">)</span>
-            <span class="n">perms</span><span class="p">[</span><span class="n">ax</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="n">ax</span><span class="p">]</span><span class="o">.</span><span class="n">perm_flat_from_perm_qind</span><span class="p">(</span><span class="n">p_qind</span><span class="p">)</span>
-            <span class="n">cp</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="n">ax</span><span class="p">]</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">to_LegCharge</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">sort</span><span class="p">[</span><span class="n">ax</span><span class="p">]</span> <span class="ow">or</span> <span class="n">bunch</span><span class="p">[</span><span class="n">ax</span><span class="p">]:</span>
+                <span class="n">pipe</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="n">ax</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">pipe</span><span class="o">.</span><span class="n">_perm</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">perms</span><span class="p">[</span><span class="n">ax</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">ax</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">p_qind</span> <span class="o">=</span> <span class="n">inverse_permutation</span><span class="p">(</span><span class="n">pipe</span><span class="o">.</span><span class="n">_perm</span><span class="p">)</span>
+                    <span class="n">perms</span><span class="p">[</span><span class="n">ax</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="n">ax</span><span class="p">]</span><span class="o">.</span><span class="n">perm_flat_from_perm_qind</span><span class="p">(</span><span class="n">p_qind</span><span class="p">)</span>
+                <span class="n">cp</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="n">ax</span><span class="p">]</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">to_LegCharge</span><span class="p">()</span>
         <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">perms</span><span class="p">),</span> <span class="n">cp</span></div>
 
 <div class="viewcode-block" id="Array.isort_qdata"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array.isort_qdata">[docs]</a>    <span class="k">def</span> <span class="nf">isort_qdata</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -3659,7 +3664,7 @@
     <span class="k">return</span> <span class="n">res</span></div>
 
 
-<div class="viewcode-block" id="qr"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.qr.html#tenpy.linalg.np_conserved.qr">[docs]</a><span class="k">def</span> <span class="nf">qr</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;reduced&#39;</span><span class="p">,</span> <span class="n">inner_labels</span><span class="o">=</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]):</span>
+<div class="viewcode-block" id="qr"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.qr.html#tenpy.linalg.np_conserved.qr">[docs]</a><span class="k">def</span> <span class="nf">qr</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;reduced&#39;</span><span class="p">,</span> <span class="n">inner_labels</span><span class="o">=</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">cutoff</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Q-R decomposition of a matrix.</span>
 
 <span class="sd">    Decomposition such that ``A == npc.tensordot(q, r, axes=1)`` up to numerical rounding errors.</span>
@@ -3673,6 +3678,9 @@
 <span class="sd">        &#39;complete&#39;: return `q` with shape (M,M).</span>
 <span class="sd">    inner_labels: [{str|None}, {str|None}]</span>
 <span class="sd">        The first label is used for ``Q.legs[1]``, the second for ``R.legs[0]``.</span>
+<span class="sd">    cutoff : ``None`` or float</span>
+<span class="sd">        If not ``None``, discard linearly dependent vectors to given precision, which might</span>
+<span class="sd">        reduce `K` of the &#39;reduced&#39; mode even further.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -3696,7 +3704,10 @@
     <span class="n">a_leg0</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">inner_leg_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">a_leg0</span><span class="o">.</span><span class="n">ind_len</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">qindices</span><span class="p">,</span> <span class="n">block</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">_qdata</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">_data</span><span class="p">):</span>  <span class="c1"># non-zero blocks on the diagonal</span>
-        <span class="n">q_block</span><span class="p">,</span> <span class="n">r_block</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cutoff</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">q_block</span><span class="p">,</span> <span class="n">r_block</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">q_block</span><span class="p">,</span> <span class="n">r_block</span> <span class="o">=</span> <span class="n">qr_li</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">cutoff</span><span class="p">)</span>
         <span class="n">q_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">q_block</span><span class="p">)</span>
         <span class="n">r_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r_block</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">mode</span> <span class="o">!=</span> <span class="s1">&#39;complete&#39;</span><span class="p">:</span>
@@ -4493,7 +4504,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Jun 19, 2019.
+      Last updated on Jun 27, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.0.
     </div>
   </body>
