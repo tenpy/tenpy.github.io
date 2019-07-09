@@ -1225,7 +1225,7 @@
 <span class="sd">        -------</span>
 <span class="sd">        perm : tuple of 1D arrays</span>
 <span class="sd">            The permutation applied to each of the legs, such that</span>
-<span class="sd">            ``cp.to_ndarray() = self.to_ndarray(perm)``.</span>
+<span class="sd">            ``cp.to_ndarray() = self.to_ndarray()[np.ix_(*perm)]``.</span>
 <span class="sd">        result : Array</span>
 <span class="sd">            A shallow copy of self, with legs sorted/bunched.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -1249,6 +1249,7 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">perms</span><span class="p">[</span><span class="n">ax</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">ax</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
         <span class="n">cp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">pipes</span><span class="o">=</span><span class="n">pipes</span><span class="p">)</span>
+        <span class="n">cp</span><span class="o">.</span><span class="n">_labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span><span class="p">[:]</span>  <span class="c1"># reset labels</span>
         <span class="c1"># ... and convert pipes back to leg charges</span>
         <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">:</span>
             <span class="n">ax</span> <span class="o">=</span> <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -4504,7 +4505,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Jun 27, 2019.
+      Last updated on Jul 09, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.0.
     </div>
   </body>

@@ -267,7 +267,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">chi</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Dimensions of the (nontrivial) virtual bonds.&quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;Dimensions of the virtual bonds.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">W</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;wL&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">ind_len</span> <span class="k">for</span> <span class="n">W</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_W</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_W</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;wR&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">ind_len</span><span class="p">]</span>
 
 <div class="viewcode-block" id="MPO.get_W"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.MPO.html#tenpy.networks.mpo.MPO.get_W">[docs]</a>    <span class="k">def</span> <span class="nf">get_W</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
@@ -338,6 +338,37 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_W</span> <span class="o">=</span> <span class="n">Ws</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sites</span> <span class="o">=</span> <span class="n">grouped_sites</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">grouped</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grouped</span> <span class="o">*</span> <span class="n">n</span></div>
+
+<div class="viewcode-block" id="MPO.sort_legcharges"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.MPO.html#tenpy.networks.mpo.MPO.sort_legcharges">[docs]</a>    <span class="k">def</span> <span class="nf">sort_legcharges</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sort virtual legs by charges. In place.</span>
+
+<span class="sd">        The MPO seen as matrix of the ``wL, wR`` legs is usually very sparse.</span>
+<span class="sd">        This sparsity is captured by the LegCharges for these bonds not being sorted and bunched.</span>
+<span class="sd">        This requires a tensordot to do more block-multiplications with smaller blocks.</span>
+<span class="sd">        This is in general faster for large blocks, but might lead to a larger overhead for small</span>
+<span class="sd">        blocks. Therefore, this function allows to sort the virtual legs by charges.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">new_W</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
+        <span class="n">perms</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">w</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_W</span><span class="p">):</span>
+            <span class="n">w</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">transpose</span><span class="p">([</span><span class="s1">&#39;wL&#39;</span><span class="p">,</span> <span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">])</span>
+            <span class="n">p</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">sort_legcharge</span><span class="p">([</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">perms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">perms</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">perms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">perms</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">new_W</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">w</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_W</span> <span class="o">=</span> <span class="n">new_W</span>
+        <span class="n">chi</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi</span>
+        <span class="k">for</span> <span class="n">b</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">perms</span><span class="p">):</span>
+            <span class="n">IdL</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">IdL</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">IdL</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">IdL</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">p</span> <span class="o">==</span> <span class="n">IdL</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">IdR</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">IdR</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">IdR</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">IdR</span> <span class="o">=</span> <span class="n">IdR</span> <span class="o">%</span> <span class="n">chi</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">IdR</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">p</span> <span class="o">==</span> <span class="n">IdR</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span></div>
+        <span class="c1"># done</span>
 
 <div class="viewcode-block" id="MPO.expectation_value"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.MPO.html#tenpy.networks.mpo.MPO.expectation_value">[docs]</a>    <span class="k">def</span> <span class="nf">expectation_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1.e-10</span><span class="p">,</span> <span class="n">max_range</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculate ``&lt;psi|self|psi&gt;/&lt;psi|psi&gt;``.</span>
@@ -1338,7 +1369,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Jun 27, 2019.
+      Last updated on Jul 09, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.0.
     </div>
   </body>
