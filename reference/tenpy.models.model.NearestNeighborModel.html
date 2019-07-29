@@ -132,12 +132,34 @@ Legs of each <code class="docutils literal notranslate"><span class="pre">H_bond
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl>
 <dt><strong>mpo_model</strong><span class="classifier"><a class="reference internal" href="tenpy.models.model.MPOModel.html#tenpy.models.model.MPOModel" title="tenpy.models.model.MPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPOModel</span></code></a></span></dt><dd><p>A model instance implementing the MPO.
-Does not need to be a <code class="xref py py-class docutils literal notranslate"><span class="pre">NearestNeigborModel</span></code>, but should only have
+Does not need to be a <a class="reference internal" href="#tenpy.models.model.NearestNeighborModel" title="tenpy.models.model.NearestNeighborModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NearestNeighborModel</span></code></a>, but should only have
 nearest-neighbor couplings.</p>
 </dd>
 </dl>
 </dd>
 </dl>
+<p class="rubric">Examples</p>
+<p>The <cite>SpinChainNNN2</cite> has next-nearest-neighbor couplings and thus only implements an MPO:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">tenpy.models.spins_nnn</span> <span class="k">import</span> <span class="n">SpinChainNNN2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">nnn_chain</span> <span class="o">=</span> <span class="n">SpinChainNNN2</span><span class="p">({</span><span class="s1">&#39;L&#39;</span><span class="p">:</span> <span class="mi">20</span><span class="p">})</span>
+<span class="go">parameter &#39;L&#39;=20 for SpinChainNNN2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">nnn_chain</span><span class="p">,</span> <span class="n">NearestNeighborModel</span><span class="p">))</span>
+<span class="go">False</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;range before grouping:&quot;</span><span class="p">,</span> <span class="n">nnn_chain</span><span class="o">.</span><span class="n">H_MPO</span><span class="o">.</span><span class="n">max_range</span><span class="p">)</span>
+<span class="go">range before grouping: 2</span>
+</pre></div>
+</div>
+<p>By grouping each two neighboring sites, we can bring it down to nearest neighbors.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">nnn_chain</span><span class="o">.</span><span class="n">group_sites</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;range after grouping:&quot;</span><span class="p">,</span> <span class="n">nnn_chain</span><span class="o">.</span><span class="n">H_MPO</span><span class="o">.</span><span class="n">max_range</span><span class="p">)</span>
+<span class="go">range after grouping: 1</span>
+</pre></div>
+</div>
+<p>Yet, TEBD will not yet work, as the model doesn’t define <cite>H_bond</cite>.
+However, we can initialize a NearestNeighborModel from the MPO:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">nnn_chain_for_tebd</span> <span class="o">=</span> <span class="n">NearestNeighborModel</span><span class="o">.</span><span class="n">from_MPOModel</span><span class="p">(</span><span class="n">nnn_chain</span><span class="p">)</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="method">
