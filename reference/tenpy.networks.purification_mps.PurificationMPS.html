@@ -98,8 +98,8 @@ e.g. a right-canonical <cite>B</cite> full-fills:</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.networks.purification_mps.PurificationMPS.add" title="tenpy.networks.purification_mps.PurificationMPS.add"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add</span></code></a>(other, alpha, beta[, cutoff])</p></td>
 <td><p>Return an MPS which represents <code class="docutils literal notranslate"><span class="pre">alpha|self&gt;</span> <span class="pre">+</span> <span class="pre">beta</span> <span class="pre">|others&gt;</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.networks.purification_mps.PurificationMPS.apply_local_op" title="tenpy.networks.purification_mps.PurificationMPS.apply_local_op"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_local_op</span></code></a>(i, op[, unitary, renormalize])</p></td>
-<td><p>Apply a local operator to <cite>self</cite>.</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.networks.purification_mps.PurificationMPS.apply_local_op" title="tenpy.networks.purification_mps.PurificationMPS.apply_local_op"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_local_op</span></code></a>(i, op[, unitary, …])</p></td>
+<td><p>Apply a local (one or multi-site) operator to <cite>self</cite>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.networks.purification_mps.PurificationMPS.average_charge" title="tenpy.networks.purification_mps.PurificationMPS.average_charge"><code class="xref py py-obj docutils literal notranslate"><span class="pre">average_charge</span></code></a>([bond])</p></td>
 <td><p>Return the average charge for the block on the left of a given bond.</p></td>
@@ -155,7 +155,7 @@ e.g. a right-canonical <cite>B</cite> full-fills:</p>
 <tr class="row-even"><td><p><a class="reference internal" href="#tenpy.networks.purification_mps.PurificationMPS.from_Bflat" title="tenpy.networks.purification_mps.PurificationMPS.from_Bflat"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_Bflat</span></code></a>(sites, Bflat[, SVs, bc, dtype, …])</p></td>
 <td><p>Construct a matrix product state from a set of numpy arrays <cite>Bflat</cite> and singular vals.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.networks.purification_mps.PurificationMPS.from_full" title="tenpy.networks.purification_mps.PurificationMPS.from_full"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_full</span></code></a>(sites, psi[, form, cutoff, normalize])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.networks.purification_mps.PurificationMPS.from_full" title="tenpy.networks.purification_mps.PurificationMPS.from_full"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_full</span></code></a>(sites, psi[, form, cutoff, …])</p></td>
 <td><p>Construct an MPS from a single tensor <cite>psi</cite> with one leg per physical site.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#tenpy.networks.purification_mps.PurificationMPS.from_infiniteT" title="tenpy.networks.purification_mps.PurificationMPS.from_infiniteT"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_infiniteT</span></code></a>(sites[, bc, form])</p></td>
@@ -387,8 +387,8 @@ Should have legs <code class="docutils literal notranslate"><span class="pre">['
 <dt id="tenpy.networks.purification_mps.PurificationMPS.add">
 <code class="descname">add</code><span class="sig-paren">(</span><em>other</em>, <em>alpha</em>, <em>beta</em>, <em>cutoff=1e-15</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.networks.purification_mps.PurificationMPS.add" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return an MPS which represents <code class="docutils literal notranslate"><span class="pre">alpha|self&gt;</span> <span class="pre">+</span> <span class="pre">beta</span> <span class="pre">|others&gt;</span></code>.</p>
-<p>Works only for <code class="docutils literal notranslate"><span class="pre">'finite',</span> <span class="pre">'segment'</span></code> boundary conditions.
-For <cite>segment</cite> boundary conditions, the virtual legs on the very left/right are
+<p>Works only for ‘finite’, ‘segment’ boundary conditions.
+For ‘segment’ boundary conditions, the virtual legs on the very left/right are
 assumed to correspond to each other (i.e. self and other have the same state outside of
 the considered segment).
 Takes into account <code class="xref py py-attr docutils literal notranslate"><span class="pre">norm</span></code>.</p>
@@ -420,25 +420,30 @@ with legs <code class="docutils literal notranslate"><span class="pre">'vL',</sp
 
 <dl class="method">
 <dt id="tenpy.networks.purification_mps.PurificationMPS.apply_local_op">
-<code class="descname">apply_local_op</code><span class="sig-paren">(</span><em>i</em>, <em>op</em>, <em>unitary=None</em>, <em>renormalize=False</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.networks.purification_mps.PurificationMPS.apply_local_op" title="Permalink to this definition">¶</a></dt>
-<dd><p>Apply a local operator to <cite>self</cite>.</p>
+<code class="descname">apply_local_op</code><span class="sig-paren">(</span><em>i</em>, <em>op</em>, <em>unitary=None</em>, <em>renormalize=False</em>, <em>cutoff=1e-13</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.networks.purification_mps.PurificationMPS.apply_local_op" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply a local (one or multi-site) operator to <cite>self</cite>.</p>
 <p>Note that this destroys the canonical form if the local operator is non-unitary.
 Therefore, this function calls <a class="reference internal" href="#tenpy.networks.purification_mps.PurificationMPS.canonical_form" title="tenpy.networks.purification_mps.PurificationMPS.canonical_form"><code class="xref py py-meth docutils literal notranslate"><span class="pre">canonical_form()</span></code></a> if necessary.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>i</strong><span class="classifier">int</span></dt><dd><p>Index of the site on which the operator should act.</p>
+<dt><strong>i</strong><span class="classifier">int</span></dt><dd><p>(Left-most) index of the site(s) on which the operator should act.</p>
 </dd>
-<dt><strong>op</strong><span class="classifier">str | npc.Array</span></dt><dd><p>A physical operator acting on site <cite>i</cite>, with legs <code class="docutils literal notranslate"><span class="pre">'p',</span> <span class="pre">'p*'</span></code>.
+<dt><strong>op</strong><span class="classifier">str | npc.Array</span></dt><dd><p>A physical operator acting on site <cite>i</cite>, with legs <code class="docutils literal notranslate"><span class="pre">'p',</span> <span class="pre">'p*'</span></code> for a single-site
+operator or with legs <code class="docutils literal notranslate"><span class="pre">['p0',</span> <span class="pre">'p1',</span> <span class="pre">...],</span> <span class="pre">['p0*',</span> <span class="pre">'p1*',</span> <span class="pre">...]</span></code> for an operator
+acting on <cite>n</cite>&gt;=2 sites.
 Strings (like <code class="docutils literal notranslate"><span class="pre">'Id',</span> <span class="pre">'Sz'</span></code>) are translated into single-site operators defined by
 <code class="xref py py-attr docutils literal notranslate"><span class="pre">sites</span></code>.</p>
 </dd>
 <dt><strong>unitary</strong><span class="classifier">None | bool</span></dt><dd><p>Whether <cite>op</cite> is unitary, i.e., whether the canonical form is preserved (<code class="docutils literal notranslate"><span class="pre">True</span></code>)
 or whether we should call <a class="reference internal" href="#tenpy.networks.purification_mps.PurificationMPS.canonical_form" title="tenpy.networks.purification_mps.PurificationMPS.canonical_form"><code class="xref py py-meth docutils literal notranslate"><span class="pre">canonical_form()</span></code></a> (<code class="docutils literal notranslate"><span class="pre">False</span></code>).
-<code class="docutils literal notranslate"><span class="pre">None</span></code> checks whether <code class="docutils literal notranslate"><span class="pre">norm(op</span> <span class="pre">dagger(op)</span> <span class="pre">-</span> <span class="pre">identity)</span></code> is small.</p>
+<code class="docutils literal notranslate"><span class="pre">None</span></code> checks whether <code class="docutils literal notranslate"><span class="pre">norm(op</span> <span class="pre">dagger(op)</span> <span class="pre">-</span> <span class="pre">identity)</span></code> is smaller than <cite>cutoff</cite>.</p>
 </dd>
 <dt><strong>renormalize</strong><span class="classifier">bool</span></dt><dd><p>Whether the final state should keep track of the norm (False, default) or be
 renormalized to have norm 1 (True).</p>
+</dd>
+<dt><strong>cutoff</strong><span class="classifier">float</span></dt><dd><p>Cutoff for singular values if <cite>op</cite> acts on more than one site (see <a class="reference internal" href="#tenpy.networks.purification_mps.PurificationMPS.from_full" title="tenpy.networks.purification_mps.PurificationMPS.from_full"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_full()</span></code></a>).
+(And used as cutoff for a unspecified <cite>unitary</cite>.)</p>
 </dd>
 </dl>
 </dd>
@@ -1021,9 +1026,9 @@ Instead, directly give just <code class="docutils literal notranslate"><span cla
 <dl class="field-list">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl>
-<dt><strong>term_list</strong><span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">TermList</span></code></span></dt><dd><p>The terms and prefactors (<cite>strength</cite>) to be summed up.</p>
+<dt><strong>term_list</strong><span class="classifier"><a class="reference internal" href="tenpy.networks.terms.TermList.html#tenpy.networks.terms.TermList" title="tenpy.networks.terms.TermList"><code class="xref py py-class docutils literal notranslate"><span class="pre">TermList</span></code></a></span></dt><dd><p>The terms and prefactors (<cite>strength</cite>) to be summed up.</p>
 </dd>
-<dt><strong>prefactors :</strong></dt><dd><p>Instead of specifying a <code class="xref py py-class docutils literal notranslate"><span class="pre">TermList</span></code>,
+<dt><strong>prefactors :</strong></dt><dd><p>Instead of specifying a <a class="reference internal" href="tenpy.networks.terms.TermList.html#tenpy.networks.terms.TermList" title="tenpy.networks.terms.TermList"><code class="xref py py-class docutils literal notranslate"><span class="pre">TermList</span></code></a>,
 one can also specify the term_list and strength separately.
 This is deprecated.</p>
 </dd>
@@ -1103,24 +1108,32 @@ If <code class="docutils literal notranslate"><span class="pre">None</span></cod
 
 <dl class="classmethod">
 <dt id="tenpy.networks.purification_mps.PurificationMPS.from_full">
-<em class="property">classmethod </em><code class="descname">from_full</code><span class="sig-paren">(</span><em>sites</em>, <em>psi</em>, <em>form='B'</em>, <em>cutoff=1e-16</em>, <em>normalize=True</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.networks.purification_mps.PurificationMPS.from_full" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="descname">from_full</code><span class="sig-paren">(</span><em>sites</em>, <em>psi</em>, <em>form=None</em>, <em>cutoff=1e-16</em>, <em>normalize=True</em>, <em>bc='finite'</em>, <em>outer_S=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.networks.purification_mps.PurificationMPS.from_full" title="Permalink to this definition">¶</a></dt>
 <dd><p>Construct an MPS from a single tensor <cite>psi</cite> with one leg per physical site.</p>
 <p>Performs a sequence of SVDs of psi to split off the <cite>B</cite> matrices and obtain the singular
 values, the result will be in canonical form.
-Obviously, this is only well-defined for <cite>finite</cite> boundary conditions.</p>
+Obviously, this is only well-defined for <cite>finite</cite> or <cite>segment</cite> boundary conditions.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl>
 <dt><strong>sites</strong><span class="classifier">list of <a class="reference internal" href="tenpy.networks.site.Site.html#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a></span></dt><dd><p>The sites defining the local Hilbert space.</p>
 </dd>
 <dt><strong>psi</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt><dd><p>The full wave function to be represented as an MPS.
-Should have labels <code class="docutils literal notranslate"><span class="pre">'p0',</span> <span class="pre">'p1',</span> <span class="pre">...,</span>&#160; <span class="pre">'p{L-1}'</span></code>.</p>
+Should have labels <code class="docutils literal notranslate"><span class="pre">'p0',</span> <span class="pre">'p1',</span> <span class="pre">...,</span>&#160; <span class="pre">'p{L-1}'</span></code>.
+Additionally, it may have (or must have for ‘segment’ <cite>bc</cite>) the legs <code class="docutils literal notranslate"><span class="pre">'vL',</span> <span class="pre">'vR'</span></code>,
+which are trivial for ‘finite’ <cite>bc</cite>.</p>
 </dd>
-<dt><strong>form</strong><span class="classifier"><code class="docutils literal notranslate"><span class="pre">'B'</span> <span class="pre">|</span> <span class="pre">'A'</span> <span class="pre">|</span> <span class="pre">'C'</span> <span class="pre">|</span> <span class="pre">'G'</span></code></span></dt><dd><p>The canonical form of the resulting MPS, see module doc-string.</p>
+<dt><strong>form</strong><span class="classifier"><code class="docutils literal notranslate"><span class="pre">'B'</span> <span class="pre">|</span> <span class="pre">'A'</span> <span class="pre">|</span> <span class="pre">'C'</span> <span class="pre">|</span> <span class="pre">'G'</span> <span class="pre">|</span> <span class="pre">None</span></code></span></dt><dd><p>The canonical form of the resulting MPS, see module doc-string.
+<code class="docutils literal notranslate"><span class="pre">None</span></code> defaults to ‘A’ form on the first site and ‘B’ form on all following sites.</p>
 </dd>
 <dt><strong>cutoff</strong><span class="classifier">float</span></dt><dd><p>Cutoff of singular values used in the SVDs.</p>
 </dd>
 <dt><strong>normalize</strong><span class="classifier">bool</span></dt><dd><p>Whether the resulting MPS should have ‘norm’ 1.</p>
+</dd>
+<dt><strong>bc</strong><span class="classifier">‘finite’ | ‘segment’</span></dt><dd><p>Boundary conditions.</p>
+</dd>
+<dt><strong>outer_S</strong><span class="classifier">None | (array, array)</span></dt><dd><p>For ‘semgent’ <cite>bc</cite> the singular values on the left and right of the considered segment,
+<cite>None</cite> for ‘finite’ boundary conditions.</p>
 </dd>
 </dl>
 </dd>
@@ -1711,6 +1724,7 @@ Should have leg labels <code class="docutils literal notranslate"><span class="p
 <li class="toctree-l3"><a class="reference internal" href="tenpy.networks.site.html">site</a></li>
 <li class="toctree-l3"><a class="reference internal" href="tenpy.networks.mps.html">mps</a></li>
 <li class="toctree-l3"><a class="reference internal" href="tenpy.networks.mpo.html">mpo</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tenpy.networks.terms.html">terms</a></li>
 <li class="toctree-l3 current"><a class="reference internal" href="tenpy.networks.purification_mps.html">purification_mps</a></li>
 </ul>
 </li>
@@ -1747,7 +1761,7 @@ Should have leg labels <code class="docutils literal notranslate"><span class="p
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Jun 01, 2019.
+      Last updated on Aug 10, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.0.
     </div>
   </body>
