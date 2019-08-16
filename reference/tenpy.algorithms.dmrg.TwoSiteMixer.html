@@ -69,28 +69,20 @@ Equivalent to the <a class="reference internal" href="tenpy.algorithms.dmrg.Dens
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.algorithms.dmrg.TwoSiteMixer.perturb_svd" title="tenpy.algorithms.dmrg.TwoSiteMixer.perturb_svd"><code class="xref py py-obj docutils literal notranslate"><span class="pre">perturb_svd</span></code></a>(engine, theta, i0, update_LP, …)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.algorithms.dmrg.TwoSiteMixer.perturb_svd" title="tenpy.algorithms.dmrg.TwoSiteMixer.perturb_svd"><code class="xref py py-obj docutils literal notranslate"><span class="pre">perturb_svd</span></code></a>(engine, theta, i0, move_right)</p></td>
 <td><p>Mix extra terms to theta and perform an SVD.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.algorithms.dmrg.TwoSiteMixer.update_amplitude" title="tenpy.algorithms.dmrg.TwoSiteMixer.update_amplitude"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_amplitude</span></code></a>(sweeps)</p></td>
-<td><p>Update the amplitude, possibly disable the mixer.</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.algorithms.dmrg.TwoSiteMixer.subspace_expand" title="tenpy.algorithms.dmrg.TwoSiteMixer.subspace_expand"><code class="xref py py-obj docutils literal notranslate"><span class="pre">subspace_expand</span></code></a>(engine, theta, i0, …)</p></td>
+<td><p>Expand the MPS subspace, to allow the bond dimension to increase.</p></td>
 </tr>
-</tbody>
-</table>
-<table class="docutils align-center">
-<colgroup>
-<col style="width: 66%" />
-<col style="width: 34%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><strong>subspace_expand</strong></p></td>
-<td></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.algorithms.dmrg.TwoSiteMixer.update_amplitude" title="tenpy.algorithms.dmrg.TwoSiteMixer.update_amplitude"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_amplitude</span></code></a>(sweeps)</p></td>
+<td><p>Update the amplitude, possibly disable the mixer.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="method">
 <dt id="tenpy.algorithms.dmrg.TwoSiteMixer.perturb_svd">
-<code class="descname">perturb_svd</code><span class="sig-paren">(</span><em>engine</em>, <em>theta</em>, <em>i0</em>, <em>update_LP</em>, <em>update_RP</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#TwoSiteMixer.perturb_svd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.TwoSiteMixer.perturb_svd" title="Permalink to this definition">¶</a></dt>
+<code class="descname">perturb_svd</code><span class="sig-paren">(</span><em>engine</em>, <em>theta</em>, <em>i0</em>, <em>move_right</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#TwoSiteMixer.perturb_svd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.TwoSiteMixer.perturb_svd" title="Permalink to this definition">¶</a></dt>
 <dd><p>Mix extra terms to theta and perform an SVD.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters</dt>
@@ -117,6 +109,40 @@ matrix; see comment above.</p>
 <dt><strong>VH</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt><dd><p>Right-canonical part of <cite>theta</cite>. Labels <code class="docutils literal notranslate"><span class="pre">'vL',</span> <span class="pre">'(vR.p1)'</span></code>.</p>
 </dd>
 <dt><strong>err</strong><span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.TruncationError.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt><dd><p>The truncation error introduced.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.dmrg.TwoSiteMixer.subspace_expand">
+<code class="descname">subspace_expand</code><span class="sig-paren">(</span><em>engine</em>, <em>theta</em>, <em>i0</em>, <em>move_right</em>, <em>next_B</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.algorithms.dmrg.TwoSiteMixer.subspace_expand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Expand the MPS subspace, to allow the bond dimension to increase.</p>
+<p>This is the subspace expansion following <a class="reference internal" href="../literature.html#hubig2015" id="id2"><span>[Hubig2015]</span></a>.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>engine</strong><span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">OneSiteDMRGEngine</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">TwoSiteDMRGEngine</span></code></span></dt><dd><p>‘Engine’ for the DMRG algorithm</p>
+</dd>
+<dt><strong>theta</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt><dd><p>Optimized guess for the ground state of the effective local Hamiltonian.</p>
+</dd>
+<dt><strong>i0</strong><span class="classifier">int</span></dt><dd><p>Site index at which the local update has taken place.</p>
+</dd>
+<dt><strong>move_right</strong><span class="classifier">bool</span></dt><dd><p>Whether the next <cite>i0</cite> of the sweep will be right or left of the current one.</p>
+</dd>
+<dt><strong>next_B</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt><dd><p>The subspace expansion requires to change the tensor on the next site as well.
+If <cite>move_right</cite>, it should correspond to <code class="docutils literal notranslate"><span class="pre">engine.psi.get_B(i0+1,</span> <span class="pre">form='B')</span></code>.
+If not <cite>move_right</cite>, it should correspond to <code class="docutils literal notranslate"><span class="pre">engine.psi.get_B(i0-1,</span> <span class="pre">form='A')</span></code>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>theta :</strong></dt><dd><p>Local MPS tensor at site <cite>i0</cite> after subspace expansion.</p>
+</dd>
+<dt><strong>next_B :</strong></dt><dd><p>MPS tensor at site <cite>i0+1</cite> or <cite>i0-1</cite> (depending on sweep direction) after subspace
+expansion.</p>
 </dd>
 </dl>
 </dd>
@@ -223,7 +249,7 @@ should be disabled.</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Aug 15, 2019.
+      Last updated on Aug 16, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.0.
     </div>
   </body>

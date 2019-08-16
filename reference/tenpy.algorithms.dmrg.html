@@ -64,7 +64,7 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="tenpy.algorithms.dmrg.DensityMatrixMixer.html#tenpy.algorithms.dmrg.DensityMatrixMixer" title="tenpy.algorithms.dmrg.DensityMatrixMixer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DensityMatrixMixer</span></code></a>(mixer_params)</p></td>
 <td><p>Mixer based on density matrices.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="tenpy.algorithms.dmrg.Engine.html#tenpy.algorithms.dmrg.Engine" title="tenpy.algorithms.dmrg.Engine"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Engine</span></code></a>(psi, model, DMRG_params)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="tenpy.algorithms.dmrg.Engine.html#tenpy.algorithms.dmrg.Engine" title="tenpy.algorithms.dmrg.Engine"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Engine</span></code></a></p></td>
 <td><p>Prototype for an DMRG ‘Engine’.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="tenpy.algorithms.dmrg.EngineCombine.html#tenpy.algorithms.dmrg.EngineCombine" title="tenpy.algorithms.dmrg.EngineCombine"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EngineCombine</span></code></a>(psi, model, DMRG_params)</p></td>
@@ -94,7 +94,7 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="tenpy.algorithms.dmrg.chi_list.html#tenpy.algorithms.dmrg.chi_list" title="tenpy.algorithms.dmrg.chi_list"><code class="xref py py-obj docutils literal notranslate"><span class="pre">chi_list</span></code></a>(chi_max[, dchi, nsweeps])</p></td>
 <td><p>Compute a ‘ramping-up’ chi_list.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="tenpy.algorithms.dmrg.run.html#tenpy.algorithms.dmrg.run" title="tenpy.algorithms.dmrg.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>(psi, model, DMRG_params)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="tenpy.algorithms.dmrg.run.html#tenpy.algorithms.dmrg.run" title="tenpy.algorithms.dmrg.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>(psi, model, DMRG_params[, n])</p></td>
 <td><p>Run the DMRG algorithm to find the ground state of the given model.</p></td>
 </tr>
 </tbody>
@@ -108,23 +108,24 @@ with its enormous success in finding ground states in 1D.</p>
 both for finite systems (<code class="docutils literal notranslate"><span class="pre">'finite'</span></code> or <code class="docutils literal notranslate"><span class="pre">'segment'</span></code> boundary conditions)
 and in the thermodynamic limit (<code class="docutils literal notranslate"><span class="pre">'infinite'</span></code> b.c.).</p>
 <p>The function <a class="reference internal" href="tenpy.algorithms.dmrg.run.html#tenpy.algorithms.dmrg.run" title="tenpy.algorithms.dmrg.run"><code class="xref py py-func docutils literal notranslate"><span class="pre">run()</span></code></a> - well - runs one DMRG simulation.
-Internally, it generates an instance of an <a class="reference internal" href="tenpy.algorithms.dmrg.Engine.html#tenpy.algorithms.dmrg.Engine" title="tenpy.algorithms.dmrg.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">Engine</span></code></a>.
+Internally, it generates an instance of an <code class="xref py py-class docutils literal notranslate"><span class="pre">Sweep</span></code>.
 This class implements the common functionality like defining a <cite>sweep</cite>,
 but leaves the details of the contractions to be performed to the derived classes.</p>
-<p>Currently, there are two derived classes implementing the contractions.
-They should both give the same results (up to rounding errors).
-Which one is in the end faster is not obvious a priory and might depend on the used model.
+<p>Currently, there are two derived classes implementing the contractions: <code class="xref py py-class docutils literal notranslate"><span class="pre">OneSiteDMRGEngine</span></code>
+and <code class="xref py py-class docutils literal notranslate"><span class="pre">TwoSiteDMRGEngine</span></code>. They differ (as their name implies) in the number of sites which
+are optimized simultaneously.
+They should both give the same results (up to rounding errors). However, if started from a product
+state, <code class="xref py py-class docutils literal notranslate"><span class="pre">OneSiteDMRGEngine</span></code> depends critically on the use of a <a class="reference internal" href="tenpy.algorithms.dmrg.Mixer.html#tenpy.algorithms.dmrg.Mixer" title="tenpy.algorithms.dmrg.Mixer"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mixer</span></code></a>, while
+<code class="xref py py-class docutils literal notranslate"><span class="pre">TwoSiteDMRGEngine</span></code> is in principle more computationally expensive to run and has
+occasionally displayed some convergence issues..
+Which one is preffered in the end is not obvious a priori and might depend on the used model.
 Just try both of them.</p>
-<p>Currently, there is only one <a class="reference internal" href="tenpy.algorithms.dmrg.Mixer.html#tenpy.algorithms.dmrg.Mixer" title="tenpy.algorithms.dmrg.Mixer"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mixer</span></code></a> implemented.
-The mixer should be used initially to avoid that the algorithm gets stuck in local energy minima,
-and then slowly turned off in the end.</p>
+<p>A <a class="reference internal" href="tenpy.algorithms.dmrg.Mixer.html#tenpy.algorithms.dmrg.Mixer" title="tenpy.algorithms.dmrg.Mixer"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mixer</span></code></a> should be used initially to avoid that the algorithm gets stuck in local energy
+minima, and then slowly turned off in the end. For <code class="xref py py-class docutils literal notranslate"><span class="pre">OneSiteDMRGEngine</span></code>, using a mixer is
+crucial, as the one-site algorithm cannot increase the MPS bond dimension by itself.</p>
 <div class="admonition-todo admonition" id="index-0">
 <p class="admonition-title">Todo</p>
 <p>Write UserGuide/Example!!!</p>
-</div>
-<div class="admonition-todo admonition" id="index-1">
-<p class="admonition-title">Todo</p>
-<p>separate effective Hamiltonian from Engine for better readability?</p>
 </div>
 </div>
 
@@ -202,7 +203,7 @@ and then slowly turned off in the end.</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Aug 15, 2019.
+      Last updated on Aug 16, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.0.
     </div>
   </body>

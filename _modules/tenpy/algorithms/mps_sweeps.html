@@ -1,0 +1,760 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>tenpy.algorithms.mps_sweeps &#8212; TeNPy 0.4.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.4.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tenpy.algorithms.mps_sweeps</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;&#39;Sweep&#39; algorithm and effective Hamiltonians.</span>
+
+<span class="sd">Many MPS-based algorithms use a &#39;sweep&#39; structure, wherein local updates are</span>
+<span class="sd">performed on the MPS tensors sequentially, first from left to right, then from</span>
+<span class="sd">right to left. This procedure is common to DMRG, TDVP, sequential time evolution,</span>
+<span class="sd">etc.</span>
+
+<span class="sd">Another common feature of these algorithms is the use of an effective local</span>
+<span class="sd">Hamiltonian to perform the local updates. The most prominent example of this is</span>
+<span class="sd">probably DMRG, where the local MPS object is optimized with respect to the rest</span>
+<span class="sd">of the MPS-MPO-MPS network, the latter forming the effective Hamiltonian.</span>
+
+<span class="sd">the :class:`Sweep` class attempts to generalize as many aspects of &#39;sweeping&#39;</span>
+<span class="sd">algorithms as possible. :class:`EffectiveH` and its subclasses implement the</span>
+<span class="sd">effective Hamiltonians mentioned above. Currently, effective Hamiltonians for</span>
+<span class="sd">1-site and 2-site optimization are implemented.</span>
+
+<span class="sd">.. todo ::</span>
+<span class="sd">    Rebuild TDVP engine as subclasses of sweep</span>
+<span class="sd">    Do testing</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># Copyright 2018 TeNPy Developers</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">from</span> <span class="nn">..linalg</span> <span class="k">import</span> <span class="n">np_conserved</span> <span class="k">as</span> <span class="n">npc</span>
+<span class="kn">from</span> <span class="nn">..networks.mps</span> <span class="k">import</span> <span class="n">MPSEnvironment</span>
+<span class="kn">from</span> <span class="nn">..networks.mpo</span> <span class="k">import</span> <span class="n">MPOEnvironment</span>
+<span class="kn">from</span> <span class="nn">..linalg.sparse</span> <span class="k">import</span> <span class="n">NpcLinearOperator</span>
+<span class="kn">from</span> <span class="nn">..tools.params</span> <span class="k">import</span> <span class="n">get_parameter</span><span class="p">,</span> <span class="n">unused_parameters</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Sweep&#39;</span><span class="p">,</span> <span class="s1">&#39;EffectiveH&#39;</span><span class="p">,</span> <span class="s1">&#39;OneSiteH&#39;</span><span class="p">,</span> <span class="s1">&#39;TwoSiteH&#39;</span><span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">Sweep</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Prototype class for a &#39;sweeping&#39; algorithm.</span>
+
+<span class="sd">    This is a superclass, intended to cover common procedures in all algorithms that &#39;sweep&#39;. This</span>
+<span class="sd">    includes DMRG, TDVP, TEBD, etc. Only DMRG is currently implemented in this way.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    psi : :class:`~tenpy.networks.mps.MPS`</span>
+<span class="sd">        Initial guess for the ground state, which is to be optimized in-place.</span>
+<span class="sd">    model : :class:`~tenpy.models.MPOModel`</span>
+<span class="sd">        The model representing the Hamiltonian for which we want to find the ground state.</span>
+<span class="sd">    engine_params : dict</span>
+<span class="sd">        Further optional parameters. These are usually algorithm-specific, and thus should be</span>
+<span class="sd">        described in subclasses.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    chi_list : dict | ``None``</span>
+<span class="sd">        A dictionary to gradually increase the `chi_max` parameter of `trunc_params`. The key</span>
+<span class="sd">        defines starting from which sweep `chi_max` is set to the value, e.g. ``{0: 50, 20: 100}``</span>
+<span class="sd">        uses ``chi_max=50`` for the first 20 sweeps and ``chi_max=100`` afterwards. Overwrites</span>
+<span class="sd">        `trunc_params[&#39;chi_list&#39;]``. By default (``None``) this feature is disabled.</span>
+<span class="sd">    combine : bool</span>
+<span class="sd">        Whether to combine legs into pipes as far as possible. This reduces the overhead of</span>
+<span class="sd">        calculating charge combinations in the contractions. Makes the two-site DMRG engine</span>
+<span class="sd">        equivalent to the old `EngineCombine`.</span>
+<span class="sd">    E_trunc_list : list</span>
+<span class="sd">        List of truncation energies throughout a sweep.</span>
+<span class="sd">    env : :class:`~tenpy.networks.mpo.MPOEnvironment`</span>
+<span class="sd">        Environment for contraction ``&lt;psi|H|psi&gt;``.</span>
+<span class="sd">    finite : bool</span>
+<span class="sd">        Whether the MPS boundary conditions are finite (True) or infinite (False)</span>
+<span class="sd">    i0 : int</span>
+<span class="sd">        Only set during sweep.</span>
+<span class="sd">        Left-most of the EffectiveH.length sites to be updated in :meth:`update_local`.</span>
+<span class="sd">    lanczos_params : dict</span>
+<span class="sd">        Parameters for the Lanczos algorithm.</span>
+<span class="sd">    mixer : :class:`Mixer` | ``None``</span>
+<span class="sd">        If ``None``, no mixer is used (anymore), otherwise the mixer instance.</span>
+<span class="sd">    move_right : bool</span>
+<span class="sd">        Only set during sweep.</span>
+<span class="sd">        Whether the next `i0` of the sweep will be right or left of the current one.</span>
+<span class="sd">    ortho_to_envs : list</span>
+<span class="sd">        List of environments. Any newly found states will be orthogonalized against these.</span>
+<span class="sd">    shelve : bool</span>
+<span class="sd">        If a simulation runs out of time (`time.time() - start_time &gt; max_seconds`), the run will</span>
+<span class="sd">        terminate with `shelve = True`.</span>
+<span class="sd">    sweeps : int</span>
+<span class="sd">        The number of sweeps already performed. (Useful for re-start).</span>
+<span class="sd">    time0 : float</span>
+<span class="sd">        Time marker for the start of the run.</span>
+<span class="sd">    trunc_err_list : list</span>
+<span class="sd">        List of truncation errors.</span>
+<span class="sd">    trunc_params : dict</span>
+<span class="sd">        Parameters for truncations.</span>
+<span class="sd">    update_LP_RP : (bool, bool)</span>
+<span class="sd">        Only set during a sweep.</span>
+<span class="sd">        Whether it is necessary to update the `LP` and `RP`.</span>
+<span class="sd">        The latter are chosen such that the environment is growing for infinite systems, but</span>
+<span class="sd">        we only keep the minimal number of environment tensors in memory (inside :attr:`env`).</span>
+<span class="sd">    verbose : bool | int</span>
+<span class="sd">        Level of verbosity (i.e. how much status information to print); higher=more output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">engine_params</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;EffectiveH&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Subclass needs to set EffectiveH&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span> <span class="o">=</span> <span class="n">psi</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">engine_params</span> <span class="o">=</span> <span class="n">engine_params</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">engine_params</span><span class="p">,</span> <span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Sweep&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">combine</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">engine_params</span><span class="p">,</span> <span class="s1">&#39;combine&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Sweep&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">finite</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">finite</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># means &#39;ignore mixer&#39;; the mixer is activated in in :meth:`run`.</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">lanczos_params</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">engine_params</span><span class="p">,</span> <span class="s1">&#39;lanczos_params&#39;</span><span class="p">,</span> <span class="p">{},</span> <span class="s1">&#39;Sweep&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lanczos_params</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">/</span> <span class="mi">10</span><span class="p">)</span>  <span class="c1"># reduced verbosity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">engine_params</span><span class="p">,</span> <span class="s1">&#39;trunc_params&#39;</span><span class="p">,</span> <span class="p">{},</span> <span class="s1">&#39;Sweep&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">/</span> <span class="mi">10</span><span class="p">)</span>  <span class="c1"># reduced verbosity</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">env</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ortho_to_envs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_env</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">i0</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">move_right</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_LP_RP</span> <span class="o">=</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">engine_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine_params</span>
+        <span class="n">unused_parameters</span><span class="p">(</span><span class="n">engine_params</span><span class="p">[</span><span class="s1">&#39;lanczos_params&#39;</span><span class="p">],</span> <span class="s2">&quot;Sweep lanczos_params&quot;</span><span class="p">)</span>
+        <span class="n">unused_parameters</span><span class="p">(</span><span class="n">engine_params</span><span class="p">[</span><span class="s1">&#39;trunc_params&#39;</span><span class="p">],</span> <span class="s2">&quot;Sweep trunc_params&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;mixer_params&#39;</span> <span class="ow">in</span> <span class="n">engine_params</span> <span class="ow">and</span> <span class="n">engine_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mixer&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>
+            <span class="n">unused_parameters</span><span class="p">(</span><span class="n">engine_params</span><span class="p">[</span><span class="s1">&#39;mixer_params&#39;</span><span class="p">],</span> <span class="s2">&quot;Sweep mixer_params&quot;</span><span class="p">)</span>
+        <span class="n">unused_parameters</span><span class="p">(</span><span class="n">engine_params</span><span class="p">,</span> <span class="s2">&quot;Sweep&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">init_env</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;(Re-)initialize the environment.</span>
+
+<span class="sd">        This function is useful to (re-)start a Sweep with a slightly different</span>
+<span class="sd">        model or different (engine) parameters. Note that we assume that we</span>
+<span class="sd">        still have the same `psi`.</span>
+<span class="sd">        Calls :meth:`reset_stats`.</span>
+
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : :class:`~tenpy.models.MPOModel`</span>
+<span class="sd">            The model representing the Hamiltonian for which we want to find the ground state.</span>
+<span class="sd">            If ``None``, keep the model used before.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the engine is re-initialized with a new model, which legs are incompatible with</span>
+<span class="sd">            those of hte old model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">H_MPO</span> <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">H</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
+            <span class="n">LP</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine_params</span><span class="p">,</span> <span class="s1">&#39;LP&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Sweep&#39;</span><span class="p">)</span>
+            <span class="n">RP</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine_params</span><span class="p">,</span> <span class="s1">&#39;RP&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Sweep&#39;</span><span class="p">)</span>
+            <span class="n">LP_age</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine_params</span><span class="p">,</span> <span class="s1">&#39;LP_age&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sweep&#39;</span><span class="p">)</span>
+            <span class="n">RP_age</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine_params</span><span class="p">,</span> <span class="s1">&#39;RP_age&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sweep&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># re-initialize</span>
+            <span class="n">compatible</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">H</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;wL&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">test_equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">H</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;wL&#39;</span><span class="p">))</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="n">compatible</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;The leg of the new model is incompatible with the previous one.&quot;</span>
+                                  <span class="s2">&quot;Rebuild environment from scratch.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">compatible</span><span class="p">:</span>
+                <span class="n">LP</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get_LP</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+                <span class="n">LP_age</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get_LP_age</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">RP</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get_RP</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+                <span class="n">RP_age</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get_RP_age</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">LP</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine_params</span><span class="p">,</span> <span class="s1">&#39;LP&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Sweep&#39;</span><span class="p">)</span>
+                <span class="n">RP</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine_params</span><span class="p">,</span> <span class="s1">&#39;RP&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Sweep&#39;</span><span class="p">)</span>
+                <span class="n">LP_age</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine_params</span><span class="p">,</span> <span class="s1">&#39;LP_age&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sweep&#39;</span><span class="p">)</span>
+                <span class="n">RP_age</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine_params</span><span class="p">,</span> <span class="s1">&#39;RP_age&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sweep&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;chi_list&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Re-using environment with `chi_list` set! Do you want this?&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">env</span> <span class="o">=</span> <span class="n">MPOEnvironment</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="p">,</span> <span class="n">LP</span><span class="p">,</span> <span class="n">RP</span><span class="p">,</span> <span class="n">LP_age</span><span class="p">,</span> <span class="n">RP_age</span><span class="p">)</span>
+
+        <span class="c1"># (re)initialize ortho_to_envs</span>
+        <span class="n">orthogonal_to</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine_params</span><span class="p">,</span> <span class="s1">&#39;orthogonal_to&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;Sweep&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">orthogonal_to</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t orthogonalize for infinite MPS: overlap not well defined.&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ortho_to_envs</span> <span class="o">=</span> <span class="p">[</span><span class="n">MPSEnvironment</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="p">,</span> <span class="n">ortho</span><span class="p">)</span> <span class="k">for</span> <span class="n">ortho</span> <span class="ow">in</span> <span class="n">orthogonal_to</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_stats</span><span class="p">()</span>
+
+        <span class="c1"># initial sweeps of the environment (without mixer)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Initial sweeps...&quot;</span><span class="p">)</span>
+            <span class="c1"># print(self.engine_params[&#39;start_env&#39;])</span>
+            <span class="n">start_env</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine_params</span><span class="p">,</span> <span class="s1">&#39;start_env&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Sweep&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">environment_sweeps</span><span class="p">(</span><span class="n">start_env</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">reset_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Reset the statistics. Useful if you want to start a new Sweep run.</span>
+
+<span class="sd">        This method is expected to be overwritten by subclass, and should then</span>
+<span class="sd">        define self.update_stats and self.sweep_stats dicts consistent with the</span>
+<span class="sd">        statistics generated by the algorithm particular to that subclass.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;reset_stats() is not overwritten by the engine. No statistics will be collected!&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sweeps</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine_params</span><span class="p">,</span> <span class="s1">&#39;sweep_0&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sweep&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shelve</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chi_list</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine_params</span><span class="p">,</span> <span class="s1">&#39;chi_list&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Sweep&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">chi_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi_list</span><span class="p">[</span><span class="nb">max</span><span class="p">([</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi_list</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sweeps</span><span class="p">])]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">[</span><span class="s1">&#39;chi_max&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">chi_max</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Setting chi_max =&quot;</span><span class="p">,</span> <span class="n">chi_max</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">environment_sweeps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N_sweeps</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Perform `N_sweeps` sweeps without optimization to update the environment.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        N_sweeps : int</span>
+<span class="sd">            Number of sweeps to run without optimization</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+<span class="sd">            Only if asked for &lt;=0 sweeps.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">N_sweeps</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Updating environment&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N_sweeps</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sweep</span><span class="p">(</span><span class="n">optimize</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># end line</span>
+
+    <span class="k">def</span> <span class="nf">sweep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">meas_E_trunc</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;One &#39;sweep&#39; of a sweeper algorithm.</span>
+
+<span class="sd">        Iteratate over the bond which is optimized, to the right and</span>
+<span class="sd">        then back to the left to the starting point.</span>
+<span class="sd">        If optimize=False, don&#39;t actually diagonalize the effective hamiltonian,</span>
+<span class="sd">        but only update the environment.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        optimize : bool, optional</span>
+<span class="sd">            Whether we actually optimize to find the ground state of the effective Hamiltonian.</span>
+<span class="sd">            (If False, just update the environments).</span>
+<span class="sd">        meas_E_trunc : bool, optional</span>
+<span class="sd">            Whether to measure truncation energies.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        max_trunc_err : float</span>
+<span class="sd">            Maximal truncation error introduced.</span>
+<span class="sd">        max_E_trunc : ``None`` | float</span>
+<span class="sd">            ``None`` if meas_E_trunc is False, else the maximal change of the energy due to the</span>
+<span class="sd">            truncation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">E_trunc_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trunc_err_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">schedule</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_sweep_schedule</span><span class="p">()</span>
+
+        <span class="c1"># the actual sweep</span>
+        <span class="k">for</span> <span class="n">i0</span><span class="p">,</span> <span class="n">move_right</span><span class="p">,</span> <span class="n">update_LP_RP</span> <span class="ow">in</span> <span class="n">schedule</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">i0</span> <span class="o">=</span> <span class="n">i0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">move_right</span> <span class="o">=</span> <span class="n">move_right</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_LP_RP</span> <span class="o">=</span> <span class="n">update_LP_RP</span>
+            <span class="n">update_LP</span><span class="p">,</span> <span class="n">update_RP</span> <span class="o">=</span> <span class="n">update_LP_RP</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;in sweep: i0 =&quot;</span><span class="p">,</span> <span class="n">i0</span><span class="p">)</span>
+            <span class="c1"># --------- the main work --------------</span>
+            <span class="n">theta</span><span class="p">,</span> <span class="n">theta_ortho</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_update</span><span class="p">()</span>
+            <span class="n">update_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_local</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">theta_ortho</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="n">optimize</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">update_LP</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_LP</span><span class="p">(</span><span class="n">update_data</span><span class="p">[</span><span class="s1">&#39;U&#39;</span><span class="p">])</span>  <span class="c1"># (requires updated B)</span>
+                <span class="k">for</span> <span class="n">o_env</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ortho_to_envs</span><span class="p">:</span>
+                    <span class="n">o_env</span><span class="o">.</span><span class="n">get_LP</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">update_RP</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_RP</span><span class="p">(</span><span class="n">update_data</span><span class="p">[</span><span class="s1">&#39;VH&#39;</span><span class="p">])</span>
+                <span class="k">for</span> <span class="n">o_env</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ortho_to_envs</span><span class="p">:</span>
+                    <span class="n">o_env</span><span class="o">.</span><span class="n">get_RP</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">post_update_local</span><span class="p">(</span><span class="n">update_data</span><span class="p">,</span> <span class="n">meas_E_trunc</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">optimize</span><span class="p">:</span>  <span class="c1"># count optimization sweeps</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sweeps</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">new_chi_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi_list</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sweeps</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">new_chi_max</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">trunc_params</span><span class="p">[</span><span class="s1">&#39;chi_max&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_chi_max</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Setting chi_max =&quot;</span><span class="p">,</span> <span class="n">new_chi_max</span><span class="p">)</span>
+            <span class="c1"># update mixer</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span><span class="o">.</span><span class="n">update_amplitude</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sweeps</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">meas_E_trunc</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trunc_err_list</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">E_trunc_list</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trunc_err_list</span><span class="p">),</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">get_sweep_schedule</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Define the schedule of the sweep.</span>
+
+<span class="sd">        One &#39;sweep&#39; is a full sequence from the leftmost site to the right and</span>
+<span class="sd">        back. Only those `LP` and `RP` that can be used later should be updated.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        schedule : iterable of (int, bool, (bool, bool))</span>
+<span class="sd">            Schedule for the sweep. Each entry is ``(i0, move_right, (update_LP, update_RP))``,</span>
+<span class="sd">            where `i0` is the leftmost of the ``self.EffectiveH.length` sites to be updated in</span>
+<span class="sd">            :meth:`update_local`, `move_right` indicates whether the next `i0` in the schedule is</span>
+<span class="sd">            rigth (`True`) of the current one, and `update_LP`, `update_RP` indicate</span>
+<span class="sd">            whether it is necessary to update the `LP` and `RP`.</span>
+<span class="sd">            The latter are chosen such that the environment is growing for infinite systems, but</span>
+<span class="sd">            we only keep the minimal number of environment tensors in memory.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">L</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">EffectiveH</span><span class="o">.</span><span class="n">length</span>
+            <span class="k">assert</span> <span class="n">L</span> <span class="o">&gt;=</span> <span class="n">n</span>
+            <span class="n">i0s</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">L</span> <span class="o">-</span> <span class="n">n</span><span class="p">))</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="n">n</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+            <span class="n">move_right</span> <span class="o">=</span> <span class="p">[</span><span class="kc">True</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="n">n</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="kc">False</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="n">n</span><span class="p">)</span>
+            <span class="n">update_LP_RP</span> <span class="o">=</span> <span class="p">[[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="n">n</span><span class="p">)</span> <span class="o">+</span> <span class="p">[[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="n">n</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">L</span> <span class="o">&gt;=</span> <span class="mi">2</span>
+            <span class="n">i0s</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">L</span><span class="p">))</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+            <span class="n">move_right</span> <span class="o">=</span> <span class="p">[</span><span class="kc">True</span><span class="p">]</span> <span class="o">*</span> <span class="n">L</span> <span class="o">+</span> <span class="p">[</span><span class="kc">False</span><span class="p">]</span> <span class="o">*</span> <span class="n">L</span>
+            <span class="n">update_LP_RP</span> <span class="o">=</span> <span class="p">[[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">]]</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">[[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> \
+                           <span class="p">[[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">]]</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">[[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">zip</span><span class="p">(</span><span class="n">i0s</span><span class="p">,</span> <span class="n">move_right</span><span class="p">,</span> <span class="n">update_LP_RP</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_theta_ortho</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the n-site wavefunctions to orthogonalize against from :attr:`ortho_to_envs`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        theta_ortho : list of :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            States to orthogonalize against, with legs &#39;vL&#39;, &#39;p0&#39;, &#39;p1&#39;, &#39;vR&#39;</span>
+<span class="sd">            (for EffectiveH.length=1, the &#39;p1&#39; label is missing).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">i0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">i0</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">EffectiveH</span><span class="o">.</span><span class="n">length</span>
+        <span class="n">theta_ortho</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">o_env</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ortho_to_envs</span><span class="p">:</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">o_env</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">get_theta</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>  <span class="c1"># the environments are of the form &lt;psi|ortho&gt;</span>
+            <span class="n">LP</span> <span class="o">=</span> <span class="n">o_env</span><span class="o">.</span><span class="n">get_LP</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">RP</span> <span class="o">=</span> <span class="n">o_env</span><span class="o">.</span><span class="n">get_RP</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">EffectiveH</span><span class="o">.</span><span class="n">length</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">LP</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">))</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">RP</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">))</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="s1">&#39;vL*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">])</span>
+            <span class="n">theta_ortho</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">theta_ortho</span>
+
+    <span class="k">def</span> <span class="nf">mixer_cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Cleanup the effects of a mixer.</span>
+
+<span class="sd">        A :meth:`sweep` with an enabled :class:`Mixer` leaves the MPS `psi` with 2D arrays in `S`.</span>
+<span class="sd">        To recover the originial form, this function simply performs one sweep with disabled mixer.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mixer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># disable the mixer</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sweep</span><span class="p">(</span><span class="n">optimize</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># (discard return value)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span> <span class="o">=</span> <span class="n">mixer</span>  <span class="c1"># recover the original mixer</span>
+
+    <span class="k">def</span> <span class="nf">mixer_activate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set `self.mixer` to the class specified by `engine_params[&#39;mixer&#39;]`.</span>
+
+<span class="sd">        It is expected that different algorithms have differen ways of implementing</span>
+<span class="sd">        mixers (with different defaults). Thus, this is algorithm-specific.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;needs to be overwritten by subclass&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">prepare_update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Prepare everything algorithm-specific to perform a local update.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;needs to be overwritten by subclass&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">update_local</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Perform algorithm-specific local update.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;needs to be overwritten by subclass&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">post_update_local</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Algorithm-specific actions to be taken after local update, such as</span>
+<span class="sd">        collecting statistics.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;needs to be overwritten by subclass&quot;</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">EffectiveH</span><span class="p">(</span><span class="n">NpcLinearOperator</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Prototype class for local effective Hamiltonians used in sweep algorithms.</span>
+
+<span class="sd">    As an example, the local effective Hamiltonian for a two-site (DMRG) algorithm</span>
+<span class="sd">    looks like:</span>
+<span class="sd">            |        .---       ---.</span>
+<span class="sd">            |        |    |   |    |</span>
+<span class="sd">            |       LP----H0--H1---RP</span>
+<span class="sd">            |        |    |   |    |</span>
+<span class="sd">            |        .---       ---.</span>
+<span class="sd">    where ``H0`` and ``H1`` are MPO tensors.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    env : :class:`~tenpy.networks.mpo.MPOEnvironment`</span>
+<span class="sd">        Environment for contraction ``&lt;psi|H|psi&gt;``.</span>
+<span class="sd">    i0 : int</span>
+<span class="sd">        Index of the active site if length=1, or of the left-most active site if length&gt;1.</span>
+<span class="sd">    combine : bool, optional</span>
+<span class="sd">        Whether to combine legs into pipes as far as possible. This reduces the overhead of</span>
+<span class="sd">        calculating charge combinations in the contractions.</span>
+<span class="sd">    move_right : bool, optional</span>
+<span class="sd">        Whether the sweeping algorithm that calls for an `EffectiveH` is moving to the right.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    length : int</span>
+<span class="sd">        Number of (MPS) sites the effective hamiltonian covers. NB: Class attribute.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">length</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">combine</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">move_right</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;This function should be implemented in derived classes&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">matvec</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Apply the effective Hamiltonian to `theta`.</span>
+
+<span class="sd">        This function turns :class:`EffectiveH` to a linear operator, which can be</span>
+<span class="sd">        used for :func:`~tenpy.linalg.lanczos.lanczos`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        theta : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Wave function to apply the effective Hamiltonian to.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        H_theta : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Result of applying the effective Hamiltonian to `theta`, :math:`H |\theta&gt;`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;This function should be implemented in derived classes&quot;</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">OneSiteH</span><span class="p">(</span><span class="n">EffectiveH</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Class defining the one-site effective Hamiltonian for Lanczos.</span>
+
+<span class="sd">    The effective one-site Hamiltonian ooks like this:</span>
+<span class="sd">            |        .---   ---.</span>
+<span class="sd">            |        |    |    |</span>
+<span class="sd">            |       LP----W0---RP</span>
+<span class="sd">            |        |    |    |</span>
+<span class="sd">            |        .---   ---.</span>
+
+<span class="sd">    If `combine` is True, we define either `LHeff` as contraction of `LP` with `W0` (in the case</span>
+<span class="sd">    `move_right` is True) or `RHeff` as contraction of `RP` and `W0`.</span>
+
+<span class="sd">    .. todo ::</span>
+<span class="sd">        orthogonal theta&#39;s? Johannes: agree, might be usefull to add that here.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    env : :class:`~tenpy.networks.mpo.MPOEnvironment`</span>
+<span class="sd">        Environment for contraction ``&lt;psi|H|psi&gt;``.</span>
+<span class="sd">    i0 : int</span>
+<span class="sd">        Index of the active site if length=1, or of the left-most active site if length&gt;1.</span>
+<span class="sd">    combine : bool</span>
+<span class="sd">        Whether to combine legs into pipes. This combines the virtual and</span>
+<span class="sd">        physical leg for the left site (when moving right) or right side (when moving left)</span>
+<span class="sd">        into pipes. This reduces the overhead of calculating charge combinations in the</span>
+<span class="sd">        contractions, but one :meth:`matvec` is formally more expensive, :math:`O(2 d^3 \chi^3 D)`.</span>
+<span class="sd">        Is originally from the wo-site method; unclear if it works well for 1 site.</span>
+<span class="sd">    move_right : bool</span>
+<span class="sd">        Wheter the the sweep is moving right or left for the next update.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    length : int</span>
+<span class="sd">        Number of (MPS) sites the effective hamiltonian covers.</span>
+<span class="sd">    combine, move_right : bool</span>
+<span class="sd">        See above.</span>
+<span class="sd">    LHeff, RHeff : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">        Only set :attr:`combine`, and only one of them depending on :attr:`move_right`.</span>
+<span class="sd">        If `move_right` was True, `LHeff` is set with labels ``&#39;(vR*.p)&#39;, &#39;wR&#39;, &#39;(vR.p*)&#39;``</span>
+<span class="sd">        for bra, MPO, ket; otherwise `RHeff` is set with labels ``&#39;(p*.vL)&#39;, &#39;wL&#39;, &#39;(p, vL*)&#39;``</span>
+<span class="sd">    LP : :class:`tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">        Left part of the environment.</span>
+<span class="sd">    RP : :class:`tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">        Right part of the environment.</span>
+<span class="sd">    W : :class:`tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">        MPO tensor, to be applied to the &#39;p&#39; leg of theta</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">length</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">combine</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">move_right</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">LP</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">get_LP</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">RP</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">get_RP</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">H</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">combine</span> <span class="o">=</span> <span class="n">combine</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">move_right</span> <span class="o">=</span> <span class="n">move_right</span>
+        <span class="k">if</span> <span class="n">combine</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">combine_Heff</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">matvec</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Apply the effective Hamiltonian to `theta`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        theta : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Labels: ``vL, p, vR`` if combine=False, ``(vL.p), vR`` or ``vL, (p.vR)`` if True</span>
+<span class="sd">            (depending on the direction of movement)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        theta :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Product of `theta` and the effective Hamiltonian.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">get_leg_labels</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">combine</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">move_right</span><span class="p">:</span>
+                <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">LHeff</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(vR.p*)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vL.p)&#39;</span><span class="p">])</span>
+                <span class="c1"># &#39;(vR*.p)&#39;, &#39;wR&#39;, &#39;vR&#39;</span>
+                <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">RP</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;wL&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">]])</span>
+                <span class="n">theta</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;(vR*.p)&#39;</span><span class="p">,</span> <span class="s1">&#39;vL*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;(vL.p)&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">RHeff</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(p.vR)&#39;</span><span class="p">,</span> <span class="s1">&#39;(p*.vL)&#39;</span><span class="p">])</span>
+                <span class="c1"># &#39;vL&#39;, &#39;wL&#39;, &#39;(p.vL*)&#39;</span>
+                <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">LP</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;wR&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">]])</span>
+                <span class="n">theta</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="s1">&#39;(p.vL*)&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;(p.vR)&#39;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">LP</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">])</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;wL&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">]])</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">RP</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;wL&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">]])</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="s1">&#39;vL*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">])</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">itranspose</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>  <span class="c1"># if necessary, transpose</span>
+        <span class="k">return</span> <span class="n">theta</span>
+
+    <span class="k">def</span> <span class="nf">combine_Heff</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Combine LP and RP with W to form LHeff and RHeff, depending on the direction.</span>
+
+<span class="sd">        In a move to the right, we need LHeff. In a move to the left, we need RHeff. Both contain</span>
+<span class="sd">        the same W.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Always compute both L/R, because we might need them. Could change later.</span>
+        <span class="n">LHeff</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">LP</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pipeL</span> <span class="o">=</span> <span class="n">pipeL</span> <span class="o">=</span> <span class="n">LHeff</span><span class="o">.</span><span class="n">make_pipe</span><span class="p">([</span><span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">],</span> <span class="n">qconj</span><span class="o">=+</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">LHeff</span> <span class="o">=</span> <span class="n">LHeff</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([[</span><span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">]],</span>
+                                        <span class="n">pipes</span><span class="o">=</span><span class="p">[</span><span class="n">pipeL</span><span class="p">,</span> <span class="n">pipeL</span><span class="o">.</span><span class="n">conj</span><span class="p">()],</span>
+                                        <span class="n">new_axes</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+        <span class="n">RHeff</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">RP</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pipeR</span> <span class="o">=</span> <span class="n">pipeR</span> <span class="o">=</span> <span class="n">RHeff</span><span class="o">.</span><span class="n">make_pipe</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;vL*&#39;</span><span class="p">],</span> <span class="n">qconj</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">RHeff</span> <span class="o">=</span> <span class="n">RHeff</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([[</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;vL*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p*&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">]],</span>
+                                        <span class="n">pipes</span><span class="o">=</span><span class="p">[</span><span class="n">pipeR</span><span class="p">,</span> <span class="n">pipeR</span><span class="o">.</span><span class="n">conj</span><span class="p">()],</span>
+                                        <span class="n">new_axes</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+
+
+<span class="k">class</span> <span class="nc">TwoSiteH</span><span class="p">(</span><span class="n">EffectiveH</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Class defining the two-site effective Hamiltonian for Lanczos.</span>
+
+<span class="sd">    The effective two-site Hamiltonian ooks like this:</span>
+<span class="sd">            |        .---       ---.</span>
+<span class="sd">            |        |    |   |    |</span>
+<span class="sd">            |       LP----W0--W1---RP</span>
+<span class="sd">            |        |    |   |    |</span>
+<span class="sd">            |        .---       ---.</span>
+<span class="sd">    This class defines `LHeff` and `RHeff`, which are the contractions of `LP` with `W0`, and `RP`</span>
+<span class="sd">    with `W1`, respectively.</span>
+
+<span class="sd">    .. todo ::</span>
+<span class="sd">        orthogonal theta&#39;s.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    env : :class:`~tenpy.networks.mpo.MPOEnvironment`</span>
+<span class="sd">        Environment for contraction ``&lt;psi|H|psi&gt;``.</span>
+<span class="sd">    i0 : int</span>
+<span class="sd">        Index of the active site if length=1, or of the left-most active site if length&gt;1.</span>
+<span class="sd">    combine : bool</span>
+<span class="sd">        Whether to combine legs into pipes. This combines the virtual and</span>
+<span class="sd">        physical leg for the left site (when moving right) or right side (when moving left)</span>
+<span class="sd">        into pipes. This reduces the overhead of calculating charge combinations in the</span>
+<span class="sd">        contractions, but one :meth:`matvec` is formally more expensive, :math:`O(2 d^3 \chi^3 D)`.</span>
+<span class="sd">        Is originally from the wo-site method; unclear if it works well for 1 site.</span>
+<span class="sd">    move_right : bool</span>
+<span class="sd">        Wheter the the sweep is moving right or left for the next update.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    combine : bool</span>
+<span class="sd">        Whether to combine legs into pipes. This combines the virtual and</span>
+<span class="sd">        physical leg for the left site and right site into pipes. This reduces</span>
+<span class="sd">        the overhead of calculating charge combinations in the contractions,</span>
+<span class="sd">        but one :meth:`matvec` is formally more expensive, :math:`O(2 d^3 \chi^3 D)`.</span>
+<span class="sd">    length : int</span>
+<span class="sd">        Number of (MPS) sites the effective hamiltonian covers.</span>
+<span class="sd">    LHeff : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">        Left part of the effective Hamiltonian.</span>
+<span class="sd">        Labels ``&#39;(vR*.p0)&#39;, &#39;wR&#39;, &#39;(vR.p0*)&#39;`` for bra, MPO, ket.</span>
+<span class="sd">    RHeff : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">        Right part of the effective Hamiltonian.</span>
+<span class="sd">        Labels ``&#39;(vL.p1*)&#39;, &#39;wL&#39;, &#39;(vL*.p1)&#39;`` for ket, MPO, bra.</span>
+<span class="sd">    LP : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">        Left part of the environment.</span>
+<span class="sd">    RP : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">        Right part of the environment</span>
+<span class="sd">    W1 : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">        Left MPO tensor, applied to the &#39;p0&#39; leg of theta</span>
+<span class="sd">    W2 : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">        Right MPO tensor, applied to the &#39;p1&#39; leg of theta</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">length</span> <span class="o">=</span> <span class="mi">2</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">combine</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">move_right</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">LP</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">get_LP</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">RP</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">get_RP</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">W1</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">H</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="n">i0</span><span class="p">)</span><span class="o">.</span><span class="n">replace_labels</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p0&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">])</span>
+        <span class="c1"># &#39;wL&#39;, &#39;wR&#39;, &#39;p0&#39;, &#39;p0*&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">W2</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">H</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">replace_labels</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">])</span>
+        <span class="c1"># &#39;wL&#39;, &#39;wR&#39;, &#39;p1&#39;, &#39;p1*&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">combine</span> <span class="o">=</span> <span class="n">combine</span>
+        <span class="k">if</span> <span class="n">combine</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">combine_Heff</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">matvec</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Apply the effective Hamiltonian to `theta`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        theta : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Labels: ``vL, p0, p1, vR`` if combine=False, ``(vL.p0), (p1.vR)`` if True</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        theta :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Product of `theta` and the effective Hamiltonian.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">get_leg_labels</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">combine</span><span class="p">:</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">LHeff</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;(vR.p0*)&#39;</span><span class="p">,</span> <span class="s1">&#39;(vL.p0)&#39;</span><span class="p">])</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">RHeff</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;(p1.vR)&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;wL&#39;</span><span class="p">,</span> <span class="s1">&#39;(p1*.vL)&#39;</span><span class="p">]])</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;(vR*.p0)&#39;</span><span class="p">,</span> <span class="s1">&#39;(p1.vL*)&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;(vL.p0)&#39;</span><span class="p">,</span> <span class="s1">&#39;(p1.vR)&#39;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">LP</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">])</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">W1</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;wL&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">]])</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">W2</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;p1&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;wL&#39;</span><span class="p">,</span> <span class="s1">&#39;p1*&#39;</span><span class="p">]])</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">RP</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;wL&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">]])</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="s1">&#39;vL*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vL&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">])</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">itranspose</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>  <span class="c1"># if necessary, transpose</span>
+        <span class="c1"># This is where we would truncate. Separate mode from combine?</span>
+        <span class="k">return</span> <span class="n">theta</span>
+
+    <span class="k">def</span> <span class="nf">combine_Heff</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Combine LP with W1 and RP with W2 to get the effective parts of the</span>
+<span class="sd">        Hamiltonian with piped legs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">LHeff</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">LP</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">W1</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pipeL</span> <span class="o">=</span> <span class="n">pipeL</span> <span class="o">=</span> <span class="n">LHeff</span><span class="o">.</span><span class="n">make_pipe</span><span class="p">([</span><span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">],</span> <span class="n">qconj</span><span class="o">=+</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">LHeff</span> <span class="o">=</span> <span class="n">LHeff</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([[</span><span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="s1">&#39;p0&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;p0*&#39;</span><span class="p">]],</span>
+                                        <span class="n">pipes</span><span class="o">=</span><span class="p">[</span><span class="n">pipeL</span><span class="p">,</span> <span class="n">pipeL</span><span class="o">.</span><span class="n">conj</span><span class="p">()],</span>
+                                        <span class="n">new_axes</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+        <span class="n">RHeff</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">RP</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">W2</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;wL&#39;</span><span class="p">,</span> <span class="s1">&#39;wR&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pipeR</span> <span class="o">=</span> <span class="n">pipeR</span> <span class="o">=</span> <span class="n">RHeff</span><span class="o">.</span><span class="n">make_pipe</span><span class="p">([</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;vL*&#39;</span><span class="p">],</span> <span class="n">qconj</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">RHeff</span> <span class="o">=</span> <span class="n">RHeff</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([[</span><span class="s1">&#39;p1&#39;</span><span class="p">,</span> <span class="s1">&#39;vL*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p1*&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">]],</span>
+                                        <span class="n">pipes</span><span class="o">=</span><span class="p">[</span><span class="n">pipeR</span><span class="p">,</span> <span class="n">pipeR</span><span class="o">.</span><span class="n">conj</span><span class="p">()],</span>
+                                        <span class="n">new_axes</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/logo.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../userguide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference.html">Tenpy Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.4.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2019, TeNPy Developers.
+      Last updated on Aug 16, 2019.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.0.
+    </div>
+  </body>
+</html>
