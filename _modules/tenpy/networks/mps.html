@@ -915,6 +915,31 @@
             <span class="n">init_RP</span> <span class="o">=</span> <span class="n">init_RP</span><span class="o">.</span><span class="n">add_leg</span><span class="p">(</span><span class="n">leg_mpo</span><span class="p">,</span> <span class="n">IdR</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;wL&#39;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">init_RP</span></div>
 
+<div class="viewcode-block" id="MPS.increase_L"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.increase_L">[docs]</a>    <span class="k">def</span> <span class="nf">increase_L</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_L</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Modify `self` inplace to enlarge the unit cell.</span>
+
+<span class="sd">        For an infinite MPS, we have unit cells.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        new_L : int</span>
+<span class="sd">            New number of sites. Defaults to twice the number of current sites.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">old_L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
+        <span class="k">if</span> <span class="n">new_L</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">new_L</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">old_L</span>
+        <span class="k">if</span> <span class="n">new_L</span> <span class="o">%</span> <span class="n">old_L</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;new_L = </span><span class="si">{0:d}</span><span class="s2"> not a multiple of old L=</span><span class="si">{1:d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">new_L</span><span class="p">,</span> <span class="n">old_L</span><span class="p">))</span>
+        <span class="n">factor</span> <span class="o">=</span> <span class="n">new_L</span> <span class="o">//</span> <span class="n">old_L</span>
+        <span class="k">if</span> <span class="n">factor</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;can&#39;t shrink!&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="o">==</span> <span class="s1">&#39;segment&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;can&#39;t enlarge segment MPS&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sites</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sites</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_B</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_B</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_S</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_S</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_S</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">form</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">form</span></div>
+
 <div class="viewcode-block" id="MPS.group_sites"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.group_sites">[docs]</a>    <span class="k">def</span> <span class="nf">group_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">grouped_sites</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Modify `self` inplace to group sites.</span>
 
@@ -3540,7 +3565,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Sep 21, 2019.
+      Last updated on Sep 22, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.0.
     </div>
   </body>
