@@ -118,6 +118,7 @@
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">random</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">reduce</span>
 <span class="kn">import</span> <span class="nn">scipy.sparse.linalg.eigen.arpack</span>
 
@@ -131,7 +132,7 @@
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;MPS&#39;</span><span class="p">,</span> <span class="s1">&#39;MPSEnvironment&#39;</span><span class="p">,</span> <span class="s1">&#39;TransferMatrix&#39;</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="MPS"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS">[docs]</a><span class="k">class</span> <span class="nc">MPS</span><span class="p">:</span>
+<div class="viewcode-block" id="MPS"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS">[docs]</a><span class="k">class</span> <span class="nc">MPS</span><span class="p">:</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;A Matrix Product State, finite (MPS) or infinite (iMPS).</span>
 
 <span class="sd">    Parameters</span>
@@ -232,7 +233,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_transfermatrix_keep</span> <span class="o">=</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">()</span>
 
-<div class="viewcode-block" id="MPS.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Sanity check. Raises Errors if something is wrong.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_valid_bc</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;invalid boundary condition: &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bc</span><span class="p">))</span>
@@ -262,7 +263,7 @@
                 <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span>
                 <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span></div>
 
-<div class="viewcode-block" id="MPS.from_product_state"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.from_product_state">[docs]</a>    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="MPS.from_product_state"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.from_product_state">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_product_state</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
                            <span class="n">sites</span><span class="p">,</span>
                            <span class="n">p_state</span><span class="p">,</span>
@@ -347,7 +348,7 @@
         <span class="n">SVs</span> <span class="o">=</span> <span class="p">[[</span><span class="mf">1.</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_Bflat</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="n">Bs</span><span class="p">,</span> <span class="n">SVs</span><span class="p">,</span> <span class="n">bc</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">form</span><span class="p">,</span> <span class="n">legL</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MPS.from_Bflat"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.from_Bflat">[docs]</a>    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="MPS.from_Bflat"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.from_Bflat">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_Bflat</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
                    <span class="n">sites</span><span class="p">,</span>
                    <span class="n">Bflat</span><span class="p">,</span>
@@ -425,7 +426,7 @@
             <span class="n">Bs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">Bs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">gauge_total_charge</span><span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="n">ci</span><span class="o">.</span><span class="n">make_valid</span><span class="p">(</span><span class="n">chdiff</span><span class="p">))</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="n">Bs</span><span class="p">,</span> <span class="n">SVs</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="n">form</span><span class="p">,</span> <span class="n">bc</span><span class="o">=</span><span class="n">bc</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MPS.from_full"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.from_full">[docs]</a>    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="MPS.from_full"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.from_full">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_full</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
                   <span class="n">sites</span><span class="p">,</span>
                   <span class="n">psi</span><span class="p">,</span>
@@ -512,7 +513,7 @@
             <span class="n">res</span><span class="o">.</span><span class="n">convert_form</span><span class="p">(</span><span class="n">form</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">res</span></div>
 
-<div class="viewcode-block" id="MPS.from_singlets"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.from_singlets">[docs]</a>    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="MPS.from_singlets"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.from_singlets">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_singlets</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
                       <span class="n">site</span><span class="p">,</span>
                       <span class="n">L</span><span class="p">,</span>
@@ -626,7 +627,7 @@
             <span class="n">labels_L</span> <span class="o">=</span> <span class="n">labels_R</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="p">([</span><span class="n">site</span><span class="p">]</span> <span class="o">*</span> <span class="n">L</span><span class="p">,</span> <span class="n">Bs</span><span class="p">,</span> <span class="n">Ss</span><span class="p">,</span> <span class="n">bc</span><span class="o">=</span><span class="n">bc</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="n">forms</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MPS.copy"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.copy"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Returns a copy of `self`.</span>
 
 <span class="sd">        The copy still shares the sites, chinfo, and LegCharges of the B tensors,</span>
@@ -670,7 +671,7 @@
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="o">==</span> <span class="s1">&#39;infinite&#39;</span><span class="p">:</span>
             <span class="k">return</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">)</span>
 
-<div class="viewcode-block" id="MPS.get_B"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.get_B">[docs]</a>    <span class="k">def</span> <span class="nf">get_B</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">cutoff</span><span class="o">=</span><span class="mf">1.e-16</span><span class="p">,</span> <span class="n">label_p</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.get_B"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.get_B">[docs]</a>    <span class="k">def</span> <span class="nf">get_B</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">cutoff</span><span class="o">=</span><span class="mf">1.e-16</span><span class="p">,</span> <span class="n">label_p</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return (view of) `B` at site `i` in canonical form.</span>
 
 <span class="sd">        Parameters</span>
@@ -721,7 +722,7 @@
             <span class="n">B</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_replace_p_label</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">label_p</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">B</span></div>
 
-<div class="viewcode-block" id="MPS.set_B"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.set_B">[docs]</a>    <span class="k">def</span> <span class="nf">set_B</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.set_B"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.set_B">[docs]</a>    <span class="k">def</span> <span class="nf">set_B</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Set `B` at site `i`.</span>
 
 <span class="sd">        Parameters</span>
@@ -740,31 +741,31 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">find_common_type</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">B</span><span class="o">.</span><span class="n">dtype</span><span class="p">],</span> <span class="p">[])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_B</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">B</span><span class="o">.</span><span class="n">itranspose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_B_labels</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MPS.get_SL"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.get_SL">[docs]</a>    <span class="k">def</span> <span class="nf">get_SL</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.get_SL"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.get_SL">[docs]</a>    <span class="k">def</span> <span class="nf">get_SL</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return singular values on the left of site `i`&quot;&quot;&quot;</span>
         <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_valid_index</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_S</span><span class="p">[</span><span class="n">i</span><span class="p">]</span></div>
 
-<div class="viewcode-block" id="MPS.get_SR"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.get_SR">[docs]</a>    <span class="k">def</span> <span class="nf">get_SR</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.get_SR"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.get_SR">[docs]</a>    <span class="k">def</span> <span class="nf">get_SR</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return singular values on the right of site `i`&quot;&quot;&quot;</span>
         <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_valid_index</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_S</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span></div>
 
-<div class="viewcode-block" id="MPS.set_SL"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.set_SL">[docs]</a>    <span class="k">def</span> <span class="nf">set_SL</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">S</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.set_SL"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.set_SL">[docs]</a>    <span class="k">def</span> <span class="nf">set_SL</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">S</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Set singular values on the left of site `i`&quot;&quot;&quot;</span>
         <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_valid_index</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_S</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">S</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">finite</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_S</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">]</span> <span class="o">=</span> <span class="n">S</span></div>
 
-<div class="viewcode-block" id="MPS.set_SR"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.set_SR">[docs]</a>    <span class="k">def</span> <span class="nf">set_SR</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">S</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.set_SR"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.set_SR">[docs]</a>    <span class="k">def</span> <span class="nf">set_SR</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">S</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Set singular values on the right of site `i`&quot;&quot;&quot;</span>
         <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_valid_index</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_S</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">S</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">finite</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_S</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">S</span></div>
 
-<div class="viewcode-block" id="MPS.get_op"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.get_op">[docs]</a>    <span class="k">def</span> <span class="nf">get_op</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op_list</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.get_op"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.get_op">[docs]</a>    <span class="k">def</span> <span class="nf">get_op</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op_list</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Given a list of operators, select the one corresponding to site `i`.</span>
 
 <span class="sd">        Parameters</span>
@@ -787,7 +788,7 @@
             <span class="n">op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get_op</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">op</span></div>
 
-<div class="viewcode-block" id="MPS.get_theta"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.get_theta">[docs]</a>    <span class="k">def</span> <span class="nf">get_theta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">cutoff</span><span class="o">=</span><span class="mf">1.e-16</span><span class="p">,</span> <span class="n">formL</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">formR</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.get_theta"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.get_theta">[docs]</a>    <span class="k">def</span> <span class="nf">get_theta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">cutoff</span><span class="o">=</span><span class="mf">1.e-16</span><span class="p">,</span> <span class="n">formL</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">formR</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculates the `n`-site wavefunction on ``sites[i:i+n]``.</span>
 
 <span class="sd">        Parameters</span>
@@ -829,7 +830,7 @@
             <span class="n">theta</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;vR&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">theta</span></div>
 
-<div class="viewcode-block" id="MPS.convert_form"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.convert_form">[docs]</a>    <span class="k">def</span> <span class="nf">convert_form</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.convert_form"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.convert_form">[docs]</a>    <span class="k">def</span> <span class="nf">convert_form</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_form</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Tranform self into different canonical form (by scaling the legs with singular values).</span>
 
 <span class="sd">        Parameters</span>
@@ -847,7 +848,7 @@
             <span class="n">new_B</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_B</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="n">new_form</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># calculates the desired form.</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">set_B</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">new_B</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="n">new_form</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MPS.init_LP"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.init_LP">[docs]</a>    <span class="k">def</span> <span class="nf">init_LP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">bra</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mpo</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.init_LP"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.init_LP">[docs]</a>    <span class="k">def</span> <span class="nf">init_LP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">bra</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mpo</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Build initial left part ``LP`` for an MPS/MPOEnvironment.</span>
 
 <span class="sd">        Parameters</span>
@@ -881,7 +882,7 @@
             <span class="n">init_LP</span> <span class="o">=</span> <span class="n">init_LP</span><span class="o">.</span><span class="n">add_leg</span><span class="p">(</span><span class="n">leg_mpo</span><span class="p">,</span> <span class="n">IdL</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;wR&#39;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">init_LP</span></div>
 
-<div class="viewcode-block" id="MPS.init_RP"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.init_RP">[docs]</a>    <span class="k">def</span> <span class="nf">init_RP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">bra</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mpo</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.init_RP"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.init_RP">[docs]</a>    <span class="k">def</span> <span class="nf">init_RP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">bra</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mpo</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Build initial right part ``RP`` for an MPS/MPOEnvironment.</span>
 
 <span class="sd">        Parameters</span>
@@ -915,7 +916,7 @@
             <span class="n">init_RP</span> <span class="o">=</span> <span class="n">init_RP</span><span class="o">.</span><span class="n">add_leg</span><span class="p">(</span><span class="n">leg_mpo</span><span class="p">,</span> <span class="n">IdR</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;wL&#39;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">init_RP</span></div>
 
-<div class="viewcode-block" id="MPS.increase_L"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.increase_L">[docs]</a>    <span class="k">def</span> <span class="nf">increase_L</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_L</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.increase_L"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.increase_L">[docs]</a>    <span class="k">def</span> <span class="nf">increase_L</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_L</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Modify `self` inplace to enlarge the unit cell.</span>
 
 <span class="sd">        For an infinite MPS, we have unit cells.</span>
@@ -940,7 +941,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_S</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_S</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_S</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">form</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">form</span></div>
 
-<div class="viewcode-block" id="MPS.group_sites"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.group_sites">[docs]</a>    <span class="k">def</span> <span class="nf">group_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">grouped_sites</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.group_sites"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.group_sites">[docs]</a>    <span class="k">def</span> <span class="nf">group_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">grouped_sites</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Modify `self` inplace to group sites.</span>
 
 <span class="sd">        Group each `n` sites together using the :class:`~tenpy.networks.site.GroupedSite`.</span>
@@ -985,7 +986,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">form</span> <span class="o">=</span> <span class="p">[</span><span class="n">B_form</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">grouped_sites</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">grouped</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grouped</span> <span class="o">*</span> <span class="n">n</span></div>
 
-<div class="viewcode-block" id="MPS.group_split"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.group_split">[docs]</a>    <span class="k">def</span> <span class="nf">group_split</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trunc_par</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.group_split"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.group_split">[docs]</a>    <span class="k">def</span> <span class="nf">group_split</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trunc_par</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Modify `self` inplace to split previously grouped sites.</span>
 
 <span class="sd">        Parameters</span>
@@ -1059,7 +1060,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">trunc_err</span></div>
 
-<div class="viewcode-block" id="MPS.get_grouped_mps"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.get_grouped_mps">[docs]</a>    <span class="k">def</span> <span class="nf">get_grouped_mps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">blocklen</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.get_grouped_mps"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.get_grouped_mps">[docs]</a>    <span class="k">def</span> <span class="nf">get_grouped_mps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">blocklen</span><span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;contract blocklen subsequent tensors into a single one and return result as a new MPS.</span>
 
 <span class="sd">        blocklen = number of subsequent sites to be combined.</span>
@@ -1072,7 +1073,7 @@
         <span class="n">groupedMPS</span><span class="o">.</span><span class="n">group_sites</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">blocklen</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">groupedMPS</span></div>
 
-<div class="viewcode-block" id="MPS.get_total_charge"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.get_total_charge">[docs]</a>    <span class="k">def</span> <span class="nf">get_total_charge</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.get_total_charge"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.get_total_charge">[docs]</a>    <span class="k">def</span> <span class="nf">get_total_charge</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculate and return the `qtotal` of the whole MPS (when contracted).</span>
 
 <span class="sd">        Returns</span>
@@ -1083,7 +1084,7 @@
         <span class="n">qtotal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">([</span><span class="n">B</span><span class="o">.</span><span class="n">qtotal</span> <span class="k">for</span> <span class="n">B</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_B</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="o">.</span><span class="n">make_valid</span><span class="p">(</span><span class="n">qtotal</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MPS.gauge_total_charge"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.gauge_total_charge">[docs]</a>    <span class="k">def</span> <span class="nf">gauge_total_charge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">qtotal</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vL_leg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vR_leg</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.gauge_total_charge"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.gauge_total_charge">[docs]</a>    <span class="k">def</span> <span class="nf">gauge_total_charge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">qtotal</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vL_leg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vR_leg</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Gauge the legcharges of the virtual bonds such that the MPS has a total `qtotal`.</span>
 
 <span class="sd">        Parameters</span>
@@ -1142,7 +1143,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_B</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;vL&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">test_contractable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_B</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;vR&#39;</span><span class="p">))</span></div>
         <span class="c1"># done</span>
 
-<div class="viewcode-block" id="MPS.entanglement_entropy"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.entanglement_entropy">[docs]</a>    <span class="k">def</span> <span class="nf">entanglement_entropy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bonds</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">for_matrix_S</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.entanglement_entropy"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.entanglement_entropy">[docs]</a>    <span class="k">def</span> <span class="nf">entanglement_entropy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bonds</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">for_matrix_S</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculate the (half-chain) entanglement entropy for all nontrivial bonds.</span>
 
 <span class="sd">        Consider a bipartition of the sytem into :math:`A = \{ j: j &lt;= i_b \}` and</span>
@@ -1193,7 +1194,7 @@
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;entropy with non-diagonal schmidt values&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">res</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MPS.entanglement_entropy_segment"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.entanglement_entropy_segment">[docs]</a>    <span class="k">def</span> <span class="nf">entanglement_entropy_segment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">segment</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">first_site</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.entanglement_entropy_segment"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.entanglement_entropy_segment">[docs]</a>    <span class="k">def</span> <span class="nf">entanglement_entropy_segment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">segment</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">first_site</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculate entanglement entropy for general geometry of the bipartition.</span>
 
 <span class="sd">        This function is similar as :meth:`entanglement_entropy`,</span>
@@ -1245,7 +1246,7 @@
             <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entropy</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">res</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MPS.entanglement_spectrum"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.entanglement_spectrum">[docs]</a>    <span class="k">def</span> <span class="nf">entanglement_spectrum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">by_charge</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.entanglement_spectrum"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.entanglement_spectrum">[docs]</a>    <span class="k">def</span> <span class="nf">entanglement_spectrum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">by_charge</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;return entanglement energy spectrum.</span>
 
 <span class="sd">        Parameters</span>
@@ -1278,7 +1279,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="o">-</span><span class="mf">2.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">ss</span><span class="p">))</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_S</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">nontrivial_bonds</span><span class="p">]]</span></div>
 
-<div class="viewcode-block" id="MPS.get_rho_segment"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.get_rho_segment">[docs]</a>    <span class="k">def</span> <span class="nf">get_rho_segment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">segment</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.get_rho_segment"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.get_rho_segment">[docs]</a>    <span class="k">def</span> <span class="nf">get_rho_segment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">segment</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return reduced density matrix for a segment.</span>
 
 <span class="sd">        Note that the dimension of rho_A scales exponentially in the length of the segment.</span>
@@ -1319,7 +1320,7 @@
         <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">B</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vL*&#39;</span><span class="p">,</span> <span class="s1">&#39;vR*&#39;</span><span class="p">]))</span>
         <span class="k">return</span> <span class="n">rho</span></div>
 
-<div class="viewcode-block" id="MPS.probability_per_charge"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.probability_per_charge">[docs]</a>    <span class="k">def</span> <span class="nf">probability_per_charge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bond</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.probability_per_charge"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.probability_per_charge">[docs]</a>    <span class="k">def</span> <span class="nf">probability_per_charge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bond</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return probabilites of charge value on the left of a given bond.</span>
 
 <span class="sd">        For example for particle number conservation, define</span>
@@ -1359,7 +1360,7 @@
                           <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">leg</span><span class="o">.</span><span class="n">charges</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">ps</span></div>
 
-<div class="viewcode-block" id="MPS.average_charge"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.average_charge">[docs]</a>    <span class="k">def</span> <span class="nf">average_charge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bond</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.average_charge"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.average_charge">[docs]</a>    <span class="k">def</span> <span class="nf">average_charge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bond</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Return the average charge for the block on the left of a given bond.</span>
 
 <span class="sd">        For example for particle number conservation, define</span>
@@ -1381,7 +1382,7 @@
         <span class="n">charges</span><span class="p">,</span> <span class="n">ps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">probability_per_charge</span><span class="p">(</span><span class="n">bond</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ps</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">*</span> <span class="n">charges</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MPS.charge_variance"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.charge_variance">[docs]</a>    <span class="k">def</span> <span class="nf">charge_variance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bond</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.charge_variance"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.charge_variance">[docs]</a>    <span class="k">def</span> <span class="nf">charge_variance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bond</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Return the charge variance on the left of a given bond.</span>
 
 <span class="sd">        For example for particle number conservation, define</span>
@@ -1404,7 +1405,7 @@
         <span class="n">charges</span><span class="p">,</span> <span class="n">ps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">probability_per_charge</span><span class="p">(</span><span class="n">bond</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ps</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">charges</span> <span class="o">-</span> <span class="n">charges_mean</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MPS.mutinf_two_site"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.mutinf_two_site">[docs]</a>    <span class="k">def</span> <span class="nf">mutinf_two_site</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_range</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.mutinf_two_site"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.mutinf_two_site">[docs]</a>    <span class="k">def</span> <span class="nf">mutinf_two_site</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_range</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculate the two-site mutual information :math:`I(i:j)`.</span>
 
 <span class="sd">        Calculates :math:`I(i:j) = S(i) + S(j) - S(i,j)`,</span>
@@ -1457,7 +1458,7 @@
                     <span class="n">rho</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">B</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="n">contr_legs</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">coord</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">mutinf</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MPS.overlap"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.overlap">[docs]</a>    <span class="k">def</span> <span class="nf">overlap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">charge_sector</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ignore_form</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.overlap"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.overlap">[docs]</a>    <span class="k">def</span> <span class="nf">overlap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">charge_sector</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ignore_form</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Compute overlap ``&lt;self|other&gt;``.</span>
 
 <span class="sd">        Parameters</span>
@@ -1500,7 +1501,7 @@
             <span class="n">ov</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">TM</span><span class="o">.</span><span class="n">eigenvectors</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">ov</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">*</span> <span class="n">other</span><span class="o">.</span><span class="n">norm</span></div>
 
-<div class="viewcode-block" id="MPS.expectation_value"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.expectation_value">[docs]</a>    <span class="k">def</span> <span class="nf">expectation_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ops</span><span class="p">,</span> <span class="n">sites</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.expectation_value"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.expectation_value">[docs]</a>    <span class="k">def</span> <span class="nf">expectation_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ops</span><span class="p">,</span> <span class="n">sites</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Expectation value ``&lt;psi|ops|psi&gt;/&lt;psi|psi&gt;`` of (n-site) operator(s).</span>
 
 <span class="sd">        Given the MPS in canonical form, it calculates n-site expectation values.</span>
@@ -1577,7 +1578,7 @@
             <span class="n">E</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">npc</span><span class="o">.</span><span class="n">inner</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="n">theta</span><span class="o">.</span><span class="n">get_leg_labels</span><span class="p">()]</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">do_conj</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">real_if_close</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">E</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="MPS.expectation_value_term"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.expectation_value_term">[docs]</a>    <span class="k">def</span> <span class="nf">expectation_value_term</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">term</span><span class="p">,</span> <span class="n">autoJW</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.expectation_value_term"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.expectation_value_term">[docs]</a>    <span class="k">def</span> <span class="nf">expectation_value_term</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">term</span><span class="p">,</span> <span class="n">autoJW</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Expectation value  ``&lt;psi|op_{i0}op_{i1}...op_{iN}|psi&gt;/&lt;psi|psi&gt;``.</span>
 
 <span class="sd">        Calculates the expectation value of a tensor product of single-site operators</span>
@@ -1650,7 +1651,7 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Odd number of operators which need a Jordan Wigner string&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">expectation_value_multi_sites</span><span class="p">(</span><span class="n">ops</span><span class="p">,</span> <span class="n">i_min</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MPS.expectation_value_multi_sites"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.expectation_value_multi_sites">[docs]</a>    <span class="k">def</span> <span class="nf">expectation_value_multi_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">operators</span><span class="p">,</span> <span class="n">i0</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.expectation_value_multi_sites"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.expectation_value_multi_sites">[docs]</a>    <span class="k">def</span> <span class="nf">expectation_value_multi_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">operators</span><span class="p">,</span> <span class="n">i0</span><span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Expectation value  ``&lt;psi|op0_{i0}op1_{i0+1}...opN_{i0+N}|psi&gt;/&lt;psi|psi&gt;``.</span>
 
 <span class="sd">        Calculates the expectation value of a tensor product of single-site operators</span>
@@ -1696,7 +1697,7 @@
         <span class="n">exp_val</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">real_if_close</span><span class="p">(</span><span class="n">exp_val</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MPS.expectation_value_terms_sum"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.expectation_value_terms_sum">[docs]</a>    <span class="k">def</span> <span class="nf">expectation_value_terms_sum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">term_list</span><span class="p">,</span> <span class="n">prefactors</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.expectation_value_terms_sum"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.expectation_value_terms_sum">[docs]</a>    <span class="k">def</span> <span class="nf">expectation_value_terms_sum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">term_list</span><span class="p">,</span> <span class="n">prefactors</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculate expectation values for a bunch of terms and sum them up.</span>
 
 <span class="sd">        This is equivalent to the following expression::</span>
@@ -1759,7 +1760,7 @@
             <span class="n">terms_sum</span> <span class="o">=</span> <span class="n">terms_sum</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
         <span class="k">return</span> <span class="n">terms_sum</span><span class="p">,</span> <span class="n">mpo_</span></div>
 
-<div class="viewcode-block" id="MPS.correlation_function"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.correlation_function">[docs]</a>    <span class="k">def</span> <span class="nf">correlation_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="MPS.correlation_function"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.correlation_function">[docs]</a>    <span class="k">def</span> <span class="nf">correlation_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                              <span class="n">ops1</span><span class="p">,</span>
                              <span class="n">ops2</span><span class="p">,</span>
                              <span class="n">sites1</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -1877,7 +1878,7 @@
                     <span class="c1"># but we apply opstr after op1 (using the last argument = False)</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">real_if_close</span><span class="p">(</span><span class="n">C</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MPS.norm_test"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.norm_test">[docs]</a>    <span class="k">def</span> <span class="nf">norm_test</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.norm_test"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.norm_test">[docs]</a>    <span class="k">def</span> <span class="nf">norm_test</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Check that self is in canonical form.</span>
 
 <span class="sd">        Returns</span>
@@ -1923,7 +1924,7 @@
             <span class="n">err</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">rho_R</span> <span class="o">-</span> <span class="n">rho_R2</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">err</span></div>
 
-<div class="viewcode-block" id="MPS.canonical_form"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.canonical_form">[docs]</a>    <span class="k">def</span> <span class="nf">canonical_form</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">renormalize</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.canonical_form"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.canonical_form">[docs]</a>    <span class="k">def</span> <span class="nf">canonical_form</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">renormalize</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Bring self into canonical &#39;B&#39; form, (re-)calculate singular values.</span>
 
 <span class="sd">        Simply calls :meth:`canonical_form_finite` or :meth:`canonical_form_infinite`.</span>
@@ -1933,7 +1934,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">canonical_form_infinite</span><span class="p">(</span><span class="n">renormalize</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MPS.canonical_form_finite"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.canonical_form_finite">[docs]</a>    <span class="k">def</span> <span class="nf">canonical_form_finite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">renormalize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cutoff</span><span class="o">=</span><span class="mf">0.</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.canonical_form_finite"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.canonical_form_finite">[docs]</a>    <span class="k">def</span> <span class="nf">canonical_form_finite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">renormalize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cutoff</span><span class="o">=</span><span class="mf">0.</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Bring a finite (or segment) MPS into canonical form (in place).</span>
 
 <span class="sd">        If any site is in :attr:`form` ``None``, it does *not* use any of the singular values `S`</span>
@@ -2030,7 +2031,7 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="o">==</span> <span class="s1">&#39;segment&#39;</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">U</span><span class="p">,</span> <span class="n">VR_segment</span></div>
 
-<div class="viewcode-block" id="MPS.canonical_form_infinite"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.canonical_form_infinite">[docs]</a>    <span class="k">def</span> <span class="nf">canonical_form_infinite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">renormalize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">tol_xi</span><span class="o">=</span><span class="mf">1.e6</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.canonical_form_infinite"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.canonical_form_infinite">[docs]</a>    <span class="k">def</span> <span class="nf">canonical_form_infinite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">renormalize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">tol_xi</span><span class="o">=</span><span class="mf">1.e6</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Bring an infinite MPS into canonical form (in place).</span>
 
 <span class="sd">        If any site is in :attr:`form` ``None``, it does *not* use any of the singular values `S`.</span>
@@ -2110,7 +2111,7 @@
             <span class="c1"># axes=[[&#39;p*&#39;, &#39;vL*&#39;], [&#39;p&#39;, &#39;vR*&#39;]])</span>
             <span class="n">Gl</span><span class="p">,</span> <span class="n">Wr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_canonical_form_correct_left</span><span class="p">(</span><span class="n">j1</span><span class="p">,</span> <span class="n">Gl</span><span class="p">,</span> <span class="n">Wr_list</span><span class="p">[</span><span class="n">j1</span> <span class="o">%</span> <span class="n">L</span><span class="p">])</span></div>
 
-<div class="viewcode-block" id="MPS.correlation_length"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.correlation_length">[docs]</a>    <span class="k">def</span> <span class="nf">correlation_length</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">tol_ev0</span><span class="o">=</span><span class="mf">1.e-8</span><span class="p">,</span> <span class="n">charge_sector</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.correlation_length"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.correlation_length">[docs]</a>    <span class="k">def</span> <span class="nf">correlation_length</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">tol_ev0</span><span class="o">=</span><span class="mf">1.e-8</span><span class="p">,</span> <span class="n">charge_sector</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculate the correlation length by diagonalizing the transfer matrix.</span>
 
 <span class="sd">        Assumes that `self` is in canonical form.</span>
@@ -2179,7 +2180,7 @@
             <span class="k">return</span> <span class="o">-</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">E</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">E</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
         <span class="k">return</span> <span class="o">-</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">E</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="n">target</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">E</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span></div>
 
-<div class="viewcode-block" id="MPS.add"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">cutoff</span><span class="o">=</span><span class="mf">1.e-15</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.add"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">cutoff</span><span class="o">=</span><span class="mf">1.e-15</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return an MPS which represents ``alpha|self&gt; + beta |others&gt;``.</span>
 
 <span class="sd">        Works only for &#39;finite&#39;, &#39;segment&#39; boundary conditions.</span>
@@ -2242,7 +2243,7 @@
             <span class="n">psi</span><span class="o">.</span><span class="n">canonical_form_finite</span><span class="p">(</span><span class="n">renormalize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">cutoff</span><span class="o">=</span><span class="n">cutoff</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">psi</span></div>
 
-<div class="viewcode-block" id="MPS.apply_local_op"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.apply_local_op">[docs]</a>    <span class="k">def</span> <span class="nf">apply_local_op</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">unitary</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">renormalize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">cutoff</span><span class="o">=</span><span class="mf">1.e-13</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.apply_local_op"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.apply_local_op">[docs]</a>    <span class="k">def</span> <span class="nf">apply_local_op</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">unitary</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">renormalize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">cutoff</span><span class="o">=</span><span class="mf">1.e-13</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Apply a local (one or multi-site) operator to `self`.</span>
 
 <span class="sd">        Note that this destroys the canonical form if the local operator is non-unitary.</span>
@@ -2299,7 +2300,7 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">unitary</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">canonical_form</span><span class="p">(</span><span class="n">renormalize</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MPS.swap_sites"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.swap_sites">[docs]</a>    <span class="k">def</span> <span class="nf">swap_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">swap_op</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">trunc_par</span><span class="o">=</span><span class="p">{}):</span>
+<div class="viewcode-block" id="MPS.swap_sites"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.swap_sites">[docs]</a>    <span class="k">def</span> <span class="nf">swap_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">swap_op</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">trunc_par</span><span class="o">=</span><span class="p">{}):</span>
         <span class="sd">&quot;&quot;&quot;Swap the two neighboring sites `i` and `i+1` (inplace).</span>
 
 <span class="sd">        Exchange two neighboring sites: form theta, &#39;swap&#39; the physical legs and split</span>
@@ -2371,7 +2372,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_to_valid_index</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span> <span class="o">=</span> <span class="n">siteL</span>
         <span class="k">return</span> <span class="n">err</span></div>
 
-<div class="viewcode-block" id="MPS.permute_sites"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.permute_sites">[docs]</a>    <span class="k">def</span> <span class="nf">permute_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">perm</span><span class="p">,</span> <span class="n">swap_op</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">trunc_par</span><span class="o">=</span><span class="p">{},</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.permute_sites"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.permute_sites">[docs]</a>    <span class="k">def</span> <span class="nf">permute_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">perm</span><span class="p">,</span> <span class="n">swap_op</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">trunc_par</span><span class="o">=</span><span class="p">{},</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Applies the permutation perm to the state (inplace).</span>
 
 <span class="sd">        Parameters</span>
@@ -2422,7 +2423,7 @@
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Total swaps in permute_sites:&quot;</span><span class="p">,</span> <span class="n">num_swaps</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="n">trunc_err</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">trunc_err</span></div>
 
-<div class="viewcode-block" id="MPS.compute_K"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mpo.MPS.compute_K">[docs]</a>    <span class="k">def</span> <span class="nf">compute_K</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">perm</span><span class="p">,</span> <span class="n">swap_op</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">trunc_par</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">canonicalize</span><span class="o">=</span><span class="mf">1.e-6</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="MPS.compute_K"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.compute_K">[docs]</a>    <span class="k">def</span> <span class="nf">compute_K</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">perm</span><span class="p">,</span> <span class="n">swap_op</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">trunc_par</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">canonicalize</span><span class="o">=</span><span class="mf">1.e-6</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute the momentum quantum numbers of the entanglement spectrum for 2D states.</span>
 
 <span class="sd">        Works for an infinite MPS living on a cylinder, infinitely long in `x` direction and with</span>
@@ -2831,7 +2832,7 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;self and other have different total charges!&quot;</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="MPSEnvironment"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPSEnvironment.html#tenpy.networks.mpo.MPSEnvironment">[docs]</a><span class="k">class</span> <span class="nc">MPSEnvironment</span><span class="p">:</span>
+<div class="viewcode-block" id="MPSEnvironment"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPSEnvironment.html#tenpy.networks.mps.MPSEnvironment">[docs]</a><span class="k">class</span> <span class="nc">MPSEnvironment</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Stores partial contractions of :math:`&lt;bra|Op|ket&gt;` for local operators `Op`.</span>
 
 <span class="sd">    The network for a contraction :math:`&lt;bra|Op|ket&gt;` of a local operator `Op`, say exemplary</span>
@@ -2945,7 +2946,7 @@
         <span class="k">assert</span> <span class="nb">any</span><span class="p">([</span><span class="n">LP</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">LP</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LP</span><span class="p">])</span>
         <span class="k">assert</span> <span class="nb">any</span><span class="p">([</span><span class="n">RP</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">RP</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RP</span><span class="p">])</span>
 
-<div class="viewcode-block" id="MPSEnvironment.get_LP"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPSEnvironment.html#tenpy.networks.mpo.MPSEnvironment.get_LP">[docs]</a>    <span class="k">def</span> <span class="nf">get_LP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="MPSEnvironment.get_LP"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPSEnvironment.html#tenpy.networks.mps.MPSEnvironment.get_LP">[docs]</a>    <span class="k">def</span> <span class="nf">get_LP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculate LP at given site from nearest available one (including `i`).</span>
 
 <span class="sd">        The returned ``LP_i`` corresponds to the following contraction,</span>
@@ -2985,7 +2986,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">set_LP</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">LP</span><span class="p">,</span> <span class="n">age</span><span class="o">=</span><span class="n">age_i0</span> <span class="o">+</span> <span class="n">j</span> <span class="o">-</span> <span class="n">i0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">LP</span></div>
 
-<div class="viewcode-block" id="MPSEnvironment.get_RP"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPSEnvironment.html#tenpy.networks.mpo.MPSEnvironment.get_RP">[docs]</a>    <span class="k">def</span> <span class="nf">get_RP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="MPSEnvironment.get_RP"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPSEnvironment.html#tenpy.networks.mps.MPSEnvironment.get_RP">[docs]</a>    <span class="k">def</span> <span class="nf">get_RP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculate RP at given site from nearest available one (including `i`).</span>
 
 <span class="sd">        The returned ``RP_i`` corresponds to the following contraction,</span>
@@ -3024,39 +3025,39 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">set_RP</span><span class="p">(</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">RP</span><span class="p">,</span> <span class="n">age</span><span class="o">=</span><span class="n">age_i0</span> <span class="o">+</span> <span class="n">i0</span> <span class="o">-</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">RP</span></div>
 
-<div class="viewcode-block" id="MPSEnvironment.get_LP_age"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPSEnvironment.html#tenpy.networks.mpo.MPSEnvironment.get_LP_age">[docs]</a>    <span class="k">def</span> <span class="nf">get_LP_age</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+<div class="viewcode-block" id="MPSEnvironment.get_LP_age"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPSEnvironment.html#tenpy.networks.mps.MPSEnvironment.get_LP_age">[docs]</a>    <span class="k">def</span> <span class="nf">get_LP_age</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return number of physical sites in the contractions of get_LP(i). Might be ``None``.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LP_age</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_to_valid_index</span><span class="p">(</span><span class="n">i</span><span class="p">)]</span></div>
 
-<div class="viewcode-block" id="MPSEnvironment.get_RP_age"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPSEnvironment.html#tenpy.networks.mpo.MPSEnvironment.get_RP_age">[docs]</a>    <span class="k">def</span> <span class="nf">get_RP_age</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+<div class="viewcode-block" id="MPSEnvironment.get_RP_age"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPSEnvironment.html#tenpy.networks.mps.MPSEnvironment.get_RP_age">[docs]</a>    <span class="k">def</span> <span class="nf">get_RP_age</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return number of physical sites in the contractions of get_LP(i). Might be ``None``.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RP_age</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_to_valid_index</span><span class="p">(</span><span class="n">i</span><span class="p">)]</span></div>
 
-<div class="viewcode-block" id="MPSEnvironment.set_LP"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPSEnvironment.html#tenpy.networks.mpo.MPSEnvironment.set_LP">[docs]</a>    <span class="k">def</span> <span class="nf">set_LP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">LP</span><span class="p">,</span> <span class="n">age</span><span class="p">):</span>
+<div class="viewcode-block" id="MPSEnvironment.set_LP"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPSEnvironment.html#tenpy.networks.mps.MPSEnvironment.set_LP">[docs]</a>    <span class="k">def</span> <span class="nf">set_LP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">LP</span><span class="p">,</span> <span class="n">age</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Store part to the left of site `i`.&quot;&quot;&quot;</span>
         <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_valid_index</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_LP</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">LP</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_LP_age</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">age</span></div>
 
-<div class="viewcode-block" id="MPSEnvironment.set_RP"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPSEnvironment.html#tenpy.networks.mpo.MPSEnvironment.set_RP">[docs]</a>    <span class="k">def</span> <span class="nf">set_RP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">RP</span><span class="p">,</span> <span class="n">age</span><span class="p">):</span>
+<div class="viewcode-block" id="MPSEnvironment.set_RP"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPSEnvironment.html#tenpy.networks.mps.MPSEnvironment.set_RP">[docs]</a>    <span class="k">def</span> <span class="nf">set_RP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">RP</span><span class="p">,</span> <span class="n">age</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Store part to the right of site `i`.&quot;&quot;&quot;</span>
         <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_valid_index</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_RP</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">RP</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_RP_age</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">age</span></div>
 
-<div class="viewcode-block" id="MPSEnvironment.del_LP"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPSEnvironment.html#tenpy.networks.mpo.MPSEnvironment.del_LP">[docs]</a>    <span class="k">def</span> <span class="nf">del_LP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+<div class="viewcode-block" id="MPSEnvironment.del_LP"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPSEnvironment.html#tenpy.networks.mps.MPSEnvironment.del_LP">[docs]</a>    <span class="k">def</span> <span class="nf">del_LP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Delete stored part strictly to the left of site `i`.&quot;&quot;&quot;</span>
         <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_valid_index</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_LP</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_LP_age</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
 
-<div class="viewcode-block" id="MPSEnvironment.del_RP"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPSEnvironment.html#tenpy.networks.mpo.MPSEnvironment.del_RP">[docs]</a>    <span class="k">def</span> <span class="nf">del_RP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+<div class="viewcode-block" id="MPSEnvironment.del_RP"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPSEnvironment.html#tenpy.networks.mps.MPSEnvironment.del_RP">[docs]</a>    <span class="k">def</span> <span class="nf">del_RP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Delete storde part scrictly to the right of site `i`.&quot;&quot;&quot;</span>
         <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_valid_index</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_RP</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_RP_age</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
 
-<div class="viewcode-block" id="MPSEnvironment.full_contraction"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPSEnvironment.html#tenpy.networks.mpo.MPSEnvironment.full_contraction">[docs]</a>    <span class="k">def</span> <span class="nf">full_contraction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i0</span><span class="p">):</span>
+<div class="viewcode-block" id="MPSEnvironment.full_contraction"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPSEnvironment.html#tenpy.networks.mps.MPSEnvironment.full_contraction">[docs]</a>    <span class="k">def</span> <span class="nf">full_contraction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i0</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculate the overlap by a full contraction of the network.</span>
 
 <span class="sd">        The full contraction of the environments gives the overlap ``&lt;bra|ket&gt;``,</span>
@@ -3087,7 +3088,7 @@
         <span class="n">contr</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">inner</span><span class="p">(</span><span class="n">LP</span><span class="p">,</span> <span class="n">RP</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vL*&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">]],</span> <span class="n">do_conj</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">contr</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">bra</span><span class="o">.</span><span class="n">norm</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">norm</span></div>
 
-<div class="viewcode-block" id="MPSEnvironment.expectation_value"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPSEnvironment.html#tenpy.networks.mpo.MPSEnvironment.expectation_value">[docs]</a>    <span class="k">def</span> <span class="nf">expectation_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ops</span><span class="p">,</span> <span class="n">sites</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="MPSEnvironment.expectation_value"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.MPSEnvironment.html#tenpy.networks.mps.MPSEnvironment.expectation_value">[docs]</a>    <span class="k">def</span> <span class="nf">expectation_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ops</span><span class="p">,</span> <span class="n">sites</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Expectation value ``&lt;bra|ops|ket&gt;`` of (n-site) operator(s).</span>
 
 <span class="sd">        Calculates n-site expectation values of operators sandwiched between bra and ket.</span>
@@ -3198,7 +3199,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">_to_valid_index</span><span class="p">(</span><span class="n">i</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="TransferMatrix"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.TransferMatrix.html#tenpy.networks.mpo.TransferMatrix">[docs]</a><span class="k">class</span> <span class="nc">TransferMatrix</span><span class="p">(</span><span class="n">sparse</span><span class="o">.</span><span class="n">NpcLinearOperator</span><span class="p">):</span>
+<div class="viewcode-block" id="TransferMatrix"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.TransferMatrix.html#tenpy.networks.mps.TransferMatrix">[docs]</a><span class="k">class</span> <span class="nc">TransferMatrix</span><span class="p">(</span><span class="n">sparse</span><span class="o">.</span><span class="n">NpcLinearOperator</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Transfer matrix of two MPS (bra &amp; ket).</span>
 
 <span class="sd">    For an iMPS in the thermodynamic limit, we often need to find the &#39;dominant `RP`&#39; (and `LP`).</span>
@@ -3323,7 +3324,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">qtotal</span> <span class="o">=</span> <span class="n">bra</span><span class="o">.</span><span class="n">chinfo</span><span class="o">.</span><span class="n">make_valid</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">([</span><span class="n">B</span><span class="o">.</span><span class="n">qtotal</span> <span class="k">for</span> <span class="n">B</span> <span class="ow">in</span> <span class="n">M</span> <span class="o">+</span> <span class="n">N</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_contract_legs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ket</span><span class="o">.</span><span class="n">_p_label</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>  <span class="c1"># for a ususal MPS: 2</span>
 
-<div class="viewcode-block" id="TransferMatrix.matvec"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.TransferMatrix.html#tenpy.networks.mpo.TransferMatrix.matvec">[docs]</a>    <span class="k">def</span> <span class="nf">matvec</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vec</span><span class="p">):</span>
+<div class="viewcode-block" id="TransferMatrix.matvec"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.TransferMatrix.html#tenpy.networks.mps.TransferMatrix.matvec">[docs]</a>    <span class="k">def</span> <span class="nf">matvec</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vec</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Given `vec` as an npc.Array, apply the transfer matrix.</span>
 
 <span class="sd">        Parameters</span>
@@ -3365,7 +3366,7 @@
             <span class="n">vec</span> <span class="o">=</span> <span class="n">vec</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">pipes</span><span class="o">=</span><span class="n">pipe</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">vec</span></div>
 
-<div class="viewcode-block" id="TransferMatrix.initial_guess"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.TransferMatrix.html#tenpy.networks.mpo.TransferMatrix.initial_guess">[docs]</a>    <span class="k">def</span> <span class="nf">initial_guess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">diag</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+<div class="viewcode-block" id="TransferMatrix.initial_guess"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.TransferMatrix.html#tenpy.networks.mps.TransferMatrix.initial_guess">[docs]</a>    <span class="k">def</span> <span class="nf">initial_guess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">diag</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return a diagonal matrix as initial guess for the eigenvector.</span>
 
 <span class="sd">        Parameters</span>
@@ -3380,7 +3381,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">npc</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">diag</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pipe</span><span class="o">.</span><span class="n">legs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">label_split</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="TransferMatrix.eigenvectors"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.TransferMatrix.html#tenpy.networks.mpo.TransferMatrix.eigenvectors">[docs]</a>    <span class="k">def</span> <span class="nf">eigenvectors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="TransferMatrix.eigenvectors"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.TransferMatrix.html#tenpy.networks.mps.TransferMatrix.eigenvectors">[docs]</a>    <span class="k">def</span> <span class="nf">eigenvectors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                      <span class="n">num_ev</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                      <span class="n">max_num_ev</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                      <span class="n">max_tol</span><span class="o">=</span><span class="mf">1.e-12</span><span class="p">,</span>
@@ -3449,7 +3450,7 @@
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">eta</span><span class="p">)[</span><span class="n">perm</span><span class="p">],</span> <span class="p">[</span><span class="n">A</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">perm</span><span class="p">]</span></div></div>
 
 
-<div class="viewcode-block" id="build_initial_state"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.build_initial_state.html#tenpy.networks.mpo.build_initial_state">[docs]</a><span class="k">def</span> <span class="nf">build_initial_state</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">filling</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;random&#39;</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="build_initial_state"><a class="viewcode-back" href="../../../reference/tenpy.networks.mps.build_initial_state.html#tenpy.networks.mps.build_initial_state">[docs]</a><span class="k">def</span> <span class="nf">build_initial_state</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">filling</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;random&#39;</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Build an &quot;initial state&quot; list</span>
 
 <span class="sd">    Uses two iterables (&#39;states&#39; and &#39;filling&#39;) to determine how to fill the</span>
@@ -3564,7 +3565,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Sep 23, 2019.
+      Last updated on Sep 25, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.0.
     </div>
   </body>
