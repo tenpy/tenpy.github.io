@@ -81,7 +81,7 @@ A single entry holds for all bonds.</p>
 </dd>
 <dt class="field-even">Attributes</dt>
 <dd class="field-even"><dl>
-<dt><a class="reference internal" href="#tenpy.networks.mpo.MPO.L" title="tenpy.networks.mpo.MPO.L"><code class="xref py py-obj docutils literal notranslate"><span class="pre">L</span></code></a><span class="classifier">int</span></dt><dd><p>Number of physical sites.</p>
+<dt><a class="reference internal" href="#tenpy.networks.mpo.MPO.L" title="tenpy.networks.mpo.MPO.L"><code class="xref py py-obj docutils literal notranslate"><span class="pre">L</span></code></a><span class="classifier">int</span></dt><dd><p>Number of physical sites; for an iMPO the len of the MPO unit cell.</p>
 </dd>
 <dt><strong>chinfo</strong><span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChargeInfo</span></code></span></dt><dd><p>The nature of the charge.</p>
 </dd>
@@ -137,10 +137,10 @@ In standard form, this is the last index on the bond (except for unset bonds in 
 <td><p>Return <cite>W</cite> at site <cite>i</cite>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.networks.mpo.MPO.get_full_hamiltonian" title="tenpy.networks.mpo.MPO.get_full_hamiltonian"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_full_hamiltonian</span></code></a>([maxsize])</p></td>
-<td><p>extract the full Hamiltonian as a d**L x d**L matrix</p></td>
+<td><p>extract the full Hamiltonian as a d**L x d**L matrix.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#tenpy.networks.mpo.MPO.get_grouped_mpo" title="tenpy.networks.mpo.MPO.get_grouped_mpo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_grouped_mpo</span></code></a>(blocklen)</p></td>
-<td><p>contract blocklen subsequent tensors into a single one and return result as a new MPO object</p></td>
+<td><p>Contract <cite>blocklen</cite> subsequent tensors into a single one and return result as a new MPO object.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.networks.mpo.MPO.group_sites" title="tenpy.networks.mpo.MPO.group_sites"><code class="xref py py-obj docutils literal notranslate"><span class="pre">group_sites</span></code></a>([n, grouped_sites])</p></td>
 <td><p>Modify <cite>self</cite> inplace to group sites.</p></td>
@@ -158,7 +158,7 @@ In standard form, this is the last index on the bond (except for unset bonds in 
 <td><p>Sort virtual legs by charges.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#tenpy.networks.mpo.MPO.test_sanity" title="tenpy.networks.mpo.MPO.test_sanity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code></a>()</p></td>
-<td><p>Sanity check.</p></td>
+<td><p>Sanity check, raises ValueErrors, if something is wrong.</p></td>
 </tr>
 </tbody>
 </table>
@@ -205,13 +205,13 @@ A single entry holds for all bonds.</p>
 <dl class="method">
 <dt id="tenpy.networks.mpo.MPO.test_sanity">
 <code class="sig-name descname">test_sanity</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#MPO.test_sanity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.MPO.test_sanity" title="Permalink to this definition">¶</a></dt>
-<dd><p>Sanity check. Raises Errors if something is wrong.</p>
+<dd><p>Sanity check, raises ValueErrors, if something is wrong.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="tenpy.networks.mpo.MPO.L">
 <em class="property">property </em><code class="sig-name descname">L</code><a class="headerlink" href="#tenpy.networks.mpo.MPO.L" title="Permalink to this definition">¶</a></dt>
-<dd><p>Number of physical sites. For an iMPO the len of the MPO unit cell.</p>
+<dd><p>Number of physical sites; for an iMPO the len of the MPO unit cell.</p>
 </dd></dl>
 
 <dl class="method">
@@ -223,7 +223,8 @@ A single entry holds for all bonds.</p>
 <dl class="method">
 <dt id="tenpy.networks.mpo.MPO.finite">
 <em class="property">property </em><code class="sig-name descname">finite</code><a class="headerlink" href="#tenpy.networks.mpo.MPO.finite" title="Permalink to this definition">¶</a></dt>
-<dd><p>Distinguish MPO (<code class="docutils literal notranslate"><span class="pre">True;</span> <span class="pre">bc='finite',</span> <span class="pre">'segment'</span></code> ) vs. iMPO (<code class="docutils literal notranslate"><span class="pre">False;</span> <span class="pre">bc='infinite'</span></code>)</p>
+<dd><p>Distinguish MPO vs iMPO.</p>
+<p>True for an MPO (<code class="docutils literal notranslate"><span class="pre">bc='finite',</span> <span class="pre">'segment'</span></code>), False for an iMPO (<code class="docutils literal notranslate"><span class="pre">bc='infinite'</span></code>).</p>
 </dd></dl>
 
 <dl class="method">
@@ -281,11 +282,11 @@ or help the convergence of DMRG (in case of too long range interactions).</p>
 <dt id="tenpy.networks.mpo.MPO.sort_legcharges">
 <code class="sig-name descname">sort_legcharges</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#MPO.sort_legcharges"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.MPO.sort_legcharges" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sort virtual legs by charges. In place.</p>
-<p>The MPO seen as matrix of the <code class="docutils literal notranslate"><span class="pre">wL,</span> <span class="pre">wR</span></code> legs is usually very sparse.
-This sparsity is captured by the LegCharges for these bonds not being sorted and bunched.
-This requires a tensordot to do more block-multiplications with smaller blocks.
-This is in general faster for large blocks, but might lead to a larger overhead for small
-blocks. Therefore, this function allows to sort the virtual legs by charges.</p>
+<p>The MPO seen as matrix of the <code class="docutils literal notranslate"><span class="pre">wL,</span> <span class="pre">wR</span></code> legs is usually very sparse. This sparsity is
+captured by the LegCharges for these bonds not being sorted and bunched. This requires a
+tensordot to do more block-multiplications with smaller blocks. This is in general faster
+for large blocks, but might lead to a larger overhead for small blocks. Therefore, this
+function allows to sort the virtual legs by charges.</p>
 </dd></dl>
 
 <dl class="method">
@@ -366,13 +367,14 @@ None defaults to <code class="xref py py-attr docutils literal notranslate"><spa
 <dl class="method">
 <dt id="tenpy.networks.mpo.MPO.get_grouped_mpo">
 <code class="sig-name descname">get_grouped_mpo</code><span class="sig-paren">(</span><em class="sig-param">blocklen</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#MPO.get_grouped_mpo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.MPO.get_grouped_mpo" title="Permalink to this definition">¶</a></dt>
-<dd><p>contract blocklen subsequent tensors into a single one and return result as a new MPO object</p>
+<dd><p>Contract <cite>blocklen</cite> subsequent tensors into a single one and return result as a new MPO
+object.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="tenpy.networks.mpo.MPO.get_full_hamiltonian">
 <code class="sig-name descname">get_full_hamiltonian</code><span class="sig-paren">(</span><em class="sig-param">maxsize=1000000.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mpo.html#MPO.get_full_hamiltonian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mpo.MPO.get_full_hamiltonian" title="Permalink to this definition">¶</a></dt>
-<dd><p>extract the full Hamiltonian as a d**L x d**L matrix</p>
+<dd><p>extract the full Hamiltonian as a d**L x d**L matrix.</p>
 </dd></dl>
 
 </dd></dl>
@@ -452,7 +454,7 @@ None defaults to <code class="xref py py-attr docutils literal notranslate"><spa
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Sep 26, 2019.
+      Last updated on Oct 03, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.0.
     </div>
   </body>

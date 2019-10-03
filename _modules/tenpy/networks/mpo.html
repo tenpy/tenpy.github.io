@@ -74,9 +74,8 @@
 
 <span class="sd">Similar as for the MPS, a bond index ``i`` is *left* of site `i`,</span>
 <span class="sd">i.e. between sites ``i-1`` and ``i``.</span>
-
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="c1"># Copyright 2018 TeNPy Developers</span>
+<span class="c1"># Copyright 2018-2019 TeNPy Developers, GNU GPLv3</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
@@ -234,7 +233,7 @@
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="n">Ws</span><span class="p">,</span> <span class="n">bc</span><span class="p">,</span> <span class="n">IdL</span><span class="p">,</span> <span class="n">IdR</span><span class="p">,</span> <span class="n">max_range</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MPO.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.MPO.html#tenpy.networks.mpo.MPO.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Sanity check. Raises Errors if something is wrong.&quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;Sanity check, raises ValueErrors, if something is wrong.&quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_valid_bc</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;invalid MPO boundary conditions: &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bc</span><span class="p">))</span>
@@ -251,7 +250,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">L</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Number of physical sites. For an iMPO the len of the MPO unit cell.&quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;Number of physical sites; for an iMPO the len of the MPO unit cell.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">)</span>
 
     <span class="nd">@property</span>
@@ -261,7 +260,10 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">finite</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="s2">&quot;Distinguish MPO (``True; bc=&#39;finite&#39;, &#39;segment&#39;`` ) vs. iMPO (``False; bc=&#39;infinite&#39;``)&quot;</span>
+        <span class="sd">&quot;&quot;&quot;Distinguish MPO vs iMPO.</span>
+
+<span class="sd">        True for an MPO (``bc=&#39;finite&#39;, &#39;segment&#39;``), False for an iMPO (``bc=&#39;infinite&#39;``).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_valid_bc</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="o">!=</span> <span class="s1">&#39;infinite&#39;</span>
 
@@ -285,14 +287,16 @@
 <div class="viewcode-block" id="MPO.get_IdL"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.MPO.html#tenpy.networks.mpo.MPO.get_IdL">[docs]</a>    <span class="k">def</span> <span class="nf">get_IdL</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return index of `IdL` at bond to the *left* of site `i`.</span>
 
-<span class="sd">        May be ``None``.&quot;&quot;&quot;</span>
+<span class="sd">        May be ``None``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_valid_index</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">IdL</span><span class="p">[</span><span class="n">i</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="MPO.get_IdR"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.MPO.html#tenpy.networks.mpo.MPO.get_IdR">[docs]</a>    <span class="k">def</span> <span class="nf">get_IdR</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return index of `IdR` at bond to the *right* of site `i`.</span>
 
-<span class="sd">        May be ``None``.&quot;&quot;&quot;</span>
+<span class="sd">        May be ``None``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_valid_index</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">IdR</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span></div>
 
@@ -342,11 +346,11 @@
 <div class="viewcode-block" id="MPO.sort_legcharges"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.MPO.html#tenpy.networks.mpo.MPO.sort_legcharges">[docs]</a>    <span class="k">def</span> <span class="nf">sort_legcharges</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Sort virtual legs by charges. In place.</span>
 
-<span class="sd">        The MPO seen as matrix of the ``wL, wR`` legs is usually very sparse.</span>
-<span class="sd">        This sparsity is captured by the LegCharges for these bonds not being sorted and bunched.</span>
-<span class="sd">        This requires a tensordot to do more block-multiplications with smaller blocks.</span>
-<span class="sd">        This is in general faster for large blocks, but might lead to a larger overhead for small</span>
-<span class="sd">        blocks. Therefore, this function allows to sort the virtual legs by charges.</span>
+<span class="sd">        The MPO seen as matrix of the ``wL, wR`` legs is usually very sparse. This sparsity is</span>
+<span class="sd">        captured by the LegCharges for these bonds not being sorted and bunched. This requires a</span>
+<span class="sd">        tensordot to do more block-multiplications with smaller blocks. This is in general faster</span>
+<span class="sd">        for large blocks, but might lead to a larger overhead for small blocks. Therefore, this</span>
+<span class="sd">        function allows to sort the virtual legs by charges.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">new_W</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
         <span class="n">perms</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
@@ -469,7 +473,8 @@
 <div class="viewcode-block" id="MPO.is_hermitian"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.MPO.html#tenpy.networks.mpo.MPO.is_hermitian">[docs]</a>    <span class="k">def</span> <span class="nf">is_hermitian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1.e-10</span><span class="p">,</span> <span class="n">max_range</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Check if `self` is a hermitian MPO.</span>
 
-<span class="sd">        Shorthand for ``self.is_equal(self.dagger(), eps, max_range)``.&quot;&quot;&quot;</span>
+<span class="sd">        Shorthand for ``self.is_equal(self.dagger(), eps, max_range)``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dagger</span><span class="p">(),</span> <span class="n">eps</span><span class="p">,</span> <span class="n">max_range</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MPO.is_equal"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.MPO.html#tenpy.networks.mpo.MPO.is_equal">[docs]</a>    <span class="k">def</span> <span class="nf">is_equal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1.e-10</span><span class="p">,</span> <span class="n">max_range</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -505,7 +510,7 @@
             <span class="n">max_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">+</span> <span class="n">max_range</span>
 
         <span class="k">def</span> <span class="nf">overlap</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;&lt;A|B&gt; on sites 0 to max_i&quot;&quot;&quot;</span>
+            <span class="sd">&quot;&quot;&quot;&lt;A|B&gt; on sites 0 to max_i.&quot;&quot;&quot;</span>
             <span class="n">wA</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">take_slice</span><span class="p">([</span><span class="n">A</span><span class="o">.</span><span class="n">get_IdL</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span> <span class="p">[</span><span class="s1">&#39;wL&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>
             <span class="n">wB</span> <span class="o">=</span> <span class="n">B</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">take_slice</span><span class="p">([</span><span class="n">B</span><span class="o">.</span><span class="n">get_IdL</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span> <span class="p">[</span><span class="s1">&#39;wL&#39;</span><span class="p">])</span>
             <span class="n">trAdB</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">wA</span><span class="p">,</span> <span class="n">wB</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;p*&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">]])</span>  <span class="c1"># wR* wR</span>
@@ -544,13 +549,14 @@
                 <span class="k">return</span> <span class="p">[</span><span class="n">Id</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MPO.get_grouped_mpo"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.MPO.html#tenpy.networks.mpo.MPO.get_grouped_mpo">[docs]</a>    <span class="k">def</span> <span class="nf">get_grouped_mpo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">blocklen</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;contract blocklen subsequent tensors into a single one and return result as a new MPO object&quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;Contract `blocklen` subsequent tensors into a single one and return result as a new MPO</span>
+<span class="sd">        object.&quot;&quot;&quot;</span>
         <span class="n">groupedMPO</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="n">groupedMPO</span><span class="o">.</span><span class="n">group_sites</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">blocklen</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">groupedMPO</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MPO.get_full_hamiltonian"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.MPO.html#tenpy.networks.mpo.MPO.get_full_hamiltonian">[docs]</a>    <span class="k">def</span> <span class="nf">get_full_hamiltonian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">maxsize</span><span class="o">=</span><span class="mf">1e6</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;extract the full Hamiltonian as a d**L x d**L matrix&quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;extract the full Hamiltonian as a d**L x d**L matrix.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">**</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">maxsize</span><span class="p">):</span>
             <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Matrix dimension exceeds maxsize&#39;</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
@@ -776,7 +782,7 @@
         <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_terms</span><span class="p">(</span><span class="n">ot</span><span class="p">,</span> <span class="n">ct</span><span class="p">,</span> <span class="n">sites</span><span class="p">,</span> <span class="n">bc</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MPOGraph.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.MPOGraph.html#tenpy.networks.mpo.MPOGraph.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Sanity check. Raises ValueErrors, if something is wrong.&quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;Sanity check, raises ValueErrors, if something is wrong.&quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">MPO</span><span class="o">.</span><span class="n">_valid_bc</span><span class="p">:</span>
@@ -797,7 +803,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">L</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Number of physical sites. For an iMPS the length of the unit cell.&quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;Number of physical sites; for infinite boundaries the length of the unit cell.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MPOGraph.add"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.MPOGraph.html#tenpy.networks.mpo.MPOGraph.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">keyL</span><span class="p">,</span> <span class="n">keyR</span><span class="p">,</span> <span class="n">opname</span><span class="p">,</span> <span class="n">strength</span><span class="p">,</span> <span class="n">check_op</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">skip_existing</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
@@ -838,7 +844,7 @@
                 <span class="n">entry</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">opname</span><span class="p">,</span> <span class="n">strength</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="MPOGraph.add_string"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.MPOGraph.html#tenpy.networks.mpo.MPOGraph.add_string">[docs]</a>    <span class="k">def</span> <span class="nf">add_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">opname</span><span class="o">=</span><span class="s1">&#39;Id&#39;</span><span class="p">,</span> <span class="n">check_op</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">skip_existing</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Insert a bunch of edges for an &#39;operator string&#39; into the graph.</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Insert a bunch of edges for an &#39;operator string&#39; into the graph.</span>
 
 <span class="sd">        Terms like :math:`S^z_i S^z_j` actually stand for</span>
 <span class="sd">        :math:`S^z_i \otimes \prod_{i &lt; k &lt; j} \mathbb{1}_k \otimes S^z_j`.</span>
@@ -1076,7 +1082,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">set_RP</span><span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">init_RP</span><span class="p">,</span> <span class="n">age</span><span class="o">=</span><span class="n">age_RP</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="MPOEnvironment.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.MPOEnvironment.html#tenpy.networks.mpo.MPOEnvironment.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sanity check, raises ValueErrors, if something is wrong.&quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bra</span><span class="o">.</span><span class="n">L</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">L</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="o">.</span><span class="n">L</span><span class="p">)</span>
         <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bra</span><span class="o">.</span><span class="n">finite</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">finite</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="o">.</span><span class="n">finite</span><span class="p">)</span>
         <span class="c1"># check that the network is contractable</span>
@@ -1084,7 +1091,7 @@
             <span class="n">b_s</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">test_equal</span><span class="p">(</span><span class="n">k_s</span><span class="o">.</span><span class="n">leg</span><span class="p">)</span>
             <span class="n">b_s</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">test_equal</span><span class="p">(</span><span class="n">H_s</span><span class="o">.</span><span class="n">leg</span><span class="p">)</span>
         <span class="k">assert</span> <span class="nb">any</span><span class="p">([</span><span class="n">LP</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">LP</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LP</span><span class="p">])</span>
-        <span class="k">assert</span> <span class="nb">any</span><span class="p">([</span><span class="n">RP</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">RP</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RP</span><span class="p">])</span>
+        <span class="k">assert</span> <span class="nb">any</span><span class="p">([</span><span class="n">RP</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">RP</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RP</span><span class="p">])</span></div>
 
 <div class="viewcode-block" id="MPOEnvironment.get_LP"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.MPOEnvironment.html#tenpy.networks.mpo.MPOEnvironment.get_LP">[docs]</a>    <span class="k">def</span> <span class="nf">get_LP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculate LP at given site from nearest available one (including `i`).</span>
@@ -1237,8 +1244,9 @@
 <span class="k">def</span> <span class="nf">_calc_grid_legs_finite</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="n">grids</span><span class="p">,</span> <span class="n">Ws_qtotal</span><span class="p">,</span> <span class="n">leg0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Calculate LegCharges from `grids` for a finite MPO.</span>
 
-<span class="sd">    This is the easier case. We just gauge the very first leg to the left to zeros,</span>
-<span class="sd">    then all other charges (hopefully) follow from the entries of the grid.&quot;&quot;&quot;</span>
+<span class="sd">    This is the easier case. We just gauge the very first leg to the left to zeros, then all other</span>
+<span class="sd">    charges (hopefully) follow from the entries of the grid.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">leg0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">grids</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;finite MPO with len of first bond != 1&quot;</span><span class="p">)</span>
@@ -1369,7 +1377,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Oct 01, 2019.
+      Last updated on Oct 03, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.0.
     </div>
   </body>

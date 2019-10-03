@@ -58,7 +58,7 @@
 <span class="sd">the file ``tenpy/linalg/_npc_helper.pyx``.</span>
 <span class="sd">For further details, see the definition of :func:`~tenpy.tools.optimization.use_cython`.</span>
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="c1"># Copyright 2018 TeNPy Developers</span>
+<span class="c1"># Copyright 2018-2019 TeNPy Developers, GNU GPLv3</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">copy</span>
@@ -193,7 +193,7 @@
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="n">names</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ChargeInfo.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.linalg.charges.ChargeInfo.html#tenpy.linalg.charges.ChargeInfo.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Sanity check. Raises ValueErrors, if something is wrong.&quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;Sanity check, raises ValueErrors, if something is wrong.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mod_masked</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mod</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">!=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qnumber</span><span class="p">,</span> <span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;mod has wrong shape&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mod_masked</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">):</span>
@@ -211,6 +211,7 @@
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">mod</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Modulo how much each of the charges is taken.</span>
+
 <span class="sd">        1 for a U(1) charge, i.e., mod 1 -&gt; mod infinity.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mod</span>
@@ -534,7 +535,7 @@
         <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_qind</span><span class="p">(</span><span class="n">chinfo</span><span class="p">,</span> <span class="n">leg</span><span class="o">.</span><span class="n">slices</span><span class="p">,</span> <span class="n">charges</span><span class="p">,</span> <span class="n">leg</span><span class="o">.</span><span class="n">qconj</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LegCharge.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.linalg.charges.LegCharge.html#tenpy.linalg.charges.LegCharge.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Sanity check. Raises ValueErrors, if something is wrong.&quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;Sanity check, raises ValueErrors, if something is wrong.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">optimize</span><span class="p">(</span><span class="n">OptimizationFlag</span><span class="o">.</span><span class="n">skip_arg_checks</span><span class="p">):</span>
             <span class="k">return</span>
         <span class="n">sl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">slices</span>
@@ -587,7 +588,10 @@
         <span class="k">return</span> <span class="n">qflat</span></div>
 
 <div class="viewcode-block" id="LegCharge.to_qdict"><a class="viewcode-back" href="../../../reference/tenpy.linalg.charges.LegCharge.html#tenpy.linalg.charges.LegCharge.to_qdict">[docs]</a>    <span class="k">def</span> <span class="nf">to_qdict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return charges in `qdict` form. Raises ValueError, if not blocked.&quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;Return charges in `qdict` form.</span>
+
+<span class="sd">        Raises ValueError, if not blocked.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">res</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="n">ch</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="bp">self</span><span class="o">.</span><span class="n">charges</span><span class="p">):</span>
             <span class="n">res</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">ch</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">)</span>
@@ -650,7 +654,6 @@
 <span class="sd">        --------</span>
 <span class="sd">        test_equal :</span>
 <span class="sd">            ``self.test_contractible(other)`` just performs ``self.test_equal(other.conj())``.</span>
-
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">optimize</span><span class="p">(</span><span class="n">OptimizationFlag</span><span class="o">.</span><span class="n">skip_arg_checks</span><span class="p">):</span>
             <span class="k">return</span>
@@ -1077,7 +1080,7 @@
         <span class="k">return</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="LegPipe.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.linalg.charges.LegPipe.html#tenpy.linalg.charges.LegPipe.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Sanity check. Raises ValueErrors, if something is wrong.&quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;Sanity check, raises ValueErrors, if something is wrong.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">optimize</span><span class="p">(</span><span class="n">OptimizationFlag</span><span class="o">.</span><span class="n">skip_arg_checks</span><span class="p">):</span>
             <span class="k">return</span>
         <span class="k">assert</span> <span class="p">(</span><span class="nb">all</span><span class="p">([</span><span class="n">l</span><span class="o">.</span><span class="n">chinfo</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">legs</span><span class="p">]))</span>
@@ -1086,14 +1089,15 @@
 
 <div class="viewcode-block" id="LegPipe.to_LegCharge"><a class="viewcode-back" href="../../../reference/tenpy.linalg.charges.LegPipe.html#tenpy.linalg.charges.LegPipe.to_LegCharge">[docs]</a>    <span class="k">def</span> <span class="nf">to_LegCharge</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Convert self to a LegCharge, discarding the information how to split the legs.</span>
-<span class="sd">        Usually not needed, but called by functions, which are not implemented for a LegPipe.&quot;&quot;&quot;</span>
+
+<span class="sd">        Usually not needed, but called by functions, which are not implemented for a LegPipe.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">res</span> <span class="o">=</span> <span class="n">LegCharge</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="n">LegCharge</span><span class="p">)</span>
         <span class="n">res</span><span class="o">.</span><span class="n">__setstate__</span><span class="p">(</span><span class="n">LegCharge</span><span class="o">.</span><span class="n">__getstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="LegPipe.conj"><a class="viewcode-back" href="../../../reference/tenpy.linalg.charges.LegPipe.html#tenpy.linalg.charges.LegPipe.conj">[docs]</a>    <span class="k">def</span> <span class="nf">conj</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return a shallow copy with opposite ``self.qconj``.</span>
-
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1369,7 +1373,8 @@
 <span class="k">def</span> <span class="nf">_map_blocks</span><span class="p">(</span><span class="n">blocksizes</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Create an index array mapping 1D blocks of given sizes to a new array.</span>
 
-<span class="sd">    Equivalent to ``np.concatenate([np.ones(s, np.intp)*i for i, s in enumerate(blocksizes)])``.&quot;&quot;&quot;</span>
+<span class="sd">    Equivalent to ``np.concatenate([np.ones(s, np.intp)*i for i, s in enumerate(blocksizes)])``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">blocksizes</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span> <span class="o">*</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">blocksizes</span><span class="p">)])</span>
@@ -1480,7 +1485,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Oct 01, 2019.
+      Last updated on Oct 03, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.0.
     </div>
   </body>

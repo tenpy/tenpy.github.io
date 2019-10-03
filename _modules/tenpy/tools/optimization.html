@@ -104,7 +104,7 @@
 <span class="sd">       help that much; in the crucial parts of the cython code, these optimizations are already</span>
 <span class="sd">       applied. We do *not* recommend using this!</span>
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="c1"># Copyright 2018 TeNPy Developers</span>
+<span class="c1"># Copyright 2018-2019 TeNPy Developers, GNU GPLv3</span>
 
 <span class="kn">from</span> <span class="nn">enum</span> <span class="k">import</span> <span class="n">IntEnum</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
@@ -129,23 +129,23 @@
 <span class="sd">    Whether we optimize dynamically is decided by comparison of the global &quot;optimization level&quot;</span>
 <span class="sd">    with one of the following flags. A higher level *includes* all the previous optimizations.</span>
 
-<span class="sd">    ===== ================ ========================================================================</span>
+<span class="sd">    ===== ================ =======================================================================</span>
 <span class="sd">    Level Flag             Description</span>
-<span class="sd">    ===== ================ ========================================================================</span>
+<span class="sd">    ===== ================ =======================================================================</span>
 <span class="sd">    0     none             Don&#39;t do any optimizations, i.e., run many sanity checks.</span>
 <span class="sd">                           Used for testing.</span>
-<span class="sd">    ----- ---------------- ------------------------------------------------------------------------</span>
+<span class="sd">    ----- ---------------- -----------------------------------------------------------------------</span>
 <span class="sd">    1     default          Skip really unnecessary sanity checks, but also don&#39;t try any</span>
 <span class="sd">                           optional optimizations if they might give an overhead.</span>
-<span class="sd">    ----- ---------------- ------------------------------------------------------------------------</span>
+<span class="sd">    ----- ---------------- -----------------------------------------------------------------------</span>
 <span class="sd">    2     safe             Activate safe optimizations in algorithms, even if they might</span>
 <span class="sd">                           give a small overhead.</span>
 <span class="sd">                           Example: Try to compress the MPO representing the hamiltonian.</span>
-<span class="sd">    ----- ---------------- ------------------------------------------------------------------------</span>
+<span class="sd">    ----- ---------------- -----------------------------------------------------------------------</span>
 <span class="sd">    3     skip_arg_checks  Unsafe! Skip (some) class sanity tests and (function) argument checks.</span>
-<span class="sd">    ===== ================ ========================================================================</span>
+<span class="sd">    ===== ================ =======================================================================</span>
 
-<span class="sd">   .. warning ::</span>
+<span class="sd">    .. warning ::</span>
 <span class="sd">        When unsafe optimizations are enabled, errors will not be detected that easily,</span>
 <span class="sd">        debugging is much harder, and you might even get segmentation faults in the compiled parts.</span>
 <span class="sd">        Use this kind of optimization only for code which you succesfully ran before</span>
@@ -192,18 +192,21 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">temporary_level</span> <span class="o">=</span> <span class="n">temporary_level</span>
 
     <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="s2">&quot;enter the context manager&quot;</span>
+        <span class="sd">&quot;&quot;&quot;enter the context manager.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_old_level</span> <span class="o">=</span> <span class="n">get_level</span><span class="p">()</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">temporary_level</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">set_level</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">temporary_level</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">):</span>
-        <span class="s2">&quot;exit the context manager&quot;</span>
+        <span class="sd">&quot;&quot;&quot;exit the context manager.&quot;&quot;&quot;</span>
         <span class="n">set_level</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_old_level</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="to_OptimizationFlag"><a class="viewcode-back" href="../../../reference/tenpy.tools.optimization.to_OptimizationFlag.html#tenpy.tools.optimization.to_OptimizationFlag">[docs]</a><span class="k">def</span> <span class="nf">to_OptimizationFlag</span><span class="p">(</span><span class="n">level</span><span class="p">):</span>
-    <span class="s2">&quot;Convert strings and int to a valid OptimizationFlag. ``None`` defaults to the current level.&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Convert strings and int to a valid OptimizationFlag.</span>
+
+<span class="sd">    ``None`` defaults to the current level.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">level</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">get_level</span><span class="p">()</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">level</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
@@ -393,7 +396,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Oct 01, 2019.
+      Last updated on Oct 03, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.0.
     </div>
   </body>

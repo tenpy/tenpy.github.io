@@ -39,8 +39,8 @@
           <div class="body" role="main">
             
   <h1>Source code for tenpy.tools.fit</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;tools to fit to an algebraic decay&quot;&quot;&quot;</span>
-<span class="c1"># Copyright 2018 TeNPy Developers</span>
+<span></span><span class="sd">&quot;&quot;&quot;tools to fit to an algebraic decay.&quot;&quot;&quot;</span>
+<span class="c1"># Copyright 2018-2019 TeNPy Developers, GNU GPLv3</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">scipy.optimize</span> <span class="k">as</span> <span class="nn">optimize</span>
@@ -52,20 +52,22 @@
 
 
 <div class="viewcode-block" id="alg_decay"><a class="viewcode-back" href="../../../reference/tenpy.tools.fit.alg_decay.html#tenpy.tools.fit.alg_decay">[docs]</a><span class="k">def</span> <span class="nf">alg_decay</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;define the algebraic decay&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;define the algebraic decay.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">a</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="n">b</span><span class="p">)</span> <span class="o">+</span> <span class="n">c</span></div>
 
 
 <div class="viewcode-block" id="linear_fit"><a class="viewcode-back" href="../../../reference/tenpy.tools.fit.linear_fit.html#tenpy.tools.fit.linear_fit">[docs]</a><span class="k">def</span> <span class="nf">linear_fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Perform a linear fit of y to ax + b.</span>
-<span class="sd">    Returns a, b, res.&quot;&quot;&quot;</span>
+
+<span class="sd">    Returns a, b, res.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">x</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">y</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span>
     <span class="n">fit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">lstsq</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))])</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">fit</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">fit</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="n">fit</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="lin_fit_res"><a class="viewcode-back" href="../../../reference/tenpy.tools.fit.lin_fit_res.html#tenpy.tools.fit.lin_fit_res">[docs]</a><span class="k">def</span> <span class="nf">lin_fit_res</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns the least-square residue of a linear fit y vs. x.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Returns the least-square residue of a linear fit y vs x.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">x</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">y</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span>
     <span class="n">fit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">lstsq</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))])</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fit</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
@@ -74,12 +76,12 @@
 
 
 <div class="viewcode-block" id="alg_decay_fit_res"><a class="viewcode-back" href="../../../reference/tenpy.tools.fit.alg_decay_fit_res.html#tenpy.tools.fit.alg_decay_fit_res">[docs]</a><span class="k">def</span> <span class="nf">alg_decay_fit_res</span><span class="p">(</span><span class="n">log_b</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns the residue of an algebraic decay fit of the form x ** (-np.exp(log_b)).&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Returns the residue of an algebraic decay fit of the form ``x**(-np.exp(log_b))``.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">lin_fit_res</span><span class="p">(</span><span class="n">x</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">log_b</span><span class="p">)),</span> <span class="n">y</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="alg_decay_fit"><a class="viewcode-back" href="../../../reference/tenpy.tools.fit.alg_decay_fit.html#tenpy.tools.fit.alg_decay_fit">[docs]</a><span class="k">def</span> <span class="nf">alg_decay_fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">npts</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">power_range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">4.</span><span class="p">),</span> <span class="n">power_mesh</span><span class="o">=</span><span class="p">[</span><span class="mi">60</span><span class="p">,</span> <span class="mi">10</span><span class="p">]):</span>
-    <span class="sd">&quot;&quot;&quot;Fit y to the form a * x**(-b) + c.</span>
+    <span class="sd">&quot;&quot;&quot;Fit y to the form ``a*x**(-b) + c``.</span>
 
 <span class="sd">    Returns a triplet [a, b, c].</span>
 
@@ -115,6 +117,7 @@
 
 <div class="viewcode-block" id="alg_decay_fits"><a class="viewcode-back" href="../../../reference/tenpy.tools.fit.alg_decay_fits.html#tenpy.tools.fit.alg_decay_fits">[docs]</a><span class="k">def</span> <span class="nf">alg_decay_fits</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">npts</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">power_range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">4.</span><span class="p">),</span> <span class="n">power_mesh</span><span class="o">=</span><span class="p">[</span><span class="mi">60</span><span class="p">,</span> <span class="mi">10</span><span class="p">]):</span>
     <span class="sd">&quot;&quot;&quot;Fit arrays of y&#39;s to the form a * x**(-b) + c.</span>
+
 <span class="sd">    Returns arrays of [a, b, c].&quot;&quot;&quot;</span>
     <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
@@ -130,14 +133,15 @@
 
 
 <div class="viewcode-block" id="plot_alg_decay_fit"><a class="viewcode-back" href="../../../reference/tenpy.tools.fit.plot_alg_decay_fit.html#tenpy.tools.fit.plot_alg_decay_fit">[docs]</a><span class="k">def</span> <span class="nf">plot_alg_decay_fit</span><span class="p">(</span><span class="n">plot_module</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">fit_par</span><span class="p">,</span> <span class="n">xfunc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{},</span> <span class="n">plot_fit_args</span><span class="o">=</span><span class="p">{}):</span>
-    <span class="sd">&quot;&quot;&quot;Given x, y, and fit_par (output from alg_decay_fit), produces a plot of the algebraic decay fit.</span>
+    <span class="sd">&quot;&quot;&quot;Given x, y, and fit_par (output from alg_decay_fit), produces a plot of the algebraic decay</span>
+<span class="sd">    fit.</span>
 
-<span class="sd">    plot_module is matplotlib.pyplot, or a subplot.</span>
-<span class="sd">    x, y are the data (real, 1-dimensional np.ndarray)</span>
-<span class="sd">    fit_par is a triplet of numbers [a, b, c] that describes and algebraic decay (see alg_decay()).</span>
-<span class="sd">    xfunc is an optional parameter that scales the x-axis in the resulting plot.</span>
-<span class="sd">    kwargs is a dictionary, whoses key/items are passed to the plot function.</span>
-<span class="sd">    plot_fit_args is a dictionary that controls how the fit is shown.&quot;&quot;&quot;</span>
+<span class="sd">    plot_module is matplotlib.pyplot, or a subplot. x, y are the data (real, 1-dimensional</span>
+<span class="sd">    np.ndarray) fit_par is a triplet of numbers [a, b, c] that describes and algebraic decay (see</span>
+<span class="sd">    alg_decay()). xfunc is an optional parameter that scales the x-axis in the resulting plot.</span>
+<span class="sd">    kwargs is a dictionary, whoses key/items are passed to the plot function. plot_fit_args is a</span>
+<span class="sd">    dictionary that controls how the fit is shown.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">xfunc</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">xfunc</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span>
     <span class="k">if</span> <span class="n">plot_fit_args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;show_data_points&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>
@@ -209,7 +213,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Oct 01, 2019.
+      Last updated on Oct 03, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.0.
     </div>
   </body>
