@@ -156,6 +156,36 @@ Similarly, <cite>positions</cite> can be specified as a single vector.</p>
 </tbody>
 </table>
 <dl class="method">
+<dt id="tenpy.models.lattice.Chain.ordering">
+<code class="sig-name descname">ordering</code><span class="sig-paren">(</span><em class="sig-param">order</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/models/lattice.html#Chain.ordering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.models.lattice.Chain.ordering" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provide possible orderings of the <cite>N</cite> lattice sites.</p>
+<p>The following orders are defined in this method compared to <a class="reference internal" href="tenpy.models.lattice.Lattice.html#tenpy.models.lattice.Lattice.ordering" title="tenpy.models.lattice.Lattice.ordering"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Lattice.ordering()</span></code></a>:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 23%" />
+<col style="width: 77%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><cite>order</cite></p></th>
+<th class="head"><p>Resulting order</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">'default'</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0,</span> <span class="pre">1,</span> <span class="pre">2,</span> <span class="pre">3,</span> <span class="pre">4,</span> <span class="pre">...</span> <span class="pre">,L-1</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">'folded'</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0,</span> <span class="pre">L-1,</span> <span class="pre">1,</span> <span class="pre">L-2,</span> <span class="pre">...</span> <span class="pre">,</span> <span class="pre">L//2</span></code>.
+This order might be usefull if you want to consider a
+ring with periodic boundary conditions with a finite MPS:
+It avoids the ultra-long range of the coupling from site
+0 to L present in the default order.</p></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="tenpy.models.lattice.Chain.coupling_shape">
 <code class="sig-name descname">coupling_shape</code><span class="sig-paren">(</span><em class="sig-param">dx</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.lattice.Chain.coupling_shape" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate correct shape of the <cite>strengths</cite> for a coupling.</p>
@@ -357,82 +387,6 @@ conditions.</p>
 <em class="property">property </em><code class="sig-name descname">order</code><a class="headerlink" href="#tenpy.models.lattice.Chain.order" title="Permalink to this definition">¶</a></dt>
 <dd><p>Defines an ordering of the lattice sites, thus mapping the lattice to a 1D chain.</p>
 <p>This order defines how an MPS/MPO winds through the lattice.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="tenpy.models.lattice.Chain.ordering">
-<code class="sig-name descname">ordering</code><span class="sig-paren">(</span><em class="sig-param">order</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.lattice.Chain.ordering" title="Permalink to this definition">¶</a></dt>
-<dd><p>Provide possible orderings of the <cite>N</cite> lattice sites.</p>
-<p>This function can be overwritten by derived lattices to define additional orderings.
-The following orders are defined in this method:</p>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 24%" />
-<col style="width: 36%" />
-<col style="width: 39%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p><cite>order</cite></p></th>
-<th class="head"><p>equivalent <cite>priority</cite></p></th>
-<th class="head"><p>equivalent <code class="docutils literal notranslate"><span class="pre">snake_winding</span></code></p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">'Cstyle'</span></code></p></td>
-<td><p>(0, 1, …, dim-1, dim)</p></td>
-<td><p>(False, …, False, False)</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">'default'</span></code></p></td>
-<td></td>
-<td></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">'snake'</span></code></p></td>
-<td><p>(0, 1, …, dim-1, dim)</p></td>
-<td><p>(True, …, True, True)</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">'snakeCstyle'</span></code></p></td>
-<td></td>
-<td></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">'Fstyle'</span></code></p></td>
-<td><p>(dim-1, …, 1, 0, dim)</p></td>
-<td><p>(False, …, False, False)</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">'snakeFstyle'</span></code></p></td>
-<td><p>(dim-1, …, 1, 0, dim)</p></td>
-<td><p>(False, …, False, False)</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>order</strong><span class="classifier">str | <code class="docutils literal notranslate"><span class="pre">('standard',</span> <span class="pre">snake_winding,</span> <span class="pre">priority)</span></code> | <code class="docutils literal notranslate"><span class="pre">('grouped',</span> <span class="pre">groups)</span></code></span></dt><dd><p>Specifies the desired ordering using one of the strings of the above tables.
-Alternatively, an ordering is specified by a tuple with first entry specifying a
-function, <code class="docutils literal notranslate"><span class="pre">'standard'</span></code> for <a class="reference internal" href="tenpy.models.lattice.get_order.html#tenpy.models.lattice.get_order" title="tenpy.models.lattice.get_order"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_order()</span></code></a> and <code class="docutils literal notranslate"><span class="pre">'grouped'</span></code> for
-<a class="reference internal" href="tenpy.models.lattice.get_order_grouped.html#tenpy.models.lattice.get_order_grouped" title="tenpy.models.lattice.get_order_grouped"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_order_grouped()</span></code></a>, and other arguments in the tuple as specified in the
-documentation of these functions.</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt><strong>order</strong><span class="classifier">array, shape (N, D+1), dtype np.intp</span></dt><dd><p>the order to be used for <a class="reference internal" href="#tenpy.models.lattice.Chain.order" title="tenpy.models.lattice.Chain.order"><code class="xref py py-attr docutils literal notranslate"><span class="pre">order</span></code></a>.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<div class="admonition seealso">
-<p class="admonition-title">See also</p>
-<dl class="simple">
-<dt><a class="reference internal" href="tenpy.models.lattice.get_order.html#tenpy.models.lattice.get_order" title="tenpy.models.lattice.get_order"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_order</span></code></a></dt><dd><p>generates the <cite>order</cite> from equivalent <cite>priority</cite> and <cite>snake_winding</cite>.</p>
-</dd>
-<dt><a class="reference internal" href="tenpy.models.lattice.get_order_grouped.html#tenpy.models.lattice.get_order_grouped" title="tenpy.models.lattice.get_order_grouped"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_order_grouped</span></code></a></dt><dd><p>variant of <cite>get_order</cite>.</p>
-</dd>
-<dt><a class="reference internal" href="#tenpy.models.lattice.Chain.plot_order" title="tenpy.models.lattice.Chain.plot_order"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_order</span></code></a></dt><dd><p>visualizes the resulting <cite>order</cite>.</p>
-</dd>
-</dl>
-</div>
 </dd></dl>
 
 <dl class="method">
@@ -722,7 +676,7 @@ of the “lower left corner” of the box containing the coupling.</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Oct 03, 2019.
+      Last updated on Oct 16, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.0.
     </div>
   </body>
