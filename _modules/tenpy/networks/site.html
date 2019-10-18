@@ -344,9 +344,13 @@
 <span class="sd">            If name already was an npc Array, it&#39;s directly returned.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">names</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
-        <span class="n">op</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">names</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">op</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">names</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">op</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0!r}</span><span class="s2"> doesn&#39;t have the operator </span><span class="si">{1!r}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">names</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
         <span class="k">for</span> <span class="n">name2</span> <span class="ow">in</span> <span class="n">names</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
-            <span class="n">op2</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name2</span><span class="p">)</span>
+            <span class="n">op2</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name2</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">op2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0!r}</span><span class="s2"> doesn&#39;t have the operator </span><span class="si">{1!r}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name2</span><span class="p">))</span>
             <span class="n">op</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">op2</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;p*&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">op</span></div>
 
@@ -461,6 +465,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">n_sites</span> <span class="o">=</span> <span class="n">n_sites</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sites</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sites</span> <span class="o">=</span> <span class="n">sites</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">charges</span> <span class="o">=</span> <span class="n">charges</span>
         <span class="k">assert</span> <span class="n">n_sites</span> <span class="o">&gt;</span> <span class="mi">0</span>
         <span class="k">if</span> <span class="n">labels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_sites</span><span class="p">)]</span>
@@ -545,7 +550,13 @@
         <span class="n">combine</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_sites</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)),</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_sites</span><span class="p">,</span> <span class="mi">2</span><span class="p">))]</span>
         <span class="n">pipe</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">leg</span>
         <span class="n">op</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">combine_legs</span><span class="p">(</span><span class="n">combine</span><span class="p">,</span> <span class="n">pipes</span><span class="o">=</span><span class="p">[</span><span class="n">pipe</span><span class="p">,</span> <span class="n">pipe</span><span class="o">.</span><span class="n">conj</span><span class="p">()])</span>
-        <span class="k">return</span> <span class="n">op</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">])</span></div></div>
+        <span class="k">return</span> <span class="n">op</span><span class="o">.</span><span class="n">iset_leg_labels</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">])</span></div>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Debug representation of self.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;GroupedSite(</span><span class="si">{sites!r}</span><span class="s2">, </span><span class="si">{labels!r}</span><span class="s2">, </span><span class="si">{charges!r}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sites</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">,</span>
+                                                                        <span class="n">labels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span>
+                                                                        <span class="n">charges</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">charges</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="group_sites"><a class="viewcode-back" href="../../../reference/tenpy.networks.site.group_sites.html#tenpy.networks.site.group_sites">[docs]</a><span class="k">def</span> <span class="nf">group_sites</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">charges</span><span class="o">=</span><span class="s1">&#39;same&#39;</span><span class="p">):</span>
@@ -1228,7 +1239,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Oct 16, 2019.
+      Last updated on Oct 18, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.0.
     </div>
   </body>
