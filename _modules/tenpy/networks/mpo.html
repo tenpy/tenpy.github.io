@@ -87,6 +87,7 @@
 <span class="kn">from</span> <span class="nn">.mps</span> <span class="k">import</span> <span class="n">MPSEnvironment</span>
 <span class="kn">from</span> <span class="nn">.terms</span> <span class="k">import</span> <span class="n">OnsiteTerms</span><span class="p">,</span> <span class="n">CouplingTerms</span><span class="p">,</span> <span class="n">MultiCouplingTerms</span>
 <span class="kn">from</span> <span class="nn">..tools.misc</span> <span class="k">import</span> <span class="n">add_with_None_0</span>
+<span class="kn">from</span> <span class="nn">..tools.math</span> <span class="k">import</span> <span class="n">lcm</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;MPO&#39;</span><span class="p">,</span> <span class="s1">&#39;MPOGraph&#39;</span><span class="p">,</span> <span class="s1">&#39;MPOEnvironment&#39;</span><span class="p">,</span> <span class="s1">&#39;grid_insert_ops&#39;</span><span class="p">]</span>
 
@@ -404,8 +405,9 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">psi</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">MPOEnvironment</span><span class="p">(</span><span class="n">psi</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">psi</span><span class="p">)</span><span class="o">.</span><span class="n">full_contraction</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">env</span> <span class="o">=</span> <span class="n">MPOEnvironment</span><span class="p">(</span><span class="n">psi</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">psi</span><span class="p">)</span>
         <span class="n">L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
-        <span class="n">LP0</span> <span class="o">=</span> <span class="n">psi</span><span class="o">.</span><span class="n">init_LP</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">mpo</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">LP0</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">init_LP</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
         <span class="n">masks_L_no_IdL</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">masks_R_no_IdRL</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">W</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_W</span><span class="p">):</span>
@@ -437,7 +439,7 @@
             <span class="n">LP</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">LP</span><span class="p">,</span> <span class="n">B</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vL*&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">]])</span>
 
             <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="n">L</span><span class="p">:</span>
-                <span class="n">RP</span> <span class="o">=</span> <span class="n">psi</span><span class="o">.</span><span class="n">init_RP</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">mpo</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+                <span class="n">RP</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">init_RP</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
                 <span class="n">current_value</span> <span class="o">=</span> <span class="n">npc</span><span class="o">.</span><span class="n">inner</span><span class="p">(</span><span class="n">LP</span><span class="p">,</span>
                                           <span class="n">RP</span><span class="p">,</span>
                                           <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;vR*&#39;</span><span class="p">,</span> <span class="s1">&#39;wR&#39;</span><span class="p">,</span> <span class="s1">&#39;vR&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;vL*&#39;</span><span class="p">,</span> <span class="s1">&#39;wL&#39;</span><span class="p">,</span> <span class="s1">&#39;vL&#39;</span><span class="p">]],</span>
@@ -1044,10 +1046,10 @@
 <span class="sd">        The MPS on which `H` acts. May be identical with `bra`.</span>
 <span class="sd">    init_LP : ``None`` | :class:`~tenpy.linalg.np_conserved.Array`</span>
 <span class="sd">        Initial very left part ``LP``. If ``None``, build trivial one with</span>
-<span class="sd">        :meth:`~tenpy.networks.mps.MPS.init_LP`.</span>
+<span class="sd">        :meth`init_LP`.</span>
 <span class="sd">    init_RP : ``None`` | :class:`~tenpy.linalg.np_conserved.Array`</span>
 <span class="sd">        Initial very right part ``RP``. If ``None``, build trivial one with</span>
-<span class="sd">        :meth:`~tenpy.networks.mps.MPS.init_RP`.</span>
+<span class="sd">        :meth:`init_RP`.</span>
 <span class="sd">    age_LP : int</span>
 <span class="sd">        The number of physical sites involved into the contraction yielding `firstLP`.</span>
 <span class="sd">    age_RP : int</span>
@@ -1067,31 +1069,72 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">bra</span> <span class="o">=</span> <span class="n">bra</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ket</span> <span class="o">=</span> <span class="n">ket</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">H</span> <span class="o">=</span> <span class="n">H</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">=</span> <span class="n">L</span> <span class="o">=</span> <span class="n">bra</span><span class="o">.</span><span class="n">L</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">finite</span> <span class="o">=</span> <span class="n">bra</span><span class="o">.</span><span class="n">finite</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">=</span> <span class="n">L</span> <span class="o">=</span> <span class="n">lcm</span><span class="p">(</span><span class="n">lcm</span><span class="p">(</span><span class="n">bra</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="n">ket</span><span class="o">.</span><span class="n">L</span><span class="p">),</span> <span class="n">H</span><span class="o">.</span><span class="n">L</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_finite</span> <span class="o">=</span> <span class="n">bra</span><span class="o">.</span><span class="n">finite</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">find_common_type</span><span class="p">([</span><span class="n">bra</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">ket</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">H</span><span class="o">.</span><span class="n">dtype</span><span class="p">],</span> <span class="p">[])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_LP</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">L</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_RP</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">L</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_LP_age</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">L</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_RP_age</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">L</span>
         <span class="k">if</span> <span class="n">init_LP</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">init_LP</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">init_LP</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">bra</span><span class="p">,</span> <span class="n">H</span><span class="p">)</span>
+            <span class="n">init_LP</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_LP</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">set_LP</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">init_LP</span><span class="p">,</span> <span class="n">age</span><span class="o">=</span><span class="n">age_LP</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">init_RP</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">init_RP</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">init_RP</span><span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">bra</span><span class="p">,</span> <span class="n">H</span><span class="p">)</span>
+            <span class="n">init_RP</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_RP</span><span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">set_RP</span><span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">init_RP</span><span class="p">,</span> <span class="n">age</span><span class="o">=</span><span class="n">age_RP</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">()</span>
 
 <div class="viewcode-block" id="MPOEnvironment.test_sanity"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.MPOEnvironment.html#tenpy.networks.mpo.MPOEnvironment.test_sanity">[docs]</a>    <span class="k">def</span> <span class="nf">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Sanity check, raises ValueErrors, if something is wrong.&quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bra</span><span class="o">.</span><span class="n">L</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">L</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="o">.</span><span class="n">L</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bra</span><span class="o">.</span><span class="n">finite</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">finite</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="o">.</span><span class="n">finite</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bra</span><span class="o">.</span><span class="n">finite</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">finite</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="o">.</span><span class="n">finite</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_finite</span><span class="p">)</span>
         <span class="c1"># check that the network is contractable</span>
         <span class="k">for</span> <span class="n">b_s</span><span class="p">,</span> <span class="n">H_s</span><span class="p">,</span> <span class="n">k_s</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bra</span><span class="o">.</span><span class="n">sites</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="o">.</span><span class="n">sites</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ket</span><span class="o">.</span><span class="n">sites</span><span class="p">):</span>
             <span class="n">b_s</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">test_equal</span><span class="p">(</span><span class="n">k_s</span><span class="o">.</span><span class="n">leg</span><span class="p">)</span>
             <span class="n">b_s</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">test_equal</span><span class="p">(</span><span class="n">H_s</span><span class="o">.</span><span class="n">leg</span><span class="p">)</span>
         <span class="k">assert</span> <span class="nb">any</span><span class="p">([</span><span class="n">LP</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">LP</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LP</span><span class="p">])</span>
         <span class="k">assert</span> <span class="nb">any</span><span class="p">([</span><span class="n">RP</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">RP</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RP</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="MPOEnvironment.init_LP"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.MPOEnvironment.html#tenpy.networks.mpo.MPOEnvironment.init_LP">[docs]</a>    <span class="k">def</span> <span class="nf">init_LP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Build initial left part ``LP``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        i : int</span>
+<span class="sd">            Build ``LP`` left of site `i`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        init_LP : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Identity contractible with the `vL` leg of ``.ket.get_B(i)``,</span>
+<span class="sd">            multiplied with a unit vector nonzero in ``H.IdL[i]``,</span>
+<span class="sd">            with labels ``&#39;vR*&#39;, &#39;wR&#39;, &#39;vR&#39;``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">init_LP</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">init_LP</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">leg_mpo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;wL&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>
+        <span class="n">IdL</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="o">.</span><span class="n">get_IdL</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">init_LP</span> <span class="o">=</span> <span class="n">init_LP</span><span class="o">.</span><span class="n">add_leg</span><span class="p">(</span><span class="n">leg_mpo</span><span class="p">,</span> <span class="n">IdL</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;wR&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">init_LP</span></div>
+
+<div class="viewcode-block" id="MPOEnvironment.init_RP"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.MPOEnvironment.html#tenpy.networks.mpo.MPOEnvironment.init_RP">[docs]</a>    <span class="k">def</span> <span class="nf">init_RP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Build initial right part ``RP`` for an MPS/MPOEnvironment.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        i : int</span>
+<span class="sd">            Build ``RP`` right of site `i`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        init_RP : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Identity contractible with the `vR` leg of ``self.get_B(i)``,</span>
+<span class="sd">            multiplied with a unit vector nonzero in ``H.IdR[i]``,</span>
+<span class="sd">            with labels ``&#39;vL*&#39;, &#39;wL&#39;, &#39;vL&#39;``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">init_RP</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">init_RP</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">leg_mpo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">get_leg</span><span class="p">(</span><span class="s1">&#39;wR&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>
+        <span class="n">IdR</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="o">.</span><span class="n">get_IdR</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">init_RP</span> <span class="o">=</span> <span class="n">init_RP</span><span class="o">.</span><span class="n">add_leg</span><span class="p">(</span><span class="n">leg_mpo</span><span class="p">,</span> <span class="n">IdR</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;wL&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">init_RP</span></div>
 
 <div class="viewcode-block" id="MPOEnvironment.get_LP"><a class="viewcode-back" href="../../../reference/tenpy.networks.mpo.MPOEnvironment.html#tenpy.networks.mpo.MPOEnvironment.get_LP">[docs]</a>    <span class="k">def</span> <span class="nf">get_LP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculate LP at given site from nearest available one (including `i`).</span>
@@ -1377,7 +1420,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Nov 26, 2019.
+      Last updated on Nov 27, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1.
     </div>
   </body>
