@@ -1184,17 +1184,33 @@ A single choice holds for all of the entries.</p>
 </dd>
 </dl>
 <p class="rubric">Examples</p>
-<p>To get a Neel state:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">M</span> <span class="o">=</span> <span class="n">SpinChain</span><span class="p">(</span><span class="n">model_params</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">p_state</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;up&quot;</span><span class="p">,</span> <span class="s2">&quot;down&quot;</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">L</span><span class="o">//</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># repeats entries L/2 times</span>
+<p>Example to get a Neel state for a <code class="xref py py-class docutils literal notranslate"><span class="pre">TIChain</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">M</span> <span class="o">=</span> <span class="n">TFIChain</span><span class="p">({</span><span class="s1">&#39;L&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p_state</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;up&quot;</span><span class="p">,</span> <span class="s2">&quot;down&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span><span class="o">//</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># repeats entries L/2 times</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">psi</span> <span class="o">=</span> <span class="n">MPS</span><span class="o">.</span><span class="n">from_product_state</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">mps_sites</span><span class="p">(),</span> <span class="n">p_state</span><span class="p">,</span> <span class="n">bc</span><span class="o">=</span><span class="n">M</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">bc_MPS</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>For Spin S=1/2, you could get a state with all sites pointing in negative x-direction with:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">neg_x_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.</span><span class="p">])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">p_state</span> <span class="o">=</span> <span class="p">[</span><span class="n">neg_x_state</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">neg_x_state</span><span class="p">)]</span><span class="o">*</span><span class="n">L</span>  <span class="c1"># other parameters as above</span>
+<p>The meaning of the labels <code class="docutils literal notranslate"><span class="pre">&quot;up&quot;,&quot;down&quot;</span></code> is defined by the <code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code>,
+in this example a <a class="reference internal" href="tenpy.networks.site.SpinHalfSite.html#tenpy.networks.site.SpinHalfSite" title="tenpy.networks.site.SpinHalfSite"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinHalfSite</span></code></a>.</p>
+<p>Extending the example, we can replace the spin in the center with one with arbitrary
+angles <code class="docutils literal notranslate"><span class="pre">theta,</span> <span class="pre">phi</span></code> in the bloch sphere:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">M</span> <span class="o">=</span> <span class="n">TFIChain</span><span class="p">({</span><span class="s1">&#39;L&#39;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="s1">&#39;conserve&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p_state</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;up&quot;</span><span class="p">,</span> <span class="s2">&quot;down&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span><span class="o">//</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># repeats entries L/2 times</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bloch_sphere_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="o">/</span><span class="mi">2</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">1.</span><span class="n">j</span><span class="o">*</span><span class="n">phi</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="o">/</span><span class="mi">2</span><span class="p">)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p_state</span><span class="p">[</span><span class="n">L</span><span class="o">//</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">bloch_sphere_state</span>   <span class="c1"># replace one spin in center</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">psi</span> <span class="o">=</span> <span class="n">MPS</span><span class="o">.</span><span class="n">from_product_state</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">mps_sites</span><span class="p">(),</span> <span class="n">p_state</span><span class="p">,</span> <span class="n">bc</span><span class="o">=</span><span class="n">M</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">bc_MPS</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>Note that for the more general <a class="reference internal" href="tenpy.models.spins.SpinChain.html#tenpy.models.spins.SpinChain" title="tenpy.models.spins.SpinChain"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinChain</span></code></a>,
+the order of the two entries for the <code class="docutils literal notranslate"><span class="pre">bloch_sphere_state</span></code> would be <em>exactly the opposite</em>
+(when we keep the the north-pole of the bloch sphere being the up-state).
+The reason is that the <cite>SpinChain</cite> uses the general <a class="reference internal" href="tenpy.networks.site.SpinSite.html#tenpy.networks.site.SpinSite" title="tenpy.networks.site.SpinSite"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinSite</span></code></a>,
+where the states are orderd ascending from <code class="docutils literal notranslate"><span class="pre">'down'</span></code> to <code class="docutils literal notranslate"><span class="pre">'up'</span></code>.
+The <a class="reference internal" href="tenpy.networks.site.SpinHalfSite.html#tenpy.networks.site.SpinHalfSite" title="tenpy.networks.site.SpinHalfSite"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinHalfSite</span></code></a> on the other hand uses the order
+<code class="docutils literal notranslate"><span class="pre">'up',</span> <span class="pre">'down'</span></code> where that the Pauli matrices look as usual.</p>
+<p>Moreover, note that you can not write this bloch state (for <code class="docutils literal notranslate"><span class="pre">theta</span> <span class="pre">!=</span> <span class="pre">0,</span> <span class="pre">pi</span></code>) when
+conserving symmetries, as the two physical basis states correspond to different symmetry
+sectors.</p>
 </dd></dl>
 
 <dl class="method">
@@ -1718,7 +1734,7 @@ Should have leg labels <code class="docutils literal notranslate"><span class="p
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Nov 27, 2019.
+      Last updated on Dec 05, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1.
     </div>
   </body>

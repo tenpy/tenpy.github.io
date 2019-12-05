@@ -94,13 +94,82 @@ uses <code class="docutils literal notranslate"><span class="pre">chi_max=50</sp
 <dt><strong>shelve</strong><span class="classifier">bool</span></dt><dd><p>If a simulation runs out of time (<cite>time.time() - start_time &gt; max_seconds</cite>), the run will
 terminate with <cite>shelve = True</cite>.</p>
 </dd>
-<dt><strong>sweep_stats</strong><span class="classifier">dict</span></dt><dd><p>Statistics at sweep-level.</p>
-</dd>
 <dt><strong>sweeps</strong><span class="classifier">int</span></dt><dd><p>The number of sweeps already performed. (Useful for re-start).</p>
 </dd>
 <dt><strong>time0</strong><span class="classifier">float</span></dt><dd><p>Time marker for the start of the run.</p>
 </dd>
-<dt><strong>update_stats</strong><span class="classifier">dict</span></dt><dd><p>Statistics at local update-level.</p>
+<dt><strong>update_stats</strong><span class="classifier">dict</span></dt><dd><p>A dictionary with detailed statistics of the convergence at local update-level.
+For each key in the following table, the dictionary contains a list where one value is
+added each time <code class="xref py py-meth docutils literal notranslate"><span class="pre">DMRGEngine.update_bond()</span></code> is called.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 86%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>key</p></th>
+<th class="head"><p>description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>i0</p></td>
+<td><p>An update was performed on sites <code class="docutils literal notranslate"><span class="pre">i0,</span> <span class="pre">i0+1</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p>age</p></td>
+<td><p>The number of physical sites involved in the simulation.</p></td>
+</tr>
+<tr class="row-even"><td><p>E_total</p></td>
+<td><p>The total energy before truncation.</p></td>
+</tr>
+<tr class="row-odd"><td><p>N_lanczos</p></td>
+<td><p>Dimension of the Krylov space used in the lanczos diagonalization.</p></td>
+</tr>
+<tr class="row-even"><td><p>time</p></td>
+<td><p>Wallclock time evolved since <code class="xref py py-attr docutils literal notranslate"><span class="pre">time0</span></code> (in seconds).</p></td>
+</tr>
+</tbody>
+</table>
+</dd>
+<dt><strong>sweep_stats</strong><span class="classifier">dict</span></dt><dd><p>A dictionary with detailed statistics at the sweep level.
+For each key in the following table, the dictionary contains a list where one value is
+added each time <code class="xref py py-meth docutils literal notranslate"><span class="pre">Engine.sweep()</span></code> is called (with <code class="docutils literal notranslate"><span class="pre">optimize=True</span></code>).</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 84%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>key</p></th>
+<th class="head"><p>description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>sweep</p></td>
+<td><p>Number of sweeps performed so far.</p></td>
+</tr>
+<tr class="row-odd"><td><p>E</p></td>
+<td><p>The energy <em>before</em> truncation (as calculated by Lanczos).</p></td>
+</tr>
+<tr class="row-even"><td><p>S</p></td>
+<td><p>Maximum entanglement entropy.</p></td>
+</tr>
+<tr class="row-odd"><td><p>time</p></td>
+<td><p>Wallclock time evolved since <code class="xref py py-attr docutils literal notranslate"><span class="pre">time0</span></code> (in seconds).</p></td>
+</tr>
+<tr class="row-even"><td><p>max_trunc_err</p></td>
+<td><p>The maximum truncation error in the last sweep</p></td>
+</tr>
+<tr class="row-odd"><td><p>max_E_trunc</p></td>
+<td><p>Maximum change or Energy due to truncation in the last sweep.</p></td>
+</tr>
+<tr class="row-even"><td><p>max_chi</p></td>
+<td><p>Maximum bond dimension used.</p></td>
+</tr>
+<tr class="row-odd"><td><p>norm_err</p></td>
+<td><p>Error of canonical form <code class="docutils literal notranslate"><span class="pre">np.linalg.norm(psi.norm_test())</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
 </dd>
 </dl>
 </dd>
@@ -494,7 +563,7 @@ truncation.</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Nov 27, 2019.
+      Last updated on Dec 05, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1.
     </div>
   </body>

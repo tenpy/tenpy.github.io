@@ -77,15 +77,15 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 
-<span class="kn">from</span> <span class="nn">.lattice</span> <span class="k">import</span> <span class="n">get_lattice</span><span class="p">,</span> <span class="n">Lattice</span><span class="p">,</span> <span class="n">TrivialLattice</span>
-<span class="kn">from</span> <span class="nn">..linalg</span> <span class="k">import</span> <span class="n">np_conserved</span> <span class="k">as</span> <span class="n">npc</span>
-<span class="kn">from</span> <span class="nn">..linalg.charges</span> <span class="k">import</span> <span class="n">QTYPE</span><span class="p">,</span> <span class="n">LegCharge</span>
-<span class="kn">from</span> <span class="nn">..tools.misc</span> <span class="k">import</span> <span class="n">to_array</span><span class="p">,</span> <span class="n">add_with_None_0</span>
-<span class="kn">from</span> <span class="nn">..tools.params</span> <span class="k">import</span> <span class="n">get_parameter</span><span class="p">,</span> <span class="n">unused_parameters</span>
-<span class="kn">from</span> <span class="nn">..networks</span> <span class="k">import</span> <span class="n">mpo</span>  <span class="c1"># used to construct the Hamiltonian as MPO</span>
-<span class="kn">from</span> <span class="nn">..networks.terms</span> <span class="k">import</span> <span class="n">OnsiteTerms</span><span class="p">,</span> <span class="n">CouplingTerms</span><span class="p">,</span> <span class="n">MultiCouplingTerms</span>
-<span class="kn">from</span> <span class="nn">..networks.terms</span> <span class="k">import</span> <span class="n">order_combine_term</span>
-<span class="kn">from</span> <span class="nn">..networks.site</span> <span class="k">import</span> <span class="n">group_sites</span>
+<span class="kn">from</span> <span class="nn">.lattice</span> <span class="kn">import</span> <span class="n">get_lattice</span><span class="p">,</span> <span class="n">Lattice</span><span class="p">,</span> <span class="n">TrivialLattice</span>
+<span class="kn">from</span> <span class="nn">..linalg</span> <span class="kn">import</span> <span class="n">np_conserved</span> <span class="k">as</span> <span class="n">npc</span>
+<span class="kn">from</span> <span class="nn">..linalg.charges</span> <span class="kn">import</span> <span class="n">QTYPE</span><span class="p">,</span> <span class="n">LegCharge</span>
+<span class="kn">from</span> <span class="nn">..tools.misc</span> <span class="kn">import</span> <span class="n">to_array</span><span class="p">,</span> <span class="n">add_with_None_0</span>
+<span class="kn">from</span> <span class="nn">..tools.params</span> <span class="kn">import</span> <span class="n">get_parameter</span><span class="p">,</span> <span class="n">unused_parameters</span>
+<span class="kn">from</span> <span class="nn">..networks</span> <span class="kn">import</span> <span class="n">mpo</span>  <span class="c1"># used to construct the Hamiltonian as MPO</span>
+<span class="kn">from</span> <span class="nn">..networks.terms</span> <span class="kn">import</span> <span class="n">OnsiteTerms</span><span class="p">,</span> <span class="n">CouplingTerms</span><span class="p">,</span> <span class="n">MultiCouplingTerms</span>
+<span class="kn">from</span> <span class="nn">..networks.terms</span> <span class="kn">import</span> <span class="n">order_combine_term</span>
+<span class="kn">from</span> <span class="nn">..networks.site</span> <span class="kn">import</span> <span class="n">group_sites</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
     <span class="s1">&#39;Model&#39;</span><span class="p">,</span> <span class="s1">&#39;NearestNeighborModel&#39;</span><span class="p">,</span> <span class="s1">&#39;MPOModel&#39;</span><span class="p">,</span> <span class="s1">&#39;CouplingModel&#39;</span><span class="p">,</span> <span class="s1">&#39;MultiCouplingModel&#39;</span><span class="p">,</span>
@@ -110,7 +110,7 @@
 <span class="sd">        The lattice defining the geometry and the local Hilbert space(s).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">):</span>
         <span class="c1"># NOTE: every subclass like CouplingModel, MPOModel, NearestNeighborModel calls this</span>
         <span class="c1"># __init__, so it get&#39;s called multiple times when a user implements e.g. a</span>
         <span class="c1"># class MyModel(CouplingModel, NearestNeighborModel, MPOModel).</span>
@@ -181,7 +181,7 @@
 <span class="sd">        Legs of each ``H_bond[i]`` are ``[&#39;p0&#39;, &#39;p0*&#39;, &#39;p1&#39;, &#39;p1*&#39;]``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">,</span> <span class="n">H_bond</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">,</span> <span class="n">H_bond</span><span class="p">):</span>
         <span class="n">Model</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">H_bond</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">H_bond</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">bc_MPS</span> <span class="o">!=</span> <span class="s1">&#39;infinite&#39;</span><span class="p">:</span>
@@ -474,7 +474,7 @@
 <span class="sd">        MPO representation of the Hamiltonian.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">,</span> <span class="n">H_MPO</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">,</span> <span class="n">H_MPO</span><span class="p">):</span>
         <span class="n">Model</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">H_MPO</span> <span class="o">=</span> <span class="n">H_MPO</span>
         <span class="n">MPOModel</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
@@ -618,7 +618,7 @@
 <span class="sd">        :class:`~tenpy.networks.terms.MultiCouplingTerms`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">,</span> <span class="n">bc_coupling</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">,</span> <span class="n">bc_coupling</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">Model</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lattice</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">bc_coupling</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;`bc_coupling` in CouplingModel: use `bc` in Lattice instead&quot;</span><span class="p">,</span>
@@ -1255,7 +1255,7 @@
 <span class="sd">        Level of verbosity (i.e. how much status information to print); higher=more output.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_called_CouplingMPOModel_init&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
             <span class="c1"># If we ignore this, the same terms get added to self multiple times.</span>
             <span class="c1"># In the best case, this would just rescale the energy;</span>
@@ -1445,7 +1445,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Nov 27, 2019.
+      Last updated on Dec 05, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1.
     </div>
   </body>
