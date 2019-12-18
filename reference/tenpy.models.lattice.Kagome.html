@@ -76,6 +76,9 @@ If only a single <a class="reference internal" href="tenpy.networks.site.Site.ht
 </dd>
 <dt class="field-even">Attributes</dt>
 <dd class="field-even"><dl class="simple">
+<dt><strong>nearest_neighbors</strong></dt><dd></dd>
+<dt><strong>next_nearest_neighbors</strong></dt><dd></dd>
+<dt><strong>next_next_nearest_neighbors</strong></dt><dd></dd>
 <dt><a class="reference internal" href="#tenpy.models.lattice.Kagome.order" title="tenpy.models.lattice.Kagome.order"><code class="xref py py-obj docutils literal notranslate"><span class="pre">order</span></code></a></dt><dd><p>Defines an ordering of the lattice sites, thus mapping the lattice to a 1D chain.</p>
 </dd>
 </dl>
@@ -88,71 +91,99 @@ If only a single <a class="reference internal" href="tenpy.networks.site.Site.ht
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.coupling_shape" title="tenpy.models.lattice.Kagome.coupling_shape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">coupling_shape</span></code></a>(self, dx)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.count_neighbors" title="tenpy.models.lattice.Kagome.count_neighbors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">count_neighbors</span></code></a>(self[, u, key])</p></td>
+<td><p>Count e.g.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.coupling_shape" title="tenpy.models.lattice.Kagome.coupling_shape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">coupling_shape</span></code></a>(self, dx)</p></td>
 <td><p>Calculate correct shape of the <cite>strengths</cite> for a coupling.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.lat2mps_idx" title="tenpy.models.lattice.Kagome.lat2mps_idx"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lat2mps_idx</span></code></a>(self, lat_idx)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.lat2mps_idx" title="tenpy.models.lattice.Kagome.lat2mps_idx"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lat2mps_idx</span></code></a>(self, lat_idx)</p></td>
 <td><p>Translate lattice indices <code class="docutils literal notranslate"><span class="pre">(x_0,</span> <span class="pre">...,</span> <span class="pre">x_{D-1},</span> <span class="pre">u)</span></code> to MPS index <cite>i</cite>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.mps2lat_idx" title="tenpy.models.lattice.Kagome.mps2lat_idx"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mps2lat_idx</span></code></a>(self, i)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.mps2lat_idx" title="tenpy.models.lattice.Kagome.mps2lat_idx"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mps2lat_idx</span></code></a>(self, i)</p></td>
 <td><p>Translate MPS index <cite>i</cite> to lattice indices <code class="docutils literal notranslate"><span class="pre">(x_0,</span> <span class="pre">...,</span> <span class="pre">x_{dim-1},</span> <span class="pre">u)</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.mps2lat_values" title="tenpy.models.lattice.Kagome.mps2lat_values"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mps2lat_values</span></code></a>(self, A[, axes, u])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.mps2lat_values" title="tenpy.models.lattice.Kagome.mps2lat_values"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mps2lat_values</span></code></a>(self, A[, axes, u])</p></td>
 <td><p>Reshape/reorder <cite>A</cite> to replace an MPS index by lattice indices.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.mps_idx_fix_u" title="tenpy.models.lattice.Kagome.mps_idx_fix_u"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mps_idx_fix_u</span></code></a>(self[, u])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.mps_idx_fix_u" title="tenpy.models.lattice.Kagome.mps_idx_fix_u"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mps_idx_fix_u</span></code></a>(self[, u])</p></td>
 <td><p>return an index array of MPS indices for which the site within the unit cell is <cite>u</cite>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.mps_lat_idx_fix_u" title="tenpy.models.lattice.Kagome.mps_lat_idx_fix_u"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mps_lat_idx_fix_u</span></code></a>(self[, u])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.mps_lat_idx_fix_u" title="tenpy.models.lattice.Kagome.mps_lat_idx_fix_u"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mps_lat_idx_fix_u</span></code></a>(self[, u])</p></td>
 <td><p>Similar as <a class="reference internal" href="#tenpy.models.lattice.Kagome.mps_idx_fix_u" title="tenpy.models.lattice.Kagome.mps_idx_fix_u"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mps_idx_fix_u()</span></code></a>, but return also the corresponding lattice indices.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.mps_sites" title="tenpy.models.lattice.Kagome.mps_sites"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mps_sites</span></code></a>(self)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.mps_sites" title="tenpy.models.lattice.Kagome.mps_sites"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mps_sites</span></code></a>(self)</p></td>
 <td><p>Return a list of sites for all MPS indices.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.multi_coupling_shape" title="tenpy.models.lattice.Kagome.multi_coupling_shape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">multi_coupling_shape</span></code></a>(self, dx)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.multi_coupling_shape" title="tenpy.models.lattice.Kagome.multi_coupling_shape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">multi_coupling_shape</span></code></a>(self, dx)</p></td>
 <td><p>Calculate correct shape of the <cite>strengths</cite> for a multi_coupling.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.number_nearest_neighbors" title="tenpy.models.lattice.Kagome.number_nearest_neighbors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">number_nearest_neighbors</span></code></a>(self[, u])</p></td>
-<td><p>Count the number of nearest neighbors for a site in the bulk.</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.number_nearest_neighbors" title="tenpy.models.lattice.Kagome.number_nearest_neighbors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">number_nearest_neighbors</span></code></a>(self[, u])</p></td>
+<td><p>Deprecated.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.number_next_nearest_neighbors" title="tenpy.models.lattice.Kagome.number_next_nearest_neighbors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">number_next_nearest_neighbors</span></code></a>(self[, u])</p></td>
-<td><p>Count the number of next nearest neighbors for a site in the bulk.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.number_next_nearest_neighbors" title="tenpy.models.lattice.Kagome.number_next_nearest_neighbors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">number_next_nearest_neighbors</span></code></a>(self[, u])</p></td>
+<td><p>Deprecated.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.ordering" title="tenpy.models.lattice.Kagome.ordering"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ordering</span></code></a>(self, order)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.ordering" title="tenpy.models.lattice.Kagome.ordering"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ordering</span></code></a>(self, order)</p></td>
 <td><p>Provide possible orderings of the <cite>N</cite> lattice sites.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.plot_basis" title="tenpy.models.lattice.Kagome.plot_basis"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_basis</span></code></a>(self, ax, \*\*kwargs)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.plot_basis" title="tenpy.models.lattice.Kagome.plot_basis"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_basis</span></code></a>(self, ax, \*\*kwargs)</p></td>
 <td><p>Plot arrows indicating the basis vectors of the lattice.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.plot_bc_identified" title="tenpy.models.lattice.Kagome.plot_bc_identified"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_bc_identified</span></code></a>(self, ax[, direction, shift])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.plot_bc_identified" title="tenpy.models.lattice.Kagome.plot_bc_identified"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_bc_identified</span></code></a>(self, ax[, direction, shift])</p></td>
 <td><p>Mark two sites indified by periodic boundary conditions.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.plot_coupling" title="tenpy.models.lattice.Kagome.plot_coupling"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_coupling</span></code></a>(self, ax[, coupling])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.plot_coupling" title="tenpy.models.lattice.Kagome.plot_coupling"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_coupling</span></code></a>(self, ax[, coupling])</p></td>
 <td><p>Plot lines connecting nearest neighbors of the lattice.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.plot_order" title="tenpy.models.lattice.Kagome.plot_order"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_order</span></code></a>(self, ax[, order, textkwargs])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.plot_order" title="tenpy.models.lattice.Kagome.plot_order"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_order</span></code></a>(self, ax[, order, textkwargs])</p></td>
 <td><p>Plot a line connecting sites in the specified “order” and text labels enumerating them.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.plot_sites" title="tenpy.models.lattice.Kagome.plot_sites"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_sites</span></code></a>(self, ax[, markers])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.plot_sites" title="tenpy.models.lattice.Kagome.plot_sites"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_sites</span></code></a>(self, ax[, markers])</p></td>
 <td><p>Plot the sites of the lattice with markers.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.position" title="tenpy.models.lattice.Kagome.position"><code class="xref py py-obj docutils literal notranslate"><span class="pre">position</span></code></a>(self, lat_idx)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.position" title="tenpy.models.lattice.Kagome.position"><code class="xref py py-obj docutils literal notranslate"><span class="pre">position</span></code></a>(self, lat_idx)</p></td>
 <td><p>return ‘space’ position of one or multiple sites.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.possible_couplings" title="tenpy.models.lattice.Kagome.possible_couplings"><code class="xref py py-obj docutils literal notranslate"><span class="pre">possible_couplings</span></code></a>(self, u1, u2, dx)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.possible_couplings" title="tenpy.models.lattice.Kagome.possible_couplings"><code class="xref py py-obj docutils literal notranslate"><span class="pre">possible_couplings</span></code></a>(self, u1, u2, dx)</p></td>
 <td><p>Find possible MPS indices for two-site couplings.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.possible_multi_couplings" title="tenpy.models.lattice.Kagome.possible_multi_couplings"><code class="xref py py-obj docutils literal notranslate"><span class="pre">possible_multi_couplings</span></code></a>(self, u0, other_us, dx)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.possible_multi_couplings" title="tenpy.models.lattice.Kagome.possible_multi_couplings"><code class="xref py py-obj docutils literal notranslate"><span class="pre">possible_multi_couplings</span></code></a>(self, u0, other_us, dx)</p></td>
 <td><p>Generalization of <a class="reference internal" href="#tenpy.models.lattice.Kagome.possible_couplings" title="tenpy.models.lattice.Kagome.possible_couplings"><code class="xref py py-meth docutils literal notranslate"><span class="pre">possible_couplings()</span></code></a> to couplings with more than 2 sites.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.site" title="tenpy.models.lattice.Kagome.site"><code class="xref py py-obj docutils literal notranslate"><span class="pre">site</span></code></a>(self, i)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.site" title="tenpy.models.lattice.Kagome.site"><code class="xref py py-obj docutils literal notranslate"><span class="pre">site</span></code></a>(self, i)</p></td>
 <td><p>return <a class="reference internal" href="tenpy.networks.site.Site.html#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a> instance corresponding to an MPS index <cite>i</cite></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.test_sanity" title="tenpy.models.lattice.Kagome.test_sanity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code></a>(self)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.models.lattice.Kagome.test_sanity" title="tenpy.models.lattice.Kagome.test_sanity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_sanity</span></code></a>(self)</p></td>
 <td><p>Sanity check.</p></td>
 </tr>
 </tbody>
 </table>
+<dl class="method">
+<dt id="tenpy.models.lattice.Kagome.count_neighbors">
+<code class="sig-name descname">count_neighbors</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">u=0</em>, <em class="sig-param">key='nearest_neighbors'</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.lattice.Kagome.count_neighbors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Count e.g. the number of nearest neighbors for a site in the bulk.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>u</strong><span class="classifier">int</span></dt><dd><p>Specifies the site in the unit cell, for which we should count the number
+of neighbors (or whatever <cite>key</cite> specifies).</p>
+</dd>
+<dt><strong>key</strong><span class="classifier">str</span></dt><dd><p>Key of <code class="xref py py-attr docutils literal notranslate"><span class="pre">pairs</span></code> to select what to count.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>number</strong><span class="classifier">int</span></dt><dd><p>Number of nearest neighbors (or whatever <cite>key</cite> specified) for the <cite>u</cite>-th site in the
+unit cell, somewhere in the bulk of the lattice. Note that it might not be the correct
+value at the edges of a lattice with open boundary conditions.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="method">
 <dt id="tenpy.models.lattice.Kagome.coupling_shape">
 <code class="sig-name descname">coupling_shape</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">dx</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.lattice.Kagome.coupling_shape" title="Permalink to this definition">¶</a></dt>
@@ -367,47 +398,15 @@ sites given by <code class="docutils literal notranslate"><span class="pre">self
 <dl class="method">
 <dt id="tenpy.models.lattice.Kagome.number_nearest_neighbors">
 <code class="sig-name descname">number_nearest_neighbors</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">u=0</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.lattice.Kagome.number_nearest_neighbors" title="Permalink to this definition">¶</a></dt>
-<dd><p>Count the number of nearest neighbors for a site in the bulk.</p>
-<p>Requires <code class="xref py py-attr docutils literal notranslate"><span class="pre">nearest_neighbors</span></code> to be set.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>u</strong><span class="classifier">int</span></dt><dd><p>Specifies the site in the unit cell.</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt><strong>number_NN</strong><span class="classifier">int</span></dt><dd><p>Number of nearest neighbors of the <cite>u</cite>-th site in the unit cell in the bulk of the
-lattice. Note that it might be different at the edges of the lattice for open boundary
-conditions.</p>
-</dd>
-</dl>
-</dd>
-</dl>
+<dd><p>Deprecated.</p>
+<p>Use <a class="reference internal" href="#tenpy.models.lattice.Kagome.count_neighbors" title="tenpy.models.lattice.Kagome.count_neighbors"><code class="xref py py-meth docutils literal notranslate"><span class="pre">count_neighbors()</span></code></a> instead.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="tenpy.models.lattice.Kagome.number_next_nearest_neighbors">
 <code class="sig-name descname">number_next_nearest_neighbors</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">u=0</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.models.lattice.Kagome.number_next_nearest_neighbors" title="Permalink to this definition">¶</a></dt>
-<dd><p>Count the number of next nearest neighbors for a site in the bulk.</p>
-<p>Requires <code class="xref py py-attr docutils literal notranslate"><span class="pre">next_nearest_neighbors</span></code> to be set.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>u</strong><span class="classifier">int</span></dt><dd><p>Specifies the site in the unit cell.</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt><strong>number_NNN</strong><span class="classifier">int</span></dt><dd><p>Number of next nearest neighbors of the <cite>u</cite>-th site in the unit cell in the bulk of the
-lattice. Note that it might be different at the edges of the lattice for open boundary
-conditions.</p>
-</dd>
-</dl>
-</dd>
-</dl>
+<dd><p>Deprecated.</p>
+<p>Use <a class="reference internal" href="#tenpy.models.lattice.Kagome.count_neighbors" title="tenpy.models.lattice.Kagome.count_neighbors"><code class="xref py py-meth docutils literal notranslate"><span class="pre">count_neighbors()</span></code></a> instead.</p>
 </dd></dl>
 
 <dl class="method">
@@ -541,7 +540,7 @@ Defaults to the first entry of <code class="xref py py-attr docutils literal not
 <dd class="field-odd"><dl>
 <dt><strong>ax</strong><span class="classifier"><a class="reference external" href="https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes" title="(in Matplotlib v3.1.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.axes.Axes</span></code></a></span></dt><dd><p>The axes on which we should plot.</p>
 </dd>
-<dt><strong>coupling</strong><span class="classifier">list of (u1, u2, dx)</span></dt><dd><p>By default (<code class="docutils literal notranslate"><span class="pre">None</span></code>), use :attr:<code class="docutils literal notranslate"><span class="pre">nearest_neighbors</span></code>.
+<dt><strong>coupling</strong><span class="classifier">list of (u1, u2, dx)</span></dt><dd><p>By default (<code class="docutils literal notranslate"><span class="pre">None</span></code>), use <code class="docutils literal notranslate"><span class="pre">self.pairs['nearest_neighbors']</span></code>.
 Specifies the connections to be plotted; iteating over lattice indices <cite>(i0, i1, …)</cite>,
 we plot a connection from the site <code class="docutils literal notranslate"><span class="pre">(i0,</span> <span class="pre">i1,</span> <span class="pre">...,</span> <span class="pre">u1)</span></code> to the site
 <code class="docutils literal notranslate"><span class="pre">(i0+dx[0],</span> <span class="pre">i1+dx[1],</span> <span class="pre">...,</span> <span class="pre">u2)</span></code>, taking into account the boundary conditions.</p>
@@ -780,7 +779,7 @@ of the “lower left corner” of the box containing the coupling.</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Dec 09, 2019.
+      Last updated on Dec 17, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
     </div>
   </body>

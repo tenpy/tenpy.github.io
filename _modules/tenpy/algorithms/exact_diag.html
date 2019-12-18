@@ -78,6 +78,9 @@
 <span class="sd">        If ``True``, don&#39;t sort/bunch the LegPipe used to combine the physical legs.</span>
 <span class="sd">        This results in array `blocks` with just one entry, requires much more charge data,</span>
 <span class="sd">        and is not what `np_conserved` was designed for, so it&#39;s not recommended.</span>
+<span class="sd">    max_size : int</span>
+<span class="sd">        The `build_H_*` functions will do nothing (but emit a warning) if the total size of the</span>
+<span class="sd">        Hamiltonian would be larger than this.</span>
 
 <span class="sd">    Attributes</span>
 <span class="sd">    ----------</span>
@@ -87,9 +90,14 @@
 <span class="sd">        The nature of the charge (which is the same for all sites).</span>
 <span class="sd">    charge_sector : ``None`` | charges</span>
 <span class="sd">        If not ``None``, we project onto the given charge sector.</span>
+<span class="sd">    max_size : int</span>
+<span class="sd">        The ``build_H_*`` functions will do nothing (but emit a warning) if the total size of the</span>
+<span class="sd">        Hamiltonian would be larger than this.</span>
 <span class="sd">    full_H : :class:`~tenpy.linalg.np_conserved.Array` | ``None``</span>
 <span class="sd">        The full Hamiltonian to be diagonalized</span>
-<span class="sd">        with legs ``&#39;(p0.p1....)&#39;, &#39;(p0*,p1*...)&#39;`` (in that order)</span>
+<span class="sd">        with legs ``&#39;(p0.p1....)&#39;, &#39;(p0*,p1*...)&#39;`` (in that order).</span>
+<span class="sd">        ``None`` if the ``build_H_*`` functions haven&#39;t been called yet, or if `max_size` would</span>
+<span class="sd">        have been exceeded.</span>
 <span class="sd">    E : ndarray | ``None``</span>
 <span class="sd">        1D array of eigenvalues.</span>
 <span class="sd">    V : :class:`~tenpy.linalg.np_conserved.Array` | ``None``</span>
@@ -108,7 +116,7 @@
 <span class="sd">    _mask : 1D bool ndarray | ``None``</span>
 <span class="sd">        Bool mask, which of the indices of the pipe are in the desired `charge_sector`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">charge_sector</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sparse</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">charge_sector</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sparse</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">max_size</span><span class="o">=</span><span class="mf">2e6</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">bc_MPS</span> <span class="o">!=</span> <span class="s1">&#39;finite&#39;</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Full diagonalization works only on finite systems&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
@@ -116,6 +124,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">full_H</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">E</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">V</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_size</span> <span class="o">=</span> <span class="n">max_size</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_labels_p</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;p&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">N_sites</span><span class="p">)]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_labels_pconj</span> <span class="o">=</span> <span class="p">[</span><span class="n">l</span> <span class="o">+</span> <span class="s1">&#39;*&#39;</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labels_p</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_sites</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">mps_sites</span><span class="p">()</span>
@@ -131,8 +140,27 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">charge_sector</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span> <span class="o">=</span> <span class="kc">None</span>
 
+<div class="viewcode-block" id="ExactDiag.from_H_mpo"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.exact_diag.ExactDiag.html#tenpy.algorithms.exact_diag.ExactDiag.from_H_mpo">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_H_mpo</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">H_MPO</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Wrapper taking directly an MPO instead of a Model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        H_MPO : :class:`~tenpy.networks.mpo.MPO`</span>
+<span class="sd">            The MPO representing the Hamiltonian.</span>
+<span class="sd">        *args, **kwargs :</span>
+<span class="sd">            Other arguments as for the ``__init__`` of the class.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">..models.model</span> <span class="kn">import</span> <span class="n">MPOModel</span>
+        <span class="kn">from</span> <span class="nn">..models.lattice</span> <span class="kn">import</span> <span class="n">TrivialLattice</span>
+        <span class="k">assert</span> <span class="n">H_MPO</span><span class="o">.</span><span class="n">bc</span> <span class="o">==</span> <span class="s1">&#39;finite&#39;</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">MPOModel</span><span class="p">(</span><span class="n">TrivialLattice</span><span class="p">(</span><span class="n">H_MPO</span><span class="o">.</span><span class="n">sites</span><span class="p">),</span> <span class="n">H_MPO</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="ExactDiag.build_full_H_from_mpo"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.exact_diag.ExactDiag.html#tenpy.algorithms.exact_diag.ExactDiag.build_full_H_from_mpo">[docs]</a>    <span class="k">def</span> <span class="nf">build_full_H_from_mpo</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculate self.full_H from self.mpo.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exceeds_max_size</span><span class="p">():</span>
+            <span class="k">return</span>
         <span class="n">mpo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">H_MPO</span>
         <span class="n">full_H</span> <span class="o">=</span> <span class="n">mpo</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">take_slice</span><span class="p">(</span><span class="n">mpo</span><span class="o">.</span><span class="n">get_IdL</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="s1">&#39;wL&#39;</span><span class="p">)</span>
         <span class="n">full_H</span><span class="o">.</span><span class="n">ireplace_labels</span><span class="p">([</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;p*&#39;</span><span class="p">],</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_labels_p</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labels_pconj</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
@@ -149,6 +177,8 @@
 
 <div class="viewcode-block" id="ExactDiag.build_full_H_from_bonds"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.exact_diag.ExactDiag.html#tenpy.algorithms.exact_diag.ExactDiag.build_full_H_from_bonds">[docs]</a>    <span class="k">def</span> <span class="nf">build_full_H_from_bonds</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculate self.full_H from self.mpo.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exceeds_max_size</span><span class="p">():</span>
+            <span class="k">return</span>
         <span class="n">sites</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">mps_sites</span><span class="p">()</span>
         <span class="n">H_bond</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">H_bond</span>
         <span class="n">L</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sites</span><span class="p">)</span>
@@ -195,12 +225,35 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">E</span> <span class="o">=</span> <span class="n">E</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">V</span> <span class="o">=</span> <span class="n">V</span></div>
 
-<div class="viewcode-block" id="ExactDiag.groundstate"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.exact_diag.ExactDiag.html#tenpy.algorithms.exact_diag.ExactDiag.groundstate">[docs]</a>    <span class="k">def</span> <span class="nf">groundstate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Pick the ground state from self.V.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="ExactDiag.groundstate"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.exact_diag.ExactDiag.html#tenpy.algorithms.exact_diag.ExactDiag.groundstate">[docs]</a>    <span class="k">def</span> <span class="nf">groundstate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">charge_sector</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Pick the ground state energy and ground state from ``self.V``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        charge_sector : None | 1D ndarray</span>
+<span class="sd">            By default (``None``), consider all charge sectors.</span>
+<span class="sd">            Alternatively, give the `qtotal` which the returned state should have.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        E0 : float</span>
+<span class="sd">            Ground state energy (possibly in the given sector).</span>
+<span class="sd">        psi0 : :class:`~tenpy.linalg.np_conserved.Array`</span>
+<span class="sd">            Ground state (possibly in the given sector).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">E</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;You need to call `full_diagonalization` first!&quot;</span><span class="p">)</span>
-        <span class="n">i0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">E</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span><span class="o">.</span><span class="n">take_slice</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="s1">&#39;ps*&#39;</span><span class="p">)</span></div>
+        <span class="k">if</span> <span class="n">charge_sector</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">i0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">E</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">charge_sector</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;``self.charge_sector`` was specified before.&quot;</span><span class="p">)</span>
+            <span class="n">charge_sector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="o">.</span><span class="n">make_valid</span><span class="p">(</span><span class="n">charge_sector</span><span class="p">)</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pipe</span><span class="o">.</span><span class="n">to_qflat</span><span class="p">()</span> <span class="o">==</span> <span class="n">charge_sector</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The chosen charge sector is empty.&quot;</span><span class="p">)</span>
+            <span class="n">i0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">E</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">E</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1.</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">E</span><span class="p">[</span><span class="n">i0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span><span class="o">.</span><span class="n">take_slice</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="s1">&#39;ps*&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ExactDiag.exp_H"><a class="viewcode-back" href="../../../reference/tenpy.algorithms.exact_diag.ExactDiag.html#tenpy.algorithms.exact_diag.ExactDiag.exp_H">[docs]</a>    <span class="k">def</span> <span class="nf">exp_H</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return ``U(dt) := exp(-i H dt)``.&quot;&quot;&quot;</span>
@@ -274,7 +327,15 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">charge_sector</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">full_H</span><span class="o">.</span><span class="n">legs</span> <span class="o">=</span> <span class="p">[</span><span class="n">l</span><span class="o">.</span><span class="n">to_LegCharge</span><span class="p">()</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">full_H</span><span class="o">.</span><span class="n">legs</span><span class="p">]</span>  <span class="c1"># avoids warnings of project</span>
             <span class="n">full_H</span> <span class="o">=</span> <span class="n">full_H</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">full_H</span> <span class="o">=</span> <span class="n">full_H</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">full_H</span> <span class="o">=</span> <span class="n">full_H</span>
+
+    <span class="k">def</span> <span class="nf">_exceeds_max_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">([</span><span class="nb">float</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sites</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span>  <span class="c1"># use float to avoid overflow!</span>
+        <span class="k">if</span> <span class="n">size</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_size</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;size </span><span class="si">{0:.2e}</span><span class="s2"> exceeds max_size </span><span class="si">{1:.2e}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_size</span><span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
 </pre></div>
 
           </div>
@@ -320,7 +381,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Dec 09, 2019.
+      Last updated on Dec 17, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
     </div>
   </body>

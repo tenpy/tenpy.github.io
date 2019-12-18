@@ -57,23 +57,19 @@
 </ul>
 <dl class="class">
 <dt id="tenpy.algorithms.mps_sweeps.OneSiteH">
-<em class="property">class </em><code class="sig-prename descclassname">tenpy.algorithms.mps_sweeps.</code><code class="sig-name descname">OneSiteH</code><span class="sig-paren">(</span><em class="sig-param">env</em>, <em class="sig-param">i0</em>, <em class="sig-param">combine=False</em>, <em class="sig-param">move_right=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/mps_sweeps.html#OneSiteH"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.OneSiteH" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">tenpy.algorithms.mps_sweeps.</code><code class="sig-name descname">OneSiteH</code><span class="sig-paren">(</span><em class="sig-param">env</em>, <em class="sig-param">i0</em>, <em class="sig-param">combine=False</em>, <em class="sig-param">move_right=True</em>, <em class="sig-param">ortho_to_envs=[]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/mps_sweeps.html#OneSiteH"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.OneSiteH" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tenpy.algorithms.mps_sweeps.EffectiveH.html#tenpy.algorithms.mps_sweeps.EffectiveH" title="tenpy.algorithms.mps_sweeps.EffectiveH"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.algorithms.mps_sweeps.EffectiveH</span></code></a></p>
 <p>Class defining the one-site effective Hamiltonian for Lanczos.</p>
 <p>The effective one-site Hamiltonian looks like this:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>        <span class="o">.---</span>   <span class="o">---.</span>
-<span class="o">|</span>        <span class="o">|</span>    <span class="o">|</span>    <span class="o">|</span>
-<span class="o">|</span>       <span class="n">LP</span><span class="o">----</span><span class="n">W0</span><span class="o">---</span><span class="n">RP</span>
-<span class="o">|</span>        <span class="o">|</span>    <span class="o">|</span>    <span class="o">|</span>
-<span class="o">|</span>        <span class="o">.---</span>   <span class="o">---.</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>        <span class="o">.---</span>    <span class="o">---.</span>
+<span class="o">|</span>        <span class="o">|</span>    <span class="o">|</span>     <span class="o">|</span>
+<span class="o">|</span>       <span class="n">LP</span><span class="o">----</span><span class="n">W0</span><span class="o">----</span><span class="n">RP</span>
+<span class="o">|</span>        <span class="o">|</span>    <span class="o">|</span>     <span class="o">|</span>
+<span class="o">|</span>        <span class="o">.---</span>    <span class="o">---.</span>
 </pre></div>
 </div>
-<p>If <cite>combine</cite> is True, we define either <cite>LHeff</cite> as contraction of <cite>LP</cite> with <cite>W0</cite> (in the case
-<cite>move_right</cite> is True) or <cite>RHeff</cite> as contraction of <cite>RP</cite> and <cite>W0</cite>.</p>
-<div class="admonition-todo admonition" id="id1">
-<p class="admonition-title">Todo</p>
-<p>orthogonal theta’s? Johannes: agree, might be usefull to add that here.</p>
-</div>
+<p>If <cite>combine</cite> is True, we define either <cite>LHeff</cite> as contraction of <cite>LP</cite> with <cite>W</cite> (in the case
+<cite>move_right</cite> is True) or <cite>RHeff</cite> as contraction of <cite>RP</cite> and <cite>W</cite>.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl>
@@ -87,7 +83,7 @@ into pipes. This reduces the overhead of calculating charge combinations in the
 contractions, but one <a class="reference internal" href="#tenpy.algorithms.mps_sweeps.OneSiteH.matvec" title="tenpy.algorithms.mps_sweeps.OneSiteH.matvec"><code class="xref py py-meth docutils literal notranslate"><span class="pre">matvec()</span></code></a> is formally more expensive, <span class="math notranslate nohighlight">\(O(2 d^3 \chi^3 D)\)</span>.
 Is originally from the wo-site method; unclear if it works well for 1 site.</p>
 </dd>
-<dt><strong>move_right</strong><span class="classifier">bool</span></dt><dd><p>Wheter the the sweep is moving right or left for the next update.</p>
+<dt><strong>move_right</strong><span class="classifier">bool</span></dt><dd><p>Whether the the sweep is moving right or left for the next update.</p>
 </dd>
 </dl>
 </dd>
@@ -98,14 +94,10 @@ Is originally from the wo-site method; unclear if it works well for 1 site.</p>
 <dt><strong>combine, move_right</strong><span class="classifier">bool</span></dt><dd><p>See above.</p>
 </dd>
 <dt><strong>LHeff, RHeff</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt><dd><p>Only set <code class="xref py py-attr docutils literal notranslate"><span class="pre">combine</span></code>, and only one of them depending on <code class="xref py py-attr docutils literal notranslate"><span class="pre">move_right</span></code>.
-If <cite>move_right</cite> was True, <cite>LHeff</cite> is set with labels <code class="docutils literal notranslate"><span class="pre">'(vR*.p)',</span> <span class="pre">'wR',</span> <span class="pre">'(vR.p*)'</span></code>
-for bra, MPO, ket; otherwise <cite>RHeff</cite> is set with labels <code class="docutils literal notranslate"><span class="pre">'(p*.vL)',</span> <span class="pre">'wL',</span> <span class="pre">'(p,</span> <span class="pre">vL*)'</span></code></p>
+If <cite>move_right</cite> was True, <cite>LHeff</cite> is set with labels <code class="docutils literal notranslate"><span class="pre">'(vR*.p0)',</span> <span class="pre">'wR',</span> <span class="pre">'(vR.p0*)'</span></code>
+for bra, MPO, ket; otherwise <cite>RHeff</cite> is set with labels <code class="docutils literal notranslate"><span class="pre">'(p0*.vL)',</span> <span class="pre">'wL',</span> <span class="pre">'(p0,</span> <span class="pre">vL*)'</span></code></p>
 </dd>
-<dt><strong>LP</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.linalg.np_conserved.Array</span></code></a></span></dt><dd><p>Left part of the environment.</p>
-</dd>
-<dt><strong>RP</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.linalg.np_conserved.Array</span></code></a></span></dt><dd><p>Right part of the environment.</p>
-</dd>
-<dt><strong>W</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.linalg.np_conserved.Array</span></code></a></span></dt><dd><p>MPO tensor, to be applied to the ‘p’ leg of theta</p>
+<dt><strong>LP, W0, RP</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt><dd><p>Tensors making up the network of <cite>self</cite>.</p>
 </dd>
 </dl>
 </dd>
@@ -120,8 +112,17 @@ for bra, MPO, ket; otherwise <cite>RHeff</cite> is set with labels <code class="
 <tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.algorithms.mps_sweeps.OneSiteH.combine_Heff" title="tenpy.algorithms.mps_sweeps.OneSiteH.combine_Heff"><code class="xref py py-obj docutils literal notranslate"><span class="pre">combine_Heff</span></code></a>(self)</p></td>
 <td><p>Combine LP and RP with W to form LHeff and RHeff, depending on the direction.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.algorithms.mps_sweeps.OneSiteH.matvec" title="tenpy.algorithms.mps_sweeps.OneSiteH.matvec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">matvec</span></code></a>(self, theta)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.algorithms.mps_sweeps.OneSiteH.combine_theta" title="tenpy.algorithms.mps_sweeps.OneSiteH.combine_theta"><code class="xref py py-obj docutils literal notranslate"><span class="pre">combine_theta</span></code></a>(self, theta)</p></td>
+<td><p>Combine the legs of <cite>theta</cite>, such that fit to how we combined the legs of <cite>self</cite>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.algorithms.mps_sweeps.OneSiteH.matvec" title="tenpy.algorithms.mps_sweeps.OneSiteH.matvec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">matvec</span></code></a>(self, theta)</p></td>
 <td><p>Apply the effective Hamiltonian to <cite>theta</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.algorithms.mps_sweeps.OneSiteH.matvec_theta_ortho" title="tenpy.algorithms.mps_sweeps.OneSiteH.matvec_theta_ortho"><code class="xref py py-obj docutils literal notranslate"><span class="pre">matvec_theta_ortho</span></code></a>(self, theta)</p></td>
+<td><p>Apply <cite>self</cite> to <cite>theta</cite>, and orthogonalize against <cite>self.theta_ortho</cite>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.algorithms.mps_sweeps.OneSiteH.to_matrix" title="tenpy.algorithms.mps_sweeps.OneSiteH.to_matrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_matrix</span></code></a>(self)</p></td>
+<td><p>Contract <cite>self</cite> to a matrix.</p></td>
 </tr>
 </tbody>
 </table>
@@ -132,7 +133,7 @@ for bra, MPO, ket; otherwise <cite>RHeff</cite> is set with labels <code class="
 <dl class="field-list">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl>
-<dt><strong>theta</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt><dd><p>Labels: <code class="docutils literal notranslate"><span class="pre">vL,</span> <span class="pre">p,</span> <span class="pre">vR</span></code> if combine=False, <code class="docutils literal notranslate"><span class="pre">(vL.p),</span> <span class="pre">vR</span></code> or <code class="docutils literal notranslate"><span class="pre">vL,</span> <span class="pre">(p.vR)</span></code> if True
+<dt><strong>theta</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt><dd><p>Labels: <code class="docutils literal notranslate"><span class="pre">vL,</span> <span class="pre">p0,</span> <span class="pre">vR</span></code> if combine=False, <code class="docutils literal notranslate"><span class="pre">(vL.p0),</span> <span class="pre">vR</span></code> or <code class="docutils literal notranslate"><span class="pre">vL,</span> <span class="pre">(p0.vR)</span></code> if True
 (depending on the direction of movement)</p>
 </dd>
 </dl>
@@ -152,6 +153,44 @@ for bra, MPO, ket; otherwise <cite>RHeff</cite> is set with labels <code class="
 <dd><p>Combine LP and RP with W to form LHeff and RHeff, depending on the direction.</p>
 <p>In a move to the right, we need LHeff. In a move to the left, we need RHeff. Both contain
 the same W.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.mps_sweeps.OneSiteH.combine_theta">
+<code class="sig-name descname">combine_theta</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">theta</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/mps_sweeps.html#OneSiteH.combine_theta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.OneSiteH.combine_theta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Combine the legs of <cite>theta</cite>, such that fit to how we combined the legs of <cite>self</cite>.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>theta</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt><dd><p>Wave function with labels <code class="docutils literal notranslate"><span class="pre">'vL',</span> <span class="pre">'p0',</span> <span class="pre">'p1',</span> <span class="pre">'vR'</span></code></p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>theta</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt><dd><p>Wave function with labels <code class="docutils literal notranslate"><span class="pre">'vL',</span> <span class="pre">'p0',</span> <span class="pre">'p1',</span> <span class="pre">'vR'</span></code></p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.mps_sweeps.OneSiteH.to_matrix">
+<code class="sig-name descname">to_matrix</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/mps_sweeps.html#OneSiteH.to_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.OneSiteH.to_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Contract <cite>self</cite> to a matrix.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tenpy.algorithms.mps_sweeps.OneSiteH.matvec_theta_ortho">
+<code class="sig-name descname">matvec_theta_ortho</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">theta</em><span class="sig-paren">)</span><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.OneSiteH.matvec_theta_ortho" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply <cite>self</cite> to <cite>theta</cite>, and orthogonalize against <cite>self.theta_ortho</cite>.
+__
+We implement this by effectively replacing <code class="docutils literal notranslate"><span class="pre">H</span> <span class="pre">-&gt;</span> <span class="pre">P</span> <span class="pre">H</span> <span class="pre">P</span></code> with
+the projector <code class="docutils literal notranslate"><span class="pre">P</span> <span class="pre">=</span> <span class="pre">1</span> <span class="pre">-</span> <span class="pre">sum_o</span> <span class="pre">|o&gt;</span> <span class="pre">&lt;o|</span></code> projecting out the states
+from <code class="xref py py-attr docutils literal notranslate"><span class="pre">theta_ortho</span></code>.</p>
+<p>Parameter and return value as for <a class="reference internal" href="#tenpy.algorithms.mps_sweeps.OneSiteH.matvec" title="tenpy.algorithms.mps_sweeps.OneSiteH.matvec"><code class="xref py py-meth docutils literal notranslate"><span class="pre">matvec()</span></code></a> (which this function replaces,
+if the class was initialized with non-empty <cite>ortho_to_envs</cite>.)</p>
 </dd></dl>
 
 </dd></dl>
@@ -234,7 +273,7 @@ the same W.</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Dec 09, 2019.
+      Last updated on Dec 17, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
     </div>
   </body>
