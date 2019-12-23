@@ -1,0 +1,305 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>[0.4.0] - 2019-04-28 &#8212; TeNPy 0.5.0 documentation</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="[0.3.0] - 2018-02-19" href="v0.3.0.html" />
+    <link rel="prev" title="[0.4.1] - 2019-08-14" href="v0.4.1.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="v0.3.0.html" title="[0.3.0] - 2018-02-19"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="v0.4.1.html" title="[0.4.1] - 2019-08-14"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../releases.html" accesskey="U">Release Notes</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="id1">
+<h1>[0.4.0] - 2019-04-28<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="backwards-incompatible-changes">
+<h2>Backwards incompatible changes<a class="headerlink" href="#backwards-incompatible-changes" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>The argument order of <a class="reference internal" href="../reference/tenpy.models.lattice.Lattice.html#tenpy.models.lattice.Lattice" title="tenpy.models.lattice.Lattice"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.lattice.Lattice</span></code></a> could be a tuple <code class="docutils literal notranslate"><span class="pre">(priority,</span> <span class="pre">snake_winding)</span></code> before.
+This is no longer valid and needs to be replaced by <code class="docutils literal notranslate"><span class="pre">(&quot;standard&quot;,</span> <span class="pre">snake_winding,</span> <span class="pre">priority)</span></code>.</p></li>
+<li><p>Moved the boundary conditions <cite>bc_coupling</cite> from the <a class="reference internal" href="../reference/tenpy.models.model.CouplingModel.html#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.CouplingModel</span></code></a> into the <a class="reference internal" href="../reference/tenpy.models.lattice.Lattice.html#tenpy.models.lattice.Lattice" title="tenpy.models.lattice.Lattice"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.lattice.Lattice</span></code></a> (as <cite>bc</cite>).
+Using the parameter <cite>bc_coupling</cite> will raise a FutureWarning, one should set the boundary conditions directly in the lattice.</p></li>
+<li><p>Added parameter <cite>permute</cite> (True by default) in <a class="reference internal" href="../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.from_product_state" title="tenpy.networks.mps.MPS.from_product_state"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.networks.mps.MPS.from_product_state()</span></code></a> and <a class="reference internal" href="../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.from_Bflat" title="tenpy.networks.mps.MPS.from_Bflat"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.networks.mps.MPS.from_Bflat()</span></code></a>.
+The resulting state will therefore be independent of the “conserve” parameter of the Sites - unlike before,
+where the meaning of the p_state argument might have changed.</p></li>
+<li><p>Generalize and rename  <code class="docutils literal notranslate"><span class="pre">tenpy.networks.site.DoubleSite</span></code> to <a class="reference internal" href="../reference/tenpy.networks.site.GroupedSite.html#tenpy.networks.site.GroupedSite" title="tenpy.networks.site.GroupedSite"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.networks.site.GroupedSite</span></code></a>,
+to allow for an arbitrary number of sites to be grouped.
+Arguments <code class="docutils literal notranslate"><span class="pre">site0,</span> <span class="pre">site1,</span> <span class="pre">label0,</span> <span class="pre">label1</span></code> of the __init__ can be replaced with <code class="docutils literal notranslate"><span class="pre">[site0,</span> <span class="pre">site1],</span> <span class="pre">[label0,</span> <span class="pre">label1]</span></code>
+and <code class="docutils literal notranslate"><span class="pre">op0,</span> <span class="pre">op1</span></code> of the <cite>kronecker_product</cite> with <code class="docutils literal notranslate"><span class="pre">[op0,</span> <span class="pre">op1]</span></code>; this will recover the functionality of the <cite>DoubleSite</cite>.</p></li>
+<li><p>Restructured callstructure of Mixer in DMRG, allowing an implementation of other mixers.
+To enable the mixer, set the DMRG parameter <code class="docutils literal notranslate"><span class="pre">&quot;mixer&quot;</span></code> to <code class="docutils literal notranslate"><span class="pre">True</span></code> or <code class="docutils literal notranslate"><span class="pre">'DensityMatrixMixer'</span></code>
+instead of just <code class="docutils literal notranslate"><span class="pre">'Mixer'</span></code>.</p></li>
+<li><p>The interaction parameter in the <code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.bose_hubbbard_chain.BoseHubbardModel</span></code>
+(and <code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.bose_hubbbard_chain.BoseHubbardChain</span></code>) did not correspond to <span class="math notranslate nohighlight">\(U/2 N (N-1)\)</span>
+as claimed in the Hamiltonian, but to <span class="math notranslate nohighlight">\(U N^2\)</span>.
+The correcting factor 1/2 and change in the chemical potential have been fixed.</p></li>
+<li><p>Major restructuring of <a class="reference internal" href="../reference/tenpy.linalg.np_conserved.html#module-tenpy.linalg.np_conserved" title="tenpy.linalg.np_conserved"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tenpy.linalg.np_conserved</span></code></a> and <a class="reference internal" href="../reference/tenpy.linalg.charges.html#module-tenpy.linalg.charges" title="tenpy.linalg.charges"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tenpy.linalg.charges</span></code></a>.
+This should not break backwards-compatibility, but if you compiled the cython files, you <strong>need</strong> to remove the
+old binaries in the source directory. Using <code class="docutils literal notranslate"><span class="pre">bash</span> <span class="pre">cleanup.sh</span></code> might be helpful to do that, but also remove other files within the repository, so be careful and make a backup beforehand to be on the save side.
+Afterwards recompile with <code class="docutils literal notranslate"><span class="pre">bash</span> <span class="pre">compile.sh</span></code>.</p></li>
+<li><p>Changed structure of <code class="xref py py-attr docutils literal notranslate"><span class="pre">tenpy.models.model.CouplingModel.onsite_terms</span></code> and <code class="xref py py-attr docutils literal notranslate"><span class="pre">tenpy.models.model.CouplingModel.coupling_terms</span></code>:
+Each of them is now a dictionary with category strings as keys and the newly introduced
+<a class="reference internal" href="../reference/tenpy.networks.terms.OnsiteTerms.html#tenpy.networks.terms.OnsiteTerms" title="tenpy.networks.terms.OnsiteTerms"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.networks.terms.OnsiteTerms</span></code></a> and <a class="reference internal" href="../reference/tenpy.networks.terms.CouplingTerms.html#tenpy.networks.terms.CouplingTerms" title="tenpy.networks.terms.CouplingTerms"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.networks.terms.CouplingTerms</span></code></a> as values.</p></li>
+<li><p><a class="reference internal" href="../reference/tenpy.models.model.CouplingModel.html#tenpy.models.model.CouplingModel.calc_H_onsite" title="tenpy.models.model.CouplingModel.calc_H_onsite"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.models.model.CouplingModel.calc_H_onsite()</span></code></a> is deprecated in favor of new methods.</p></li>
+<li><p>Argument <cite>raise_op2_left</cite> of <a class="reference internal" href="../reference/tenpy.models.model.CouplingModel.html#tenpy.models.model.CouplingModel.add_coupling" title="tenpy.models.model.CouplingModel.add_coupling"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.models.model.CouplingModel.add_coupling()</span></code></a> is deprecated.</p></li>
+</ul>
+</div>
+<div class="section" id="added">
+<h2>Added<a class="headerlink" href="#added" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.canonical_form_infinite" title="tenpy.networks.mps.MPS.canonical_form_infinite"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.networks.mps.MPS.canonical_form_infinite()</span></code></a>.</p></li>
+<li><p><a class="reference internal" href="../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.expectation_value_term" title="tenpy.networks.mps.MPS.expectation_value_term"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.networks.mps.MPS.expectation_value_term()</span></code></a>, <a class="reference internal" href="../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.expectation_value_terms_sum" title="tenpy.networks.mps.MPS.expectation_value_terms_sum"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.networks.mps.MPS.expectation_value_terms_sum()</span></code></a> and
+<a class="reference internal" href="../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.expectation_value_multi_sites" title="tenpy.networks.mps.MPS.expectation_value_multi_sites"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.networks.mps.MPS.expectation_value_multi_sites()</span></code></a> for expectation values of terms.</p></li>
+<li><p><a class="reference internal" href="../reference/tenpy.networks.mpo.MPO.html#tenpy.networks.mpo.MPO.expectation_value" title="tenpy.networks.mpo.MPO.expectation_value"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.networks.mpo.MPO.expectation_value()</span></code></a> for an MPO.</p></li>
+<li><p><a class="reference internal" href="../reference/tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array.extend" title="tenpy.linalg.np_conserved.Array.extend"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.linalg.np_conserved.Array.extend()</span></code></a> and <a class="reference internal" href="../reference/tenpy.linalg.charges.LegCharge.html#tenpy.linalg.charges.LegCharge.extend" title="tenpy.linalg.charges.LegCharge.extend"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.linalg.charges.LegCharge.extend()</span></code></a>,
+allowing to extend an Array with zeros.</p></li>
+<li><p>DMRG parameter <code class="docutils literal notranslate"><span class="pre">'orthogonal_to'</span></code> allows to calculate excited states for finite systems.</p></li>
+<li><p>possibility to change the number of charges after creating LegCharges/Arrays.</p></li>
+<li><p>more general way to specify the order of sites in a <a class="reference internal" href="../reference/tenpy.models.lattice.Lattice.html#tenpy.models.lattice.Lattice" title="tenpy.models.lattice.Lattice"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.lattice.Lattice</span></code></a>.</p></li>
+<li><p>new <a class="reference internal" href="../reference/tenpy.models.lattice.Triangular.html#tenpy.models.lattice.Triangular" title="tenpy.models.lattice.Triangular"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.lattice.Triangular</span></code></a>, <a class="reference internal" href="../reference/tenpy.models.lattice.Honeycomb.html#tenpy.models.lattice.Honeycomb" title="tenpy.models.lattice.Honeycomb"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.lattice.Honeycomb</span></code></a> and <a class="reference internal" href="../reference/tenpy.models.lattice.Kagome.html#tenpy.models.lattice.Kagome" title="tenpy.models.lattice.Kagome"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.lattice.Kagome</span></code></a> lattice</p></li>
+<li><p>a way to specify nearest neighbor couplings in a <a class="reference internal" href="../reference/tenpy.models.lattice.Lattice.html#tenpy.models.lattice.Lattice" title="tenpy.models.lattice.Lattice"><code class="xref py py-class docutils literal notranslate"><span class="pre">Lattice</span></code></a>,
+along with methods to count the number of nearest neighbors for sites in the bulk, and
+a way to plot them (<a class="reference internal" href="../reference/tenpy.models.lattice.Lattice.html#tenpy.models.lattice.Lattice.plot_coupling" title="tenpy.models.lattice.Lattice.plot_coupling"><code class="xref py py-meth docutils literal notranslate"><span class="pre">plot_coupling()</span></code></a> and friends)</p></li>
+<li><p><a class="reference internal" href="../reference/tenpy.networks.mpo.MPO.html#tenpy.networks.mpo.MPO.from_grids" title="tenpy.networks.mpo.MPO.from_grids"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.networks.mpo.MPO.from_grids()</span></code></a> to generate the MPO from a grid.</p></li>
+<li><p><a class="reference internal" href="../reference/tenpy.models.model.MultiCouplingModel.html#tenpy.models.model.MultiCouplingModel" title="tenpy.models.model.MultiCouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.MultiCouplingModel</span></code></a> for couplings involving more than 2 sites.</p></li>
+<li><p>request #8: Allow shift in boundary conditions of <a class="reference internal" href="../reference/tenpy.models.model.CouplingModel.html#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></a>.</p></li>
+<li><p>Allow to use state labels in <a class="reference internal" href="../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.from_product_state" title="tenpy.networks.mps.MPS.from_product_state"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.networks.mps.MPS.from_product_state()</span></code></a>.</p></li>
+<li><p><a class="reference internal" href="../reference/tenpy.models.model.CouplingMPOModel.html#tenpy.models.model.CouplingMPOModel" title="tenpy.models.model.CouplingMPOModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.model.CouplingMPOModel</span></code></a> structuring the default initialization of most models.</p></li>
+<li><p>Allow to force periodic boundary conditions for finite MPS in the <code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingMPOModel</span></code>.
+This is not recommended, though.</p></li>
+<li><p><a class="reference internal" href="../reference/tenpy.models.model.NearestNeighborModel.html#tenpy.models.model.NearestNeighborModel.calc_H_MPO_from_bond" title="tenpy.models.model.NearestNeighborModel.calc_H_MPO_from_bond"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.models.model.NearestNeighborModel.calc_H_MPO_from_bond()</span></code></a> and
+<a class="reference internal" href="../reference/tenpy.models.model.MPOModel.html#tenpy.models.model.MPOModel.calc_H_bond_from_MPO" title="tenpy.models.model.MPOModel.calc_H_bond_from_MPO"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.models.model.MPOModel.calc_H_bond_from_MPO()</span></code></a> for conversion of H_bond into H_MPO and vice
+versa.</p></li>
+<li><p><a class="reference internal" href="../reference/tenpy.algorithms.tebd.RandomUnitaryEvolution.html#tenpy.algorithms.tebd.RandomUnitaryEvolution" title="tenpy.algorithms.tebd.RandomUnitaryEvolution"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.algorithms.tebd.RandomUnitaryEvolution</span></code></a> for random unitary circuits</p></li>
+<li><p>Allow documentation links to github issues, arXiv, papers by doi and the forum with
+e.g. <code class="docutils literal notranslate"><span class="pre">:issue:`5`,</span> <span class="pre">:arxiv:`1805.00055`,</span> <span class="pre">:doi:`10.21468/SciPostPhysLectNotes.5`,</span> <span class="pre">:forum:`3`</span></code></p></li>
+<li><p><a class="reference internal" href="../reference/tenpy.models.model.CouplingModel.html#tenpy.models.model.CouplingModel.coupling_strength_add_ext_flux" title="tenpy.models.model.CouplingModel.coupling_strength_add_ext_flux"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.models.model.CouplingModel.coupling_strength_add_ext_flux()</span></code></a> for adding hoppings with external flux.</p></li>
+<li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.models.model.CouplingModel.plot_coupling_terms()</span></code> to visualize the added coupling terms.</p></li>
+<li><p><a class="reference internal" href="../reference/tenpy.networks.terms.OnsiteTerms.html#tenpy.networks.terms.OnsiteTerms" title="tenpy.networks.terms.OnsiteTerms"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.networks.terms.OnsiteTerms</span></code></a>, <a class="reference internal" href="../reference/tenpy.networks.terms.CouplingTerms.html#tenpy.networks.terms.CouplingTerms" title="tenpy.networks.terms.CouplingTerms"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.networks.terms.CouplingTerms</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.networks.terms.MultiCouplingTerm</span></code>
+containing the of terms for the <a class="reference internal" href="../reference/tenpy.models.model.CouplingModel.html#tenpy.models.model.CouplingModel" title="tenpy.models.model.CouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></a> and <a class="reference internal" href="../reference/tenpy.models.model.MultiCouplingModel.html#tenpy.models.model.MultiCouplingModel" title="tenpy.models.model.MultiCouplingModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">MultiCouplingModel</span></code></a>.
+This allowed to add the <cite>category</cite> argument to <a class="reference internal" href="../reference/tenpy.models.model.CouplingModel.html#tenpy.models.model.CouplingModel.add_onsite" title="tenpy.models.model.CouplingModel.add_onsite"><code class="xref py py-class docutils literal notranslate"><span class="pre">add_onsite</span></code></a>, <a class="reference internal" href="../reference/tenpy.models.model.CouplingModel.html#tenpy.models.model.CouplingModel.add_coupling" title="tenpy.models.model.CouplingModel.add_coupling"><code class="xref py py-class docutils literal notranslate"><span class="pre">add_coupling</span></code></a> and <a class="reference internal" href="../reference/tenpy.models.model.MultiCouplingModel.html#tenpy.models.model.MultiCouplingModel.add_multi_coupling" title="tenpy.models.model.MultiCouplingModel.add_multi_coupling"><code class="xref py py-class docutils literal notranslate"><span class="pre">add_multi_coupling</span></code></a>.</p></li>
+<li><p><a class="reference internal" href="../reference/tenpy.networks.terms.TermList.html#tenpy.networks.terms.TermList" title="tenpy.networks.terms.TermList"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.networks.terms.TermList</span></code></a> as another (more human readable) representation of terms with conversion from
+and to the other <code class="docutils literal notranslate"><span class="pre">*Term</span></code> classes.</p></li>
+<li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.networks.mps.MPS.init_LP()</span></code> and <code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.networks.mps.MPS.init_RP()</span></code> to initialize left and right parts
+of an Environment.</p></li>
+<li><p><a class="reference internal" href="../reference/tenpy.networks.mpo.MPOGraph.html#tenpy.networks.mpo.MPOGraph.from_terms" title="tenpy.networks.mpo.MPOGraph.from_terms"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.networks.mpo.MPOGraph.from_terms()</span></code></a> and <a class="reference internal" href="../reference/tenpy.networks.mpo.MPOGraph.html#tenpy.networks.mpo.MPOGraph.from_term_list" title="tenpy.networks.mpo.MPOGraph.from_term_list"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.networks.mpo.MPOGraph.from_term_list()</span></code></a>.</p></li>
+<li><p>argument <cite>charge_sector</cite> in <a class="reference internal" href="../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.correlation_length" title="tenpy.networks.mps.MPS.correlation_length"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.networks.mps.MPS.correlation_length()</span></code></a>.</p></li>
+</ul>
+</div>
+<div class="section" id="changed">
+<h2>Changed<a class="headerlink" href="#changed" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>moved toycodes from the folder <code class="docutils literal notranslate"><span class="pre">examples/</span></code> to a new folder <code class="docutils literal notranslate"><span class="pre">toycodes/</span></code> to separate them clearly.</p></li>
+<li><dl class="simple">
+<dt>major remodelling of the internals of <a class="reference internal" href="../reference/tenpy.linalg.np_conserved.html#module-tenpy.linalg.np_conserved" title="tenpy.linalg.np_conserved"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.linalg.np_conserved</span></code></a> and <a class="reference internal" href="../reference/tenpy.linalg.charges.html#module-tenpy.linalg.charges" title="tenpy.linalg.charges"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.linalg.charges</span></code></a>.</dt><dd><ul>
+<li><p>Introduced the new module <code class="docutils literal notranslate"><span class="pre">tenpy/linalg/_npc_helper.pyx</span></code> which contains all the Cython code, and gets imported by</p></li>
+<li><p><a class="reference internal" href="../reference/tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a> now rejects addition/subtraction with other types</p></li>
+<li><p><a class="reference internal" href="../reference/tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a> now rejects multiplication/division  with non-scalar types</p></li>
+<li><p>By default, make deep copies of npc Arrays.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>Restructured lanczos into a class, added time evolution calculating <code class="docutils literal notranslate"><span class="pre">exp(A*dt)|psi0&gt;</span></code></p></li>
+<li><p>Warning for poorly conditioned Lanczos; to overcome this enable the new parameter <cite>reortho</cite>.</p></li>
+<li><p>Simplified call strucutre of <a class="reference internal" href="../reference/tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array.extend" title="tenpy.linalg.np_conserved.Array.extend"><code class="xref py py-meth docutils literal notranslate"><span class="pre">extend()</span></code></a>, and
+<a class="reference internal" href="../reference/tenpy.linalg.charges.LegCharge.html#tenpy.linalg.charges.LegCharge.extend" title="tenpy.linalg.charges.LegCharge.extend"><code class="xref py py-meth docutils literal notranslate"><span class="pre">extend()</span></code></a>.</p></li>
+<li><p>Restructured <a class="reference internal" href="../reference/tenpy.algorithms.dmrg.html#module-tenpy.algorithms.dmrg" title="tenpy.algorithms.dmrg"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tenpy.algorithms.dmrg</span></code></a>:</p>
+<ul>
+<li><p><a class="reference internal" href="../reference/tenpy.algorithms.dmrg.run.html#tenpy.algorithms.dmrg.run" title="tenpy.algorithms.dmrg.run"><code class="xref py py-func docutils literal notranslate"><span class="pre">run()</span></code></a> is now just a wrapper around the new
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code>, <code class="docutils literal notranslate"><span class="pre">run(psi,</span> <span class="pre">model,</span> <span class="pre">pars)</span></code> is roughly equivalent to
+<code class="docutils literal notranslate"><span class="pre">eng</span> <span class="pre">=</span> <span class="pre">EngineCombine(psi,</span> <span class="pre">model,</span> <span class="pre">pars);</span> <span class="pre">eng.run()</span></code>.</p></li>
+<li><p>Added <code class="xref py py-meth docutils literal notranslate"><span class="pre">init_env()</span></code> and <code class="xref py py-meth docutils literal notranslate"><span class="pre">reset_stats()</span></code>
+to allow a simple restart of DMRG with slightly different parameters, e.g. for tuning Hamiltonian parameters.</p></li>
+<li><p>Call <a class="reference internal" href="../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.canonical_form" title="tenpy.networks.mps.MPS.canonical_form"><code class="xref py py-meth docutils literal notranslate"><span class="pre">canonical_form()</span></code></a> for infinite systems if the final state is not in canonical form.</p></li>
+</ul>
+</li>
+<li><p>Changed <strong>default values</strong> for some parameters:</p>
+<ul>
+<li><p>set <code class="docutils literal notranslate"><span class="pre">trunc_params['chi_max']</span> <span class="pre">=</span> <span class="pre">100</span></code>. Not setting a <cite>chi_max</cite> at all will lead to memory problems.
+Disable <code class="docutils literal notranslate"><span class="pre">DMRG_params['chi_list']</span> <span class="pre">=</span> <span class="pre">None</span></code> by default to avoid conflicting settings.</p></li>
+<li><p>reduce to <code class="docutils literal notranslate"><span class="pre">mixer_params['amplitude']</span> <span class="pre">=</span> <span class="pre">1.e-5</span></code>. A too strong mixer screws DMRG up pretty bad.</p></li>
+<li><p>increase <code class="docutils literal notranslate"><span class="pre">Lanczos_params['N_cache']</span> <span class="pre">=</span> <span class="pre">N_max</span></code> (i.e., keep all states)</p></li>
+<li><p>set <code class="docutils literal notranslate"><span class="pre">DMRG_params['P_tol_to_trunc']</span> <span class="pre">=</span> <span class="pre">0.05</span></code> and provide reasonable …_min and …_max values.</p></li>
+<li><p>increased (default) DMRG accuracy by setting
+<code class="docutils literal notranslate"><span class="pre">DMRG_params['max_E_err']</span> <span class="pre">=</span> <span class="pre">1.e-8</span></code> and <code class="docutils literal notranslate"><span class="pre">DMRG_params['max_S_err']</span> <span class="pre">=</span> <span class="pre">1.e-5</span></code>.</p></li>
+<li><p>don’t check the (absolute) energy for convergence in Lanczos.</p></li>
+<li><p>set <code class="docutils literal notranslate"><span class="pre">DMRG_params['norm_tol']</span> <span class="pre">=</span> <span class="pre">1.e-5</span></code> to check whether the final state is in canonical form.</p></li>
+</ul>
+</li>
+<li><p>Verbosity of <a class="reference internal" href="../reference/tenpy.tools.params.get_parameter.html#tenpy.tools.params.get_parameter" title="tenpy.tools.params.get_parameter"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_parameter()</span></code></a> reduced: Print parameters only for verbosity &gt;=1.
+and default values only for verbosity &gt;= 2.</p></li>
+<li><p>Don’t print the energy during real-time TEBD evolution - it’s preserved up to truncation errors.</p></li>
+<li><p>Renamed the <cite>SquareLattice</cite> class to <a class="reference internal" href="../reference/tenpy.models.lattice.Square.html#tenpy.models.lattice.Square" title="tenpy.models.lattice.Square"><code class="xref py py-class docutils literal notranslate"><span class="pre">tenpy.models.lattice.Square</span></code></a> for better consistency.</p></li>
+<li><p>auto-determine whether Jordan-Wigner strings are necessary in
+<a class="reference internal" href="../reference/tenpy.models.model.CouplingModel.html#tenpy.models.model.CouplingModel.add_coupling" title="tenpy.models.model.CouplingModel.add_coupling"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_coupling()</span></code></a>.</p></li>
+<li><p>The way the labels of npc Arrays are stored internally changed to a simple list with None entries.
+There is a deprecated propery setter yielding a dictionary with the labels.</p></li>
+<li><p>renamed <cite>first_LP</cite> and <cite>last_RP</cite> arguments of <a class="reference internal" href="../reference/tenpy.networks.mps.MPSEnvironment.html#tenpy.networks.mps.MPSEnvironment" title="tenpy.networks.mps.MPSEnvironment"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPSEnvironment</span></code></a> and <a class="reference internal" href="../reference/tenpy.networks.mpo.MPOEnvironment.html#tenpy.networks.mpo.MPOEnvironment" title="tenpy.networks.mpo.MPOEnvironment"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPOEnvironment</span></code></a> to <cite>init_LP</cite> and <cite>init_RP</cite>.</p></li>
+<li><p>Testing: insetad of the (outdated) <a class="reference external" href="https://nose.readthedocs.io/en/latest/">nose</a>, we now use <cite>pytest &lt;https://pytest.org&gt;</cite> for testing.</p></li>
+</ul>
+</div>
+<div class="section" id="fixed">
+<h2>Fixed<a class="headerlink" href="#fixed" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/tenpy/tenpy/issues/22">issue #22</a>: <strong>Serious bug</strong> in <a class="reference internal" href="../reference/tenpy.linalg.np_conserved.inner.html#tenpy.linalg.np_conserved.inner" title="tenpy.linalg.np_conserved.inner"><code class="xref py py-func docutils literal notranslate"><span class="pre">tenpy.linalg.np_conserved.inner()</span></code></a>: if <code class="docutils literal notranslate"><span class="pre">do_conj=True</span></code> is used with non-zero
+<code class="docutils literal notranslate"><span class="pre">qtotal</span></code>, it returned 0. instead of non-zero values.</p></li>
+<li><p>avoid error in <a class="reference internal" href="../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.apply_local_op" title="tenpy.networks.mps.MPS.apply_local_op"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.networks.mps.MPS.apply_local_op()</span></code></a></p></li>
+<li><p>Don’t carry around total charge when using DMRG with a mixer</p></li>
+<li><p>Corrected couplings of the FermionicHubbardChain</p></li>
+<li><p><a class="reference external" href="https://github.com/tenpy/tenpy/issues/2">issue #2</a>: memory leak in cython parts when using intelpython/anaconda</p></li>
+<li><p><a class="reference external" href="https://github.com/tenpy/tenpy/issues/4">issue #4</a>: incompatible data types.</p></li>
+<li><p><a class="reference external" href="https://github.com/tenpy/tenpy/issues/6">issue #6</a>: the CouplingModel generated wrong Couplings in some cases</p></li>
+<li><p><a class="reference external" href="https://github.com/tenpy/tenpy/issues/19">issue #19</a>: Convergence of energy was slow for infinite systems with <code class="docutils literal notranslate"><span class="pre">N_sweeps_check=1</span></code></p></li>
+<li><p>more reasonable traceback in case of wrong labels</p></li>
+<li><p>wrong dtype of npc.Array when adding/subtracting/… arrays of different data types</p></li>
+<li><p>could get wrong H_bond for completely decoupled chains.</p></li>
+<li><p>SVD could return outer indices with different axes</p></li>
+<li><p><a class="reference internal" href="../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS.overlap" title="tenpy.networks.mps.MPS.overlap"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tenpy.networks.mps.MPS.overlap()</span></code></a> works now for MPS with different total charge
+(e.g. after <code class="docutils literal notranslate"><span class="pre">psi.apply_local_op(i,</span> <span class="pre">'Sp')</span></code>).</p></li>
+<li><p>skip existing graph edges in MPOGraph.add() when building up terms without the strength part.</p></li>
+</ul>
+</div>
+<div class="section" id="removed">
+<h2>Removed<a class="headerlink" href="#removed" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Attribute <cite>chinfo</cite> of <a class="reference internal" href="../reference/tenpy.models.lattice.Lattice.html#tenpy.models.lattice.Lattice" title="tenpy.models.lattice.Lattice"><code class="xref py py-class docutils literal notranslate"><span class="pre">Lattice</span></code></a>.</p></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/logo.png" alt="Logo"/>
+            </a></p>
+  <h3><a href="../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">[0.4.0] - 2019-04-28</a><ul>
+<li><a class="reference internal" href="#backwards-incompatible-changes">Backwards incompatible changes</a></li>
+<li><a class="reference internal" href="#added">Added</a></li>
+<li><a class="reference internal" href="#changed">Changed</a></li>
+<li><a class="reference internal" href="#fixed">Fixed</a></li>
+<li><a class="reference internal" href="#removed">Removed</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="v0.4.1.html"
+                        title="previous chapter">[0.4.1] - 2019-08-14</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="v0.3.0.html"
+                        title="next chapter">[0.3.0] - 2018-02-19</a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../index.html">Table of Contents</a></h3>
+<p class="caption"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../INSTALL.html">Installation instructions</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../releases.html">Release Notes</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="latest.html">[latest]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="v0.5.0.html">[0.5.0] - 2019-12-18</a></li>
+<li class="toctree-l2"><a class="reference internal" href="v0.4.1.html">[0.4.1] - 2019-08-14</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">[0.4.0] - 2019-04-28</a></li>
+<li class="toctree-l2"><a class="reference internal" href="v0.3.0.html">[0.3.0] - 2018-02-19</a></li>
+<li class="toctree-l2"><a class="reference internal" href="v0.2.0.html">[0.2.0] - 2017-02-24</a></li>
+<li class="toctree-l2"><a class="reference internal" href="prev_tenpy.html">Changes compared to previous TeNPy</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../introductions.html">Introductions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../literature.html">Literature</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../main.html">Tenpy main module</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../reference/tenpy.algorithms.html">algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/tenpy.linalg.html">linalg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/tenpy.models.html">models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/tenpy.networks.html">networks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/tenpy.tools.html">tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/tenpy.version.html">version</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="v0.3.0.html" title="[0.3.0] - 2018-02-19"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="v0.4.1.html" title="[0.4.1] - 2019-08-14"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../releases.html" >Release Notes</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2019, TeNPy Developers.
+      Last updated on Dec 22, 2019.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
+    </div>
+  </body>
+</html>
