@@ -7,6 +7,7 @@
     <title>ExactDiag &#8212; TeNPy 0.5.0 documentation</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
     
     <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
@@ -37,9 +38,8 @@
           <a href="tenpy.algorithms.exact_diag.html" title="exact_diag"
              accesskey="P">previous</a> |</li>
         <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="../reference.html" >Tenpy Reference</a> &#187;</li>
-          <li class="nav-item nav-item-2"><a href="tenpy.algorithms.html" >algorithms</a> &#187;</li>
-          <li class="nav-item nav-item-3"><a href="tenpy.algorithms.exact_diag.html" accesskey="U">exact_diag</a> &#187;</li> 
+          <li class="nav-item nav-item-1"><a href="tenpy.algorithms.html" >algorithms</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.algorithms.exact_diag.html" accesskey="U">exact_diag</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -60,213 +60,147 @@
 <em class="property">class </em><code class="sig-prename descclassname">tenpy.algorithms.exact_diag.</code><code class="sig-name descname">ExactDiag</code><span class="sig-paren">(</span><em class="sig-param">model</em>, <em class="sig-param">charge_sector=None</em>, <em class="sig-param">sparse=False</em>, <em class="sig-param">max_size=2000000.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/exact_diag.html#ExactDiag"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.exact_diag.ExactDiag" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>(Full) exact diagonalization of the Hamiltonian.</p>
-<dl class="field-list">
+<dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>model</strong><span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPOmodel</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></span></dt><dd><p>The model which is to be diagonalized.</p>
-</dd>
-<dt><strong>charge_sector</strong><span class="classifier"><code class="docutils literal notranslate"><span class="pre">None</span></code> | charges</span></dt><dd><p>If not <code class="docutils literal notranslate"><span class="pre">None</span></code>, project onto the given charge sector.</p>
-</dd>
-<dt><strong>sparse</strong><span class="classifier">bool</span></dt><dd><p>If <code class="docutils literal notranslate"><span class="pre">True</span></code>, don’t sort/bunch the LegPipe used to combine the physical legs.
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">MPOmodel</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code>) – The model which is to be diagonalized.</p></li>
+<li><p><strong>charge_sector</strong> (<code class="docutils literal notranslate"><span class="pre">None</span></code> | charges) – If not <code class="docutils literal notranslate"><span class="pre">None</span></code>, project onto the given charge sector.</p></li>
+<li><p><strong>sparse</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, don’t sort/bunch the LegPipe used to combine the physical legs.
 This results in array <cite>blocks</cite> with just one entry, requires much more charge data,
-and is not what <cite>np_conserved</cite> was designed for, so it’s not recommended.</p>
+and is not what <cite>np_conserved</cite> was designed for, so it’s not recommended.</p></li>
+<li><p><strong>max_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – The <cite>build_H_*</cite> functions will do nothing (but emit a warning) if the total size of the
+Hamiltonian would be larger than this.</p></li>
+</ul>
 </dd>
-<dt><strong>max_size</strong><span class="classifier">int</span></dt><dd><p>The <cite>build_H_*</cite> functions will do nothing (but emit a warning) if the total size of the
-Hamiltonian would be larger than this.</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Attributes</dt>
-<dd class="field-even"><dl>
-<dt><strong>model</strong><span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPOmodel</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code></span></dt><dd><p>The model which is to be diagonalized.</p>
-</dd>
-<dt><strong>chinfo</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.charges.ChargeInfo.html#tenpy.linalg.charges.ChargeInfo" title="tenpy.linalg.charges.ChargeInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChargeInfo</span></code></a></span></dt><dd><p>The nature of the charge (which is the same for all sites).</p>
-</dd>
-<dt><strong>charge_sector</strong><span class="classifier"><code class="docutils literal notranslate"><span class="pre">None</span></code> | charges</span></dt><dd><p>If not <code class="docutils literal notranslate"><span class="pre">None</span></code>, we project onto the given charge sector.</p>
-</dd>
-<dt><strong>max_size</strong><span class="classifier">int</span></dt><dd><p>The <code class="docutils literal notranslate"><span class="pre">build_H_*</span></code> functions will do nothing (but emit a warning) if the total size of the
-Hamiltonian would be larger than this.</p>
-</dd>
-<dt><strong>full_H</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a> | <code class="docutils literal notranslate"><span class="pre">None</span></code></span></dt><dd><p>The full Hamiltonian to be diagonalized
+<dt class="field-even">Variables</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>model</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">MPOmodel</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingModel</span></code>) – The model which is to be diagonalized.</p></li>
+<li><p><strong>chinfo</strong> (<a class="reference internal" href="tenpy.linalg.charges.ChargeInfo.html#tenpy.linalg.charges.ChargeInfo" title="tenpy.linalg.charges.ChargeInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChargeInfo</span></code></a>) – The nature of the charge (which is the same for all sites).</p></li>
+<li><p><strong>charge_sector</strong> (<code class="docutils literal notranslate"><span class="pre">None</span></code> | charges) – If not <code class="docutils literal notranslate"><span class="pre">None</span></code>, we project onto the given charge sector.</p></li>
+<li><p><strong>max_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – The <code class="docutils literal notranslate"><span class="pre">build_H_*</span></code> functions will do nothing (but emit a warning) if the total size of the
+Hamiltonian would be larger than this.</p></li>
+<li><p><strong>full_H</strong> (<a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a> | <code class="docutils literal notranslate"><span class="pre">None</span></code>) – The full Hamiltonian to be diagonalized
 with legs <code class="docutils literal notranslate"><span class="pre">'(p0.p1....)',</span> <span class="pre">'(p0*,p1*...)'</span></code> (in that order).
 <code class="docutils literal notranslate"><span class="pre">None</span></code> if the <code class="docutils literal notranslate"><span class="pre">build_H_*</span></code> functions haven’t been called yet, or if <cite>max_size</cite> would
-have been exceeded.</p>
-</dd>
-<dt><strong>E</strong><span class="classifier">ndarray | <code class="docutils literal notranslate"><span class="pre">None</span></code></span></dt><dd><p>1D array of eigenvalues.</p>
-</dd>
-<dt><strong>V</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a> | <code class="docutils literal notranslate"><span class="pre">None</span></code></span></dt><dd><p>Eigenvectors. First leg ‘ps’ are physical legs,
-the second leg <code class="docutils literal notranslate"><span class="pre">'ps*'</span></code> corresponds to the eigenvalues.</p>
-</dd>
-<dt><strong>_sites</strong><span class="classifier">list of <a class="reference internal" href="tenpy.networks.site.Site.html#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a></span></dt><dd><p>The sites in the given order.</p>
-</dd>
-<dt><strong>_labels_p</strong><span class="classifier">list or str</span></dt><dd><p>The labels use for the physical legs; just <code class="docutils literal notranslate"><span class="pre">['p0',</span> <span class="pre">'p1',</span> <span class="pre">....,</span> <span class="pre">'p{L-1}']</span></code>.</p>
-</dd>
-<dt><strong>_labels_pconj</strong><span class="classifier">list or str</span></dt><dd><p>Just each of <cite>_labels_p</cite> with an <code class="docutils literal notranslate"><span class="pre">*</span></code>.</p>
-</dd>
-<dt><strong>_pipe</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.charges.LegPipe.html#tenpy.linalg.charges.LegPipe" title="tenpy.linalg.charges.LegPipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegPipe</span></code></a></span></dt><dd><p>The pipe from the single physical legs to the full combined leg.</p>
-</dd>
-<dt><strong>_pipe_conj</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.charges.LegPipe.html#tenpy.linalg.charges.LegPipe" title="tenpy.linalg.charges.LegPipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegPipe</span></code></a></span></dt><dd><p>Just <code class="docutils literal notranslate"><span class="pre">_pipe.conj()</span></code>.</p>
-</dd>
-<dt><strong>_mask</strong><span class="classifier">1D bool ndarray | <code class="docutils literal notranslate"><span class="pre">None</span></code></span></dt><dd><p>Bool mask, which of the indices of the pipe are in the desired <cite>charge_sector</cite>.</p>
+have been exceeded.</p></li>
+<li><p><strong>E</strong> (ndarray | <code class="docutils literal notranslate"><span class="pre">None</span></code>) – 1D array of eigenvalues.</p></li>
+<li><p><strong>V</strong> (<a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a> | <code class="docutils literal notranslate"><span class="pre">None</span></code>) – Eigenvectors. First leg ‘ps’ are physical legs,
+the second leg <code class="docutils literal notranslate"><span class="pre">'ps*'</span></code> corresponds to the eigenvalues.</p></li>
+<li><p><strong>_sites</strong> (list of <a class="reference internal" href="tenpy.networks.site.Site.html#tenpy.networks.site.Site" title="tenpy.networks.site.Site"><code class="xref py py-class docutils literal notranslate"><span class="pre">Site</span></code></a>) – The sites in the given order.</p></li>
+<li><p><strong>_labels_p</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.8)"><em>list</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The labels use for the physical legs; just <code class="docutils literal notranslate"><span class="pre">['p0',</span> <span class="pre">'p1',</span> <span class="pre">....,</span> <span class="pre">'p{L-1}']</span></code>.</p></li>
+<li><p><strong>_labels_pconj</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.8)"><em>list</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Just each of <cite>_labels_p</cite> with an <code class="docutils literal notranslate"><span class="pre">*</span></code>.</p></li>
+<li><p><strong>_pipe</strong> (<a class="reference internal" href="tenpy.linalg.charges.LegPipe.html#tenpy.linalg.charges.LegPipe" title="tenpy.linalg.charges.LegPipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegPipe</span></code></a>) – The pipe from the single physical legs to the full combined leg.</p></li>
+<li><p><strong>_pipe_conj</strong> (<a class="reference internal" href="tenpy.linalg.charges.LegPipe.html#tenpy.linalg.charges.LegPipe" title="tenpy.linalg.charges.LegPipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegPipe</span></code></a>) – Just <code class="docutils literal notranslate"><span class="pre">_pipe.conj()</span></code>.</p></li>
+<li><p><strong>_mask</strong> (1D bool ndarray | <code class="docutils literal notranslate"><span class="pre">None</span></code>) – Bool mask, which of the indices of the pipe are in the desired <cite>charge_sector</cite>.</p></li>
+</ul>
 </dd>
 </dl>
-</dd>
-</dl>
-<p class="rubric">Methods</p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.algorithms.exact_diag.ExactDiag.build_full_H_from_bonds" title="tenpy.algorithms.exact_diag.ExactDiag.build_full_H_from_bonds"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_full_H_from_bonds</span></code></a>(self)</p></td>
-<td><p>Calculate self.full_H from self.mpo.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.algorithms.exact_diag.ExactDiag.build_full_H_from_mpo" title="tenpy.algorithms.exact_diag.ExactDiag.build_full_H_from_mpo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_full_H_from_mpo</span></code></a>(self)</p></td>
-<td><p>Calculate self.full_H from self.mpo.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.algorithms.exact_diag.ExactDiag.exp_H" title="tenpy.algorithms.exact_diag.ExactDiag.exp_H"><code class="xref py py-obj docutils literal notranslate"><span class="pre">exp_H</span></code></a>(self, dt)</p></td>
-<td><p>Return <code class="docutils literal notranslate"><span class="pre">U(dt)</span> <span class="pre">:=</span> <span class="pre">exp(-i</span> <span class="pre">H</span> <span class="pre">dt)</span></code>.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.algorithms.exact_diag.ExactDiag.from_H_mpo" title="tenpy.algorithms.exact_diag.ExactDiag.from_H_mpo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_H_mpo</span></code></a>(H_MPO, \*args, \*\*kwargs)</p></td>
-<td><p>Wrapper taking directly an MPO instead of a Model.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.algorithms.exact_diag.ExactDiag.full_diagonalization" title="tenpy.algorithms.exact_diag.ExactDiag.full_diagonalization"><code class="xref py py-obj docutils literal notranslate"><span class="pre">full_diagonalization</span></code></a>(self, \*args, \*\*kwargs)</p></td>
-<td><p>Full diagonalization to obtain all eigenvalues and eigenvectors.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.algorithms.exact_diag.ExactDiag.full_to_mps" title="tenpy.algorithms.exact_diag.ExactDiag.full_to_mps"><code class="xref py py-obj docutils literal notranslate"><span class="pre">full_to_mps</span></code></a>(self, psi[, canonical_form])</p></td>
-<td><p>Convert a full state (with a single leg) to an MPS.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.algorithms.exact_diag.ExactDiag.groundstate" title="tenpy.algorithms.exact_diag.ExactDiag.groundstate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">groundstate</span></code></a>(self[, charge_sector])</p></td>
-<td><p>Pick the ground state energy and ground state from <code class="docutils literal notranslate"><span class="pre">self.V</span></code>.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.algorithms.exact_diag.ExactDiag.matvec" title="tenpy.algorithms.exact_diag.ExactDiag.matvec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">matvec</span></code></a>(self, psi)</p></td>
-<td><p>Allow to use <cite>self</cite> as LinearOperator for lanczos.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.algorithms.exact_diag.ExactDiag.mps_to_full" title="tenpy.algorithms.exact_diag.ExactDiag.mps_to_full"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mps_to_full</span></code></a>(self, mps)</p></td>
-<td><p>Contract an MPS along the virtual bonds and combine its legs.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.algorithms.exact_diag.ExactDiag.sparse_diag" title="tenpy.algorithms.exact_diag.ExactDiag.sparse_diag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sparse_diag</span></code></a>(self, k, \*args, \*\*kwargs)</p></td>
-<td><p>Call <a class="reference internal" href="tenpy.linalg.np_conserved.speigs.html#tenpy.linalg.np_conserved.speigs" title="tenpy.linalg.np_conserved.speigs"><code class="xref py py-func docutils literal notranslate"><span class="pre">speigs()</span></code></a>.</p></td>
-</tr>
-</tbody>
-</table>
 <dl class="method">
 <dt id="tenpy.algorithms.exact_diag.ExactDiag.from_H_mpo">
 <em class="property">classmethod </em><code class="sig-name descname">from_H_mpo</code><span class="sig-paren">(</span><em class="sig-param">H_MPO</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/exact_diag.html#ExactDiag.from_H_mpo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.exact_diag.ExactDiag.from_H_mpo" title="Permalink to this definition">¶</a></dt>
 <dd><p>Wrapper taking directly an MPO instead of a Model.</p>
-<dl class="field-list">
+<dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>H_MPO</strong><span class="classifier"><a class="reference internal" href="tenpy.networks.mpo.MPO.html#tenpy.networks.mpo.MPO" title="tenpy.networks.mpo.MPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPO</span></code></a></span></dt><dd><p>The MPO representing the Hamiltonian.</p>
-</dd>
-<dt><strong>*args, **kwargs :</strong></dt><dd><p>Other arguments as for the <code class="docutils literal notranslate"><span class="pre">__init__</span></code> of the class.</p>
-</dd>
-</dl>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>H_MPO</strong> (<a class="reference internal" href="tenpy.networks.mpo.MPO.html#tenpy.networks.mpo.MPO" title="tenpy.networks.mpo.MPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPO</span></code></a>) – The MPO representing the Hamiltonian.</p></li>
+<li><p><strong>*args</strong> – Further keyword arguments as for the <code class="docutils literal notranslate"><span class="pre">__init__</span></code> of the class.</p></li>
+<li><p><strong>**kwargs</strong> – Further keyword arguments as for the <code class="docutils literal notranslate"><span class="pre">__init__</span></code> of the class.</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="tenpy.algorithms.exact_diag.ExactDiag.build_full_H_from_mpo">
-<code class="sig-name descname">build_full_H_from_mpo</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/exact_diag.html#ExactDiag.build_full_H_from_mpo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.exact_diag.ExactDiag.build_full_H_from_mpo" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">build_full_H_from_mpo</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/exact_diag.html#ExactDiag.build_full_H_from_mpo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.exact_diag.ExactDiag.build_full_H_from_mpo" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate self.full_H from self.mpo.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="tenpy.algorithms.exact_diag.ExactDiag.build_full_H_from_bonds">
-<code class="sig-name descname">build_full_H_from_bonds</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/exact_diag.html#ExactDiag.build_full_H_from_bonds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.exact_diag.ExactDiag.build_full_H_from_bonds" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">build_full_H_from_bonds</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/exact_diag.html#ExactDiag.build_full_H_from_bonds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.exact_diag.ExactDiag.build_full_H_from_bonds" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate self.full_H from self.mpo.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="tenpy.algorithms.exact_diag.ExactDiag.full_diagonalization">
-<code class="sig-name descname">full_diagonalization</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/exact_diag.html#ExactDiag.full_diagonalization"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.exact_diag.ExactDiag.full_diagonalization" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">full_diagonalization</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/exact_diag.html#ExactDiag.full_diagonalization"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.exact_diag.ExactDiag.full_diagonalization" title="Permalink to this definition">¶</a></dt>
 <dd><p>Full diagonalization to obtain all eigenvalues and eigenvectors.</p>
 <p>Arguments are given to <a class="reference internal" href="tenpy.linalg.np_conserved.eigh.html#tenpy.linalg.np_conserved.eigh" title="tenpy.linalg.np_conserved.eigh"><code class="xref py py-class docutils literal notranslate"><span class="pre">eigh</span></code></a>.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="tenpy.algorithms.exact_diag.ExactDiag.groundstate">
-<code class="sig-name descname">groundstate</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">charge_sector=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/exact_diag.html#ExactDiag.groundstate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.exact_diag.ExactDiag.groundstate" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">groundstate</code><span class="sig-paren">(</span><em class="sig-param">charge_sector=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/exact_diag.html#ExactDiag.groundstate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.exact_diag.ExactDiag.groundstate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Pick the ground state energy and ground state from <code class="docutils literal notranslate"><span class="pre">self.V</span></code>.</p>
-<dl class="field-list">
+<dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>charge_sector</strong><span class="classifier">None | 1D ndarray</span></dt><dd><p>By default (<code class="docutils literal notranslate"><span class="pre">None</span></code>), consider all charge sectors.
+<dd class="field-odd"><p><strong>charge_sector</strong> (<em>None | 1D ndarray</em>) – By default (<code class="docutils literal notranslate"><span class="pre">None</span></code>), consider all charge sectors.
 Alternatively, give the <cite>qtotal</cite> which the returned state should have.</p>
 </dd>
-</dl>
-</dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><dl>
-<dt><strong>E0</strong><span class="classifier">float</span></dt><dd><p>Ground state energy (possibly in the given sector).</p>
-</dd>
-<dt><strong>psi0</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt><dd><p>Ground state (possibly in the given sector).</p>
-</dd>
-</dl>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>E0</strong> (<em>float</em>) – Ground state energy (possibly in the given sector).</p></li>
+<li><p><strong>psi0</strong> (<a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a>) – Ground state (possibly in the given sector).</p></li>
+</ul>
+</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="tenpy.algorithms.exact_diag.ExactDiag.exp_H">
-<code class="sig-name descname">exp_H</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">dt</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/exact_diag.html#ExactDiag.exp_H"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.exact_diag.ExactDiag.exp_H" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">exp_H</code><span class="sig-paren">(</span><em class="sig-param">dt</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/exact_diag.html#ExactDiag.exp_H"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.exact_diag.ExactDiag.exp_H" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return <code class="docutils literal notranslate"><span class="pre">U(dt)</span> <span class="pre">:=</span> <span class="pre">exp(-i</span> <span class="pre">H</span> <span class="pre">dt)</span></code>.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="tenpy.algorithms.exact_diag.ExactDiag.mps_to_full">
-<code class="sig-name descname">mps_to_full</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">mps</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/exact_diag.html#ExactDiag.mps_to_full"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.exact_diag.ExactDiag.mps_to_full" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">mps_to_full</code><span class="sig-paren">(</span><em class="sig-param">mps</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/exact_diag.html#ExactDiag.mps_to_full"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.exact_diag.ExactDiag.mps_to_full" title="Permalink to this definition">¶</a></dt>
 <dd><p>Contract an MPS along the virtual bonds and combine its legs.</p>
-<dl class="field-list">
+<dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>mps</strong><span class="classifier"><a class="reference internal" href="tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS" title="tenpy.networks.mps.MPS"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPS</span></code></a></span></dt><dd><p>The MPS to be contracted.</p>
-</dd>
-</dl>
+<dd class="field-odd"><p><strong>mps</strong> (<a class="reference internal" href="tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS" title="tenpy.networks.mps.MPS"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPS</span></code></a>) – The MPS to be contracted.</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><dl>
-<dt><strong>psi</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt><dd><p>The MPO contracted along the virtual bonds.</p>
+<dd class="field-even"><p><strong>psi</strong> – The MPO contracted along the virtual bonds.</p>
 </dd>
-</dl>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="tenpy.algorithms.exact_diag.ExactDiag.full_to_mps">
-<code class="sig-name descname">full_to_mps</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">psi</em>, <em class="sig-param">canonical_form='B'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/exact_diag.html#ExactDiag.full_to_mps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.exact_diag.ExactDiag.full_to_mps" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">full_to_mps</code><span class="sig-paren">(</span><em class="sig-param">psi</em>, <em class="sig-param">canonical_form='B'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/exact_diag.html#ExactDiag.full_to_mps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.exact_diag.ExactDiag.full_to_mps" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convert a full state (with a single leg) to an MPS.</p>
-<dl class="field-list">
+<dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>psi</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt><dd><p>The state (with a single leg) which should be splitted into an MPS.</p>
-</dd>
-<dt><strong>canonical_from</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt><dd><p>The form in which the MPS will be afterwards.</p>
-</dd>
-</dl>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>psi</strong> (<a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a>) – The state (with a single leg) which should be splitted into an MPS.</p></li>
+<li><p><strong>canonical_from</strong> (<a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a>) – The form in which the MPS will be afterwards.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><dl>
-<dt><strong>mps</strong><span class="classifier"><a class="reference internal" href="tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS" title="tenpy.networks.mps.MPS"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPS</span></code></a></span></dt><dd><p>An normalized MPS representation in canonical form.</p>
+<dd class="field-even"><p><strong>mps</strong> – An normalized MPS representation in canonical form.</p>
 </dd>
-</dl>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS" title="tenpy.networks.mps.MPS"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPS</span></code></a></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="tenpy.algorithms.exact_diag.ExactDiag.matvec">
-<code class="sig-name descname">matvec</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">psi</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/exact_diag.html#ExactDiag.matvec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.exact_diag.ExactDiag.matvec" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">matvec</code><span class="sig-paren">(</span><em class="sig-param">psi</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/exact_diag.html#ExactDiag.matvec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.exact_diag.ExactDiag.matvec" title="Permalink to this definition">¶</a></dt>
 <dd><p>Allow to use <cite>self</cite> as LinearOperator for lanczos.</p>
 <p>Just applies <cite>full_H</cite> to (the first axis of) the given <cite>psi</cite>.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="tenpy.algorithms.exact_diag.ExactDiag.sparse_diag">
-<code class="sig-name descname">sparse_diag</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">k</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/exact_diag.html#ExactDiag.sparse_diag"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.exact_diag.ExactDiag.sparse_diag" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">sparse_diag</code><span class="sig-paren">(</span><em class="sig-param">k</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/exact_diag.html#ExactDiag.sparse_diag"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.exact_diag.ExactDiag.sparse_diag" title="Permalink to this definition">¶</a></dt>
 <dd><p>Call <a class="reference internal" href="tenpy.linalg.np_conserved.speigs.html#tenpy.linalg.np_conserved.speigs" title="tenpy.linalg.np_conserved.speigs"><code class="xref py py-func docutils literal notranslate"><span class="pre">speigs()</span></code></a>.</p>
 </dd></dl>
 
@@ -300,27 +234,44 @@ Alternatively, give the <cite>qtotal</cite> which the returned state should have
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
 <h3><a href="../index.html">Table of Contents</a></h3>
+<p class="caption"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../INSTALL.html">Installation instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../literature.html">Literature</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../intro_npc.html">Introduction to np_conserved</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../intro_model.html">Introduction to models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../intro_JordanWigner.html">Fermions and the Jordan-Wigner transformation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../todo.html">To-Do list</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">CHANGELOG</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">TeNPy developer team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html#license">License</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../main.html">Tenpy main module</a></li>
+</ul>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../userguide.html">User Guide</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../reference.html">Tenpy Reference</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="tenpy.algorithms.html">algorithms</a><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.truncation.html">truncation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.dmrg.html">dmrg</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.mps_sweeps.html">mps_sweeps</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.tebd.html">tebd</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.tdvp.html">tdvp</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.purification_tebd.html">purification_tebd</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.network_contractor.html">network_contractor</a></li>
-<li class="toctree-l3 current"><a class="reference internal" href="tenpy.algorithms.exact_diag.html">exact_diag</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tenpy.algorithms.html">algorithms</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="tenpy.algorithms.truncation.html">truncation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.algorithms.dmrg.html">dmrg</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.algorithms.mps_sweeps.html">mps_sweeps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.algorithms.tebd.html">tebd</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.algorithms.tdvp.html">tdvp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.algorithms.purification_tebd.html">purification_tebd</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.algorithms.network_contractor.html">network_contractor</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="tenpy.algorithms.exact_diag.html">exact_diag</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">ExactDiag</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="tenpy.linalg.html">linalg</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tenpy.models.html">models</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tenpy.networks.html">networks</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tenpy.tools.html">tools</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tenpy.version.html">version</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="tenpy.linalg.html">linalg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tenpy.models.html">models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tenpy.networks.html">networks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tenpy.tools.html">tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tenpy.version.html">version</a></li>
 </ul>
 
         </div>
@@ -343,14 +294,13 @@ Alternatively, give the <cite>qtotal</cite> which the returned state should have
           <a href="tenpy.algorithms.exact_diag.html" title="exact_diag"
              >previous</a> |</li>
         <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="../reference.html" >Tenpy Reference</a> &#187;</li>
-          <li class="nav-item nav-item-2"><a href="tenpy.algorithms.html" >algorithms</a> &#187;</li>
-          <li class="nav-item nav-item-3"><a href="tenpy.algorithms.exact_diag.html" >exact_diag</a> &#187;</li> 
+          <li class="nav-item nav-item-1"><a href="tenpy.algorithms.html" >algorithms</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.algorithms.exact_diag.html" >exact_diag</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Dec 19, 2019.
+      Last updated on Dec 22, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
     </div>
   </body>

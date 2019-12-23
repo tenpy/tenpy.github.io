@@ -7,6 +7,7 @@
     <title>Mixer &#8212; TeNPy 0.5.0 documentation</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
     
     <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
@@ -37,9 +38,8 @@
           <a href="tenpy.algorithms.dmrg.EngineFracture.html" title="EngineFracture"
              accesskey="P">previous</a> |</li>
         <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="../reference.html" >Tenpy Reference</a> &#187;</li>
-          <li class="nav-item nav-item-2"><a href="tenpy.algorithms.html" >algorithms</a> &#187;</li>
-          <li class="nav-item nav-item-3"><a href="tenpy.algorithms.dmrg.html" accesskey="U">dmrg</a> &#187;</li> 
+          <li class="nav-item nav-item-1"><a href="tenpy.algorithms.html" >algorithms</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.algorithms.dmrg.html" accesskey="U">dmrg</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -73,12 +73,11 @@ A good strategy is to choose an initially significant amplitude and let it decay
 the perturbation becomes completely irrelevant and the mixer gets disabled.</p>
 <p>This original idea of the mixer was introduced in <a class="reference internal" href="../literature.html#white2005" id="id1"><span>[White2005]</span></a>.
 <a class="reference internal" href="../literature.html#hubig2015" id="id2"><span>[Hubig2015]</span></a> discusses the mixer and provides an improved version.</p>
-<dl class="field-list">
+<dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>env</strong><span class="classifier"><a class="reference internal" href="tenpy.networks.mpo.MPOEnvironment.html#tenpy.networks.mpo.MPOEnvironment" title="tenpy.networks.mpo.MPOEnvironment"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPOEnvironment</span></code></a></span></dt><dd><p>Environment for contraction <code class="docutils literal notranslate"><span class="pre">&lt;psi|H|psi&gt;</span></code> for later</p>
-</dd>
-<dt><strong>mixer_params</strong><span class="classifier">dict</span></dt><dd><p>Optional parameters as described in the following table.
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>env</strong> (<a class="reference internal" href="tenpy.networks.mpo.MPOEnvironment.html#tenpy.networks.mpo.MPOEnvironment" title="tenpy.networks.mpo.MPOEnvironment"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPOEnvironment</span></code></a>) – Environment for contraction <code class="docutils literal notranslate"><span class="pre">&lt;psi|H|psi&gt;</span></code> for later</p></li>
+<li><p><strong>mixer_params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – <p>Optional parameters as described in the following table.
 Use <code class="docutils literal notranslate"><span class="pre">verbose&gt;0</span></code> to print the used parameters during runtime.</p>
 <table class="docutils align-default">
 <colgroup>
@@ -108,89 +107,59 @@ after each sweep. (Should be &gt;= 1.)</p></td>
 </tr>
 </tbody>
 </table>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Variables</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>amplitude</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a>) – Current amplitude for mixing.</p></li>
+<li><p><strong>decay</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a>) – Factor by which <cite>amplitude</cite> is divided after each sweep.</p></li>
+<li><p><strong>disable_after</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – The number of sweeps after which the mixer should be disabled.</p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Level of output vebosity.</p></li>
+</ul>
 </dd>
 </dl>
-</dd>
-<dt class="field-even">Attributes</dt>
-<dd class="field-even"><dl class="simple">
-<dt><strong>amplitude</strong><span class="classifier">float</span></dt><dd><p>Current amplitude for mixing.</p>
-</dd>
-<dt><strong>decay</strong><span class="classifier">float</span></dt><dd><p>Factor by which <cite>amplitude</cite> is divided after each sweep.</p>
-</dd>
-<dt><strong>disable_after</strong><span class="classifier">int</span></dt><dd><p>The number of sweeps after which the mixer should be disabled.</p>
-</dd>
-<dt><strong>verbose</strong><span class="classifier">int</span></dt><dd><p>Level of output vebosity.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<p class="rubric">Methods</p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.algorithms.dmrg.Mixer.perturb_svd" title="tenpy.algorithms.dmrg.Mixer.perturb_svd"><code class="xref py py-obj docutils literal notranslate"><span class="pre">perturb_svd</span></code></a>(self, engine, theta, i0, …)</p></td>
-<td><p>Perturb the wave function and perform an SVD with truncation.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.algorithms.dmrg.Mixer.update_amplitude" title="tenpy.algorithms.dmrg.Mixer.update_amplitude"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_amplitude</span></code></a>(self, sweeps)</p></td>
-<td><p>Update the amplitude, possibly disable the mixer.</p></td>
-</tr>
-</tbody>
-</table>
 <dl class="method">
 <dt id="tenpy.algorithms.dmrg.Mixer.update_amplitude">
-<code class="sig-name descname">update_amplitude</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">sweeps</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#Mixer.update_amplitude"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.Mixer.update_amplitude" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">update_amplitude</code><span class="sig-paren">(</span><em class="sig-param">sweeps</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#Mixer.update_amplitude"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.Mixer.update_amplitude" title="Permalink to this definition">¶</a></dt>
 <dd><p>Update the amplitude, possibly disable the mixer.</p>
-<dl class="field-list">
+<dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>sweeps</strong><span class="classifier">int</span></dt><dd><p>The number of performed sweeps, to check if we need to disable the mixer.</p>
-</dd>
-</dl>
+<dd class="field-odd"><p><strong>sweeps</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – The number of performed sweeps, to check if we need to disable the mixer.</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><dl>
-<dt><strong>mixer</strong><span class="classifier"><a class="reference internal" href="#tenpy.algorithms.dmrg.Mixer" title="tenpy.algorithms.dmrg.Mixer"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mixer</span></code></a> | None</span></dt><dd><p>Returns <cite>self</cite> if we should continue mixing, or <code class="docutils literal notranslate"><span class="pre">None</span></code>, if the mixer
+<dd class="field-even"><p><strong>mixer</strong> – Returns <cite>self</cite> if we should continue mixing, or <code class="docutils literal notranslate"><span class="pre">None</span></code>, if the mixer
 should be disabled.</p>
 </dd>
-</dl>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#tenpy.algorithms.dmrg.Mixer" title="tenpy.algorithms.dmrg.Mixer"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mixer</span></code></a> | None</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="tenpy.algorithms.dmrg.Mixer.perturb_svd">
-<code class="sig-name descname">perturb_svd</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">engine</em>, <em class="sig-param">theta</em>, <em class="sig-param">i0</em>, <em class="sig-param">update_LP</em>, <em class="sig-param">update_RP</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#Mixer.perturb_svd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.Mixer.perturb_svd" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">perturb_svd</code><span class="sig-paren">(</span><em class="sig-param">engine</em>, <em class="sig-param">theta</em>, <em class="sig-param">i0</em>, <em class="sig-param">update_LP</em>, <em class="sig-param">update_RP</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/dmrg.html#Mixer.perturb_svd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.dmrg.Mixer.perturb_svd" title="Permalink to this definition">¶</a></dt>
 <dd><p>Perturb the wave function and perform an SVD with truncation.</p>
-<dl class="field-list">
+<dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>engine</strong><span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">Engine</span></code></span></dt><dd><p>The DMRG engine calling the mixer.</p>
-</dd>
-<dt><strong>theta</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt><dd><p>The optimized wave function, prepared for svd.</p>
-</dd>
-<dt><strong>i0</strong><span class="classifier">int</span></dt><dd><p>Site index; <cite>theta</cite> lives on <code class="docutils literal notranslate"><span class="pre">i0,</span> <span class="pre">i0+1</span></code>.</p>
-</dd>
-<dt><strong>update_LP</strong><span class="classifier">bool</span></dt><dd><p>Whether to calculate the next <code class="docutils literal notranslate"><span class="pre">env.LP[i0+1]</span></code>.</p>
-</dd>
-<dt><strong>update_RP</strong><span class="classifier">bool</span></dt><dd><p>Whether to calculate the next <code class="docutils literal notranslate"><span class="pre">env.RP[i0]</span></code>.</p>
-</dd>
-</dl>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>engine</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Engine</span></code>) – The DMRG engine calling the mixer.</p></li>
+<li><p><strong>theta</strong> (<a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a>) – The optimized wave function, prepared for svd.</p></li>
+<li><p><strong>i0</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Site index; <cite>theta</cite> lives on <code class="docutils literal notranslate"><span class="pre">i0,</span> <span class="pre">i0+1</span></code>.</p></li>
+<li><p><strong>update_LP</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Whether to calculate the next <code class="docutils literal notranslate"><span class="pre">env.LP[i0+1]</span></code>.</p></li>
+<li><p><strong>update_RP</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Whether to calculate the next <code class="docutils literal notranslate"><span class="pre">env.RP[i0]</span></code>.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><dl>
-<dt><strong>U</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt><dd><p>Left-canonical part of <cite>theta</cite>. Labels <code class="docutils literal notranslate"><span class="pre">'(vL.p0)',</span> <span class="pre">'vR'</span></code>.</p>
-</dd>
-<dt><strong>S</strong><span class="classifier">1D ndarray | 2D <a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt><dd><p>Without mixer just the singluar values of the array; with mixer it might be a general
-matrix; see comment above.</p>
-</dd>
-<dt><strong>VH</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt><dd><p>Right-canonical part of <cite>theta</cite>. Labels <code class="docutils literal notranslate"><span class="pre">'vL',</span> <span class="pre">'(vR.p1)'</span></code>.</p>
-</dd>
-<dt><strong>err</strong><span class="classifier"><a class="reference internal" href="tenpy.algorithms.truncation.TruncationError.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a></span></dt><dd><p>The truncation error introduced.</p>
-</dd>
-</dl>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>U</strong> (<a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a>) – Left-canonical part of <cite>theta</cite>. Labels <code class="docutils literal notranslate"><span class="pre">'(vL.p0)',</span> <span class="pre">'vR'</span></code>.</p></li>
+<li><p><strong>S</strong> (1D ndarray | 2D <a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a>) – Without mixer just the singluar values of the array; with mixer it might be a general
+matrix; see comment above.</p></li>
+<li><p><strong>VH</strong> (<a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a>) – Right-canonical part of <cite>theta</cite>. Labels <code class="docutils literal notranslate"><span class="pre">'vL',</span> <span class="pre">'(vR.p1)'</span></code>.</p></li>
+<li><p><strong>err</strong> (<a class="reference internal" href="tenpy.algorithms.truncation.TruncationError.html#tenpy.algorithms.truncation.TruncationError" title="tenpy.algorithms.truncation.TruncationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">TruncationError</span></code></a>) – The truncation error introduced.</p></li>
+</ul>
+</p>
 </dd>
 </dl>
 </dd></dl>
@@ -225,27 +194,54 @@ matrix; see comment above.</p>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
 <h3><a href="../index.html">Table of Contents</a></h3>
+<p class="caption"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../INSTALL.html">Installation instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../literature.html">Literature</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../intro_npc.html">Introduction to np_conserved</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../intro_model.html">Introduction to models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../intro_JordanWigner.html">Fermions and the Jordan-Wigner transformation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../todo.html">To-Do list</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">CHANGELOG</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">TeNPy developer team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html#license">License</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../main.html">Tenpy main module</a></li>
+</ul>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../userguide.html">User Guide</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../reference.html">Tenpy Reference</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="tenpy.algorithms.html">algorithms</a><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.truncation.html">truncation</a></li>
-<li class="toctree-l3 current"><a class="reference internal" href="tenpy.algorithms.dmrg.html">dmrg</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.mps_sweeps.html">mps_sweeps</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.tebd.html">tebd</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.tdvp.html">tdvp</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.purification_tebd.html">purification_tebd</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.network_contractor.html">network_contractor</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.exact_diag.html">exact_diag</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tenpy.algorithms.html">algorithms</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="tenpy.algorithms.truncation.html">truncation</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="tenpy.algorithms.dmrg.html">dmrg</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.dmrg.DMRGEngine.html">DMRGEngine</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.dmrg.DensityMatrixMixer.html">DensityMatrixMixer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.dmrg.EngineCombine.html">EngineCombine</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.dmrg.EngineFracture.html">EngineFracture</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Mixer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.dmrg.SingleSiteDMRGEngine.html">SingleSiteDMRGEngine</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.dmrg.SingleSiteMixer.html">SingleSiteMixer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.dmrg.TwoSiteDMRGEngine.html">TwoSiteDMRGEngine</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.dmrg.TwoSiteMixer.html">TwoSiteMixer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.dmrg.chi_list.html">chi_list</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.dmrg.run.html">run</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="tenpy.linalg.html">linalg</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tenpy.models.html">models</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tenpy.networks.html">networks</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tenpy.tools.html">tools</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tenpy.version.html">version</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.algorithms.mps_sweeps.html">mps_sweeps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.algorithms.tebd.html">tebd</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.algorithms.tdvp.html">tdvp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.algorithms.purification_tebd.html">purification_tebd</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.algorithms.network_contractor.html">network_contractor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.algorithms.exact_diag.html">exact_diag</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="tenpy.linalg.html">linalg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tenpy.models.html">models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tenpy.networks.html">networks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tenpy.tools.html">tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tenpy.version.html">version</a></li>
 </ul>
 
         </div>
@@ -268,14 +264,13 @@ matrix; see comment above.</p>
           <a href="tenpy.algorithms.dmrg.EngineFracture.html" title="EngineFracture"
              >previous</a> |</li>
         <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="../reference.html" >Tenpy Reference</a> &#187;</li>
-          <li class="nav-item nav-item-2"><a href="tenpy.algorithms.html" >algorithms</a> &#187;</li>
-          <li class="nav-item nav-item-3"><a href="tenpy.algorithms.dmrg.html" >dmrg</a> &#187;</li> 
+          <li class="nav-item nav-item-1"><a href="tenpy.algorithms.html" >algorithms</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.algorithms.dmrg.html" >dmrg</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Dec 19, 2019.
+      Last updated on Dec 22, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
     </div>
   </body>

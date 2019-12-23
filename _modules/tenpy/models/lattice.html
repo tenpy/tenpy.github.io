@@ -7,6 +7,7 @@
     <title>tenpy.models.lattice &#8212; TeNPy 0.5.0 documentation</title>
     <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
     
     <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../../../_static/jquery.js"></script>
@@ -29,7 +30,8 @@
           <a href="../../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.5.0 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../../tenpy.html" accesskey="U">tenpy</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -1156,7 +1158,7 @@
 <span class="sd">        If only a single :class:`~tenpy.networks.site.Site` is given, it is used for both chains.</span>
 <span class="sd">    **kwargs :</span>
 <span class="sd">        Additional keyword arguments given to the :class:`Lattice`.</span>
-<span class="sd">        `basis`, `pos` and `[[next_]next_]nearest_neighbors` are set accordingly.</span>
+<span class="sd">        `basis`, `pos` and `pairs` are set accordingly.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">dim</span> <span class="o">=</span> <span class="mi">1</span>
 
@@ -1189,8 +1191,8 @@
 <span class="sd">        The local lattice site. The `unit_cell` of the :class:`Lattice` is just ``[site]``.</span>
 <span class="sd">    **kwargs :</span>
 <span class="sd">        Additional keyword arguments given to the :class:`Lattice`.</span>
-<span class="sd">        `[[next_]next_]nearest_neighbors` are set accordingly.</span>
-<span class="sd">        If `order` is specified in the form ``(&#39;standard&#39;, snake_windingi, priority)``,</span>
+<span class="sd">        `pairs` are set accordingly.</span>
+<span class="sd">        If `order` is specified in the form ``(&#39;standard&#39;, snake_winding, priority)``,</span>
 <span class="sd">        the `snake_winding` and `priority` should only be specified for the spatial directions.</span>
 <span class="sd">        Similarly, `positions` can be specified as a single vector.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1220,7 +1222,7 @@
 <span class="sd">        The local lattice site. The `unit_cell` of the :class:`Lattice` is just ``[site]``.</span>
 <span class="sd">    **kwargs :</span>
 <span class="sd">        Additional keyword arguments given to the :class:`Lattice`.</span>
-<span class="sd">        `[[next_]next_]nearest_neighbors` are set accordingly.</span>
+<span class="sd">        `pairs` are set accordingly.</span>
 <span class="sd">        If `order` is specified in the form ``(&#39;standard&#39;, snake_windingi, priority)``,</span>
 <span class="sd">        the `snake_winding` and `priority` should only be specified for the spatial directions.</span>
 <span class="sd">        Similarly, `positions` can be specified as a single vector.</span>
@@ -1255,7 +1257,7 @@
 <span class="sd">        If only a single :class:`~tenpy.networks.site.Site` is given, it is used for both sites.</span>
 <span class="sd">    **kwargs :</span>
 <span class="sd">        Additional keyword arguments given to the :class:`Lattice`.</span>
-<span class="sd">        `basis`, `pos` and `[[next_]next_]nearest_neighbors` are set accordingly.</span>
+<span class="sd">        `basis`, `pos` and `pairs` are set accordingly.</span>
 <span class="sd">        For the Honeycomb lattice ``&#39;fourth_nearest_neighbors&#39;, &#39;fifth_nearest_neighbors&#39;``</span>
 <span class="sd">        are set in :attr:`pairs`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1336,7 +1338,7 @@
 <span class="sd">        If only a single :class:`~tenpy.networks.site.Site` is given, it is used for both sites.</span>
 <span class="sd">    **kwargs :</span>
 <span class="sd">        Additional keyword arguments given to the :class:`Lattice`.</span>
-<span class="sd">        `basis`, `pos` and `[[next_]next_]nearest_neighbors` are set accordingly.</span>
+<span class="sd">        `basis`, `pos` and `pairs` are set accordingly.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">dim</span> <span class="o">=</span> <span class="mi">2</span>
 
@@ -1370,13 +1372,11 @@
 <span class="sd">    lattice_name : str</span>
 <span class="sd">        Name of a :class:`Lattice` class defined in the module :mod:`~tenpy.models.lattice`,</span>
 <span class="sd">        for example ``&quot;Chain&quot;, &quot;Square&quot;, &quot;Honeycomb&quot;, ...``.</span>
-<span class="sd">    *args, **kwargs</span>
-<span class="sd">        Arguments and keyword-arguments for the initialization of the specified lattice class.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    LatticeClass : (subclass of) :class:`Lattice`</span>
-<span class="sd">        An instance of the lattice class specified by `lattice_name`.</span>
+<span class="sd">    LatticeClass : :class:`Lattice`</span>
+<span class="sd">        The lattice class (type, not instance) specified by `lattice_name`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">LatticeClass</span> <span class="o">=</span> <span class="nb">globals</span><span class="p">()[</span><span class="n">lattice_name</span><span class="p">]</span>
     <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">LatticeClass</span><span class="p">,</span> <span class="n">Lattice</span><span class="p">)</span>
@@ -1566,9 +1566,31 @@
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
 <h3><a href="../../../index.html">Table of Contents</a></h3>
+<p class="caption"><span class="caption-text">User guide</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../userguide.html">User Guide</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../reference.html">Tenpy Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../INSTALL.html">Installation instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../literature.html">Literature</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../intro_npc.html">Introduction to np_conserved</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../intro_model.html">Introduction to models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../intro_JordanWigner.html">Fermions and the Jordan-Wigner transformation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../todo.html">To-Do list</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">CHANGELOG</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html">TeNPy developer team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html#license">License</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../main.html">Tenpy main module</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.algorithms.html">algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.linalg.html">linalg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.models.html">models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.networks.html">networks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.tools.html">tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.version.html">version</a></li>
 </ul>
 
         </div>
@@ -1585,12 +1607,13 @@
           <a href="../../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.5.0 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../../tenpy.html" >tenpy</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Dec 19, 2019.
+      Last updated on Dec 22, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
     </div>
   </body>

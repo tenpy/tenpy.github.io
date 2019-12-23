@@ -7,6 +7,7 @@
     <title>TruncationError &#8212; TeNPy 0.5.0 documentation</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
     
     <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
@@ -37,9 +38,8 @@
           <a href="tenpy.algorithms.truncation.html" title="truncation"
              accesskey="P">previous</a> |</li>
         <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="../reference.html" >Tenpy Reference</a> &#187;</li>
-          <li class="nav-item nav-item-2"><a href="tenpy.algorithms.html" >algorithms</a> &#187;</li>
-          <li class="nav-item nav-item-3"><a href="tenpy.algorithms.truncation.html" accesskey="U">truncation</a> &#187;</li> 
+          <li class="nav-item nav-item-1"><a href="tenpy.algorithms.html" >algorithms</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.algorithms.truncation.html" accesskey="U">truncation</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -67,56 +67,32 @@
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>eps, ov</strong><span class="classifier">float</span></dt><dd><p>See below.</p>
+<dd class="field-odd"><p><strong>ov</strong> (<em>eps</em><em>,</em>) – See below.</p>
+</dd>
+<dt class="field-even">Variables</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference internal" href="#tenpy.algorithms.truncation.TruncationError.ov_err" title="tenpy.algorithms.truncation.TruncationError.ov_err"><strong>ov_err</strong></a> – </p></li>
+<li><p><strong>eps</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a>) – The total sum of all discared Schmidt values squared.
+Note that if you keep singular values up to 1.e-14 (= a bit more than machine precision
+for 64bit floats), <cite>eps</cite> is on the order of 1.e-28 (due to the square)!</p></li>
+<li><p><strong>ov</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a>) – A lower bound for the overlap <span class="math notranslate nohighlight">\(|\langle \psi_{trunc} | \psi_{correct} \rangle|^2\)</span>
+(assuming normalization of both states).
+This is probably the quantity you are actually interested in.
+Takes into account the factor 2 explained in the section on Errors in the
+<cite>TEBD Wikipedia article &lt;https://en.wikipedia.org/wiki/Time-evolving_block_decimation&gt;</cite>.</p></li>
+</ul>
 </dd>
 </dl>
-</dd>
-</dl>
-<p class="rubric">Examples</p>
+<div class="admonition-examples admonition">
+<p class="admonition-title">Examples</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">TE</span> <span class="o">=</span> <span class="n">TruncationError</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">TE</span> <span class="o">+=</span> <span class="n">tebd</span><span class="o">.</span><span class="n">time_evolution</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>  <span class="c1"># add `eps`, multiply `ov`</span>
 </pre></div>
 </div>
-<dl class="field-list simple">
-<dt class="field-odd">Attributes</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><a class="reference internal" href="#tenpy.algorithms.truncation.TruncationError.ov_err" title="tenpy.algorithms.truncation.TruncationError.ov_err"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ov_err</span></code></a></dt><dd><p>Error <code class="docutils literal notranslate"><span class="pre">1.-ov</span></code> of the overlap with the correct state.</p>
-</dd>
-<dt><strong>eps</strong><span class="classifier">float</span></dt><dd><p>The total sum of all discared Schmidt values squared.
-Note that if you keep singular values up to 1.e-14 (= a bit more than machine precision
-for 64bit floats), <cite>eps</cite> is on the order of 1.e-28 (due to the square)!</p>
-</dd>
-<dt><strong>ov</strong><span class="classifier">float</span></dt><dd><p>A lower bound for the overlap <span class="math notranslate nohighlight">\(|\langle \psi_{trunc} | \psi_{correct} \rangle|^2\)</span>
-(assuming normalization of both states).
-This is probably the quantity you are actually interested in.
-Takes into account the factor 2 explained in the section on Errors in the
-<cite>TEBD Wikipedia article &lt;https://en.wikipedia.org/wiki/Time-evolving_block_decimation&gt;</cite>.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<p class="rubric">Methods</p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.algorithms.truncation.TruncationError.copy" title="tenpy.algorithms.truncation.TruncationError.copy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy</span></code></a>(self)</p></td>
-<td><p>Return a copy of self.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.algorithms.truncation.TruncationError.from_S" title="tenpy.algorithms.truncation.TruncationError.from_S"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_S</span></code></a>(S_discarded[, norm_old])</p></td>
-<td><p>Construct TruncationError from discarded singular values.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.algorithms.truncation.TruncationError.from_norm" title="tenpy.algorithms.truncation.TruncationError.from_norm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_norm</span></code></a>(norm_new[, norm_old])</p></td>
-<td><p>Construct TruncationError from norm after and before the truncation.</p></td>
-</tr>
-</tbody>
-</table>
+</div>
 <dl class="method">
 <dt id="tenpy.algorithms.truncation.TruncationError.copy">
-<code class="sig-name descname">copy</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/truncation.html#TruncationError.copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.truncation.TruncationError.copy" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/truncation.html#TruncationError.copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.truncation.TruncationError.copy" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a copy of self.</p>
 </dd></dl>
 
@@ -126,13 +102,11 @@ Takes into account the factor 2 explained in the section on Errors in the
 <dd><p>Construct TruncationError from norm after and before the truncation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>norm_new</strong><span class="classifier">float</span></dt><dd><p>Norm of Schmidt values kept, <span class="math notranslate nohighlight">\(\sqrt{\sum_{a kept} \lambda_a^2}\)</span>
-(before re-normalization).</p>
-</dd>
-<dt><strong>norm_old</strong><span class="classifier">float</span></dt><dd><p>Norm of all Schmidt values before truncation, <span class="math notranslate nohighlight">\(\sqrt{\sum_{a} \lambda_a^2}\)</span>.</p>
-</dd>
-</dl>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>norm_new</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a>) – Norm of Schmidt values kept, <span class="math notranslate nohighlight">\(\sqrt{\sum_{a kept} \lambda_a^2}\)</span>
+(before re-normalization).</p></li>
+<li><p><strong>norm_old</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a>) – Norm of all Schmidt values before truncation, <span class="math notranslate nohighlight">\(\sqrt{\sum_{a} \lambda_a^2}\)</span>.</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -143,13 +117,11 @@ Takes into account the factor 2 explained in the section on Errors in the
 <dd><p>Construct TruncationError from discarded singular values.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>S_discarded</strong><span class="classifier">1D numpy array</span></dt><dd><p>The singular values discarded.</p>
-</dd>
-<dt><strong>norm_old</strong><span class="classifier">float</span></dt><dd><p>Norm of all Schmidt values before truncation, <span class="math notranslate nohighlight">\(\sqrt{\sum_{a} \lambda_a^2}\)</span>.
-Default (<code class="docutils literal notranslate"><span class="pre">None</span></code>) is 1.</p>
-</dd>
-</dl>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>S_discarded</strong> (<em>1D numpy array</em>) – The singular values discarded.</p></li>
+<li><p><strong>norm_old</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a>) – Norm of all Schmidt values before truncation, <span class="math notranslate nohighlight">\(\sqrt{\sum_{a} \lambda_a^2}\)</span>.
+Default (<code class="docutils literal notranslate"><span class="pre">None</span></code>) is 1.</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -190,27 +162,46 @@ Default (<code class="docutils literal notranslate"><span class="pre">None</span
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
 <h3><a href="../index.html">Table of Contents</a></h3>
+<p class="caption"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../INSTALL.html">Installation instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../literature.html">Literature</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../intro_npc.html">Introduction to np_conserved</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../intro_model.html">Introduction to models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../intro_JordanWigner.html">Fermions and the Jordan-Wigner transformation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../todo.html">To-Do list</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">CHANGELOG</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">TeNPy developer team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html#license">License</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../main.html">Tenpy main module</a></li>
+</ul>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../userguide.html">User Guide</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../reference.html">Tenpy Reference</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="tenpy.algorithms.html">algorithms</a><ul class="current">
-<li class="toctree-l3 current"><a class="reference internal" href="tenpy.algorithms.truncation.html">truncation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.dmrg.html">dmrg</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.mps_sweeps.html">mps_sweeps</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.tebd.html">tebd</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.tdvp.html">tdvp</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.purification_tebd.html">purification_tebd</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.network_contractor.html">network_contractor</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.exact_diag.html">exact_diag</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tenpy.algorithms.html">algorithms</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tenpy.algorithms.truncation.html">truncation</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">TruncationError</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.truncation.svd_theta.html">svd_theta</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tenpy.algorithms.truncation.truncate.html">truncate</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="tenpy.linalg.html">linalg</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tenpy.models.html">models</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tenpy.networks.html">networks</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tenpy.tools.html">tools</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tenpy.version.html">version</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.algorithms.dmrg.html">dmrg</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.algorithms.mps_sweeps.html">mps_sweeps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.algorithms.tebd.html">tebd</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.algorithms.tdvp.html">tdvp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.algorithms.purification_tebd.html">purification_tebd</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.algorithms.network_contractor.html">network_contractor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.algorithms.exact_diag.html">exact_diag</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="tenpy.linalg.html">linalg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tenpy.models.html">models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tenpy.networks.html">networks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tenpy.tools.html">tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tenpy.version.html">version</a></li>
 </ul>
 
         </div>
@@ -233,14 +224,13 @@ Default (<code class="docutils literal notranslate"><span class="pre">None</span
           <a href="tenpy.algorithms.truncation.html" title="truncation"
              >previous</a> |</li>
         <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="../reference.html" >Tenpy Reference</a> &#187;</li>
-          <li class="nav-item nav-item-2"><a href="tenpy.algorithms.html" >algorithms</a> &#187;</li>
-          <li class="nav-item nav-item-3"><a href="tenpy.algorithms.truncation.html" >truncation</a> &#187;</li> 
+          <li class="nav-item nav-item-1"><a href="tenpy.algorithms.html" >algorithms</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.algorithms.truncation.html" >truncation</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Dec 19, 2019.
+      Last updated on Dec 22, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
     </div>
   </body>

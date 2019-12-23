@@ -7,6 +7,7 @@
     <title>TransferMatrix &#8212; TeNPy 0.5.0 documentation</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
     
     <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
@@ -37,9 +38,8 @@
           <a href="tenpy.networks.mps.MPSEnvironment.html" title="MPSEnvironment"
              accesskey="P">previous</a> |</li>
         <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="../reference.html" >Tenpy Reference</a> &#187;</li>
-          <li class="nav-item nav-item-2"><a href="tenpy.networks.html" >networks</a> &#187;</li>
-          <li class="nav-item nav-item-3"><a href="tenpy.networks.mps.html" accesskey="U">mps</a> &#187;</li> 
+          <li class="nav-item nav-item-1"><a href="tenpy.networks.html" >networks</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.networks.mps.html" accesskey="U">mps</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -77,150 +77,101 @@ To view it as a <cite>matrix</cite>, we combine the left and right indices to pi
 </pre></div>
 </div>
 <p>Note that we keep all M and N as copies.</p>
-<dl class="field-list">
+<dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>bra</strong><span class="classifier">MPS</span></dt><dd><p>The MPS which is to be (complex) conjugated.</p>
-</dd>
-<dt><strong>ket</strong><span class="classifier">MPS</span></dt><dd><p>The MPS which is not (complex) conjugated.</p>
-</dd>
-<dt><strong>shift_bra</strong><span class="classifier">int</span></dt><dd><p>We start the <cite>N</cite> of the bra at site <cite>shift_bra</cite> (i.e. the <cite>j</cite> in the above network).</p>
-</dd>
-<dt><strong>shift_ket</strong><span class="classifier">int | None</span></dt><dd><p>We start the <cite>M</cite> of the ket at site <cite>shift_ket</cite> (i.e. the <cite>i</cite> in the above network).
-<code class="docutils literal notranslate"><span class="pre">None</span></code> defaults to <cite>shift_bra</cite>.</p>
-</dd>
-<dt><strong>transpose</strong><span class="classifier">bool</span></dt><dd><p>Wheter <cite>self.matvec</cite> acts on <cite>RP</cite> (<code class="docutils literal notranslate"><span class="pre">False</span></code>) or <cite>LP</cite> (<code class="docutils literal notranslate"><span class="pre">True</span></code>).</p>
-</dd>
-<dt><strong>charge_sector</strong><span class="classifier">None | charges | <code class="docutils literal notranslate"><span class="pre">0</span></code></span></dt><dd><p>Selects the charge sector of the vector onto which the Linear operator acts.
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bra</strong> (<a class="reference internal" href="tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS" title="tenpy.networks.mps.MPS"><em>MPS</em></a>) – The MPS which is to be (complex) conjugated.</p></li>
+<li><p><strong>ket</strong> (<a class="reference internal" href="tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS" title="tenpy.networks.mps.MPS"><em>MPS</em></a>) – The MPS which is not (complex) conjugated.</p></li>
+<li><p><strong>shift_bra</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – We start the <cite>N</cite> of the bra at site <cite>shift_bra</cite> (i.e. the <cite>j</cite> in the above network).</p></li>
+<li><p><strong>shift_ket</strong> (<em>int | None</em>) – We start the <cite>M</cite> of the ket at site <cite>shift_ket</cite> (i.e. the <cite>i</cite> in the above network).
+<code class="docutils literal notranslate"><span class="pre">None</span></code> defaults to <cite>shift_bra</cite>.</p></li>
+<li><p><strong>transpose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Wheter <cite>self.matvec</cite> acts on <cite>RP</cite> (<code class="docutils literal notranslate"><span class="pre">False</span></code>) or <cite>LP</cite> (<code class="docutils literal notranslate"><span class="pre">True</span></code>).</p></li>
+<li><p><strong>charge_sector</strong> (None | charges | <code class="docutils literal notranslate"><span class="pre">0</span></code>) – Selects the charge sector of the vector onto which the Linear operator acts.
 <code class="docutils literal notranslate"><span class="pre">None</span></code> stands for <em>all</em> sectors, <code class="docutils literal notranslate"><span class="pre">0</span></code> stands for the zero-charge sector.
-Defaults to <code class="docutils literal notranslate"><span class="pre">0</span></code>, i.e., <em>assumes</em> the dominant eigenvector is in charge sector 0.</p>
+Defaults to <code class="docutils literal notranslate"><span class="pre">0</span></code>, i.e., <em>assumes</em> the dominant eigenvector is in charge sector 0.</p></li>
+<li><p><strong>form</strong> (<code class="docutils literal notranslate"><span class="pre">'B'</span> <span class="pre">|</span> <span class="pre">'A'</span> <span class="pre">|</span> <span class="pre">'C'</span> <span class="pre">|</span> <span class="pre">'G'</span> <span class="pre">|</span> <span class="pre">'Th'</span> <span class="pre">|</span> <span class="pre">None</span></code> | tuple(float, float)) – In which canonical form we take the <cite>M</cite> and <cite>N</cite> matrices.</p></li>
+</ul>
 </dd>
-<dt><strong>form</strong><span class="classifier"><code class="docutils literal notranslate"><span class="pre">'B'</span> <span class="pre">|</span> <span class="pre">'A'</span> <span class="pre">|</span> <span class="pre">'C'</span> <span class="pre">|</span> <span class="pre">'G'</span> <span class="pre">|</span> <span class="pre">'Th'</span> <span class="pre">|</span> <span class="pre">None</span></code> | tuple(float, float)</span></dt><dd><p>In which canonical form we take the <cite>M</cite> and <cite>N</cite> matrices.</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Attributes</dt>
-<dd class="field-even"><dl>
-<dt><strong>L</strong><span class="classifier">int</span></dt><dd><p>Number of physical sites involved in the transfer matrix, i.e. the least common multiple
-of <cite>bra.L</cite> and <cite>ket.L</cite>.</p>
-</dd>
-<dt><strong>shift_bra</strong><span class="classifier">int</span></dt><dd><p>We start the <cite>N</cite> of the bra at site <cite>shift_bra</cite>.</p>
-</dd>
-<dt><strong>shift_ket</strong><span class="classifier">int | None</span></dt><dd><p>We start the <cite>M</cite> of the ket at site <cite>shift_ket</cite>. <code class="docutils literal notranslate"><span class="pre">None</span></code> defaults to <cite>shift_bra</cite>.</p>
-</dd>
-<dt><strong>transpose</strong><span class="classifier">bool</span></dt><dd><p>Wheter <cite>self.matvec</cite> acts on <cite>RP</cite> (<code class="docutils literal notranslate"><span class="pre">True</span></code>) or <cite>LP</cite> (<code class="docutils literal notranslate"><span class="pre">False</span></code>).</p>
-</dd>
-<dt><strong>qtotal</strong><span class="classifier">charges</span></dt><dd><p>Total charge of the transfer matrix (which is gauged away in matvec).</p>
-</dd>
-<dt><strong>form</strong><span class="classifier">tuple(float, float) | None</span></dt><dd><p>In which canonical form (all of) the <cite>M</cite> and <cite>N</cite> matrices are.</p>
-</dd>
-<dt><strong>flat_linop</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.sparse.FlatLinearOperator.html#tenpy.linalg.sparse.FlatLinearOperator" title="tenpy.linalg.sparse.FlatLinearOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">FlatLinearOperator</span></code></a></span></dt><dd><p>Class lifting <a class="reference internal" href="#tenpy.networks.mps.TransferMatrix.matvec" title="tenpy.networks.mps.TransferMatrix.matvec"><code class="xref py py-meth docutils literal notranslate"><span class="pre">matvec()</span></code></a> to ndarrays in order to use <a class="reference internal" href="tenpy.tools.math.speigs.html#tenpy.tools.math.speigs" title="tenpy.tools.math.speigs"><code class="xref py py-func docutils literal notranslate"><span class="pre">speigs()</span></code></a>.</p>
-</dd>
-<dt><strong>pipe</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.charges.LegPipe.html#tenpy.linalg.charges.LegPipe" title="tenpy.linalg.charges.LegPipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegPipe</span></code></a></span></dt><dd><p>Pipe corresponding to <code class="docutils literal notranslate"><span class="pre">'(vL.vL*)'</span></code> for <code class="docutils literal notranslate"><span class="pre">transpose=False</span></code>
-or to <code class="docutils literal notranslate"><span class="pre">'(vR.vR*)'</span></code> for <code class="docutils literal notranslate"><span class="pre">transpose=True</span></code>.</p>
-</dd>
-<dt><strong>label_split :</strong></dt><dd><p><code class="docutils literal notranslate"><span class="pre">['vL',</span> <span class="pre">'vL*']</span></code> if <code class="docutils literal notranslate"><span class="pre">tranpose=False</span></code> or <code class="docutils literal notranslate"><span class="pre">['vR',</span> <span class="pre">'vR*']</span></code> if <code class="docutils literal notranslate"><span class="pre">transpose=True</span></code>.</p>
-</dd>
-<dt><strong>_bra_N</strong><span class="classifier">list of npc.Array</span></dt><dd><p>Complex conjugated matrices of the bra, transposed for fast <cite>matvec</cite>.</p>
-</dd>
-<dt><strong>_ket_M</strong><span class="classifier">list of npc.Array</span></dt><dd><p>The matrices of the ket, transposed for fast <cite>matvec</cite>.</p>
-</dd>
-<dt><strong>_contract_legs</strong><span class="classifier">int</span></dt><dd><p>Number of physical legs per site + 1.</p>
+<dt class="field-even">Variables</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>L</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Number of physical sites involved in the transfer matrix, i.e. the least common multiple
+of <cite>bra.L</cite> and <cite>ket.L</cite>.</p></li>
+<li><p><strong>shift_bra</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – We start the <cite>N</cite> of the bra at site <cite>shift_bra</cite>.</p></li>
+<li><p><strong>shift_ket</strong> (<em>int | None</em>) – We start the <cite>M</cite> of the ket at site <cite>shift_ket</cite>. <code class="docutils literal notranslate"><span class="pre">None</span></code> defaults to <cite>shift_bra</cite>.</p></li>
+<li><p><strong>transpose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Wheter <cite>self.matvec</cite> acts on <cite>RP</cite> (<code class="docutils literal notranslate"><span class="pre">True</span></code>) or <cite>LP</cite> (<code class="docutils literal notranslate"><span class="pre">False</span></code>).</p></li>
+<li><p><strong>qtotal</strong> (<em>charges</em>) – Total charge of the transfer matrix (which is gauged away in matvec).</p></li>
+<li><p><strong>form</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.8)"><em>tuple</em></a><em>(</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a><em>) </em><em>| None</em>) – In which canonical form (all of) the <cite>M</cite> and <cite>N</cite> matrices are.</p></li>
+<li><p><strong>flat_linop</strong> (<a class="reference internal" href="tenpy.linalg.sparse.FlatLinearOperator.html#tenpy.linalg.sparse.FlatLinearOperator" title="tenpy.linalg.sparse.FlatLinearOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">FlatLinearOperator</span></code></a>) – Class lifting <a class="reference internal" href="#tenpy.networks.mps.TransferMatrix.matvec" title="tenpy.networks.mps.TransferMatrix.matvec"><code class="xref py py-meth docutils literal notranslate"><span class="pre">matvec()</span></code></a> to ndarrays in order to use <a class="reference internal" href="tenpy.tools.math.speigs.html#tenpy.tools.math.speigs" title="tenpy.tools.math.speigs"><code class="xref py py-func docutils literal notranslate"><span class="pre">speigs()</span></code></a>.</p></li>
+<li><p><strong>pipe</strong> (<a class="reference internal" href="tenpy.linalg.charges.LegPipe.html#tenpy.linalg.charges.LegPipe" title="tenpy.linalg.charges.LegPipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">LegPipe</span></code></a>) – Pipe corresponding to <code class="docutils literal notranslate"><span class="pre">'(vL.vL*)'</span></code> for <code class="docutils literal notranslate"><span class="pre">transpose=False</span></code>
+or to <code class="docutils literal notranslate"><span class="pre">'(vR.vR*)'</span></code> for <code class="docutils literal notranslate"><span class="pre">transpose=True</span></code>.</p></li>
+<li><p><strong>label_split</strong> – <code class="docutils literal notranslate"><span class="pre">['vL',</span> <span class="pre">'vL*']</span></code> if <code class="docutils literal notranslate"><span class="pre">tranpose=False</span></code> or <code class="docutils literal notranslate"><span class="pre">['vR',</span> <span class="pre">'vR*']</span></code> if <code class="docutils literal notranslate"><span class="pre">transpose=True</span></code>.</p></li>
+<li><p><strong>_bra_N</strong> (<em>list of npc.Array</em>) – Complex conjugated matrices of the bra, transposed for fast <cite>matvec</cite>.</p></li>
+<li><p><strong>_ket_M</strong> (<em>list of npc.Array</em>) – The matrices of the ket, transposed for fast <cite>matvec</cite>.</p></li>
+<li><p><strong>_contract_legs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Number of physical legs per site + 1.</p></li>
+</ul>
 </dd>
 </dl>
-</dd>
-</dl>
-<p class="rubric">Methods</p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.networks.mps.TransferMatrix.eigenvectors" title="tenpy.networks.mps.TransferMatrix.eigenvectors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eigenvectors</span></code></a>(self[, num_ev, max_num_ev, …])</p></td>
-<td><p>Find (dominant) eigenvector(s) of self using <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/sparse.html#module-scipy.sparse" title="(in SciPy v1.4.1)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">scipy.sparse</span></code></a>.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#tenpy.networks.mps.TransferMatrix.initial_guess" title="tenpy.networks.mps.TransferMatrix.initial_guess"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initial_guess</span></code></a>(self[, diag])</p></td>
-<td><p>Return a diagonal matrix as initial guess for the eigenvector.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#tenpy.networks.mps.TransferMatrix.matvec" title="tenpy.networks.mps.TransferMatrix.matvec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">matvec</span></code></a>(self, vec)</p></td>
-<td><p>Given <cite>vec</cite> as an npc.Array, apply the transfer matrix.</p></td>
-</tr>
-</tbody>
-</table>
 <dl class="method">
 <dt id="tenpy.networks.mps.TransferMatrix.matvec">
-<code class="sig-name descname">matvec</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">vec</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mps.html#TransferMatrix.matvec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mps.TransferMatrix.matvec" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">matvec</code><span class="sig-paren">(</span><em class="sig-param">vec</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mps.html#TransferMatrix.matvec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mps.TransferMatrix.matvec" title="Permalink to this definition">¶</a></dt>
 <dd><p>Given <cite>vec</cite> as an npc.Array, apply the transfer matrix.</p>
-<dl class="field-list">
+<dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>vec</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt><dd><p>Vector to act on with the transfermatrix.
+<dd class="field-odd"><p><strong>vec</strong> (<a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a>) – Vector to act on with the transfermatrix.
 If not <cite>transposed</cite>, <cite>vec</cite> is the right part <cite>RP</cite> of an environment,
 with legs <code class="docutils literal notranslate"><span class="pre">'(vL.vL*)'</span></code> in a pipe or splitted.
 If <cite>transposed</cite>, the left part <cite>LP</cite> of an environment with legs <code class="docutils literal notranslate"><span class="pre">'(vR*.vR)'</span></code>.</p>
 </dd>
-</dl>
-</dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><dl>
-<dt><strong>mat_vec</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt><dd><p>The tranfer matrix acted on <cite>vec</cite>, in the same form as given.</p>
+<dd class="field-even"><p><strong>mat_vec</strong> – The tranfer matrix acted on <cite>vec</cite>, in the same form as given.</p>
 </dd>
-</dl>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="tenpy.networks.mps.TransferMatrix.initial_guess">
-<code class="sig-name descname">initial_guess</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">diag=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mps.html#TransferMatrix.initial_guess"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mps.TransferMatrix.initial_guess" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">initial_guess</code><span class="sig-paren">(</span><em class="sig-param">diag=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mps.html#TransferMatrix.initial_guess"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mps.TransferMatrix.initial_guess" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a diagonal matrix as initial guess for the eigenvector.</p>
-<dl class="field-list">
+<dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>diag</strong><span class="classifier">float | 1D ndarray</span></dt><dd><p>Should be <code class="docutils literal notranslate"><span class="pre">1.</span></code> for the identity or some singular values squared.</p>
-</dd>
-</dl>
+<dd class="field-odd"><p><strong>diag</strong> (<em>float | 1D ndarray</em>) – Should be <code class="docutils literal notranslate"><span class="pre">1.</span></code> for the identity or some singular values squared.</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><dl>
-<dt><strong>mat</strong><span class="classifier"><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt><dd><p>A 2D array with <cite>diag</cite> on the diagonal such that <a class="reference internal" href="#tenpy.networks.mps.TransferMatrix.matvec" title="tenpy.networks.mps.TransferMatrix.matvec"><code class="xref py py-meth docutils literal notranslate"><span class="pre">matvec()</span></code></a> can act on it.</p>
+<dd class="field-even"><p><strong>mat</strong> – A 2D array with <cite>diag</cite> on the diagonal such that <a class="reference internal" href="#tenpy.networks.mps.TransferMatrix.matvec" title="tenpy.networks.mps.TransferMatrix.matvec"><code class="xref py py-meth docutils literal notranslate"><span class="pre">matvec()</span></code></a> can act on it.</p>
 </dd>
-</dl>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="tenpy.networks.mps.TransferMatrix.eigenvectors">
-<code class="sig-name descname">eigenvectors</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">num_ev=1</em>, <em class="sig-param">max_num_ev=None</em>, <em class="sig-param">max_tol=1e-12</em>, <em class="sig-param">which='LM'</em>, <em class="sig-param">v0=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mps.html#TransferMatrix.eigenvectors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mps.TransferMatrix.eigenvectors" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">eigenvectors</code><span class="sig-paren">(</span><em class="sig-param">num_ev=1</em>, <em class="sig-param">max_num_ev=None</em>, <em class="sig-param">max_tol=1e-12</em>, <em class="sig-param">which='LM'</em>, <em class="sig-param">v0=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/networks/mps.html#TransferMatrix.eigenvectors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.networks.mps.TransferMatrix.eigenvectors" title="Permalink to this definition">¶</a></dt>
 <dd><p>Find (dominant) eigenvector(s) of self using <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/sparse.html#module-scipy.sparse" title="(in SciPy v1.4.1)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">scipy.sparse</span></code></a>.</p>
 <p>If no charge_sector was selected, we look in <em>all</em> charge sectors.</p>
-<dl class="field-list">
+<dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>num_ev</strong><span class="classifier">int</span></dt><dd><p>Number of eigenvalues/vectors to look for.</p>
-</dd>
-<dt><strong>max_num_ev</strong><span class="classifier">int</span></dt><dd><p><code class="xref py py-func docutils literal notranslate"><span class="pre">scipy.sparse.linalg.speigs()</span></code> somtimes raises a NoConvergenceError for small
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>num_ev</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Number of eigenvalues/vectors to look for.</p></li>
+<li><p><strong>max_num_ev</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – <code class="xref py py-func docutils literal notranslate"><span class="pre">scipy.sparse.linalg.speigs()</span></code> somtimes raises a NoConvergenceError for small
 <cite>num_ev</cite>, which might be avoided by increasing <cite>num_ev</cite>. As a work-around,
 we try it again in the case of an error, just with larger <cite>num_ev</cite> up to <cite>max_num_ev</cite>.
-<code class="docutils literal notranslate"><span class="pre">None</span></code> defaults to <code class="docutils literal notranslate"><span class="pre">num_ev</span> <span class="pre">+</span> <span class="pre">2</span></code>.</p>
-</dd>
-<dt><strong>max_tol</strong><span class="classifier">float</span></dt><dd><p>After the first <cite>NoConvergenceError</cite> we increase the <cite>tol</cite> argument to that value.</p>
-</dd>
-<dt><strong>which</strong><span class="classifier">str</span></dt><dd><p>Which eigenvalues to look for, see <cite>scipy.sparse.linalg.speigs</cite>.</p>
-</dd>
-<dt><strong>**kwargs :</strong></dt><dd><p>Further keyword arguments are given to <a class="reference internal" href="tenpy.tools.math.speigs.html#tenpy.tools.math.speigs" title="tenpy.tools.math.speigs"><code class="xref py py-func docutils literal notranslate"><span class="pre">speigs()</span></code></a>.</p>
-</dd>
-</dl>
+<code class="docutils literal notranslate"><span class="pre">None</span></code> defaults to <code class="docutils literal notranslate"><span class="pre">num_ev</span> <span class="pre">+</span> <span class="pre">2</span></code>.</p></li>
+<li><p><strong>max_tol</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a>) – After the first <cite>NoConvergenceError</cite> we increase the <cite>tol</cite> argument to that value.</p></li>
+<li><p><strong>which</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Which eigenvalues to look for, see <cite>scipy.sparse.linalg.speigs</cite>.</p></li>
+<li><p><strong>**kwargs</strong> – Further keyword arguments given to <a class="reference internal" href="tenpy.tools.math.speigs.html#tenpy.tools.math.speigs" title="tenpy.tools.math.speigs"><code class="xref py py-func docutils literal notranslate"><span class="pre">speigs()</span></code></a>.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><dl>
-<dt><strong>eta</strong><span class="classifier">1D ndarray</span></dt><dd><p>The eigenvalues, sorted according to <cite>which</cite>.</p>
-</dd>
-<dt><strong>w</strong><span class="classifier">list of <a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></span></dt><dd><p>The eigenvectors corresponding to <cite>eta</cite>, as npc.Array with LegPipe.</p>
-</dd>
-</dl>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>eta</strong> (<em>1D ndarray</em>) – The eigenvalues, sorted according to <cite>which</cite>.</p></li>
+<li><p><strong>w</strong> (list of <a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a>) – The eigenvectors corresponding to <cite>eta</cite>, as npc.Array with LegPipe.</p></li>
+</ul>
+</p>
 </dd>
 </dl>
 </dd></dl>
@@ -255,24 +206,44 @@ we try it again in the case of an error, just with larger <cite>num_ev</cite> up
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
 <h3><a href="../index.html">Table of Contents</a></h3>
+<p class="caption"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../INSTALL.html">Installation instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../literature.html">Literature</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../intro_npc.html">Introduction to np_conserved</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../intro_model.html">Introduction to models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../intro_JordanWigner.html">Fermions and the Jordan-Wigner transformation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../todo.html">To-Do list</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">CHANGELOG</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">TeNPy developer team</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html#license">License</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../main.html">Tenpy main module</a></li>
+</ul>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../userguide.html">User Guide</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../reference.html">Tenpy Reference</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="tenpy.algorithms.html">algorithms</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tenpy.linalg.html">linalg</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tenpy.models.html">models</a></li>
-<li class="toctree-l2 current"><a class="reference internal" href="tenpy.networks.html">networks</a><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="tenpy.networks.site.html">site</a></li>
-<li class="toctree-l3 current"><a class="reference internal" href="tenpy.networks.mps.html">mps</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tenpy.networks.mpo.html">mpo</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tenpy.networks.terms.html">terms</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tenpy.networks.purification_mps.html">purification_mps</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tenpy.algorithms.html">algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tenpy.linalg.html">linalg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tenpy.models.html">models</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tenpy.networks.html">networks</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="tenpy.networks.site.html">site</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="tenpy.networks.mps.html">mps</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="tenpy.networks.mps.MPS.html">MPS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tenpy.networks.mps.MPSEnvironment.html">MPSEnvironment</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">TransferMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tenpy.networks.mps.build_initial_state.html">build_initial_state</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="tenpy.tools.html">tools</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tenpy.version.html">version</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.networks.mpo.html">mpo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.networks.terms.html">terms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tenpy.networks.purification_mps.html">purification_mps</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="tenpy.tools.html">tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tenpy.version.html">version</a></li>
 </ul>
 
         </div>
@@ -295,14 +266,13 @@ we try it again in the case of an error, just with larger <cite>num_ev</cite> up
           <a href="tenpy.networks.mps.MPSEnvironment.html" title="MPSEnvironment"
              >previous</a> |</li>
         <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="../reference.html" >Tenpy Reference</a> &#187;</li>
-          <li class="nav-item nav-item-2"><a href="tenpy.networks.html" >networks</a> &#187;</li>
-          <li class="nav-item nav-item-3"><a href="tenpy.networks.mps.html" >mps</a> &#187;</li> 
+          <li class="nav-item nav-item-1"><a href="tenpy.networks.html" >networks</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="tenpy.networks.mps.html" >mps</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Dec 19, 2019.
+      Last updated on Dec 22, 2019.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
     </div>
   </body>
