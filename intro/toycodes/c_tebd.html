@@ -1,0 +1,285 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Toycode c_tebd.py &#8212; TeNPy 0.5.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <link rel="shortcut icon" href="../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Toycode d_dmrg.py" href="d_dmrg.html" />
+    <link rel="prev" title="Toycode b_model.py" href="b_model.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="d_dmrg.html" title="Toycode d_dmrg.py"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="b_model.html" title="Toycode b_model.py"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">TeNPy 0.5.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../introductions.html" >Introductions</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../toycodes.html" accesskey="U">Toy Codes</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="toycode-c-tebd-py">
+<h1>Toycode <code class="docutils literal notranslate"><span class="pre">c_tebd.py</span></code><a class="headerlink" href="#toycode-c-tebd-py" title="Permalink to this headline">¶</a></h1>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;Toy code implementing the time evolving block decimation (TEBD).&quot;&quot;&quot;</span>
+<span class="c1"># Copyright 2018-2019 TeNPy Developers, GNU GPLv3</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.linalg</span> <span class="kn">import</span> <span class="n">expm</span>
+<span class="kn">from</span> <span class="nn">a_mps</span> <span class="kn">import</span> <span class="n">split_truncate_theta</span>
+
+
+<span class="k">def</span> <span class="nf">calc_U_bonds</span><span class="p">(</span><span class="n">H_bonds</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Given the H_bonds, calculate ``U_bonds[i] = expm(-dt*H_bonds[i])``.</span>
+
+<span class="sd">    Each local operator has legs (i out, (i+1) out, i in, (i+1) in), in short ``i j i* j*``.</span>
+<span class="sd">    Note that no imaginary &#39;i&#39; is included, thus real `dt` means &#39;imaginary time&#39; evolution!</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">H_bonds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">U_bonds</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">H</span> <span class="ow">in</span> <span class="n">H_bonds</span><span class="p">:</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="p">[</span><span class="n">d</span> <span class="o">*</span> <span class="n">d</span><span class="p">,</span> <span class="n">d</span> <span class="o">*</span> <span class="n">d</span><span class="p">])</span>
+        <span class="n">U</span> <span class="o">=</span> <span class="n">expm</span><span class="p">(</span><span class="o">-</span><span class="n">dt</span> <span class="o">*</span> <span class="n">H</span><span class="p">)</span>
+        <span class="n">U_bonds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="p">[</span><span class="n">d</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">d</span><span class="p">]))</span>
+    <span class="k">return</span> <span class="n">U_bonds</span>
+
+
+<span class="k">def</span> <span class="nf">run_TEBD</span><span class="p">(</span><span class="n">psi</span><span class="p">,</span> <span class="n">U_bonds</span><span class="p">,</span> <span class="n">N_steps</span><span class="p">,</span> <span class="n">chi_max</span><span class="p">,</span> <span class="n">eps</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Evolve for `N_steps` time steps with TEBD.&quot;&quot;&quot;</span>
+    <span class="n">Nbonds</span> <span class="o">=</span> <span class="n">psi</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">psi</span><span class="o">.</span><span class="n">bc</span> <span class="o">==</span> <span class="s1">&#39;finite&#39;</span> <span class="k">else</span> <span class="n">psi</span><span class="o">.</span><span class="n">L</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">U_bonds</span><span class="p">)</span> <span class="o">==</span> <span class="n">Nbonds</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N_steps</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]:</span>  <span class="c1"># even, odd</span>
+            <span class="k">for</span> <span class="n">i_bond</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">Nbonds</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+                <span class="n">update_bond</span><span class="p">(</span><span class="n">psi</span><span class="p">,</span> <span class="n">i_bond</span><span class="p">,</span> <span class="n">U_bonds</span><span class="p">[</span><span class="n">i_bond</span><span class="p">],</span> <span class="n">chi_max</span><span class="p">,</span> <span class="n">eps</span><span class="p">)</span>
+    <span class="c1"># done</span>
+
+
+<span class="k">def</span> <span class="nf">update_bond</span><span class="p">(</span><span class="n">psi</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">U_bond</span><span class="p">,</span> <span class="n">chi_max</span><span class="p">,</span> <span class="n">eps</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Apply `U_bond` acting on i,j=(i+1) to `psi`.&quot;&quot;&quot;</span>
+    <span class="n">j</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">psi</span><span class="o">.</span><span class="n">L</span>
+    <span class="c1"># construct theta matrix</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">psi</span><span class="o">.</span><span class="n">get_theta2</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>  <span class="c1"># vL i j vR</span>
+    <span class="c1"># apply U</span>
+    <span class="n">Utheta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">U_bond</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]))</span>  <span class="c1"># i j [i*] [j*], vL [i] [j] vR</span>
+    <span class="n">Utheta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">Utheta</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>  <span class="c1"># vL i j vR</span>
+    <span class="c1"># split and truncate</span>
+    <span class="n">Ai</span><span class="p">,</span> <span class="n">Sj</span><span class="p">,</span> <span class="n">Bj</span> <span class="o">=</span> <span class="n">split_truncate_theta</span><span class="p">(</span><span class="n">Utheta</span><span class="p">,</span> <span class="n">chi_max</span><span class="p">,</span> <span class="n">eps</span><span class="p">)</span>
+    <span class="c1"># put back into MPS</span>
+    <span class="n">Gi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">Ss</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">Ai</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>  <span class="c1"># vL [vL*], [vL] i vC</span>
+    <span class="n">psi</span><span class="o">.</span><span class="n">Bs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">Gi</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">Sj</span><span class="p">),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>  <span class="c1"># vL i [vC], [vC] vC</span>
+    <span class="n">psi</span><span class="o">.</span><span class="n">Ss</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">Sj</span>  <span class="c1"># vC</span>
+    <span class="n">psi</span><span class="o">.</span><span class="n">Bs</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">Bj</span>  <span class="c1"># vC j vR</span>
+
+
+<span class="k">def</span> <span class="nf">example_TEBD_gs_tf_ising_finite</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">g</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;finite TEBD, imaginary time evolution, transverse field Ising&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;L=</span><span class="si">{L:d}</span><span class="s2">, g=</span><span class="si">{g:.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">L</span><span class="o">=</span><span class="n">L</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="n">g</span><span class="p">))</span>
+    <span class="kn">import</span> <span class="nn">a_mps</span>
+    <span class="kn">import</span> <span class="nn">b_model</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">b_model</span><span class="o">.</span><span class="n">TFIModel</span><span class="p">(</span><span class="n">L</span><span class="o">=</span><span class="n">L</span><span class="p">,</span> <span class="n">J</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="n">g</span><span class="p">,</span> <span class="n">bc</span><span class="o">=</span><span class="s1">&#39;finite&#39;</span><span class="p">)</span>
+    <span class="n">psi</span> <span class="o">=</span> <span class="n">a_mps</span><span class="o">.</span><span class="n">init_FM_MPS</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="n">M</span><span class="o">.</span><span class="n">d</span><span class="p">,</span> <span class="n">M</span><span class="o">.</span><span class="n">bc</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">dt</span> <span class="ow">in</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">,</span> <span class="mf">1.e-4</span><span class="p">,</span> <span class="mf">1.e-5</span><span class="p">]:</span>
+        <span class="n">U_bonds</span> <span class="o">=</span> <span class="n">calc_U_bonds</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">H_bonds</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+        <span class="n">run_TEBD</span><span class="p">(</span><span class="n">psi</span><span class="p">,</span> <span class="n">U_bonds</span><span class="p">,</span> <span class="n">N_steps</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">chi_max</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1.e-10</span><span class="p">)</span>
+        <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">bond_expectation_value</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">H_bonds</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;dt = </span><span class="si">{dt:.5f}</span><span class="s2">: E = </span><span class="si">{E:.13f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">,</span> <span class="n">E</span><span class="o">=</span><span class="n">E</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;final bond dimensions: &quot;</span><span class="p">,</span> <span class="n">psi</span><span class="o">.</span><span class="n">get_chi</span><span class="p">())</span>
+    <span class="n">mag_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">site_expectation_value</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">sigmax</span><span class="p">))</span>
+    <span class="n">mag_z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">site_expectation_value</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">sigmaz</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;magnetization in X = </span><span class="si">{mag_x:.5f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">mag_x</span><span class="o">=</span><span class="n">mag_x</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;magnetization in Z = </span><span class="si">{mag_z:.5f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">mag_z</span><span class="o">=</span><span class="n">mag_z</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">L</span> <span class="o">&lt;</span> <span class="mi">20</span><span class="p">:</span>  <span class="c1"># compare to exact result</span>
+        <span class="kn">from</span> <span class="nn">tfi_exact</span> <span class="kn">import</span> <span class="n">finite_gs_energy</span>
+        <span class="n">E_exact</span> <span class="o">=</span> <span class="n">finite_gs_energy</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Exact diagonalization: E = </span><span class="si">{E:.13f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">E</span><span class="o">=</span><span class="n">E_exact</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;relative error: &quot;</span><span class="p">,</span> <span class="nb">abs</span><span class="p">((</span><span class="n">E</span> <span class="o">-</span> <span class="n">E_exact</span><span class="p">)</span> <span class="o">/</span> <span class="n">E_exact</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">E</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">M</span>
+
+
+<span class="k">def</span> <span class="nf">example_TEBD_gs_tf_ising_infinite</span><span class="p">(</span><span class="n">g</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;infinite TEBD, imaginary time evolution, transverse field Ising&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;g=</span><span class="si">{g:.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">g</span><span class="o">=</span><span class="n">g</span><span class="p">))</span>
+    <span class="kn">import</span> <span class="nn">a_mps</span>
+    <span class="kn">import</span> <span class="nn">b_model</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">b_model</span><span class="o">.</span><span class="n">TFIModel</span><span class="p">(</span><span class="n">L</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">J</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="n">g</span><span class="p">,</span> <span class="n">bc</span><span class="o">=</span><span class="s1">&#39;infinite&#39;</span><span class="p">)</span>
+    <span class="n">psi</span> <span class="o">=</span> <span class="n">a_mps</span><span class="o">.</span><span class="n">init_FM_MPS</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="n">M</span><span class="o">.</span><span class="n">d</span><span class="p">,</span> <span class="n">M</span><span class="o">.</span><span class="n">bc</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">dt</span> <span class="ow">in</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">,</span> <span class="mf">1.e-4</span><span class="p">,</span> <span class="mf">1.e-5</span><span class="p">]:</span>
+        <span class="n">U_bonds</span> <span class="o">=</span> <span class="n">calc_U_bonds</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">H_bonds</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+        <span class="n">run_TEBD</span><span class="p">(</span><span class="n">psi</span><span class="p">,</span> <span class="n">U_bonds</span><span class="p">,</span> <span class="n">N_steps</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">chi_max</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1.e-10</span><span class="p">)</span>
+        <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">bond_expectation_value</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">H_bonds</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;dt = </span><span class="si">{dt:.5f}</span><span class="s2">: E (per site) = </span><span class="si">{E:.13f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">,</span> <span class="n">E</span><span class="o">=</span><span class="n">E</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;final bond dimensions: &quot;</span><span class="p">,</span> <span class="n">psi</span><span class="o">.</span><span class="n">get_chi</span><span class="p">())</span>
+    <span class="n">mag_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">site_expectation_value</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">sigmax</span><span class="p">))</span>
+    <span class="n">mag_z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">site_expectation_value</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">sigmaz</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&lt;sigma_x&gt; = </span><span class="si">{mag_x:.5f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">mag_x</span><span class="o">=</span><span class="n">mag_x</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&lt;sigma_z&gt; = </span><span class="si">{mag_z:.5f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">mag_z</span><span class="o">=</span><span class="n">mag_z</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;correlation length:&quot;</span><span class="p">,</span> <span class="n">psi</span><span class="o">.</span><span class="n">correlation_length</span><span class="p">())</span>
+    <span class="c1"># compare to exact result</span>
+    <span class="kn">from</span> <span class="nn">tfi_exact</span> <span class="kn">import</span> <span class="n">infinite_gs_energy</span>
+    <span class="n">E_exact</span> <span class="o">=</span> <span class="n">infinite_gs_energy</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Analytic result: E (per site) = </span><span class="si">{E:.13f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">E</span><span class="o">=</span><span class="n">E_exact</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;relative error: &quot;</span><span class="p">,</span> <span class="nb">abs</span><span class="p">((</span><span class="n">E</span> <span class="o">-</span> <span class="n">E_exact</span><span class="p">)</span> <span class="o">/</span> <span class="n">E_exact</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">E</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">M</span>
+
+
+<span class="k">def</span> <span class="nf">example_TEBD_tf_ising_lightcone</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">tmax</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;finite TEBD, real time evolution, transverse field Ising&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;L=</span><span class="si">{L:d}</span><span class="s2">, g=</span><span class="si">{g:.2f}</span><span class="s2">, tmax=</span><span class="si">{tmax:.2f}</span><span class="s2">, dt=</span><span class="si">{dt:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">L</span><span class="o">=</span><span class="n">L</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="n">g</span><span class="p">,</span> <span class="n">tmax</span><span class="o">=</span><span class="n">tmax</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">))</span>
+    <span class="c1"># find ground state with TEBD or DMRG</span>
+    <span class="c1">#  E, psi, M = example_TEBD_gs_tf_ising_finite(L, g)</span>
+    <span class="kn">from</span> <span class="nn">d_dmrg</span> <span class="kn">import</span> <span class="n">example_DMRG_tf_ising_finite</span>
+    <span class="n">E</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">example_DMRG_tf_ising_finite</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
+    <span class="n">i0</span> <span class="o">=</span> <span class="n">L</span> <span class="o">//</span> <span class="mi">2</span>
+    <span class="c1"># apply sigmaz on site i0</span>
+    <span class="n">SzB</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">sigmaz</span><span class="p">,</span> <span class="n">psi</span><span class="o">.</span><span class="n">Bs</span><span class="p">[</span><span class="n">i0</span><span class="p">],</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>  <span class="c1"># i [i*], vL [i] vR</span>
+    <span class="n">psi</span><span class="o">.</span><span class="n">Bs</span><span class="p">[</span><span class="n">i0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">SzB</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>  <span class="c1"># vL i vR</span>
+    <span class="n">U_bonds</span> <span class="o">=</span> <span class="n">calc_U_bonds</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">H_bonds</span><span class="p">,</span> <span class="mf">1.</span><span class="n">j</span> <span class="o">*</span> <span class="n">dt</span><span class="p">)</span>  <span class="c1"># (imaginary dt -&gt; realtime evolution)</span>
+    <span class="n">S</span> <span class="o">=</span> <span class="p">[</span><span class="n">psi</span><span class="o">.</span><span class="n">entanglement_entropy</span><span class="p">()]</span>
+    <span class="n">Nsteps</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tmax</span> <span class="o">/</span> <span class="n">dt</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">Nsteps</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">((</span><span class="n">n</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">+</span> <span class="mf">0.1</span><span class="p">)</span> <span class="o">%</span> <span class="mf">0.2</span> <span class="o">-</span> <span class="mf">0.1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1.e-10</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;t = </span><span class="si">{t:.2f}</span><span class="s2">, chi =&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="n">n</span> <span class="o">*</span> <span class="n">dt</span><span class="p">),</span> <span class="n">psi</span><span class="o">.</span><span class="n">get_chi</span><span class="p">())</span>
+        <span class="n">run_TEBD</span><span class="p">(</span><span class="n">psi</span><span class="p">,</span> <span class="n">U_bonds</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">chi_max</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1.e-10</span><span class="p">)</span>
+        <span class="n">S</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">entanglement_entropy</span><span class="p">())</span>
+    <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">S</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+               <span class="n">vmin</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span>
+               <span class="n">aspect</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span>
+               <span class="n">interpolation</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">,</span>
+               <span class="n">extent</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">L</span> <span class="o">-</span> <span class="mf">1.</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span><span class="p">,</span> <span class="p">(</span><span class="n">Nsteps</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">dt</span><span class="p">))</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;site $i$&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;time $t/J$&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="n">tmax</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span><span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="s1">&#39;entropy $S$&#39;</span><span class="p">)</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="s1">&#39;c_tebd_lightcone_</span><span class="si">{g:.2f}</span><span class="s1">.pdf&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">g</span><span class="o">=</span><span class="n">g</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;saved &quot;</span> <span class="o">+</span> <span class="n">filename</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">example_TEBD_gs_tf_ising_finite</span><span class="p">(</span><span class="n">L</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="mf">1.</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span>
+    <span class="n">example_TEBD_gs_tf_ising_infinite</span><span class="p">(</span><span class="n">g</span><span class="o">=</span><span class="mf">1.5</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span>
+    <span class="n">example_TEBD_tf_ising_lightcone</span><span class="p">(</span><span class="n">L</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">tmax</span><span class="o">=</span><span class="mf">3.</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../index.html">
+              <img class="logo" src="../../_static/logo.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="b_model.html"
+                        title="previous chapter">Toycode <code class="docutils literal notranslate"><span class="pre">b_model.py</span></code></a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="d_dmrg.html"
+                        title="next chapter">Toycode <code class="docutils literal notranslate"><span class="pre">d_dmrg.py</span></code></a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<p class="caption"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../INSTALL.html">Installation instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../releases.html">Release Notes</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../introductions.html">Introductions</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../overview.html">Overview</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../toycodes.html">Toy Codes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html">Example codes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../npc.html">Charge conservation with np_conserved</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../model.html">Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../JordanWigner.html">Fermions and the Jordan-Wigner transformation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../literature.html">Literature</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../main.html">Tenpy main module</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/tenpy.algorithms.html">algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/tenpy.linalg.html">linalg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/tenpy.models.html">models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/tenpy.networks.html">networks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/tenpy.tools.html">tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/tenpy.version.html">version</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="d_dmrg.html" title="Toycode d_dmrg.py"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="b_model.html" title="Toycode b_model.py"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">TeNPy 0.5.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../introductions.html" >Introductions</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../toycodes.html" >Toy Codes</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2019, TeNPy Developers.
+      Last updated on Jan 06, 2020.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
+    </div>
+  </body>
+</html>

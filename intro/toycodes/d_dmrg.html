@@ -1,0 +1,340 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Toycode d_dmrg.py &#8212; TeNPy 0.5.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <link rel="shortcut icon" href="../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Toycode tfi_exact.py" href="tfi_exact.html" />
+    <link rel="prev" title="Toycode c_tebd.py" href="c_tebd.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tfi_exact.html" title="Toycode tfi_exact.py"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="c_tebd.html" title="Toycode c_tebd.py"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">TeNPy 0.5.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../introductions.html" >Introductions</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../toycodes.html" accesskey="U">Toy Codes</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="toycode-d-dmrg-py">
+<h1>Toycode <code class="docutils literal notranslate"><span class="pre">d_dmrg.py</span></code><a class="headerlink" href="#toycode-d-dmrg-py" title="Permalink to this headline">¶</a></h1>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;Toy code implementing the density-matrix renormalization group (DMRG).&quot;&quot;&quot;</span>
+<span class="c1"># Copyright 2018-2019 TeNPy Developers, GNU GPLv3</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">a_mps</span> <span class="kn">import</span> <span class="n">split_truncate_theta</span>
+<span class="kn">import</span> <span class="nn">scipy.sparse</span>
+<span class="kn">import</span> <span class="nn">scipy.sparse.linalg.eigen.arpack</span> <span class="k">as</span> <span class="nn">arp</span>
+
+
+<span class="k">class</span> <span class="nc">SimpleHeff</span><span class="p">(</span><span class="n">scipy</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">LinearOperator</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Class for the effective Hamiltonian.</span>
+
+<span class="sd">    To be diagonalized in `SimpleDMRGEnginge.update_bond`. Looks like this::</span>
+
+<span class="sd">        .--vL*           vR*--.</span>
+<span class="sd">        |       i*    j*      |</span>
+<span class="sd">        |       |     |       |</span>
+<span class="sd">        (LP)---(W1)--(W2)----(RP)</span>
+<span class="sd">        |       |     |       |</span>
+<span class="sd">        |       i     j       |</span>
+<span class="sd">        .--vL             vR--.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">LP</span><span class="p">,</span> <span class="n">RP</span><span class="p">,</span> <span class="n">W1</span><span class="p">,</span> <span class="n">W2</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">LP</span> <span class="o">=</span> <span class="n">LP</span>  <span class="c1"># vL wL* vL*</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">RP</span> <span class="o">=</span> <span class="n">RP</span>  <span class="c1"># vR* wR* vR</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">W1</span> <span class="o">=</span> <span class="n">W1</span>  <span class="c1"># wL wC i i*</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">W2</span> <span class="o">=</span> <span class="n">W2</span>  <span class="c1"># wC wR j j*</span>
+        <span class="n">chi1</span><span class="p">,</span> <span class="n">chi2</span> <span class="o">=</span> <span class="n">LP</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">RP</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">d1</span><span class="p">,</span> <span class="n">d2</span> <span class="o">=</span> <span class="n">W1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">W2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">chi1</span><span class="p">,</span> <span class="n">d1</span><span class="p">,</span> <span class="n">d2</span><span class="p">,</span> <span class="n">chi2</span><span class="p">)</span>  <span class="c1"># vL i j vR</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">chi1</span> <span class="o">*</span> <span class="n">d1</span> <span class="o">*</span> <span class="n">d2</span> <span class="o">*</span> <span class="n">chi2</span><span class="p">,</span> <span class="n">chi1</span> <span class="o">*</span> <span class="n">d1</span> <span class="o">*</span> <span class="n">d2</span> <span class="o">*</span> <span class="n">chi2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">W1</span><span class="o">.</span><span class="n">dtype</span>
+
+    <span class="k">def</span> <span class="nf">_matvec</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate |theta&#39;&gt; = H_eff |theta&gt;.</span>
+
+<span class="sd">        This function is used by :func:scipy.sparse.linalg.eigen.arpack.eigsh` to diagonalize</span>
+<span class="sd">        the effective Hamiltonian with a Lanczos method, withouth generating the full matrix.&quot;&quot;&quot;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta_shape</span><span class="p">)</span>  <span class="c1"># vL i j vR</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">LP</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>  <span class="c1"># vL wL* [vL*], [vL] i j vR</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">W1</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">]))</span>  <span class="c1"># vL [wL*] [i] j vR, [wL] wC i [i*]</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">W2</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">]))</span>  <span class="c1"># vL [j] vR [wC] i, [wC] wR j [j*]</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">RP</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]))</span>  <span class="c1"># vL [vR] i [wR] j, [vR*] [wR*] vR</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+
+<span class="k">class</span> <span class="nc">SimpleDMRGEngine</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;DMRG algorithm, implemented as class holding the necessary data.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    psi, model, chi_max, eps:</span>
+<span class="sd">        See attributes</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    psi : SimpleMPS</span>
+<span class="sd">        The current ground-state (approximation).</span>
+<span class="sd">    model :</span>
+<span class="sd">        The model of which the groundstate is to be calculated.</span>
+<span class="sd">    chi_max, eps:</span>
+<span class="sd">        Truncation parameters, see :func:`a_mps.split_truncate_theta`.</span>
+<span class="sd">    LPs, RPs : list of np.Array[ndim=3]</span>
+<span class="sd">        Left and right parts (&quot;environments&quot;) of the effective Hamiltonian.</span>
+<span class="sd">        ``LPs[i]`` is the contraction of all parts left of site `i` in the network ``&lt;psi|H|psi&gt;``,</span>
+<span class="sd">        and similar ``RPs[i]`` for all parts right of site `i`.</span>
+<span class="sd">        Each ``LPs[i]`` has legs ``vL wL* vL*``, ``RPS[i]`` has legs ``vR* wR* vR``</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">chi_max</span><span class="p">,</span> <span class="n">eps</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">psi</span><span class="o">.</span><span class="n">L</span> <span class="o">==</span> <span class="n">model</span><span class="o">.</span><span class="n">L</span> <span class="ow">and</span> <span class="n">psi</span><span class="o">.</span><span class="n">bc</span> <span class="o">==</span> <span class="n">model</span><span class="o">.</span><span class="n">bc</span>  <span class="c1"># ensure compatibility</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">H_mpo</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">H_mpo</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span> <span class="o">=</span> <span class="n">psi</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">LPs</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">psi</span><span class="o">.</span><span class="n">L</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">RPs</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">psi</span><span class="o">.</span><span class="n">L</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chi_max</span> <span class="o">=</span> <span class="n">chi_max</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="n">eps</span>
+        <span class="c1"># initialize left and right environment</span>
+        <span class="n">D</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_mpo</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">chi</span> <span class="o">=</span> <span class="n">psi</span><span class="o">.</span><span class="n">Bs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">LP</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">chi</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">chi</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>  <span class="c1"># vL wL* vL*</span>
+        <span class="n">RP</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">chi</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">chi</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>  <span class="c1"># vR* wR* vR</span>
+        <span class="n">LP</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">chi</span><span class="p">)</span>
+        <span class="n">RP</span><span class="p">[:,</span> <span class="n">D</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">chi</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">LPs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">LP</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">RPs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">RP</span>
+        <span class="c1"># initialize necessary RPs</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_RP</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">sweep</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># sweep from left to right</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">nbonds</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_bond</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="c1"># sweep from right to left</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">nbonds</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_bond</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">update_bond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">L</span>
+        <span class="c1"># get effective Hamiltonian</span>
+        <span class="n">Heff</span> <span class="o">=</span> <span class="n">SimpleHeff</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">LPs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">RPs</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_mpo</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_mpo</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+        <span class="c1"># Diagonalize Heff, find ground state `theta`</span>
+        <span class="n">theta0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">get_theta2</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="p">[</span><span class="n">Heff</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>  <span class="c1"># initial guess</span>
+        <span class="n">e</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">arp</span><span class="o">.</span><span class="n">eigsh</span><span class="p">(</span><span class="n">Heff</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s1">&#39;SA&#39;</span><span class="p">,</span> <span class="n">return_eigenvectors</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">v0</span><span class="o">=</span><span class="n">theta0</span><span class="p">)</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">v</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">Heff</span><span class="o">.</span><span class="n">theta_shape</span><span class="p">)</span>
+        <span class="c1"># split and truncate</span>
+        <span class="n">Ai</span><span class="p">,</span> <span class="n">Sj</span><span class="p">,</span> <span class="n">Bj</span> <span class="o">=</span> <span class="n">split_truncate_theta</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi_max</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps</span><span class="p">)</span>
+        <span class="c1"># put back into MPS</span>
+        <span class="n">Gi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">Ss</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">Ai</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>  <span class="c1"># vL [vL*], [vL] i vC</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">Bs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">Gi</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">Sj</span><span class="p">),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>  <span class="c1"># vL i [vC], [vC*] vC</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">Ss</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">Sj</span>  <span class="c1"># vC</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">Bs</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">Bj</span>  <span class="c1"># vC j vR</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_LP</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_RP</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">update_RP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate RP right of site `i-1` from RP right of site `i`.&quot;&quot;&quot;</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">L</span>
+        <span class="n">RP</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">RPs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>  <span class="c1"># vR* wR* vR</span>
+        <span class="n">B</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">Bs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>  <span class="c1"># vL i vR</span>
+        <span class="n">Bc</span> <span class="o">=</span> <span class="n">B</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>  <span class="c1"># vL* i* vR*</span>
+        <span class="n">W</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_mpo</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>  <span class="c1"># wL wR i i*</span>
+        <span class="n">RP</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">RP</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>  <span class="c1"># vL i [vR], [vR*] wR* vR</span>
+        <span class="n">RP</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">RP</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>  <span class="c1"># vL [i] [wR*] vR, wL [wR] i [i*]</span>
+        <span class="n">RP</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">RP</span><span class="p">,</span> <span class="n">Bc</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>  <span class="c1"># vL [vR] wL [i], vL* [i*] [vR*]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">RPs</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">RP</span>  <span class="c1"># vL wL vL* (== vR* wR* vR on site i-1)</span>
+
+    <span class="k">def</span> <span class="nf">update_LP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate LP left of site `i+1` from LP left of site `i`.&quot;&quot;&quot;</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">L</span>
+        <span class="n">LP</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">LPs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>  <span class="c1"># vL wL vL*</span>
+        <span class="n">B</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">Bs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>  <span class="c1"># vL i vR</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">Ss</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="n">B</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>  <span class="c1"># vL [vL*], [vL] i vR</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">Ss</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">**-</span><span class="mi">1</span><span class="p">),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>  <span class="c1"># vL i [vR], [vR*] vR</span>
+        <span class="n">Ac</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>  <span class="c1"># vL* i* vR*</span>
+        <span class="n">W</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_mpo</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>  <span class="c1"># wL wR i i*</span>
+        <span class="n">LP</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">LP</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>  <span class="c1"># vL wL* [vL*], [vL] i vR</span>
+        <span class="n">LP</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">W</span><span class="p">,</span> <span class="n">LP</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]])</span>  <span class="c1"># [wL] wR i [i*], vL [wL*] [i] vR</span>
+        <span class="n">LP</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">Ac</span><span class="p">,</span> <span class="n">LP</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>  <span class="c1"># [vL*] [i*] vR*, wR [i] [vL] vR</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">LPs</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">LP</span>  <span class="c1"># vR* wR vR (== vL wL* vL* on site i+1)</span>
+
+
+<span class="k">def</span> <span class="nf">example_DMRG_tf_ising_finite</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">g</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;finite DMRG, transverse field Ising&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;L=</span><span class="si">{L:d}</span><span class="s2">, g=</span><span class="si">{g:.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">L</span><span class="o">=</span><span class="n">L</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="n">g</span><span class="p">))</span>
+    <span class="kn">import</span> <span class="nn">a_mps</span>
+    <span class="kn">import</span> <span class="nn">b_model</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">b_model</span><span class="o">.</span><span class="n">TFIModel</span><span class="p">(</span><span class="n">L</span><span class="o">=</span><span class="n">L</span><span class="p">,</span> <span class="n">J</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="n">g</span><span class="p">,</span> <span class="n">bc</span><span class="o">=</span><span class="s1">&#39;finite&#39;</span><span class="p">)</span>
+    <span class="n">psi</span> <span class="o">=</span> <span class="n">a_mps</span><span class="o">.</span><span class="n">init_FM_MPS</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="n">M</span><span class="o">.</span><span class="n">d</span><span class="p">,</span> <span class="n">M</span><span class="o">.</span><span class="n">bc</span><span class="p">)</span>
+    <span class="n">eng</span> <span class="o">=</span> <span class="n">SimpleDMRGEngine</span><span class="p">(</span><span class="n">psi</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">chi_max</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1.e-10</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+        <span class="n">eng</span><span class="o">.</span><span class="n">sweep</span><span class="p">()</span>
+        <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">bond_expectation_value</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">H_bonds</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;sweep </span><span class="si">{i:2d}</span><span class="s2">: E = </span><span class="si">{E:.13f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="o">=</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">E</span><span class="o">=</span><span class="n">E</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;final bond dimensions: &quot;</span><span class="p">,</span> <span class="n">psi</span><span class="o">.</span><span class="n">get_chi</span><span class="p">())</span>
+    <span class="n">mag_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">site_expectation_value</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">sigmax</span><span class="p">))</span>
+    <span class="n">mag_z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">site_expectation_value</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">sigmaz</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;magnetization in X = </span><span class="si">{mag_x:.5f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">mag_x</span><span class="o">=</span><span class="n">mag_x</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;magnetization in Z = </span><span class="si">{mag_z:.5f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">mag_z</span><span class="o">=</span><span class="n">mag_z</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">L</span> <span class="o">&lt;</span> <span class="mi">20</span><span class="p">:</span>  <span class="c1"># compare to exact result</span>
+        <span class="kn">from</span> <span class="nn">tfi_exact</span> <span class="kn">import</span> <span class="n">finite_gs_energy</span>
+        <span class="n">E_exact</span> <span class="o">=</span> <span class="n">finite_gs_energy</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Exact diagonalization: E = </span><span class="si">{E:.13f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">E</span><span class="o">=</span><span class="n">E_exact</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;relative error: &quot;</span><span class="p">,</span> <span class="nb">abs</span><span class="p">((</span><span class="n">E</span> <span class="o">-</span> <span class="n">E_exact</span><span class="p">)</span> <span class="o">/</span> <span class="n">E_exact</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">E</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">M</span>
+
+
+<span class="k">def</span> <span class="nf">example_DMRG_tf_ising_infinite</span><span class="p">(</span><span class="n">g</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;infinite DMRG, transverse field Ising&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;g=</span><span class="si">{g:.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">g</span><span class="o">=</span><span class="n">g</span><span class="p">))</span>
+    <span class="kn">import</span> <span class="nn">a_mps</span>
+    <span class="kn">import</span> <span class="nn">b_model</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">b_model</span><span class="o">.</span><span class="n">TFIModel</span><span class="p">(</span><span class="n">L</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">J</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="n">g</span><span class="p">,</span> <span class="n">bc</span><span class="o">=</span><span class="s1">&#39;infinite&#39;</span><span class="p">)</span>
+    <span class="n">psi</span> <span class="o">=</span> <span class="n">a_mps</span><span class="o">.</span><span class="n">init_FM_MPS</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="n">M</span><span class="o">.</span><span class="n">d</span><span class="p">,</span> <span class="n">M</span><span class="o">.</span><span class="n">bc</span><span class="p">)</span>
+    <span class="n">eng</span> <span class="o">=</span> <span class="n">SimpleDMRGEngine</span><span class="p">(</span><span class="n">psi</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">chi_max</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1.e-14</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">20</span><span class="p">):</span>
+        <span class="n">eng</span><span class="o">.</span><span class="n">sweep</span><span class="p">()</span>
+        <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">bond_expectation_value</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">H_bonds</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;sweep </span><span class="si">{i:2d}</span><span class="s2">: E (per site) = </span><span class="si">{E:.13f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="o">=</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">E</span><span class="o">=</span><span class="n">E</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;final bond dimensions: &quot;</span><span class="p">,</span> <span class="n">psi</span><span class="o">.</span><span class="n">get_chi</span><span class="p">())</span>
+    <span class="n">mag_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">site_expectation_value</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">sigmax</span><span class="p">))</span>
+    <span class="n">mag_z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">site_expectation_value</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">sigmaz</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&lt;sigma_x&gt; = </span><span class="si">{mag_x:.5f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">mag_x</span><span class="o">=</span><span class="n">mag_x</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&lt;sigma_z&gt; = </span><span class="si">{mag_z:.5f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">mag_z</span><span class="o">=</span><span class="n">mag_z</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;correlation length:&quot;</span><span class="p">,</span> <span class="n">psi</span><span class="o">.</span><span class="n">correlation_length</span><span class="p">())</span>
+    <span class="c1"># compare to exact result</span>
+    <span class="kn">from</span> <span class="nn">tfi_exact</span> <span class="kn">import</span> <span class="n">infinite_gs_energy</span>
+    <span class="n">E_exact</span> <span class="o">=</span> <span class="n">infinite_gs_energy</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Analytic result: E (per site) = </span><span class="si">{E:.13f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">E</span><span class="o">=</span><span class="n">E_exact</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;relative error: &quot;</span><span class="p">,</span> <span class="nb">abs</span><span class="p">((</span><span class="n">E</span> <span class="o">-</span> <span class="n">E_exact</span><span class="p">)</span> <span class="o">/</span> <span class="n">E_exact</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">E</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">M</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">example_DMRG_tf_ising_finite</span><span class="p">(</span><span class="n">L</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="mf">1.</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span>
+    <span class="n">example_DMRG_tf_ising_infinite</span><span class="p">(</span><span class="n">g</span><span class="o">=</span><span class="mf">1.5</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../index.html">
+              <img class="logo" src="../../_static/logo.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="c_tebd.html"
+                        title="previous chapter">Toycode <code class="docutils literal notranslate"><span class="pre">c_tebd.py</span></code></a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="tfi_exact.html"
+                        title="next chapter">Toycode <code class="docutils literal notranslate"><span class="pre">tfi_exact.py</span></code></a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<p class="caption"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../INSTALL.html">Installation instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../releases.html">Release Notes</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../introductions.html">Introductions</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../overview.html">Overview</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../toycodes.html">Toy Codes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html">Example codes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../npc.html">Charge conservation with np_conserved</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../model.html">Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../JordanWigner.html">Fermions and the Jordan-Wigner transformation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../literature.html">Literature</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../main.html">Tenpy main module</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/tenpy.algorithms.html">algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/tenpy.linalg.html">linalg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/tenpy.models.html">models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/tenpy.networks.html">networks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/tenpy.tools.html">tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/tenpy.version.html">version</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tfi_exact.html" title="Toycode tfi_exact.py"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="c_tebd.html" title="Toycode c_tebd.py"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">TeNPy 0.5.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../introductions.html" >Introductions</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../toycodes.html" >Toy Codes</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2019, TeNPy Developers.
+      Last updated on Jan 06, 2020.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
+    </div>
+  </body>
+</html>

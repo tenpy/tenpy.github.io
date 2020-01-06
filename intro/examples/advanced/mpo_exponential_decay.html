@@ -1,0 +1,277 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Advanced example mpo_exponential_decay.py &#8212; TeNPy 0.5.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Charge conservation with np_conserved" href="../../npc.html" />
+    <link rel="prev" title="Advanced example central_charge_ising.py" href="central_charge_ising.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../../npc.html" title="Charge conservation with np_conserved"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="central_charge_ising.html" title="Advanced example central_charge_ising.py"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.5.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../introductions.html" >Introductions</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../../examples.html" >Example codes</a> &#187;</li>
+          <li class="nav-item nav-item-3"><a href="../advanced.html" accesskey="U">Advanced examples</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="advanced-example-mpo-exponential-decay-py">
+<h1>Advanced example <code class="docutils literal notranslate"><span class="pre">mpo_exponential_decay.py</span></code><a class="headerlink" href="#advanced-example-mpo-exponential-decay-py" title="Permalink to this headline">¶</a></h1>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;Demonstration of the mpo.MPO.from_grids method.</span>
+
+<span class="sd">We construct a MPO model for a spin 1/2 Heisenberg chain with an infinite number of</span>
+<span class="sd">2-sites interactions, with strength that decays exponentially with the distance between the sites.</span>
+
+<span class="sd">Because of the infinite number of couplings it is not possible to construct the MPO from a</span>
+<span class="sd">coupling model. However the tensors that form the MPO have a surprisingly simple</span>
+<span class="sd">form (see the grid below).</span>
+
+<span class="sd">We run the iDMRG algorithm to find the ground state and energy density of the</span>
+<span class="sd">system in the thermodynamic limit.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># Copyright 2018-2019 TeNPy Developers, GNU GPLv3</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">tenpy.linalg.np_conserved</span> <span class="k">as</span> <span class="nn">npc</span>
+
+<span class="kn">from</span> <span class="nn">tenpy.networks.mpo</span> <span class="kn">import</span> <span class="n">MPO</span>
+<span class="kn">from</span> <span class="nn">tenpy.networks.mps</span> <span class="kn">import</span> <span class="n">MPS</span>
+<span class="kn">from</span> <span class="nn">tenpy.networks.site</span> <span class="kn">import</span> <span class="n">SpinHalfSite</span>
+<span class="kn">from</span> <span class="nn">tenpy.models.model</span> <span class="kn">import</span> <span class="n">MPOModel</span>
+<span class="kn">from</span> <span class="nn">tenpy.models.lattice</span> <span class="kn">import</span> <span class="n">Chain</span>
+<span class="kn">from</span> <span class="nn">tenpy.algorithms</span> <span class="kn">import</span> <span class="n">dmrg</span>
+<span class="kn">from</span> <span class="nn">tenpy.tools.params</span> <span class="kn">import</span> <span class="n">get_parameter</span><span class="p">,</span> <span class="n">unused_parameters</span>
+
+
+<span class="k">class</span> <span class="nc">ExponentiallyDecayingHeisenberg</span><span class="p">(</span><span class="n">MPOModel</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Spin-1/2 Heisenberg Chain with exponentially decaying interactions.</span>
+
+<span class="sd">    The Hamiltonian reads:</span>
+
+<span class="sd">    .. math ::</span>
+
+<span class="sd">        H = \sum_i \sum_{j&gt;i} \exp(-\frac{|j-i-1|}{\mathtt{xi}}) (</span>
+<span class="sd">                  \mathtt{Jxx}/2 (S^{+}_i S^{-}_j + S^{-}_i S^{+}_j)</span>
+<span class="sd">                + \mathtt{Jz} S^z_i S^z_j                        ) \\</span>
+<span class="sd">            - \sum_i \mathtt{hz} S^z_i</span>
+
+<span class="sd">    All parameters are collected in a single dictionary `model_param` and read out with</span>
+<span class="sd">    :func:`~tenpy.tools.params.get_parameter`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    L : int</span>
+<span class="sd">        Length of the chain.</span>
+<span class="sd">    Jxx, Jz, hz, xi: float</span>
+<span class="sd">        Coupling parameters as defined for the Hamiltonian above.</span>
+<span class="sd">    bc_MPS : {&#39;finite&#39; | &#39;infinte&#39;}</span>
+<span class="sd">        MPS boundary conditions.</span>
+<span class="sd">    conserve : &#39;Sz&#39; | &#39;parity&#39; | None</span>
+<span class="sd">        What should be conserved. See :class:`~tenpy.networks.Site.SpinHalfSite`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_param</span><span class="p">):</span>
+        <span class="c1"># model parameters</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;L&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">xi</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;xi&#39;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">Jxx</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;Jxx&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">Jz</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;Jz&#39;</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">hz</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;hz&#39;</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">conserve</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="s1">&#39;conserve&#39;</span><span class="p">,</span> <span class="s1">&#39;Sz&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">xi</span> <span class="o">==</span> <span class="mf">0.</span><span class="p">:</span>
+            <span class="n">g</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="k">elif</span> <span class="n">xi</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">:</span>
+            <span class="n">g</span> <span class="o">=</span> <span class="mf">1.</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">g</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">xi</span><span class="p">))</span>
+        <span class="n">unused_parameters</span><span class="p">(</span><span class="n">model_param</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+
+        <span class="c1"># Define the sites and the lattice, which in this case is a simple uniform chain</span>
+        <span class="c1"># of spin 1/2 sites</span>
+        <span class="n">site</span> <span class="o">=</span> <span class="n">SpinHalfSite</span><span class="p">(</span><span class="n">conserve</span><span class="o">=</span><span class="n">conserve</span><span class="p">)</span>
+        <span class="n">lat</span> <span class="o">=</span> <span class="n">Chain</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">bc_MPS</span><span class="o">=</span><span class="s1">&#39;infinite&#39;</span><span class="p">,</span> <span class="n">bc</span><span class="o">=</span><span class="s1">&#39;periodic&#39;</span><span class="p">)</span>
+
+        <span class="c1"># The operators that appear in the Hamiltonian. Standard spin operators are</span>
+        <span class="c1"># already defined for the spin 1/2 site, but it is also possible to add new</span>
+        <span class="c1"># operators using the add_op method</span>
+        <span class="n">Sz</span><span class="p">,</span> <span class="n">Sp</span><span class="p">,</span> <span class="n">Sm</span><span class="p">,</span> <span class="n">Id</span> <span class="o">=</span> <span class="n">site</span><span class="o">.</span><span class="n">Sz</span><span class="p">,</span> <span class="n">site</span><span class="o">.</span><span class="n">Sp</span><span class="p">,</span> <span class="n">site</span><span class="o">.</span><span class="n">Sm</span><span class="p">,</span> <span class="n">site</span><span class="o">.</span><span class="n">Id</span>
+
+        <span class="c1"># yapf:disable</span>
+        <span class="c1"># The grid (list of lists) that defines the MPO. It is possible to define the</span>
+        <span class="c1"># operators in the grid in the following ways:</span>
+        <span class="c1"># 1) NPC arrays, defined above:</span>
+        <span class="n">grid</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Id</span><span class="p">,</span>   <span class="n">Sp</span><span class="p">,</span>   <span class="n">Sm</span><span class="p">,</span>   <span class="n">Sz</span><span class="p">,</span>   <span class="o">-</span><span class="n">hz</span><span class="o">*</span><span class="n">Sz</span>    <span class="p">],</span>
+                <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">g</span><span class="o">*</span><span class="n">Id</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">Jxx</span><span class="o">*</span><span class="n">Sm</span><span class="p">],</span>
+                <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">g</span><span class="o">*</span><span class="n">Id</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">Jxx</span><span class="o">*</span><span class="n">Sp</span><span class="p">],</span>
+                <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">g</span><span class="o">*</span><span class="n">Id</span><span class="p">,</span> <span class="n">Jz</span><span class="o">*</span><span class="n">Sz</span>     <span class="p">],</span>
+                <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Id</span>        <span class="p">]]</span>
+        <span class="c1"># 2) In the form [(&quot;OpName&quot;, strength)], where &quot;OpName&quot; is the name of the</span>
+        <span class="c1"># operator (e.g. &quot;Sm&quot; for Sm) and &quot;strength&quot; is a number that multiplies it.</span>
+        <span class="n">grid</span> <span class="o">=</span> <span class="p">[[[(</span><span class="s2">&quot;Id&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)],</span> <span class="p">[(</span><span class="s2">&quot;Sp&quot;</span><span class="p">,</span><span class="mi">1</span><span class="p">)],</span> <span class="p">[(</span><span class="s2">&quot;Sm&quot;</span><span class="p">,</span><span class="mi">1</span><span class="p">)],</span> <span class="p">[(</span><span class="s2">&quot;Sz&quot;</span><span class="p">,</span><span class="mi">1</span><span class="p">)],</span> <span class="p">[(</span><span class="s2">&quot;Sz&quot;</span><span class="p">,</span> <span class="o">-</span><span class="n">hz</span><span class="p">)]</span>    <span class="p">],</span>
+                <span class="p">[</span><span class="kc">None</span>       <span class="p">,</span> <span class="p">[(</span><span class="s2">&quot;Id&quot;</span><span class="p">,</span><span class="n">g</span><span class="p">)],</span> <span class="kc">None</span>      <span class="p">,</span> <span class="kc">None</span>      <span class="p">,</span> <span class="p">[(</span><span class="s2">&quot;Sm&quot;</span><span class="p">,</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">Jxx</span><span class="p">)]],</span>
+                <span class="p">[</span><span class="kc">None</span>       <span class="p">,</span> <span class="kc">None</span>      <span class="p">,</span> <span class="p">[(</span><span class="s2">&quot;Id&quot;</span><span class="p">,</span><span class="n">g</span><span class="p">)],</span> <span class="kc">None</span>      <span class="p">,</span> <span class="p">[(</span><span class="s2">&quot;Sp&quot;</span><span class="p">,</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">Jxx</span><span class="p">)]],</span>
+                <span class="p">[</span><span class="kc">None</span>       <span class="p">,</span> <span class="kc">None</span>      <span class="p">,</span> <span class="kc">None</span>      <span class="p">,</span> <span class="p">[(</span><span class="s2">&quot;Id&quot;</span><span class="p">,</span><span class="n">g</span><span class="p">)],</span> <span class="p">[(</span><span class="s2">&quot;Sz&quot;</span><span class="p">,</span><span class="n">Jz</span><span class="p">)]</span>      <span class="p">],</span>
+                <span class="p">[</span><span class="kc">None</span>       <span class="p">,</span> <span class="kc">None</span>      <span class="p">,</span> <span class="kc">None</span>      <span class="p">,</span> <span class="kc">None</span>      <span class="p">,</span> <span class="p">[(</span><span class="s2">&quot;Id&quot;</span><span class="p">,</span><span class="mi">1</span><span class="p">)]</span>       <span class="p">]]</span>
+        <span class="c1"># 3) It is also possible to write a single &quot;OpName&quot;, equivalent to</span>
+        <span class="c1"># [(&quot;OpName&quot;, 1)].</span>
+        <span class="n">grid</span> <span class="o">=</span> <span class="p">[[</span><span class="s2">&quot;Id&quot;</span>       <span class="p">,</span> <span class="s2">&quot;Sp&quot;</span>      <span class="p">,</span> <span class="s2">&quot;Sm&quot;</span>      <span class="p">,</span> <span class="s2">&quot;Sz&quot;</span>      <span class="p">,</span> <span class="p">[(</span><span class="s2">&quot;Sz&quot;</span><span class="p">,</span> <span class="o">-</span><span class="n">hz</span><span class="p">)]</span>    <span class="p">],</span>
+                <span class="p">[</span><span class="kc">None</span>       <span class="p">,</span> <span class="p">[(</span><span class="s2">&quot;Id&quot;</span><span class="p">,</span><span class="n">g</span><span class="p">)],</span> <span class="kc">None</span>      <span class="p">,</span> <span class="kc">None</span>      <span class="p">,</span> <span class="p">[(</span><span class="s2">&quot;Sm&quot;</span><span class="p">,</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">Jxx</span><span class="p">)]],</span>
+                <span class="p">[</span><span class="kc">None</span>       <span class="p">,</span> <span class="kc">None</span>      <span class="p">,</span> <span class="p">[(</span><span class="s2">&quot;Id&quot;</span><span class="p">,</span><span class="n">g</span><span class="p">)],</span> <span class="kc">None</span>      <span class="p">,</span> <span class="p">[(</span><span class="s2">&quot;Sp&quot;</span><span class="p">,</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">Jxx</span><span class="p">)]],</span>
+                <span class="p">[</span><span class="kc">None</span>       <span class="p">,</span> <span class="kc">None</span>      <span class="p">,</span> <span class="kc">None</span>      <span class="p">,</span> <span class="p">[(</span><span class="s2">&quot;Id&quot;</span><span class="p">,</span><span class="n">g</span><span class="p">)],</span> <span class="p">[(</span><span class="s2">&quot;Sz&quot;</span><span class="p">,</span><span class="n">Jz</span><span class="p">)]</span>      <span class="p">],</span>
+                <span class="p">[</span><span class="kc">None</span>       <span class="p">,</span> <span class="kc">None</span>      <span class="p">,</span> <span class="kc">None</span>      <span class="p">,</span> <span class="kc">None</span>      <span class="p">,</span> <span class="s2">&quot;Id&quot;</span>             <span class="p">]]</span>
+        <span class="c1"># yapf:enable</span>
+        <span class="n">grids</span> <span class="o">=</span> <span class="p">[</span><span class="n">grid</span><span class="p">]</span> <span class="o">*</span> <span class="n">L</span>
+
+        <span class="c1"># Generate the MPO from the grid. Note that it is not necessary to specify</span>
+        <span class="c1"># the physical legs and their charges, since the from_grids method can extract</span>
+        <span class="c1"># this information from the position of the operators inside the grid.</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="n">MPO</span><span class="o">.</span><span class="n">from_grids</span><span class="p">(</span><span class="n">lat</span><span class="o">.</span><span class="n">mps_sites</span><span class="p">(),</span> <span class="n">grids</span><span class="p">,</span> <span class="n">bc</span><span class="o">=</span><span class="s1">&#39;infinite&#39;</span><span class="p">,</span> <span class="n">IdL</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">IdR</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">MPOModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">H</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">example_run_dmrg</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Use iDMRG to extract information about the ground state of the system.&quot;&quot;&quot;</span>
+    <span class="n">model_params</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">L</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">Jxx</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">Jz</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">xi</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">ExponentiallyDecayingHeisenberg</span><span class="p">(</span><span class="n">model_params</span><span class="p">)</span>
+    <span class="n">psi</span> <span class="o">=</span> <span class="n">MPS</span><span class="o">.</span><span class="n">from_product_state</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">mps_sites</span><span class="p">(),</span> <span class="p">[</span><span class="s2">&quot;up&quot;</span><span class="p">,</span> <span class="s2">&quot;down&quot;</span><span class="p">],</span> <span class="n">bc</span><span class="o">=</span><span class="s1">&#39;infinite&#39;</span><span class="p">)</span>
+    <span class="n">dmrg_params</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;mixer&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;chi_list&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="mi">0</span><span class="p">:</span> <span class="mi">100</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;trunc_params&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;svd_min&#39;</span><span class="p">:</span> <span class="mf">1.e-10</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;verbose&#39;</span><span class="p">:</span> <span class="mi">1</span>
+    <span class="p">}</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">dmrg</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">psi</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">dmrg_params</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Energy per site: &quot;</span><span class="p">,</span> <span class="n">results</span><span class="p">[</span><span class="s1">&#39;E&#39;</span><span class="p">])</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&lt;Sz&gt;: &quot;</span><span class="p">,</span> <span class="n">psi</span><span class="o">.</span><span class="n">expectation_value</span><span class="p">(</span><span class="s1">&#39;Sz&#39;</span><span class="p">))</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">example_run_dmrg</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/logo.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="central_charge_ising.html"
+                        title="previous chapter">Advanced example <code class="docutils literal notranslate"><span class="pre">central_charge_ising.py</span></code></a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="../../npc.html"
+                        title="next chapter">Charge conservation with np_conserved</a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table of Contents</a></h3>
+<p class="caption"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../INSTALL.html">Installation instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Release Notes</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../introductions.html">Introductions</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../toycodes.html">Toy Codes</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../../examples.html">Example codes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../npc.html">Charge conservation with np_conserved</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../model.html">Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../JordanWigner.html">Fermions and the Jordan-Wigner transformation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../literature.html">Literature</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../main.html">Tenpy main module</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.algorithms.html">algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.linalg.html">linalg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.models.html">models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.networks.html">networks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.tools.html">tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/tenpy.version.html">version</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../../npc.html" title="Charge conservation with np_conserved"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="central_charge_ising.html" title="Advanced example central_charge_ising.py"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">TeNPy 0.5.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../introductions.html" >Introductions</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../../examples.html" >Example codes</a> &#187;</li>
+          <li class="nav-item nav-item-3"><a href="../advanced.html" >Advanced examples</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2019, TeNPy Developers.
+      Last updated on Jan 06, 2020.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
+    </div>
+  </body>
+</html>

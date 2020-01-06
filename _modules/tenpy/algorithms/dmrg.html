@@ -158,8 +158,12 @@
 <span class="sd">        lanczos_params dict      Lanczos parameters as described in</span>
 <span class="sd">                                 :func:`~tenpy.linalg.lanczos.lanczos`</span>
 <span class="sd">        -------------- --------- ---------------------------------------------------------------</span>
-<span class="sd">        diag_method    str       Method to be used for diagonalzation, default ``&#39;lanczos&#39;``.</span>
+<span class="sd">        diag_method    str       Method to be used for diagonalzation, default ``&#39;default&#39;``.</span>
 <span class="sd">                                 For possible arguments see :meth:`DMRGEngine.diag`.</span>
+<span class="sd">        -------------- --------- ---------------------------------------------------------------</span>
+<span class="sd">        max_N_for_ED   int       Maximum matrix dimension of the effective hamiltonian</span>
+<span class="sd">                                 up to which the ``&#39;default&#39;`` `diag_method` uses ED instead of</span>
+<span class="sd">                                 Lanczos.</span>
 <span class="sd">        -------------- --------- ---------------------------------------------------------------</span>
 <span class="sd">        N_sweeps_check int       Number of sweeps to perform between checking convergence</span>
 <span class="sd">                                 criteria and giving a status update.</span>
@@ -365,7 +369,10 @@
 
         <span class="c1"># parameters for DMRG convergence criteria</span>
         <span class="n">N_sweeps_check</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;N_sweeps_check&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
-        <span class="n">min_sweeps</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;min_sweeps&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="mf">1.5</span> <span class="o">*</span> <span class="n">N_sweeps_check</span><span class="p">),</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+        <span class="n">min_sweeps</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mf">1.5</span> <span class="o">*</span> <span class="n">N_sweeps_check</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">min_sweeps</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chi_list</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="n">min_sweeps</span><span class="p">)</span>
+        <span class="n">min_sweeps</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;min_sweeps&#39;</span><span class="p">,</span> <span class="n">min_sweeps</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
         <span class="n">max_sweeps</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;max_sweeps&#39;</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
         <span class="n">max_E_err</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;max_E_err&#39;</span><span class="p">,</span> <span class="mf">1.e-8</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
         <span class="n">max_S_err</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;max_S_err&#39;</span><span class="p">,</span> <span class="mf">1.e-5</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
@@ -376,7 +383,7 @@
             <span class="n">norm_tol_iter</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;norm_tol_iter&#39;</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
         <span class="n">E_old</span><span class="p">,</span> <span class="n">S_old</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>  <span class="c1"># initial dummy values</span>
         <span class="n">E</span><span class="p">,</span> <span class="n">Delta_E</span><span class="p">,</span> <span class="n">Delta_S</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">diag_method</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;diag_method&#39;</span><span class="p">,</span> <span class="s1">&#39;lanczos&#39;</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">diag_method</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="n">DMRG_params</span><span class="p">,</span> <span class="s1">&#39;diag_method&#39;</span><span class="p">,</span> <span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">mixer_activate</span><span class="p">()</span>
         <span class="c1"># loop over sweeps</span>
@@ -413,7 +420,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">lanczos_params</span><span class="p">[</span><span class="s1">&#39;E_tol&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">e_tol_min</span><span class="p">,</span>
                                                    <span class="nb">min</span><span class="p">(</span><span class="n">e_tol_max</span><span class="p">,</span> <span class="n">max_E_trunc</span> <span class="o">*</span> <span class="n">e_tol_to_trunc</span><span class="p">))</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;</span> <span class="mi">3</span><span class="p">:</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;set lanczos_parmas[&#39;E_tol&#39;] = </span><span class="si">{0:.2e}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;set lanczos_params[&#39;E_tol&#39;] = </span><span class="si">{0:.2e}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">lanczos_params</span><span class="p">[</span><span class="s1">&#39;P_tol&#39;</span><span class="p">]))</span>
             <span class="c1"># update environment</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">finite</span><span class="p">:</span>
@@ -595,8 +602,12 @@
 <span class="sd">        ============  ================================================================</span>
 <span class="sd">        diag_method   Function, comment</span>
 <span class="sd">        ============  ================================================================</span>
+<span class="sd">        &#39;default&#39;     Same as ``&#39;lanczos&#39;`` for large bond dimensions, but if the</span>
+<span class="sd">                      total dimension of the effective Hamiltonian does not exceed</span>
+<span class="sd">                      the DMRG parameter ``&#39;max_N_for_ED&#39;`` it uses ``&#39;ED_block&#39;``.</span>
+<span class="sd">        ------------  ----------------------------------------------------------------</span>
 <span class="sd">        &#39;lanczos&#39;     :func:`~tenpy.linalg.lanczos.lanczos`</span>
-<span class="sd">                      Default, the Lanczos implementation of TeNPy</span>
+<span class="sd">                      Default, the Lanczos implementation in TeNPy.</span>
 <span class="sd">        ------------  ----------------------------------------------------------------</span>
 <span class="sd">        &#39;arpack&#39;      :func:`~tenpy.linalg.lanczos.lanczos_arpack`</span>
 <span class="sd">                      Based on :func:`scipy.linalg.sparse.eigsh`.</span>
@@ -639,7 +650,15 @@
 <span class="sd">            Change in the wave function ``1. - abs(&lt;theta_guess|theta_diag&gt;)``</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">N</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>  <span class="c1"># (unknown)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">diag_method</span> <span class="o">==</span> <span class="s1">&#39;lanczos&#39;</span><span class="p">:</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">diag_method</span> <span class="o">==</span> <span class="s1">&#39;default&#39;</span><span class="p">:</span>
+            <span class="c1"># use ED for small matrix dimensions, but lanczos by default</span>
+            <span class="n">max_N</span> <span class="o">=</span> <span class="n">get_parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine_params</span><span class="p">,</span> <span class="s1">&#39;max_N_for_ED&#39;</span><span class="p">,</span> <span class="mi">400</span><span class="p">,</span> <span class="s1">&#39;DMRG&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">eff_H</span><span class="o">.</span><span class="n">N</span> <span class="o">&lt;</span> <span class="n">max_N</span><span class="p">:</span>
+                <span class="n">E</span><span class="p">,</span> <span class="n">theta</span> <span class="o">=</span> <span class="n">full_diag_effH</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eff_H</span><span class="p">,</span> <span class="n">theta_guess</span><span class="p">,</span> <span class="n">keep_sector</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">E</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">N</span> <span class="o">=</span> <span class="n">lanczos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eff_H</span><span class="p">,</span> <span class="n">theta_guess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lanczos_params</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">diag_method</span> <span class="o">==</span> <span class="s1">&#39;lanczos&#39;</span><span class="p">:</span>
             <span class="n">E</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">N</span> <span class="o">=</span> <span class="n">lanczos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eff_H</span><span class="p">,</span> <span class="n">theta_guess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lanczos_params</span><span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">diag_method</span> <span class="o">==</span> <span class="s1">&#39;arpack&#39;</span><span class="p">:</span>
             <span class="n">E</span><span class="p">,</span> <span class="n">theta</span> <span class="o">=</span> <span class="n">lanczos_arpack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eff_H</span><span class="p">,</span> <span class="n">theta_guess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lanczos_params</span><span class="p">)</span>
@@ -1130,7 +1149,7 @@
         <span class="c1"># get instance of the effective Hamiltonian</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">eff_H</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">EffectiveH</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">i0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">combine</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">move_right</span><span class="p">,</span>
                                      <span class="bp">self</span><span class="o">.</span><span class="n">ortho_to_envs</span><span class="p">)</span>
-        <span class="c1"># eff_H has attributes LP, RP, W.</span>
+        <span class="c1"># eff_H has attributes LP, RP, W0</span>
 
         <span class="c1"># make theta</span>
         <span class="n">cutoff</span> <span class="o">=</span> <span class="mf">1.e-16</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="mf">1.e-8</span>
@@ -2074,7 +2093,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Dec 22, 2019.
+      Last updated on Jan 06, 2020.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
     </div>
   </body>

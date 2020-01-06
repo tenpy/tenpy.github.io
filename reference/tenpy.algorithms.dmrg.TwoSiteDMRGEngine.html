@@ -389,18 +389,23 @@ where we just performed a local update (when sweeping left).</p>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p>‘lanczos’</p></td>
-<td><p><a class="reference internal" href="tenpy.linalg.lanczos.lanczos.html#tenpy.linalg.lanczos.lanczos" title="tenpy.linalg.lanczos.lanczos"><code class="xref py py-func docutils literal notranslate"><span class="pre">lanczos()</span></code></a>
-Default, the Lanczos implementation of TeNPy</p></td>
+<tr class="row-even"><td><p>‘default’</p></td>
+<td><p>Same as <code class="docutils literal notranslate"><span class="pre">'lanczos'</span></code> for large bond dimensions, but if the
+total dimension of the effective Hamiltonian does not exceed
+the DMRG parameter <code class="docutils literal notranslate"><span class="pre">'max_N_for_ED'</span></code> it uses <code class="docutils literal notranslate"><span class="pre">'ED_block'</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p>‘arpack’</p></td>
+<tr class="row-odd"><td><p>‘lanczos’</p></td>
+<td><p><a class="reference internal" href="tenpy.linalg.lanczos.lanczos.html#tenpy.linalg.lanczos.lanczos" title="tenpy.linalg.lanczos.lanczos"><code class="xref py py-func docutils literal notranslate"><span class="pre">lanczos()</span></code></a>
+Default, the Lanczos implementation in TeNPy.</p></td>
+</tr>
+<tr class="row-even"><td><p>‘arpack’</p></td>
 <td><p><a class="reference internal" href="tenpy.linalg.lanczos.lanczos_arpack.html#tenpy.linalg.lanczos.lanczos_arpack" title="tenpy.linalg.lanczos.lanczos_arpack"><code class="xref py py-func docutils literal notranslate"><span class="pre">lanczos_arpack()</span></code></a>
 Based on <code class="xref py py-func docutils literal notranslate"><span class="pre">scipy.linalg.sparse.eigsh()</span></code>.
 Slower than ‘lanczos’, since it needs to convert the npc arrays
 to numpy arrays during <em>each</em> matvec, and possibly does many
 more iterations.</p></td>
 </tr>
-<tr class="row-even"><td><p>‘ED_block’</p></td>
+<tr class="row-odd"><td><p>‘ED_block’</p></td>
 <td><p><a class="reference internal" href="tenpy.algorithms.dmrg.full_diag_effH.html#tenpy.algorithms.dmrg.full_diag_effH" title="tenpy.algorithms.dmrg.full_diag_effH"><code class="xref py py-func docutils literal notranslate"><span class="pre">full_diag_effH()</span></code></a>
 Contract the effective Hamiltonian to a (large!) matrix and
 diagonalize the block in the charge sector of the initial state.
@@ -410,7 +415,7 @@ it.
 For example if you use a <code class="docutils literal notranslate"><span class="pre">SpinChain({'conserve':</span> <span class="pre">'parity'})</span></code>,
 it could change the total “Sz”, but not the parity of ‘Sz’.</p></td>
 </tr>
-<tr class="row-odd"><td><p>‘ED_all’</p></td>
+<tr class="row-even"><td><p>‘ED_all’</p></td>
 <td><p><a class="reference internal" href="tenpy.algorithms.dmrg.full_diag_effH.html#tenpy.algorithms.dmrg.full_diag_effH" title="tenpy.algorithms.dmrg.full_diag_effH"><code class="xref py py-func docutils literal notranslate"><span class="pre">full_diag_effH()</span></code></a>
 Contract the effective Hamiltonian to a (large!) matrix and
 diagonalize it completely.
@@ -505,7 +510,7 @@ To recover the originial form, this function simply performs one sweep with disa
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>axes</strong> (<a class="reference external" href="https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes" title="(in Matplotlib v3.1.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.axes.Axes</span></code></a>) – The axes to plot into. Defaults to <a class="reference external" href="https://matplotlib.org/api/_as_gen/matplotlib.pyplot.gca.html#matplotlib.pyplot.gca" title="(in Matplotlib v3.1.1)"><code class="xref py py-func docutils literal notranslate"><span class="pre">matplotlib.pyplot.gca()</span></code></a></p></li>
+<li><p><strong>axes</strong> (<a class="reference external" href="https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes" title="(in Matplotlib v3.1.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.axes.Axes</span></code></a>) – The axes to plot into. Defaults to <a class="reference external" href="https://matplotlib.org/api/_as_gen/matplotlib.pyplot.gca.html#matplotlib.pyplot.gca" title="(in Matplotlib v3.1.2)"><code class="xref py py-func docutils literal notranslate"><span class="pre">matplotlib.pyplot.gca()</span></code></a></p></li>
 <li><p><strong>yaxis</strong> (<em>xaxis</em><em>,</em>) – Key of <code class="xref py py-attr docutils literal notranslate"><span class="pre">sweep_stats</span></code> to be used for the x-axis and y-axis of the plots.</p></li>
 <li><p><strong>y_exact</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a>) – Exact value for the quantity on the y-axis for comparison.
 If given, plot <code class="docutils literal notranslate"><span class="pre">abs((y-y_exact)/y_exact)</span></code> on a log-scale yaxis.</p></li>
@@ -522,7 +527,7 @@ If given, plot <code class="docutils literal notranslate"><span class="pre">abs(
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>axes</strong> (<a class="reference external" href="https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes" title="(in Matplotlib v3.1.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.axes.Axes</span></code></a>) – The axes to plot into. Defaults to <a class="reference external" href="https://matplotlib.org/api/_as_gen/matplotlib.pyplot.gca.html#matplotlib.pyplot.gca" title="(in Matplotlib v3.1.1)"><code class="xref py py-func docutils literal notranslate"><span class="pre">matplotlib.pyplot.gca()</span></code></a></p></li>
+<li><p><strong>axes</strong> (<a class="reference external" href="https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes" title="(in Matplotlib v3.1.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.axes.Axes</span></code></a>) – The axes to plot into. Defaults to <a class="reference external" href="https://matplotlib.org/api/_as_gen/matplotlib.pyplot.gca.html#matplotlib.pyplot.gca" title="(in Matplotlib v3.1.2)"><code class="xref py py-func docutils literal notranslate"><span class="pre">matplotlib.pyplot.gca()</span></code></a></p></li>
 <li><p><strong>xaxis</strong> (<code class="docutils literal notranslate"><span class="pre">'N_updates'</span> <span class="pre">|</span> <span class="pre">'sweep'</span></code> | keys of <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code>) – Key of <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_stats</span></code> to be used for the x-axis of the plots.
 <code class="docutils literal notranslate"><span class="pre">'N_updates'</span></code> is just enumerating the number of bond updates,
 and <code class="docutils literal notranslate"><span class="pre">'sweep'</span></code> corresponds to the sweep number (including environment sweeps).</p></li>
@@ -702,7 +707,7 @@ truncation.</p></li>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Dec 22, 2019.
+      Last updated on Jan 06, 2020.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
     </div>
   </body>
