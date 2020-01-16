@@ -1,0 +1,290 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Saving to disk: input/output &#8212; TeNPy 0.5.0.dev41+e0e9515 documentation</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Literature" href="../literature.html" />
+    <link rel="prev" title="Fermions and the Jordan-Wigner transformation" href="JordanWigner.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../literature.html" title="Literature"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="JordanWigner.html" title="Fermions and the Jordan-Wigner transformation"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0.dev41+e0e9515 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../introductions.html" accesskey="U">Introductions</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="saving-to-disk-input-output">
+<h1>Saving to disk: input/output<a class="headerlink" href="#saving-to-disk-input-output" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="using-pickle">
+<h2>Using pickle<a class="headerlink" href="#using-pickle" title="Permalink to this headline">¶</a></h2>
+<p>A simple and pythonic way to store data of TeNPy arrays is to use <a class="reference external" href="https://docs.python.org/3/library/pickle.html#module-pickle" title="(in Python v3.8)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pickle</span></code></a> from the Python standard library.
+Pickle allows to store (almost) arbitrary python objects,
+and the <a class="reference internal" href="../reference/tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a> is no exception (and neither are other TeNPy classes).</p>
+<p>Say that you have run DMRG to get a ground state <cite>psi</cite> as an <a class="reference internal" href="../reference/tenpy.networks.mps.MPS.html#tenpy.networks.mps.MPS" title="tenpy.networks.mps.MPS"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPS</span></code></a>.
+With pickle, you can save it to disk as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pickle</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;my_psi_file.pkl&#39;</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">psi</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Here, the <code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">...</span> <span class="pre">:</span></code> structure ensures that the file gets closed after the pickle dump, and the <code class="docutils literal notranslate"><span class="pre">'wb'</span></code> indicates
+the file opening mode “write binary”.
+Reading the data from disk is as easy as (<code class="docutils literal notranslate"><span class="pre">'rb'</span></code> for reading binary):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;my_psi_file.pkl&#39;</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">psi</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>It is a good (scientific) practice to include meta-data to the file, like the parameters you used to generate that state.
+Instead of just the <cite>psi</cite>, you can simply store a dictionary containing <cite>psi</cite> and other data, e.g.,
+<code class="docutils literal notranslate"><span class="pre">data</span> <span class="pre">=</span> <span class="pre">{'psi':</span> <span class="pre">psi,</span> <span class="pre">'dmrg_params':</span> <span class="pre">dmrg_params,</span> <span class="pre">'model_params':</span> <span class="pre">model_params}</span></code>.
+This can <em>save you a lot of pain</em>, when you come back looking at the files a few month later and forgot what you’ve done to generate them!</p>
+</div>
+<p>In some cases, compression can significantly reduce the space needed to save the data.
+This can for example be done with <a class="reference external" href="https://docs.python.org/3/library/gzip.html#module-gzip" title="(in Python v3.8)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">gzip</span></code></a> (as well in the Python standard library).
+However, be warned that it might cause longer loading and saving times, i.e. it comes at the penalty of more CPU usage for the input/output.
+In Python, this requires only small adjustments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">import</span> <span class="nn">gzip</span>
+
+<span class="c1"># to save:</span>
+<span class="k">with</span> <span class="n">gzip</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;my_data_file.pkl&#39;</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+<span class="c1"># and to load:</span>
+<span class="k">with</span> <span class="n">gzip</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;my_data_file.pkl&#39;</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="using-hdf5-with-h5py">
+<h2>Using HDF5 with h5py<a class="headerlink" href="#using-hdf5-with-h5py" title="Permalink to this headline">¶</a></h2>
+<p>While <a class="reference external" href="https://docs.python.org/3/library/pickle.html#module-pickle" title="(in Python v3.8)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pickle</span></code></a> is great for simple input/output of python objects, it also has disadvantages. The probably most
+dramatic one is the limited portability: saving data on one PC and loading it on another one might fail!
+Even exporting data from Python 2 to load them in Python 3 on the same machine can give quite some troubles.
+Moreover, pickle requires to load the whole file at once, which might be unnecessary if you only need part of the data,
+or even lead to memory problems if you have more data on disk than in RAM.</p>
+<p>Hence, we support saving to <a class="reference external" href="https://portal.hdfgroup.org/display/HDF5/HDF5">HDF5</a> files as an alternative.
+The <a class="reference external" href="http://docs.h5py.org">h5py</a> package provides a dictionary-like interface for the file/group objects with
+numpy-like data sets, and is quite easy to use.
+If you don’t know about HDF5, read the <a class="reference external" href="https://docs.h5py.org/en/stable/quick.html" title="(in h5py v2.10)"><span>Quick Start Guide</span></a> of the <a class="reference external" href="http://docs.h5py.org">h5py</a> documentation (and this guide).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <a class="reference external" href="https://github.com/telegraphic/hickle">hickle</a> package imitates the pickle functionality
+while saving the data to HDF5 files.
+However, since it aims to be close to pickle, it results in a more complicated data structure than we want here.</p>
+</div>
+<div class="section" id="data-format-specification-for-saving-to-hdf5">
+<h3>Data format specification for saving to HDF5<a class="headerlink" href="#data-format-specification-for-saving-to-hdf5" title="Permalink to this headline">¶</a></h3>
+<p>Here, we define a simple format how we save data of TeNPy-defined classes.
+The goal is to have the <a class="reference internal" href="../reference/tenpy.tools.io.dump_to_hdf5.html#tenpy.tools.io.dump_to_hdf5" title="tenpy.tools.io.dump_to_hdf5"><code class="xref py py-func docutils literal notranslate"><span class="pre">dump_to_hdf5()</span></code></a> function for saving sufficiently simple enough python
+objects (supported by the format) to disk in an HDF5 file, such that they can be reconstructed with the <a class="reference internal" href="../reference/tenpy.tools.io.load_from_hdf5.html#tenpy.tools.io.load_from_hdf5" title="tenpy.tools.io.load_from_hdf5"><code class="xref py py-func docutils literal notranslate"><span class="pre">load_from_hdf5()</span></code></a> function.</p>
+<p>Guidelines of the format:</p>
+<ol class="arabic" start="0">
+<li><p>Store enough data such that <a class="reference internal" href="../reference/tenpy.tools.io.load_from_hdf5.html#tenpy.tools.io.load_from_hdf5" title="tenpy.tools.io.load_from_hdf5"><code class="xref py py-func docutils literal notranslate"><span class="pre">load_from_hdf5()</span></code></a> can reconstruct a copy of the object
+(provided that the dump did not fail with an error).</p></li>
+<li><p>Objects of a type supported by the HDF5 datasets (with the <a class="reference external" href="http://docs.h5py.org">h5py</a> interface) should be directly stored as h5py <a class="reference external" href="https://docs.h5py.org/en/stable/high/dataset.html#Dataset" title="(in h5py v2.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></a>.
+Such objects are for example numpy arrays (of non-object <cite>dtype</cite>), scalars and strings.</p></li>
+<li><p>Allow to dump (nested) python lists, tuples and dictionaries with values (and keys) which can be dumped.</p></li>
+<li><p>Allow user-defined classes to implement an interface extending what data can be saved.
+An instance of a class supporting the interface gets saved as an HDF5 <a class="reference external" href="https://docs.h5py.org/en/stable/high/group.html#Group" title="(in h5py v2.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code></a>.
+Class attributes are stored as entries of the group, metadata like the type should be stored in HDF5 attributes, see h5py <a class="reference external" href="https://docs.h5py.org/en/stable/high/attr.html#AttributeManager" title="(in h5py v2.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttributeManager</span></code></a>.</p></li>
+<li><p>Simple and intuitive, human-readable structure for the HDF5 paths.
+For example, dumping a simple dictionary <code class="docutils literal notranslate"><span class="pre">{'a':</span> <span class="pre">np.arange(10),</span> <span class="pre">'b':</span> <span class="pre">123.45}</span></code> should result in an
+HDF5 file with just the two data sets <code class="docutils literal notranslate"><span class="pre">/a</span></code> and <code class="docutils literal notranslate"><span class="pre">/b</span></code>.</p></li>
+<li><p>Allow loading only a subset of the data by specifying the <cite>path</cite> of the HDF5 group to be loaded.
+For the above example, specifying the path <code class="docutils literal notranslate"><span class="pre">/b</span></code> should result in loading the float <code class="docutils literal notranslate"><span class="pre">123.45</span></code>, not the array.</p></li>
+<li><p>Avoid unnecessary copies if the same python object is referenced by different names, e.g,
+for the object <code class="docutils literal notranslate"><span class="pre">{'c':</span> <span class="pre">large_obj,</span> <span class="pre">'d':</span> <span class="pre">large_obj}</span></code> save the <cite>large_obj</cite> only once and use HDF5 hard-links
+such that <code class="docutils literal notranslate"><span class="pre">/d</span></code> and <code class="docutils literal notranslate"><span class="pre">/d</span></code> are the same HDF5 dataset/group.
+Also avoid the copies during the loading, i.e., the loaded dictionary should again have two references to a single object <cite>large_obj</cite>.
+This is also necessary to allow saving and loading of objects with cyclic references.</p></li>
+<li><p>Loading a dataset should be (fairly) secure and not execute arbitrary python code (even if the dataset was manipulated),
+as it is the case for pickle.
+As a catch: it’s not secure if you also downloaded some <code class="docutils literal notranslate"><span class="pre">*.py</span></code> files to locations where they can be imported,
+because importing them is possible and thereby execute them!</p>
+<blockquote>
+<div><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Disclaimer: I’m not an security expert, so I can’t guarantee that…
+Also, loading a HDF5 file can import other python modules, so importing
+a manipulated file is not secure if you downloaded a malicious python file as well.</p>
+</div>
+</div></blockquote>
+</li>
+</ol>
+<p>An implementation along those guidelines is given inside TeNPy in the <a class="reference internal" href="../reference/tenpy.tools.io.html#module-tenpy.tools.io" title="tenpy.tools.io"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tenpy.tools.io</span></code></a> module with the
+<a class="reference internal" href="../reference/tenpy.tools.io.Hdf5Saver.html#tenpy.tools.io.Hdf5Saver" title="tenpy.tools.io.Hdf5Saver"><code class="xref py py-class docutils literal notranslate"><span class="pre">Hdf5Saver</span></code></a> and <a class="reference internal" href="../reference/tenpy.tools.io.Hdf5Loader.html#tenpy.tools.io.Hdf5Loader" title="tenpy.tools.io.Hdf5Loader"><code class="xref py py-class docutils literal notranslate"><span class="pre">Hdf5Loader</span></code></a> classes.
+The full format specification is given by the what the code does. Since this is hard to read, let me summarize it here:</p>
+<ul class="simple">
+<li><p>Following 1), simple scalars, strings and numpy arrays are saved as <a class="reference external" href="https://docs.h5py.org/en/stable/high/dataset.html#Dataset" title="(in h5py v2.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></a>.
+Other objects are saved as a HDF5 <a class="reference external" href="https://docs.h5py.org/en/stable/high/group.html#Group" title="(in h5py v2.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code></a>, with the actual data being saved as group members (as sub-groups and
+sub-datasets) or as attributes (for metadata or simple data).</p></li>
+<li><p>The type of the object is stored in the attribute <code class="docutils literal notranslate"><span class="pre">'type'</span></code>, which is one of the global <code class="docutils literal notranslate"><span class="pre">REPR_*</span></code> variables in
+<a class="reference internal" href="../reference/tenpy.tools.io.html#module-tenpy.tools.io" title="tenpy.tools.io"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tenpy.tools.io</span></code></a>. The type determines the format for saving/loading of builtin types (list, …)</p></li>
+<li><p>Userdefined classes which should be possible to export/import need to implement methods <code class="docutils literal notranslate"><span class="pre">save_hdf5</span></code> and <code class="docutils literal notranslate"><span class="pre">from_hdf5</span></code>
+as specified in <a class="reference internal" href="../reference/tenpy.tools.io.Hdf5Exportable.html#tenpy.tools.io.Hdf5Exportable" title="tenpy.tools.io.Hdf5Exportable"><code class="xref py py-class docutils literal notranslate"><span class="pre">Hdf5Exportable</span></code></a>.
+When saving such a class, the attribute <code class="docutils literal notranslate"><span class="pre">'type'</span></code> is automatically set to <code class="docutils literal notranslate"><span class="pre">'instance'</span></code>, and the class name and
+module are saved under the attributes <code class="docutils literal notranslate"><span class="pre">'module'</span></code> and <code class="docutils literal notranslate"><span class="pre">'class'</span></code>. During loading, this information is used to
+automatically import the module, get the class and call the classmethod <code class="docutils literal notranslate"><span class="pre">from_hdf5</span></code> for reconstruction.
+This can only work if the class definition already exists, i.e., you can only save class instances, not classes itself.</p></li>
+<li><p>For most classes, simply subclassing <a class="reference internal" href="../reference/tenpy.tools.io.Hdf5Exportable.html#tenpy.tools.io.Hdf5Exportable" title="tenpy.tools.io.Hdf5Exportable"><code class="xref py py-class docutils literal notranslate"><span class="pre">Hdf5Exportable</span></code></a> should work to make the class exportable.
+The latter saves the contents of <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#object.__dict__" title="(in Python v3.8)"><code class="xref py py-attr docutils literal notranslate"><span class="pre">__dict__</span></code></a>, with the extra attribute <code class="docutils literal notranslate"><span class="pre">'format'</span></code> specifying
+whether the dictionary is “simple” (see below.).</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">None</span></code> object is saved as a group with the attribute <code class="docutils literal notranslate"><span class="pre">'type'</span></code> being <code class="docutils literal notranslate"><span class="pre">'None'</span></code>.</p></li>
+<li><p>For iterables (list, tuple and set), we simple enumerate the entries and save entries as group members under the
+names <code class="docutils literal notranslate"><span class="pre">'0',</span> <span class="pre">'1',</span> <span class="pre">'2',</span> <span class="pre">...</span></code>, and a maximum <code class="docutils literal notranslate"><span class="pre">'len'</span></code> attribute.</p></li>
+<li><p>The format for dictionaries depends on whether all keys are “simple”, which we define as being strings which are valid
+python variable names. Following 4), the keys of a simple dictionary are directly used as names for group members (with
+the values being whatever the group member (which is a <a class="reference external" href="https://docs.h5py.org/en/stable/high/dataset.html#Dataset" title="(in h5py v2.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></a> or <a class="reference external" href="https://docs.h5py.org/en/stable/high/group.html#Group" title="(in h5py v2.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code></a>) represents.</p></li>
+<li><p>Partial loading along 5) is possible by directly specifying the subgroup or the path to <a class="reference internal" href="../reference/tenpy.tools.io.load_from_hdf5.html#tenpy.tools.io.load_from_hdf5" title="tenpy.tools.io.load_from_hdf5"><code class="xref py py-func docutils literal notranslate"><span class="pre">load_from_hdf5()</span></code></a>.</p></li>
+<li><p>Guidelines 6) is ensured as much as possible. However, there is a bug/exception:
+tuples with cyclic references are not re-constructed correctly; the inner objects will be lists instead of tuples
+(but with the same object entries).</p></li>
+</ul>
+<p>Finally, we have to mention that many TeNPy classes are <a class="reference internal" href="../reference/tenpy.tools.io.Hdf5Exportable.html#tenpy.tools.io.Hdf5Exportable" title="tenpy.tools.io.Hdf5Exportable"><code class="xref py py-class docutils literal notranslate"><span class="pre">Hdf5Exportable</span></code></a>.
+In particular, the <a class="reference internal" href="../reference/tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a> supports this.
+To see what the exact format for those classes is, look at the <cite>save_hdf5</cite> and <cite>from_hdf5</cite> methods of those classes.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>There can be multiple possible output formats for the same object.
+The dictionary – with the format for simple keys or general keys – is such an example,
+but userdefined classes can use the same technique in their <cite>from_hdf5</cite> method.
+The user might also explicitly choose a “lossy” output format (e.g. “flat” for np_conserved Arrays and LegCharges).</p>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/logo.png" alt="Logo"/>
+            </a></p>
+  <h3><a href="../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Saving to disk: input/output</a><ul>
+<li><a class="reference internal" href="#using-pickle">Using pickle</a></li>
+<li><a class="reference internal" href="#using-hdf5-with-h5py">Using HDF5 with h5py</a><ul>
+<li><a class="reference internal" href="#data-format-specification-for-saving-to-hdf5">Data format specification for saving to HDF5</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="JordanWigner.html"
+                        title="previous chapter">Fermions and the Jordan-Wigner transformation</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="../literature.html"
+                        title="next chapter">Literature</a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3><a href="../index.html">Table of Contents</a></h3>
+<p class="caption"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../INSTALL.html">Installation instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../releases.html">Release Notes</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../introductions.html">Introductions</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="toycodes.html">Toy Codes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html">Example codes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="npc.html">Charge conservation with np_conserved</a></li>
+<li class="toctree-l2"><a class="reference internal" href="model.html">Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="JordanWigner.html">Fermions and the Jordan-Wigner transformation</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Saving to disk: input/output</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../literature.html">Literature</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../main.html">Tenpy main module</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../reference/tenpy.algorithms.html">algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/tenpy.linalg.html">linalg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/tenpy.models.html">models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/tenpy.networks.html">networks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/tenpy.tools.html">tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/tenpy.version.html">version</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../literature.html" title="Literature"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="JordanWigner.html" title="Fermions and the Jordan-Wigner transformation"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0.dev41+e0e9515 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../introductions.html" >Introductions</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2020, TeNPy Developers.
+      Last updated on Jan 16, 2020.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
+    </div>
+  </body>
+</html>

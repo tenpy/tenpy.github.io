@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>Sweep &#8212; TeNPy 0.5.0 documentation</title>
+    <title>Sweep &#8212; TeNPy 0.5.0.dev41+e0e9515 documentation</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
@@ -37,7 +37,7 @@
         <li class="right" >
           <a href="tenpy.algorithms.mps_sweeps.OneSiteH.html" title="OneSiteH"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0.dev41+e0e9515 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="tenpy.algorithms.html" >algorithms</a> &#187;</li>
           <li class="nav-item nav-item-2"><a href="tenpy.algorithms.mps_sweeps.html" accesskey="U">mps_sweeps</a> &#187;</li> 
       </ul>
@@ -103,7 +103,7 @@
 </table>
 <dl class="class">
 <dt id="tenpy.algorithms.mps_sweeps.Sweep">
-<em class="property">class </em><code class="sig-prename descclassname">tenpy.algorithms.mps_sweeps.</code><code class="sig-name descname">Sweep</code><span class="sig-paren">(</span><em class="sig-param">psi</em>, <em class="sig-param">model</em>, <em class="sig-param">engine_params</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/mps_sweeps.html#Sweep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">tenpy.algorithms.mps_sweeps.</code><code class="sig-name descname">Sweep</code><span class="sig-paren">(</span><em class="sig-param">psi</em>, <em class="sig-param">model</em>, <em class="sig-param">engine_params</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/tenpy/tenpy/blob/master/tenpy/algorithms/mps_sweeps.py#L38-L368"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Prototype class for a ‘sweeping’ algorithm.</p>
 <p>This is a superclass, intended to cover common procedures in all algorithms that ‘sweep’. This
@@ -117,43 +117,209 @@ includes DMRG, TDVP, TEBD, etc. Only DMRG is currently implemented in this way.<
 described in subclasses.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Variables</dt>
-<dd class="field-even"><ul class="simple">
-<li><p><strong>chi_list</strong> (dict | <code class="docutils literal notranslate"><span class="pre">None</span></code>) – A dictionary to gradually increase the <cite>chi_max</cite> parameter of <cite>trunc_params</cite>. The key
+</dl>
+<dl class="attribute">
+<dt id="tenpy.algorithms.mps_sweeps.Sweep.chi_list">
+<code class="sig-name descname">chi_list</code><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.chi_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>A dictionary to gradually increase the <cite>chi_max</cite> parameter of <cite>trunc_params</cite>. The key
 defines starting from which sweep <cite>chi_max</cite> is set to the value, e.g. <code class="docutils literal notranslate"><span class="pre">{0:</span> <span class="pre">50,</span> <span class="pre">20:</span> <span class="pre">100}</span></code>
 uses <code class="docutils literal notranslate"><span class="pre">chi_max=50</span></code> for the first 20 sweeps and <code class="docutils literal notranslate"><span class="pre">chi_max=100</span></code> afterwards. Overwrites
-<cite>trunc_params[‘chi_list’]`</cite>. By default (<code class="docutils literal notranslate"><span class="pre">None</span></code>) this feature is disabled.</p></li>
-<li><p><strong>combine</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Whether to combine legs into pipes as far as possible. This reduces the overhead of
-calculating charge combinations in the contractions. Makes the two-site DMRG engine
-equivalent to the old <cite>EngineCombine</cite>.</p></li>
-<li><p><strong>E_trunc_list</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.8)"><em>list</em></a>) – List of truncation energies throughout a sweep.</p></li>
-<li><p><strong>env</strong> (<a class="reference internal" href="tenpy.networks.mpo.MPOEnvironment.html#tenpy.networks.mpo.MPOEnvironment" title="tenpy.networks.mpo.MPOEnvironment"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPOEnvironment</span></code></a>) – Environment for contraction <code class="docutils literal notranslate"><span class="pre">&lt;psi|H|psi&gt;</span></code>.</p></li>
-<li><p><strong>finite</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Whether the MPS boundary conditions are finite (True) or infinite (False)</p></li>
-<li><p><strong>i0</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Only set during sweep.
-Left-most of the <cite>EffectiveH.length</cite> sites to be updated in <a class="reference internal" href="#tenpy.algorithms.mps_sweeps.Sweep.update_local" title="tenpy.algorithms.mps_sweeps.Sweep.update_local"><code class="xref py py-meth docutils literal notranslate"><span class="pre">update_local()</span></code></a>.</p></li>
-<li><p><strong>lanczos_params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – Parameters for the Lanczos algorithm.</p></li>
-<li><p><strong>mixer</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Mixer</span></code> | <code class="docutils literal notranslate"><span class="pre">None</span></code>) – If <code class="docutils literal notranslate"><span class="pre">None</span></code>, no mixer is used (anymore), otherwise the mixer instance.</p></li>
-<li><p><strong>move_right</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Only set during sweep.
-Whether the next <cite>i0</cite> of the sweep will be right or left of the current one.</p></li>
-<li><p><strong>ortho_to_envs</strong> (list of <a class="reference internal" href="tenpy.networks.mps.MPSEnvironment.html#tenpy.networks.mps.MPSEnvironment" title="tenpy.networks.mps.MPSEnvironment"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPSEnvironment</span></code></a>) – List of environments <code class="docutils literal notranslate"><span class="pre">&lt;psi|psi_ortho&gt;</span></code>, where <cite>psi_ortho</cite> is an MPS to orthogonalize
-against.</p></li>
-<li><p><strong>shelve</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – If a simulation runs out of time (<cite>time.time() - start_time &gt; max_seconds</cite>), the run will
-terminate with <cite>shelve = True</cite>.</p></li>
-<li><p><strong>sweeps</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – The number of sweeps already performed. (Useful for re-start).</p></li>
-<li><p><strong>time0</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a>) – Time marker for the start of the run.</p></li>
-<li><p><strong>trunc_err_list</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.8)"><em>list</em></a>) – List of truncation errors.</p></li>
-<li><p><strong>trunc_params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – Parameters for truncations.</p></li>
-<li><p><strong>update_LP_RP</strong> (<em>(</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a><em>)</em>) – Only set during a sweep.
-Whether it is necessary to update the <cite>LP</cite> and <cite>RP</cite>.
-The latter are chosen such that the environment is growing for infinite systems, but
-we only keep the minimal number of environment tensors in memory (inside <code class="xref py py-attr docutils literal notranslate"><span class="pre">env</span></code>).</p></li>
-<li><p><strong>verbose</strong> (<em>bool | int</em>) – Level of verbosity (i.e. how much status information to print); higher=more output.</p></li>
-</ul>
+<cite>trunc_params[‘chi_list’]`</cite>. By default (<code class="docutils literal notranslate"><span class="pre">None</span></code>) this feature is disabled.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>dict | <code class="docutils literal notranslate"><span class="pre">None</span></code></p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.algorithms.mps_sweeps.Sweep.combine">
+<code class="sig-name descname">combine</code><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.combine" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether to combine legs into pipes as far as possible. This reduces the overhead of
+calculating charge combinations in the contractions. Makes the two-site DMRG engine
+equivalent to the old <cite>EngineCombine</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.algorithms.mps_sweeps.Sweep.E_trunc_list">
+<code class="sig-name descname">E_trunc_list</code><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.E_trunc_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of truncation energies throughout a sweep.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.8)">list</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.algorithms.mps_sweeps.Sweep.env">
+<code class="sig-name descname">env</code><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.env" title="Permalink to this definition">¶</a></dt>
+<dd><p>Environment for contraction <code class="docutils literal notranslate"><span class="pre">&lt;psi|H|psi&gt;</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="tenpy.networks.mpo.MPOEnvironment.html#tenpy.networks.mpo.MPOEnvironment" title="tenpy.networks.mpo.MPOEnvironment"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPOEnvironment</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.algorithms.mps_sweeps.Sweep.finite">
+<code class="sig-name descname">finite</code><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.finite" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether the MPS boundary conditions are finite (True) or infinite (False)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.algorithms.mps_sweeps.Sweep.i0">
+<code class="sig-name descname">i0</code><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.i0" title="Permalink to this definition">¶</a></dt>
+<dd><p>Only set during sweep.
+Left-most of the <cite>EffectiveH.length</cite> sites to be updated in <a class="reference internal" href="#tenpy.algorithms.mps_sweeps.Sweep.update_local" title="tenpy.algorithms.mps_sweeps.Sweep.update_local"><code class="xref py py-meth docutils literal notranslate"><span class="pre">update_local()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.algorithms.mps_sweeps.Sweep.lanczos_params">
+<code class="sig-name descname">lanczos_params</code><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.lanczos_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parameters for the Lanczos algorithm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.algorithms.mps_sweeps.Sweep.mixer">
+<code class="sig-name descname">mixer</code><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.mixer" title="Permalink to this definition">¶</a></dt>
+<dd><p>If <code class="docutils literal notranslate"><span class="pre">None</span></code>, no mixer is used (anymore), otherwise the mixer instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Mixer</span></code> | <code class="docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.algorithms.mps_sweeps.Sweep.move_right">
+<code class="sig-name descname">move_right</code><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.move_right" title="Permalink to this definition">¶</a></dt>
+<dd><p>Only set during sweep.
+Whether the next <cite>i0</cite> of the sweep will be right or left of the current one.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.algorithms.mps_sweeps.Sweep.ortho_to_envs">
+<code class="sig-name descname">ortho_to_envs</code><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.ortho_to_envs" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of environments <code class="docutils literal notranslate"><span class="pre">&lt;psi|psi_ortho&gt;</span></code>, where <cite>psi_ortho</cite> is an MPS to orthogonalize
+against.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>list of <a class="reference internal" href="tenpy.networks.mps.MPSEnvironment.html#tenpy.networks.mps.MPSEnvironment" title="tenpy.networks.mps.MPSEnvironment"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPSEnvironment</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.algorithms.mps_sweeps.Sweep.shelve">
+<code class="sig-name descname">shelve</code><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.shelve" title="Permalink to this definition">¶</a></dt>
+<dd><p>If a simulation runs out of time (<cite>time.time() - start_time &gt; max_seconds</cite>), the run will
+terminate with <cite>shelve = True</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.algorithms.mps_sweeps.Sweep.sweeps">
+<code class="sig-name descname">sweeps</code><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.sweeps" title="Permalink to this definition">¶</a></dt>
+<dd><p>The number of sweeps already performed. (Useful for re-start).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.algorithms.mps_sweeps.Sweep.time0">
+<code class="sig-name descname">time0</code><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.time0" title="Permalink to this definition">¶</a></dt>
+<dd><p>Time marker for the start of the run.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.algorithms.mps_sweeps.Sweep.trunc_err_list">
+<code class="sig-name descname">trunc_err_list</code><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.trunc_err_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of truncation errors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.8)">list</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.algorithms.mps_sweeps.Sweep.trunc_params">
+<code class="sig-name descname">trunc_params</code><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.trunc_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parameters for truncations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.algorithms.mps_sweeps.Sweep.update_LP_RP">
+<code class="sig-name descname">update_LP_RP</code><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.update_LP_RP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Only set during a sweep.
+Whether it is necessary to update the <cite>LP</cite> and <cite>RP</cite>.
+The latter are chosen such that the environment is growing for infinite systems, but
+we only keep the minimal number of environment tensors in memory (inside <a class="reference internal" href="#tenpy.algorithms.mps_sweeps.Sweep.env" title="tenpy.algorithms.mps_sweeps.Sweep.env"><code class="xref py py-attr docutils literal notranslate"><span class="pre">env</span></code></a>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>(<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)">bool</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)">bool</a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.algorithms.mps_sweeps.Sweep.verbose">
+<code class="sig-name descname">verbose</code><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.verbose" title="Permalink to this definition">¶</a></dt>
+<dd><p>Level of verbosity (i.e. how much status information to print); higher=more output.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>bool | int</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="method">
 <dt id="tenpy.algorithms.mps_sweeps.Sweep.init_env">
-<code class="sig-name descname">init_env</code><span class="sig-paren">(</span><em class="sig-param">model=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/mps_sweeps.html#Sweep.init_env"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.init_env" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">init_env</code><span class="sig-paren">(</span><em class="sig-param">model=None</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/tenpy/tenpy/blob/master/tenpy/algorithms/mps_sweeps.py#L134-L198"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.init_env" title="Permalink to this definition">¶</a></dt>
 <dd><p>(Re-)initialize the environment.</p>
 <p>This function is useful to (re-)start a Sweep with a slightly different
 model or different (engine) parameters. Note that we assume that we
@@ -173,7 +339,7 @@ If <code class="docutils literal notranslate"><span class="pre">None</span></cod
 
 <dl class="method">
 <dt id="tenpy.algorithms.mps_sweeps.Sweep.reset_stats">
-<code class="sig-name descname">reset_stats</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/mps_sweeps.html#Sweep.reset_stats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.reset_stats" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">reset_stats</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/tenpy/tenpy/blob/master/tenpy/algorithms/mps_sweeps.py#L200-L217"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.reset_stats" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reset the statistics. Useful if you want to start a new Sweep run.</p>
 <p>This method is expected to be overwritten by subclass, and should then define
 self.update_stats and self.sweep_stats dicts consistent with the statistics generated by
@@ -182,7 +348,7 @@ the algorithm particular to that subclass.</p>
 
 <dl class="method">
 <dt id="tenpy.algorithms.mps_sweeps.Sweep.environment_sweeps">
-<code class="sig-name descname">environment_sweeps</code><span class="sig-paren">(</span><em class="sig-param">N_sweeps</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/mps_sweeps.html#Sweep.environment_sweeps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.environment_sweeps" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">environment_sweeps</code><span class="sig-paren">(</span><em class="sig-param">N_sweeps</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/tenpy/tenpy/blob/master/tenpy/algorithms/mps_sweeps.py#L219-L236"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.environment_sweeps" title="Permalink to this definition">¶</a></dt>
 <dd><p>Perform <cite>N_sweeps</cite> sweeps without optimization to update the environment.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -193,7 +359,7 @@ the algorithm particular to that subclass.</p>
 
 <dl class="method">
 <dt id="tenpy.algorithms.mps_sweeps.Sweep.sweep">
-<code class="sig-name descname">sweep</code><span class="sig-paren">(</span><em class="sig-param">optimize=True</em>, <em class="sig-param">meas_E_trunc=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/mps_sweeps.html#Sweep.sweep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.sweep" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">sweep</code><span class="sig-paren">(</span><em class="sig-param">optimize=True</em>, <em class="sig-param">meas_E_trunc=False</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/tenpy/tenpy/blob/master/tenpy/algorithms/mps_sweeps.py#L238-L301"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.sweep" title="Permalink to this definition">¶</a></dt>
 <dd><p>One ‘sweep’ of a sweeper algorithm.</p>
 <p>Iteratate over the bond which is optimized, to the right and
 then back to the left to the starting point.
@@ -220,7 +386,7 @@ truncation.</p></li>
 
 <dl class="method">
 <dt id="tenpy.algorithms.mps_sweeps.Sweep.get_sweep_schedule">
-<code class="sig-name descname">get_sweep_schedule</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/mps_sweeps.html#Sweep.get_sweep_schedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.get_sweep_schedule" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">get_sweep_schedule</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/tenpy/tenpy/blob/master/tenpy/algorithms/mps_sweeps.py#L303-L333"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.get_sweep_schedule" title="Permalink to this definition">¶</a></dt>
 <dd><p>Define the schedule of the sweep.</p>
 <p>One ‘sweep’ is a full sequence from the leftmost site to the right and
 back. Only those <cite>LP</cite> and <cite>RP</cite> that can be used later should be updated.</p>
@@ -242,7 +408,7 @@ we only keep the minimal number of environment tensors in memory.</p>
 
 <dl class="method">
 <dt id="tenpy.algorithms.mps_sweeps.Sweep.mixer_cleanup">
-<code class="sig-name descname">mixer_cleanup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/mps_sweeps.html#Sweep.mixer_cleanup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.mixer_cleanup" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">mixer_cleanup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/tenpy/tenpy/blob/master/tenpy/algorithms/mps_sweeps.py#L335-L345"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.mixer_cleanup" title="Permalink to this definition">¶</a></dt>
 <dd><p>Cleanup the effects of a mixer.</p>
 <p>A <a class="reference internal" href="#tenpy.algorithms.mps_sweeps.Sweep.sweep" title="tenpy.algorithms.mps_sweeps.Sweep.sweep"><code class="xref py py-meth docutils literal notranslate"><span class="pre">sweep()</span></code></a> with an enabled <code class="xref py py-class docutils literal notranslate"><span class="pre">Mixer</span></code> leaves the MPS <cite>psi</cite> with 2D arrays in <cite>S</cite>.
 To recover the originial form, this function simply performs one sweep with disabled mixer.</p>
@@ -250,7 +416,7 @@ To recover the originial form, this function simply performs one sweep with disa
 
 <dl class="method">
 <dt id="tenpy.algorithms.mps_sweeps.Sweep.mixer_activate">
-<code class="sig-name descname">mixer_activate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/mps_sweeps.html#Sweep.mixer_activate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.mixer_activate" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">mixer_activate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/tenpy/tenpy/blob/master/tenpy/algorithms/mps_sweeps.py#L347-L353"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.mixer_activate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set <cite>self.mixer</cite> to the class specified by <cite>engine_params[‘mixer’]</cite>.</p>
 <p>It is expected that different algorithms have differen ways of implementing mixers (with
 different defaults). Thus, this is algorithm-specific.</p>
@@ -258,19 +424,19 @@ different defaults). Thus, this is algorithm-specific.</p>
 
 <dl class="method">
 <dt id="tenpy.algorithms.mps_sweeps.Sweep.prepare_update">
-<code class="sig-name descname">prepare_update</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/mps_sweeps.html#Sweep.prepare_update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.prepare_update" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">prepare_update</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/tenpy/tenpy/blob/master/tenpy/algorithms/mps_sweeps.py#L355-L357"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.prepare_update" title="Permalink to this definition">¶</a></dt>
 <dd><p>Prepare everything algorithm-specific to perform a local update.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="tenpy.algorithms.mps_sweeps.Sweep.update_local">
-<code class="sig-name descname">update_local</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/mps_sweeps.html#Sweep.update_local"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.update_local" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">update_local</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/tenpy/tenpy/blob/master/tenpy/algorithms/mps_sweeps.py#L359-L361"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.update_local" title="Permalink to this definition">¶</a></dt>
 <dd><p>Perform algorithm-specific local update.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="tenpy.algorithms.mps_sweeps.Sweep.post_update_local">
-<code class="sig-name descname">post_update_local</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/algorithms/mps_sweeps.html#Sweep.post_update_local"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.post_update_local" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">post_update_local</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/tenpy/tenpy/blob/master/tenpy/algorithms/mps_sweeps.py#L363-L368"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.algorithms.mps_sweeps.Sweep.post_update_local" title="Permalink to this definition">¶</a></dt>
 <dd><p>Algorithm-specific actions to be taken after local update.</p>
 <p>An example would be to collect statistics.</p>
 </dd></dl>
@@ -361,14 +527,14 @@ different defaults). Thus, this is algorithm-specific.</p>
         <li class="right" >
           <a href="tenpy.algorithms.mps_sweeps.OneSiteH.html" title="OneSiteH"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0.dev41+e0e9515 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="tenpy.algorithms.html" >algorithms</a> &#187;</li>
           <li class="nav-item nav-item-2"><a href="tenpy.algorithms.mps_sweeps.html" >mps_sweeps</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Dec 22, 2019.
+        &#169; Copyright 2016-2020, TeNPy Developers.
+      Last updated on Jan 16, 2020.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
     </div>
   </body>

@@ -72,7 +72,7 @@
 <span class="sd">    ~tenpy.linalg.charges.LegCharge</span>
 <span class="sd">    ~tenpy.linalg.charges.LegPipe</span>
 
-<span class="sd">.. rubric :: Array creation</span>
+<span class="sd">.. rubric:: Array creation</span>
 
 <span class="sd">.. autosummary::</span>
 <span class="sd">    Array.from_ndarray_trivial</span>
@@ -124,7 +124,7 @@
 <span class="sd">    speigs</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="c1"># Copyright 2018-2019 TeNPy Developers, GNU GPLv3</span>
+<span class="c1"># Copyright 2018-2020 TeNPy Developers, GNU GPLv3</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">scipy.linalg</span>
@@ -284,6 +284,65 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span>  <span class="c1"># property, requires rank to be set already</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;setstate with incompatible type of state&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Array.save_hdf5"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array.save_hdf5">[docs]</a>    <span class="k">def</span> <span class="nf">save_hdf5</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hdf5_saver</span><span class="p">,</span> <span class="n">h5gr</span><span class="p">,</span> <span class="n">subpath</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Export `self` into a HDF5 file.</span>
+
+<span class="sd">        This method saves all the data it needs to reconstruct `self` with :meth:`from_hdf5`.</span>
+
+<span class="sd">        .. todo : what to save?</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        hdf5_saver : :class:`~tenpy.tools.io.Hdf5Saver`</span>
+<span class="sd">            Instance of the saving engine.</span>
+<span class="sd">        h5gr : :class`Group`</span>
+<span class="sd">            HDF5 group which is supposed to represent `self`.</span>
+<span class="sd">        subpath : str</span>
+<span class="sd">            The `name` of `h5gr` with a ``&#39;/&#39;`` in the end.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">hdf5_saver</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chinfo</span><span class="p">,</span> <span class="n">subpath</span> <span class="o">+</span> <span class="s2">&quot;chinfo&quot;</span><span class="p">)</span>
+        <span class="n">hdf5_saver</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">legs</span><span class="p">,</span> <span class="n">subpath</span> <span class="o">+</span> <span class="s2">&quot;legs&quot;</span><span class="p">)</span>
+        <span class="n">hdf5_saver</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">subpath</span> <span class="o">+</span> <span class="s2">&quot;dtype&quot;</span><span class="p">)</span>
+        <span class="n">hdf5_saver</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qtotal</span><span class="p">,</span> <span class="n">subpath</span> <span class="o">+</span> <span class="s2">&quot;qtotal&quot;</span><span class="p">)</span>
+        <span class="n">hdf5_saver</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_labels</span><span class="p">,</span> <span class="n">subpath</span> <span class="o">+</span> <span class="s2">&quot;labels&quot;</span><span class="p">)</span>
+        <span class="n">hdf5_saver</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">,</span> <span class="n">subpath</span> <span class="o">+</span> <span class="s2">&quot;blocks&quot;</span><span class="p">)</span>
+        <span class="n">hdf5_saver</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_qdata</span><span class="p">,</span> <span class="n">subpath</span> <span class="o">+</span> <span class="s2">&quot;block_inds&quot;</span><span class="p">)</span>
+        <span class="n">h5gr</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;qdata_sorted&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_qdata_sorted</span></div>
+
+<div class="viewcode-block" id="Array.from_hdf5"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array.from_hdf5">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_hdf5</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">hdf5_loader</span><span class="p">,</span> <span class="n">h5gr</span><span class="p">,</span> <span class="n">subpath</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Load instance from a HDF5 file.</span>
+
+<span class="sd">        This method reconstructs a class instance from the data saved with :meth:`save_hdf5`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        hdf5_loader : :class:`~tenpy.tools.io.Hdf5Loader`</span>
+<span class="sd">            Instance of the loading engine.</span>
+<span class="sd">        h5gr : :class:`Group`</span>
+<span class="sd">            HDF5 group which is represent the object to be constructed.</span>
+<span class="sd">        subpath : str</span>
+<span class="sd">            The `name` of `h5gr` with a ``&#39;/&#39;`` in the end.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        obj : cls</span>
+<span class="sd">            Newly generated class instance containing the required data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>  <span class="c1"># create class instance, no __init__() call</span>
+        <span class="n">hdf5_loader</span><span class="o">.</span><span class="n">memorize</span><span class="p">(</span><span class="n">h5gr</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">chinfo</span> <span class="o">=</span> <span class="n">hdf5_loader</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">subpath</span> <span class="o">+</span> <span class="s2">&quot;chinfo&quot;</span><span class="p">)</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">legs</span> <span class="o">=</span> <span class="n">hdf5_loader</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">subpath</span> <span class="o">+</span> <span class="s2">&quot;legs&quot;</span><span class="p">)</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">hdf5_loader</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">subpath</span> <span class="o">+</span> <span class="s2">&quot;dtype&quot;</span><span class="p">)</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">qtotal</span> <span class="o">=</span> <span class="n">hdf5_loader</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">subpath</span> <span class="o">+</span> <span class="s2">&quot;qtotal&quot;</span><span class="p">)</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">_labels</span> <span class="o">=</span> <span class="n">hdf5_loader</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">subpath</span> <span class="o">+</span> <span class="s2">&quot;labels&quot;</span><span class="p">)</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">hdf5_loader</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">subpath</span> <span class="o">+</span> <span class="s2">&quot;blocks&quot;</span><span class="p">)</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">_qdata</span> <span class="o">=</span> <span class="n">hdf5_loader</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">subpath</span> <span class="o">+</span> <span class="s2">&quot;block_inds&quot;</span><span class="p">)</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">_qdata_sorted</span> <span class="o">=</span> <span class="n">hdf5_loader</span><span class="o">.</span><span class="n">get_attr</span><span class="p">(</span><span class="n">h5gr</span><span class="p">,</span> <span class="s1">&#39;qdata_sorted&#39;</span><span class="p">)</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">_set_shape</span><span class="p">()</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">test_sanity</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">obj</span></div>
 
 <div class="viewcode-block" id="Array.from_ndarray_trivial"><a class="viewcode-back" href="../../../reference/tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array.from_ndarray_trivial">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_ndarray_trivial</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data_flat</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -4597,7 +4656,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Jan 06, 2020.
+      Last updated on Jan 16, 2020.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
     </div>
   </body>

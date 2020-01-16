@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>LanczosGroundState &#8212; TeNPy 0.5.0 documentation</title>
+    <title>LanczosGroundState &#8212; TeNPy 0.5.0.dev41+e0e9515 documentation</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
@@ -37,7 +37,7 @@
         <li class="right" >
           <a href="tenpy.linalg.lanczos.LanczosEvolution.html" title="LanczosEvolution"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0.dev41+e0e9515 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="tenpy.linalg.html" >linalg</a> &#187;</li>
           <li class="nav-item nav-item-2"><a href="tenpy.linalg.lanczos.html" accesskey="U">lanczos</a> &#187;</li> 
       </ul>
@@ -76,7 +76,7 @@
 </table>
 <dl class="class">
 <dt id="tenpy.linalg.lanczos.LanczosGroundState">
-<em class="property">class </em><code class="sig-prename descclassname">tenpy.linalg.lanczos.</code><code class="sig-name descname">LanczosGroundState</code><span class="sig-paren">(</span><em class="sig-param">H</em>, <em class="sig-param">psi0</em>, <em class="sig-param">params</em>, <em class="sig-param">orthogonal_to=[]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/lanczos.html#LanczosGroundState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.lanczos.LanczosGroundState" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">tenpy.linalg.lanczos.</code><code class="sig-name descname">LanczosGroundState</code><span class="sig-paren">(</span><em class="sig-param">H</em>, <em class="sig-param">psi0</em>, <em class="sig-param">params</em>, <em class="sig-param">orthogonal_to=[]</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/tenpy/tenpy/blob/master/tenpy/linalg/lanczos.py#L19-L273"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.lanczos.LanczosGroundState" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Lanczos algorithm working on npc arrays.</p>
 <p>The Lanczos algorithm can finds extremal eigenvalues (in terms of magnitude) along with
@@ -164,21 +164,102 @@ ensuring that the result is perpendicular to them.
 case if you want to find ground states with Lanczos!)</p></li>
 </ul>
 </dd>
-<dt class="field-even">Variables</dt>
-<dd class="field-even"><ul class="simple">
-<li><p><strong>H</strong> (<a class="reference internal" href="tenpy.linalg.sparse.NpcLinearOperator.html#tenpy.linalg.sparse.NpcLinearOperator" title="tenpy.linalg.sparse.NpcLinearOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">NpcLinearOperator</span></code></a>-like) – The hermitian linear operator.</p></li>
-<li><p><strong>psi0</strong> (<a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a>) – The starting vector.</p></li>
-<li><p><strong>orthogonal_to</strong> (list of <a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a>) – Vectors to orthogonalize against.</p></li>
-<li><p><strong>N_max</strong><strong>, </strong><strong>E_tol</strong><strong>, </strong><strong>P_tol</strong><strong>, </strong><strong>N_cache</strong><strong>, </strong><strong>reortho</strong> (<em>N_min</em><em>,</em>) – Parameters as described above.</p></li>
-<li><p><strong>Es</strong> (<em>ndarray</em><em>, </em><em>shape</em><em>(</em><em>N_max</em><em>, </em><em>N_max</em><em>)</em>) – <code class="docutils literal notranslate"><span class="pre">Es[n,</span> <span class="pre">:]</span></code> contains the energies of <code class="docutils literal notranslate"><span class="pre">_T[:n+1,</span> <span class="pre">:n+1]</span></code> in step <cite>n</cite>.</p></li>
-<li><p><strong>_T</strong> (<em>ndarray</em><em>, </em><em>shape</em><em> (</em><em>N_max + 1</em><em>, </em><em>N_max +1</em><em>)</em>) – The tridiagonal matrix representing <cite>H</cite> in the orthonormalized Krylov basis.</p></li>
-<li><p><strong>_cutoff</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a>) – See parameter <cite>cutoff</cite>.</p></li>
-<li><p><strong>_cache</strong> (<em>list of psi0-like vectors</em>) – The ONB of the Krylov space generated during the iteration.
-FIFO (first in first out) cache of at most N_cache vectors.</p></li>
-<li><p><strong>_result_krylov</strong> (<em>ndarray</em>) – Result in the ONB of the Krylov space: ground state of <cite>_T</cite>.</p></li>
-</ul>
+</dl>
+<dl class="attribute">
+<dt id="tenpy.linalg.lanczos.LanczosGroundState.H">
+<code class="sig-name descname">H</code><a class="headerlink" href="#tenpy.linalg.lanczos.LanczosGroundState.H" title="Permalink to this definition">¶</a></dt>
+<dd><p>The hermitian linear operator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="tenpy.linalg.sparse.NpcLinearOperator.html#tenpy.linalg.sparse.NpcLinearOperator" title="tenpy.linalg.sparse.NpcLinearOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">NpcLinearOperator</span></code></a>-like</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.linalg.lanczos.LanczosGroundState.psi0">
+<code class="sig-name descname">psi0</code><a class="headerlink" href="#tenpy.linalg.lanczos.LanczosGroundState.psi0" title="Permalink to this definition">¶</a></dt>
+<dd><p>The starting vector.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.linalg.lanczos.LanczosGroundState.orthogonal_to">
+<code class="sig-name descname">orthogonal_to</code><a class="headerlink" href="#tenpy.linalg.lanczos.LanczosGroundState.orthogonal_to" title="Permalink to this definition">¶</a></dt>
+<dd><p>Vectors to orthogonalize against.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>list of <a class="reference internal" href="tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="sig-name descname">N_min, N_max, E_tol, P_tol, N_cache, reortho</code></dt>
+<dd><p>Parameters as described above.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.linalg.lanczos.LanczosGroundState.Es">
+<code class="sig-name descname">Es</code><a class="headerlink" href="#tenpy.linalg.lanczos.LanczosGroundState.Es" title="Permalink to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">Es[n,</span> <span class="pre">:]</span></code> contains the energies of <code class="docutils literal notranslate"><span class="pre">_T[:n+1,</span> <span class="pre">:n+1]</span></code> in step <cite>n</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>ndarray, shape(N_max, N_max)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.linalg.lanczos.LanczosGroundState._T">
+<code class="sig-name descname">_T</code><a class="headerlink" href="#tenpy.linalg.lanczos.LanczosGroundState._T" title="Permalink to this definition">¶</a></dt>
+<dd><p>The tridiagonal matrix representing <cite>H</cite> in the orthonormalized Krylov basis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>ndarray, shape (N_max + 1, N_max +1)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.linalg.lanczos.LanczosGroundState._cutoff">
+<code class="sig-name descname">_cutoff</code><a class="headerlink" href="#tenpy.linalg.lanczos.LanczosGroundState._cutoff" title="Permalink to this definition">¶</a></dt>
+<dd><p>See parameter <cite>cutoff</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.linalg.lanczos.LanczosGroundState._cache">
+<code class="sig-name descname">_cache</code><a class="headerlink" href="#tenpy.linalg.lanczos.LanczosGroundState._cache" title="Permalink to this definition">¶</a></dt>
+<dd><p>The ONB of the Krylov space generated during the iteration.
+FIFO (first in first out) cache of at most N_cache vectors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>list of psi0-like vectors</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tenpy.linalg.lanczos.LanczosGroundState._result_krylov">
+<code class="sig-name descname">_result_krylov</code><a class="headerlink" href="#tenpy.linalg.lanczos.LanczosGroundState._result_krylov" title="Permalink to this definition">¶</a></dt>
+<dd><p>Result in the ONB of the Krylov space: ground state of <cite>_T</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
 <p class="rubric">Notes</p>
 <p>I have computed the Ritz residual <cite>RitzRes</cite> according to
 <a class="reference external" href="http://web.eecs.utk.edu/~dongarra/etemplates/node103.html#estimate_residual">http://web.eecs.utk.edu/~dongarra/etemplates/node103.html#estimate_residual</a>.
@@ -186,7 +267,7 @@ Given the gap, the Ritz residual gives a bound on the error in the wavefunction,
 <code class="docutils literal notranslate"><span class="pre">err</span> <span class="pre">&lt;</span> <span class="pre">(RitzRes/gap)**2</span></code>. The gap is estimated from the full Lanczos spectrum.</p>
 <dl class="method">
 <dt id="tenpy.linalg.lanczos.LanczosGroundState.run">
-<code class="sig-name descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tenpy/linalg/lanczos.html#LanczosGroundState.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.lanczos.LanczosGroundState.run" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/tenpy/tenpy/blob/master/tenpy/linalg/lanczos.py#L138-L163"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.lanczos.LanczosGroundState.run" title="Permalink to this definition">¶</a></dt>
 <dd><p>Find the ground state of H.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
@@ -286,14 +367,14 @@ Given the gap, the Ritz residual gives a bound on the error in the wavefunction,
         <li class="right" >
           <a href="tenpy.linalg.lanczos.LanczosEvolution.html" title="LanczosEvolution"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0.dev41+e0e9515 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="tenpy.linalg.html" >linalg</a> &#187;</li>
           <li class="nav-item nav-item-2"><a href="tenpy.linalg.lanczos.html" >lanczos</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2016-2019, TeNPy Developers.
-      Last updated on Dec 22, 2019.
+        &#169; Copyright 2016-2020, TeNPy Developers.
+      Last updated on Jan 16, 2020.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
     </div>
   </body>
