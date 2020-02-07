@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>Saving to disk: input/output &#8212; TeNPy 0.5.0.dev41+e0e9515 documentation</title>
+    <title>Saving to disk: input/output &#8212; TeNPy 0.5.0.dev64+afd83d5 documentation</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
@@ -37,7 +37,7 @@
         <li class="right" >
           <a href="JordanWigner.html" title="Fermions and the Jordan-Wigner transformation"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0.dev41+e0e9515 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0.dev64+afd83d5 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="../introductions.html" accesskey="U">Introductions</a> &#187;</li> 
       </ul>
     </div>  
@@ -97,7 +97,7 @@ In Python, this requires only small adjustments:</p>
 dramatic one is the limited portability: saving data on one PC and loading it on another one might fail!
 Even exporting data from Python 2 to load them in Python 3 on the same machine can give quite some troubles.
 Moreover, pickle requires to load the whole file at once, which might be unnecessary if you only need part of the data,
-or even lead to memory problems if you have more data on disk than in RAM.</p>
+or even lead to memory problems if you have more data on disk than fits into RAM.</p>
 <p>Hence, we support saving to <a class="reference external" href="https://portal.hdfgroup.org/display/HDF5/HDF5">HDF5</a> files as an alternative.
 The <a class="reference external" href="http://docs.h5py.org">h5py</a> package provides a dictionary-like interface for the file/group objects with
 numpy-like data sets, and is quite easy to use.
@@ -108,29 +108,34 @@ If you don’t know about HDF5, read the <a class="reference external" href="htt
 while saving the data to HDF5 files.
 However, since it aims to be close to pickle, it results in a more complicated data structure than we want here.</p>
 </div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>To use the export/import features to HDF5, you need to install the <a class="reference external" href="http://docs.h5py.org">h5py</a> python package
+(and hence some version of the HDF5 library).</p>
+</div>
 <div class="section" id="data-format-specification-for-saving-to-hdf5">
 <h3>Data format specification for saving to HDF5<a class="headerlink" href="#data-format-specification-for-saving-to-hdf5" title="Permalink to this headline">¶</a></h3>
 <p>Here, we define a simple format how we save data of TeNPy-defined classes.
-The goal is to have the <a class="reference internal" href="../reference/tenpy.tools.io.dump_to_hdf5.html#tenpy.tools.io.dump_to_hdf5" title="tenpy.tools.io.dump_to_hdf5"><code class="xref py py-func docutils literal notranslate"><span class="pre">dump_to_hdf5()</span></code></a> function for saving sufficiently simple enough python
-objects (supported by the format) to disk in an HDF5 file, such that they can be reconstructed with the <a class="reference internal" href="../reference/tenpy.tools.io.load_from_hdf5.html#tenpy.tools.io.load_from_hdf5" title="tenpy.tools.io.load_from_hdf5"><code class="xref py py-func docutils literal notranslate"><span class="pre">load_from_hdf5()</span></code></a> function.</p>
+The goal is to have the <a class="reference internal" href="../reference/tenpy.tools.hdf5_io.save_to_hdf5.html#tenpy.tools.hdf5_io.save_to_hdf5" title="tenpy.tools.hdf5_io.save_to_hdf5"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_to_hdf5()</span></code></a> function for saving sufficiently simple enough python
+objects (supported by the format) to disk in an HDF5 file, such that they can be reconstructed with the <a class="reference internal" href="../reference/tenpy.tools.hdf5_io.load_from_hdf5.html#tenpy.tools.hdf5_io.load_from_hdf5" title="tenpy.tools.hdf5_io.load_from_hdf5"><code class="xref py py-func docutils literal notranslate"><span class="pre">load_from_hdf5()</span></code></a> function.</p>
 <p>Guidelines of the format:</p>
 <ol class="arabic" start="0">
-<li><p>Store enough data such that <a class="reference internal" href="../reference/tenpy.tools.io.load_from_hdf5.html#tenpy.tools.io.load_from_hdf5" title="tenpy.tools.io.load_from_hdf5"><code class="xref py py-func docutils literal notranslate"><span class="pre">load_from_hdf5()</span></code></a> can reconstruct a copy of the object
-(provided that the dump did not fail with an error).</p></li>
+<li><p>Store enough data such that <a class="reference internal" href="../reference/tenpy.tools.hdf5_io.load_from_hdf5.html#tenpy.tools.hdf5_io.load_from_hdf5" title="tenpy.tools.hdf5_io.load_from_hdf5"><code class="xref py py-func docutils literal notranslate"><span class="pre">load_from_hdf5()</span></code></a> can reconstruct a copy of the object
+(provided that the save did not fail with an error).</p></li>
 <li><p>Objects of a type supported by the HDF5 datasets (with the <a class="reference external" href="http://docs.h5py.org">h5py</a> interface) should be directly stored as h5py <a class="reference external" href="https://docs.h5py.org/en/stable/high/dataset.html#Dataset" title="(in h5py v2.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></a>.
 Such objects are for example numpy arrays (of non-object <cite>dtype</cite>), scalars and strings.</p></li>
-<li><p>Allow to dump (nested) python lists, tuples and dictionaries with values (and keys) which can be dumped.</p></li>
-<li><p>Allow user-defined classes to implement an interface extending what data can be saved.
+<li><p>Allow to save (nested) python lists, tuples and dictionaries with values (and keys) which can be saved.</p></li>
+<li><p>Allow user-defined classes to implement a well-defined interface which allows to save instances of that class, hence extending what data can be saved.
 An instance of a class supporting the interface gets saved as an HDF5 <a class="reference external" href="https://docs.h5py.org/en/stable/high/group.html#Group" title="(in h5py v2.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code></a>.
-Class attributes are stored as entries of the group, metadata like the type should be stored in HDF5 attributes, see h5py <a class="reference external" href="https://docs.h5py.org/en/stable/high/attr.html#AttributeManager" title="(in h5py v2.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttributeManager</span></code></a>.</p></li>
+Class attributes are stored as entries of the group, metadata like the type should be stored in HDF5 attributes, see <span class="xref std std-doc">attr</span>.</p></li>
 <li><p>Simple and intuitive, human-readable structure for the HDF5 paths.
-For example, dumping a simple dictionary <code class="docutils literal notranslate"><span class="pre">{'a':</span> <span class="pre">np.arange(10),</span> <span class="pre">'b':</span> <span class="pre">123.45}</span></code> should result in an
+For example, saving a simple dictionary <code class="docutils literal notranslate"><span class="pre">{'a':</span> <span class="pre">np.arange(10),</span> <span class="pre">'b':</span> <span class="pre">123.45}</span></code> should result in an
 HDF5 file with just the two data sets <code class="docutils literal notranslate"><span class="pre">/a</span></code> and <code class="docutils literal notranslate"><span class="pre">/b</span></code>.</p></li>
 <li><p>Allow loading only a subset of the data by specifying the <cite>path</cite> of the HDF5 group to be loaded.
 For the above example, specifying the path <code class="docutils literal notranslate"><span class="pre">/b</span></code> should result in loading the float <code class="docutils literal notranslate"><span class="pre">123.45</span></code>, not the array.</p></li>
 <li><p>Avoid unnecessary copies if the same python object is referenced by different names, e.g,
-for the object <code class="docutils literal notranslate"><span class="pre">{'c':</span> <span class="pre">large_obj,</span> <span class="pre">'d':</span> <span class="pre">large_obj}</span></code> save the <cite>large_obj</cite> only once and use HDF5 hard-links
-such that <code class="docutils literal notranslate"><span class="pre">/d</span></code> and <code class="docutils literal notranslate"><span class="pre">/d</span></code> are the same HDF5 dataset/group.
+for the data <code class="docutils literal notranslate"><span class="pre">{'c':</span> <span class="pre">large_obj,</span> <span class="pre">'d':</span> <span class="pre">large_obj}</span></code> with to references to the same <cite>large_obj</cite>, save it only once and use HDF5 hard-links
+such that <code class="docutils literal notranslate"><span class="pre">/c</span></code> and <code class="docutils literal notranslate"><span class="pre">/d</span></code> are the same HDF5 dataset/group.
 Also avoid the copies during the loading, i.e., the loaded dictionary should again have two references to a single object <cite>large_obj</cite>.
 This is also necessary to allow saving and loading of objects with cyclic references.</p></li>
 <li><p>Loading a dataset should be (fairly) secure and not execute arbitrary python code (even if the dataset was manipulated),
@@ -147,36 +152,38 @@ a manipulated file is not secure if you downloaded a malicious python file as we
 </div></blockquote>
 </li>
 </ol>
-<p>An implementation along those guidelines is given inside TeNPy in the <a class="reference internal" href="../reference/tenpy.tools.io.html#module-tenpy.tools.io" title="tenpy.tools.io"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tenpy.tools.io</span></code></a> module with the
-<a class="reference internal" href="../reference/tenpy.tools.io.Hdf5Saver.html#tenpy.tools.io.Hdf5Saver" title="tenpy.tools.io.Hdf5Saver"><code class="xref py py-class docutils literal notranslate"><span class="pre">Hdf5Saver</span></code></a> and <a class="reference internal" href="../reference/tenpy.tools.io.Hdf5Loader.html#tenpy.tools.io.Hdf5Loader" title="tenpy.tools.io.Hdf5Loader"><code class="xref py py-class docutils literal notranslate"><span class="pre">Hdf5Loader</span></code></a> classes.
-The full format specification is given by the what the code does. Since this is hard to read, let me summarize it here:</p>
+<p>An implementation along those guidelines is given inside TeNPy in the <a class="reference internal" href="../reference/tenpy.tools.hdf5_io.html#module-tenpy.tools.hdf5_io" title="tenpy.tools.hdf5_io"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tenpy.tools.hdf5_io</span></code></a> module with the
+<a class="reference internal" href="../reference/tenpy.tools.hdf5_io.Hdf5Saver.html#tenpy.tools.hdf5_io.Hdf5Saver" title="tenpy.tools.hdf5_io.Hdf5Saver"><code class="xref py py-class docutils literal notranslate"><span class="pre">Hdf5Saver</span></code></a> and <a class="reference internal" href="../reference/tenpy.tools.hdf5_io.Hdf5Loader.html#tenpy.tools.hdf5_io.Hdf5Loader" title="tenpy.tools.hdf5_io.Hdf5Loader"><code class="xref py py-class docutils literal notranslate"><span class="pre">Hdf5Loader</span></code></a> classes
+and the wrapper functions <a class="reference internal" href="../reference/tenpy.tools.hdf5_io.save_to_hdf5.html#tenpy.tools.hdf5_io.save_to_hdf5" title="tenpy.tools.hdf5_io.save_to_hdf5"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_to_hdf5()</span></code></a>, <a class="reference internal" href="../reference/tenpy.tools.hdf5_io.load_from_hdf5.html#tenpy.tools.hdf5_io.load_from_hdf5" title="tenpy.tools.hdf5_io.load_from_hdf5"><code class="xref py py-func docutils literal notranslate"><span class="pre">load_from_hdf5()</span></code></a>.</p>
+<p>The full format specification is given by the what the code does. Since this is not trivial to see, let me summarize it here:</p>
 <ul class="simple">
 <li><p>Following 1), simple scalars, strings and numpy arrays are saved as <a class="reference external" href="https://docs.h5py.org/en/stable/high/dataset.html#Dataset" title="(in h5py v2.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></a>.
 Other objects are saved as a HDF5 <a class="reference external" href="https://docs.h5py.org/en/stable/high/group.html#Group" title="(in h5py v2.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code></a>, with the actual data being saved as group members (as sub-groups and
 sub-datasets) or as attributes (for metadata or simple data).</p></li>
-<li><p>The type of the object is stored in the attribute <code class="docutils literal notranslate"><span class="pre">'type'</span></code>, which is one of the global <code class="docutils literal notranslate"><span class="pre">REPR_*</span></code> variables in
-<a class="reference internal" href="../reference/tenpy.tools.io.html#module-tenpy.tools.io" title="tenpy.tools.io"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tenpy.tools.io</span></code></a>. The type determines the format for saving/loading of builtin types (list, …)</p></li>
-<li><p>Userdefined classes which should be possible to export/import need to implement methods <code class="docutils literal notranslate"><span class="pre">save_hdf5</span></code> and <code class="docutils literal notranslate"><span class="pre">from_hdf5</span></code>
-as specified in <a class="reference internal" href="../reference/tenpy.tools.io.Hdf5Exportable.html#tenpy.tools.io.Hdf5Exportable" title="tenpy.tools.io.Hdf5Exportable"><code class="xref py py-class docutils literal notranslate"><span class="pre">Hdf5Exportable</span></code></a>.
+<li><p>The type of the object is stored in the HDF5 attribute <code class="docutils literal notranslate"><span class="pre">'type'</span></code>, which is one of the global <code class="docutils literal notranslate"><span class="pre">REPR_*</span></code> variables in
+<a class="reference internal" href="../reference/tenpy.tools.hdf5_io.html#module-tenpy.tools.hdf5_io" title="tenpy.tools.hdf5_io"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tenpy.tools.hdf5_io</span></code></a>. The type determines the format for saving/loading of builtin types (list, …)</p></li>
+<li><p>Userdefined classes which should be possible to export/import need to implement the methods <code class="docutils literal notranslate"><span class="pre">save_hdf5</span></code> and <code class="docutils literal notranslate"><span class="pre">from_hdf5</span></code>
+as specified in <a class="reference internal" href="../reference/tenpy.tools.hdf5_io.Hdf5Exportable.html#tenpy.tools.hdf5_io.Hdf5Exportable" title="tenpy.tools.hdf5_io.Hdf5Exportable"><code class="xref py py-class docutils literal notranslate"><span class="pre">Hdf5Exportable</span></code></a>.
 When saving such a class, the attribute <code class="docutils literal notranslate"><span class="pre">'type'</span></code> is automatically set to <code class="docutils literal notranslate"><span class="pre">'instance'</span></code>, and the class name and
 module are saved under the attributes <code class="docutils literal notranslate"><span class="pre">'module'</span></code> and <code class="docutils literal notranslate"><span class="pre">'class'</span></code>. During loading, this information is used to
 automatically import the module, get the class and call the classmethod <code class="docutils literal notranslate"><span class="pre">from_hdf5</span></code> for reconstruction.
 This can only work if the class definition already exists, i.e., you can only save class instances, not classes itself.</p></li>
-<li><p>For most classes, simply subclassing <a class="reference internal" href="../reference/tenpy.tools.io.Hdf5Exportable.html#tenpy.tools.io.Hdf5Exportable" title="tenpy.tools.io.Hdf5Exportable"><code class="xref py py-class docutils literal notranslate"><span class="pre">Hdf5Exportable</span></code></a> should work to make the class exportable.
+<li><p>For most (python) classes, simply subclassing <a class="reference internal" href="../reference/tenpy.tools.hdf5_io.Hdf5Exportable.html#tenpy.tools.hdf5_io.Hdf5Exportable" title="tenpy.tools.hdf5_io.Hdf5Exportable"><code class="xref py py-class docutils literal notranslate"><span class="pre">Hdf5Exportable</span></code></a> should work to make the class exportable.
 The latter saves the contents of <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#object.__dict__" title="(in Python v3.8)"><code class="xref py py-attr docutils literal notranslate"><span class="pre">__dict__</span></code></a>, with the extra attribute <code class="docutils literal notranslate"><span class="pre">'format'</span></code> specifying
 whether the dictionary is “simple” (see below.).</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">None</span></code> object is saved as a group with the attribute <code class="docutils literal notranslate"><span class="pre">'type'</span></code> being <code class="docutils literal notranslate"><span class="pre">'None'</span></code>.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">None</span></code> object is saved as a group with the attribute <code class="docutils literal notranslate"><span class="pre">'type'</span></code> being <code class="docutils literal notranslate"><span class="pre">'None'</span></code> and no subgroups.</p></li>
 <li><p>For iterables (list, tuple and set), we simple enumerate the entries and save entries as group members under the
 names <code class="docutils literal notranslate"><span class="pre">'0',</span> <span class="pre">'1',</span> <span class="pre">'2',</span> <span class="pre">...</span></code>, and a maximum <code class="docutils literal notranslate"><span class="pre">'len'</span></code> attribute.</p></li>
 <li><p>The format for dictionaries depends on whether all keys are “simple”, which we define as being strings which are valid
-python variable names. Following 4), the keys of a simple dictionary are directly used as names for group members (with
-the values being whatever the group member (which is a <a class="reference external" href="https://docs.h5py.org/en/stable/high/dataset.html#Dataset" title="(in h5py v2.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></a> or <a class="reference external" href="https://docs.h5py.org/en/stable/high/group.html#Group" title="(in h5py v2.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code></a>) represents.</p></li>
-<li><p>Partial loading along 5) is possible by directly specifying the subgroup or the path to <a class="reference internal" href="../reference/tenpy.tools.io.load_from_hdf5.html#tenpy.tools.io.load_from_hdf5" title="tenpy.tools.io.load_from_hdf5"><code class="xref py py-func docutils literal notranslate"><span class="pre">load_from_hdf5()</span></code></a>.</p></li>
-<li><p>Guidelines 6) is ensured as much as possible. However, there is a bug/exception:
+path names in HDF5, see <a class="reference internal" href="../reference/tenpy.tools.hdf5_io.valid_hdf5_path_component.html#tenpy.tools.hdf5_io.valid_hdf5_path_component" title="tenpy.tools.hdf5_io.valid_hdf5_path_component"><code class="xref py py-func docutils literal notranslate"><span class="pre">valid_hdf5_path_component()</span></code></a>.
+Following 4), the keys of a simple dictionary are directly used as names for group members,
+and the values being whatever object the group member represents.</p></li>
+<li><p>Partial loading along 5) is possible by directly specifying the subgroup or the path to <a class="reference internal" href="../reference/tenpy.tools.hdf5_io.load_from_hdf5.html#tenpy.tools.hdf5_io.load_from_hdf5" title="tenpy.tools.hdf5_io.load_from_hdf5"><code class="xref py py-func docutils literal notranslate"><span class="pre">load_from_hdf5()</span></code></a>.</p></li>
+<li><p>Guideline 6) is ensured as much as possible. However, there is a bug/exception:
 tuples with cyclic references are not re-constructed correctly; the inner objects will be lists instead of tuples
 (but with the same object entries).</p></li>
 </ul>
-<p>Finally, we have to mention that many TeNPy classes are <a class="reference internal" href="../reference/tenpy.tools.io.Hdf5Exportable.html#tenpy.tools.io.Hdf5Exportable" title="tenpy.tools.io.Hdf5Exportable"><code class="xref py py-class docutils literal notranslate"><span class="pre">Hdf5Exportable</span></code></a>.
+<p>Finally, we have to mention that many TeNPy classes are <a class="reference internal" href="../reference/tenpy.tools.hdf5_io.Hdf5Exportable.html#tenpy.tools.hdf5_io.Hdf5Exportable" title="tenpy.tools.hdf5_io.Hdf5Exportable"><code class="xref py py-class docutils literal notranslate"><span class="pre">Hdf5Exportable</span></code></a>.
 In particular, the <a class="reference internal" href="../reference/tenpy.linalg.np_conserved.Array.html#tenpy.linalg.np_conserved.Array" title="tenpy.linalg.np_conserved.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></a> supports this.
 To see what the exact format for those classes is, look at the <cite>save_hdf5</cite> and <cite>from_hdf5</cite> methods of those classes.</p>
 <div class="admonition note">
@@ -185,6 +192,12 @@ To see what the exact format for those classes is, look at the <cite>save_hdf5</
 The dictionary – with the format for simple keys or general keys – is such an example,
 but userdefined classes can use the same technique in their <cite>from_hdf5</cite> method.
 The user might also explicitly choose a “lossy” output format (e.g. “flat” for np_conserved Arrays and LegCharges).</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The above format specification is quite general and not bound to TeNPy. Feel free to use it in your own projects ;-)
+To separate the development, versions and issues of the format clearly from TeNPy, we maintain the code for it in a separate git repository,
+<a class="reference external" href="https://github.com/tenpy/hdf5_io">https://github.com/tenpy/hdf5_io</a></p>
 </div>
 </div>
 </div>
@@ -277,13 +290,13 @@ The user might also explicitly choose a “lossy” output format (e.g. “flat�
         <li class="right" >
           <a href="JordanWigner.html" title="Fermions and the Jordan-Wigner transformation"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0.dev41+e0e9515 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0.dev64+afd83d5 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="../introductions.html" >Introductions</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2020, TeNPy Developers.
-      Last updated on Jan 16, 2020.
+      Last updated on Feb 06, 2020.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
     </div>
   </body>

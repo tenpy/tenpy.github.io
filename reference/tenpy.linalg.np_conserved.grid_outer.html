@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>grid_outer &#8212; TeNPy 0.5.0.dev41+e0e9515 documentation</title>
+    <title>grid_outer &#8212; TeNPy 0.5.0.dev64+afd83d5 documentation</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
@@ -37,7 +37,7 @@
         <li class="right" >
           <a href="tenpy.linalg.np_conserved.grid_concat.html" title="grid_concat"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0.dev41+e0e9515 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0.dev64+afd83d5 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="tenpy.linalg.html" >linalg</a> &#187;</li>
           <li class="nav-item nav-item-2"><a href="tenpy.linalg.np_conserved.html" accesskey="U">np_conserved</a> &#187;</li> 
       </ul>
@@ -57,7 +57,7 @@
 </ul>
 <dl class="function">
 <dt id="tenpy.linalg.np_conserved.grid_outer">
-<code class="sig-prename descclassname">tenpy.linalg.np_conserved.</code><code class="sig-name descname">grid_outer</code><span class="sig-paren">(</span><em class="sig-param">grid</em>, <em class="sig-param">grid_legs</em>, <em class="sig-param">qtotal=None</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/tenpy/tenpy/blob/master/tenpy/linalg/np_conserved.py#L2906-L2975"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.np_conserved.grid_outer" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">tenpy.linalg.np_conserved.</code><code class="sig-name descname">grid_outer</code><span class="sig-paren">(</span><em class="sig-param">grid</em>, <em class="sig-param">grid_legs</em>, <em class="sig-param">qtotal=None</em>, <em class="sig-param">grid_labels=None</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/tenpy/tenpy/blob/master/tenpy/linalg/np_conserved.py#L2940-L3011"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tenpy.linalg.np_conserved.grid_outer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Given an np.array of npc.Arrays, return the corresponding higher-dimensional Array.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -68,6 +68,7 @@ Entries have to have all the same shape and charge-data, giving the remaining ax
 <li><p><strong>grid_legs</strong> (list of <code class="xref py py-class docutils literal notranslate"><span class="pre">LegCharge</span></code>) – One LegCharge for each dimension of the grid along the grid.</p></li>
 <li><p><strong>qtotal</strong> (<em>charge</em>) – The total charge of the Array.
 By default (<code class="docutils literal notranslate"><span class="pre">None</span></code>), derive it out from a non-trivial entry of the grid.</p></li>
+<li><p><strong>grid_labels</strong> (<em>list of {str | None}</em>) – One label associated to each of the grid axes. <code class="docutils literal notranslate"><span class="pre">None</span></code> for non-named labels.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -89,13 +90,12 @@ the <cite>grid</cite> entry is not trivial (<code class="docutils literal notran
 <div class="admonition-examples admonition">
 <p class="admonition-title">Examples</p>
 <p>A typical use-case for this function is the generation of an MPO.
-Say you have npc.Arrays <code class="docutils literal notranslate"><span class="pre">Splus,</span> <span class="pre">Sminus,</span> <span class="pre">Sz</span></code>, each with legs <code class="docutils literal notranslate"><span class="pre">[phys.conj(),</span> <span class="pre">phys]</span></code>.
+Say you have npc.Arrays <code class="docutils literal notranslate"><span class="pre">Splus,</span> <span class="pre">Sminus,</span> <span class="pre">Sz,</span> <span class="pre">Id</span></code>, each with legs <code class="docutils literal notranslate"><span class="pre">[phys.conj(),</span> <span class="pre">phys]</span></code>.
 Further, you have to define appropriate LegCharges <cite>l_left</cite> and <cite>l_right</cite>.
 Then one ‘matrix’ of the MPO for a nearest neighbour Heisenberg Hamiltonian could look like:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Id</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye_like</span><span class="p">(</span><span class="n">Sz</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">W_mpo</span> <span class="o">=</span> <span class="n">grid_outer</span><span class="p">([[</span><span class="n">Id</span><span class="p">,</span> <span class="n">Splus</span><span class="p">,</span> <span class="n">Sminus</span><span class="p">,</span> <span class="n">Sz</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
-<span class="gp">... </span>                    <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">J</span><span class="o">*</span><span class="n">Sminus</span><span class="p">],</span>
-<span class="gp">... </span>                    <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">J</span><span class="o">*</span><span class="n">Splus</span><span class="p">],</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">W_mpo</span> <span class="o">=</span> <span class="n">grid_outer</span><span class="p">([[</span><span class="n">Id</span><span class="p">,</span> <span class="n">Splus</span><span class="p">,</span> <span class="n">Sminus</span><span class="p">,</span> <span class="n">Sz</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+<span class="gp">... </span>                    <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">J</span><span class="o">*</span><span class="mf">0.5</span><span class="o">*</span><span class="n">Sminus</span><span class="p">],</span>
+<span class="gp">... </span>                    <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">J</span><span class="o">*</span><span class="mf">0.5</span><span class="o">*</span><span class="n">Splus</span><span class="p">],</span>
 <span class="gp">... </span>                    <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">J</span><span class="o">*</span><span class="n">Sz</span><span class="p">],</span>
 <span class="gp">... </span>                    <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Id</span><span class="p">]],</span>
 <span class="gp">... </span>                   <span class="n">leg_charges</span><span class="o">=</span><span class="p">[</span><span class="n">l_left</span><span class="p">,</span> <span class="n">l_right</span><span class="p">])</span>
@@ -210,14 +210,14 @@ Then one ‘matrix’ of the MPO for a nearest neighbour Heisenberg Hamiltonian 
         <li class="right" >
           <a href="tenpy.linalg.np_conserved.grid_concat.html" title="grid_concat"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0.dev41+e0e9515 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">TeNPy 0.5.0.dev64+afd83d5 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="tenpy.linalg.html" >linalg</a> &#187;</li>
           <li class="nav-item nav-item-2"><a href="tenpy.linalg.np_conserved.html" >np_conserved</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2016-2020, TeNPy Developers.
-      Last updated on Jan 16, 2020.
+      Last updated on Feb 06, 2020.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
     </div>
   </body>
